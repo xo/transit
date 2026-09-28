@@ -1,0 +1,10 @@
+# Everything this repository ignores, in one file (dbmeta D58).
+
+# The upstream tree-sitter checkout. It is a reference for the port, and it is
+# never part of this repository. See D4 and docs/UPSTREAM.md.
+/tree-sitter/
+
+# The Claude Code permissions of one person. The shared .claude/settings.json
+# is not ignored, because a setting that belongs to the project is committed.
+# See dbmeta D89.
+.claude/settings.local.json

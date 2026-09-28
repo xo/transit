@@ -1,0 +1,7 @@
+# Every text file is LF on every checkout, including a checkout on Windows.
+#
+# Git for Windows writes CRLF by default. The corpus files of a grammar are
+# compared byte for byte with the output of the parser, so a CR that git adds
+# on checkout makes a test fail. Upstream tree-sitter and every grammar that
+# its tool writes use the same rule. See dbmeta D89 and D110.
+* text=auto eol=lf
