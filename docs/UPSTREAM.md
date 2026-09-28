@@ -67,20 +67,24 @@ to the path is recorded and not ported.
 | `lib/src/unicode/`, `lib/src/portable/` | Review | the decoder in `lexer.go`. The rule for decoding is below |
 | `crates/generate/src`, except `render.rs` | Port | the package `generate` |
 | `crates/generate/src/render.rs` | Port | the C backend (D8). A change here can also change what the Go backend must write, so read the diff for the Go backend too |
-| `crates/generate/src/dsl.js`, `quickjs.rs` | Review | nothing, because the generator reads `grammar.json` (D17). A change of `dsl.js` can change what `grammar.json` holds, and then the parser of `grammar.json` changes |
+| `crates/generate/src/dsl.js`, `crates/generate/src/quickjs.rs` | Review | nothing, because the generator reads `grammar.json` (D17). A change of `dsl.js` can change what `grammar.json` holds, and then the parser of `grammar.json` changes |
 | `crates/highlight`, the code that finds injections and builds their layers | Port | the package `inject` (D27) |
 | `crates/highlight`, the rest | Not applicable | nothing (D7) |
 | `crates/tags` | Not applicable | nothing (D7) |
 | `crates/cli/src/tests`, the tests of the ported parts | Port | the Go tests of each package (D35) |
 | `crates/cli/src/tests`, the tests of highlighting and tags | Not applicable | nothing (D7) |
-| `crates/cli/src/test.rs`, `parse.rs`, `query.rs` | Port | the subcommands `test`, `parse` and `query` of `cmd/transit` (D41) |
+| `crates/cli/src/test.rs`, `crates/cli/src/parse.rs`, `crates/cli/src/query.rs` | Port | the subcommands `test`, `parse` and `query` of `cmd/transit` (D41) |
 | `crates/cli`, other files | Not applicable | nothing |
 | `test/fixtures/test_grammars`, `test/fixtures/fixtures.json` | Port | the test data of the generator, and the list of fixture grammars |
+| `test/fixtures/error_corpus`, `test/fixtures/template_corpus` | Port | the test data of the ported corpus tests |
+| `test/fixtures/rust_wasm_web` | Not applicable | nothing (D1) |
 | `lib/binding_rust/lib.rs`, the evaluation of query predicates | Port | the query code of the root package (D27) |
 | `lib/binding_rust`, the rest | Review | the exported API, if the change adds or changes a method (D25) |
 | `docs/` | Review | the doc comments of the API, if the change says how a function behaves |
 | `lib/binding_web`, `crates/loader`, `crates/xtask`, `crates/config`, `crates/language` | Not applicable | nothing |
 | `.github`, `Cargo.*`, `flake.*`, `build.zig*`, `CMakeLists.txt`, `Makefile` | Not applicable | nothing |
+| any other file in the root of upstream, such as `README.md` | Not applicable | nothing |
+| any other path | Review | a person decides, and adds a row here if the path returns |
 
 A commit that changes paths with different rules takes the strongest rule of
 its paths. Port is stronger than Review, and Review is stronger than Not
@@ -302,10 +306,38 @@ tab:
 | `transit` | the short hash of the transit commit, or empty until Ken commits |
 | `note` | the reason for `not-applicable` or `pending`, or the subject for `ported` |
 
-`pending` means that the commit is known and not ported yet, for example
-because it waits for an answer from Ken. A `pending` commit also has an item in
-[`BACKLOG.md`](BACKLOG.md). A later commit can be ported while an earlier one
-is `pending` only if the two change different files.
+`pending` means that the commit is known and not ported yet. While the base
+commit is frozen, a commit that transit will port waits for phase 6 as
+`pending`, and the ledger is the list of them, with no item in
+[`BACKLOG.md`](BACKLOG.md). After phase 6 starts, a commit that stays `pending`
+for another reason, such as an answer from Ken, also has an item in
+`BACKLOG.md`. A later commit can be ported while an earlier one is `pending`
+only if the two change different files.
+
+`TestTheLedgerIsComplete`, in `upstream_test.go`, makes sure of the form of
+the ledger. When the checkout in `tree-sitter/` is there, it also compares the
+ledger with the history of upstream, and it fails when a commit is missing.
+To add the new commits, fetch upstream and run:
+
+```bash
+git -C tree-sitter fetch origin
+go test -run TestTheLedgerIsComplete -update .
+```
+
+The test sorts each new commit by the table in "Where each upstream path
+goes", and writes one of three notes:
+
+1. `not-applicable`, with a note that names the paths, when no path is
+   ported or reviewed.
+2. `pending`, with the note `port in phase 6:` and the paths, when a path is
+   ported.
+3. `pending`, with the note `review:` and the paths, when a path needs a
+   person to decide.
+
+Read each commit whose note starts with `review:`, and change its line to
+`not-applicable` with the reason, or to `port in phase 6:`. The rules are in
+the Go variable `pathRules`, and `TestThePathRulesFollowUpstreamMD` makes sure
+that each rule is in the table above.
 
 A test will make sure that the ledger has one line for each commit from the
 base commit to `upstream.txt`, in order, with no gap and no line twice.

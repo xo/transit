@@ -15,7 +15,7 @@ agent and the date, and deletes the claim when Ken commits the unit (D50).
 
 | Unit | Agent | Date |
 | --- | --- | --- |
-| Phase 1, unit 1: the tests of the agent setup and the documents, CI and the lint configuration (D54) | transit | 2026-09-29 |
+| Phase 1, unit 2: the ledger of upstream commits and its test (D30, D54) | transit | 2026-09-29 |
 
 ## The setup of the repository
 
@@ -32,9 +32,8 @@ that fails when the script changes a file (D49).
 [`UPSTREAM.md`](UPSTREAM.md) and [`GRAMMAR.md`](GRAMMAR.md) name tests that
 hold their rules:
 
-1. The ledger has one line for each upstream commit, with no gap (D30).
-2. Each folder in `grammars/` has an entry in `grammars/grammars.json`, and
+1. Each folder in `grammars/` has an entry in `grammars/grammars.json`, and
    each entry has a folder.
-3. The test data of the generator names the commit that transit ports.
-4. Each ported function has a doc comment that names its C function or its
+2. The test data of the generator names the commit that transit ports.
+3. Each ported function has a doc comment that names its C function or its
    Rust function.

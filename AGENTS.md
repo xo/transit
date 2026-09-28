@@ -140,6 +140,7 @@ these files:
 | `go.mod` | the module `github.com/xo/transit` |
 | `doc.go` | the comment of the root package, which will hold the runtime |
 | `skills_test.go`, `docs_test.go` | the tests of the agent setup and the documents |
+| `upstream_test.go`, `docs/upstream/ledger.tsv` | the ledger of upstream commits and its test (D30) |
 | `.github/workflows/test.yml`, `.golangci.yml` | CI and the lint configuration (D36) |
 | `skills-lock.json`, `.agents/skills/`, `.claude/skills/` | the agent skills |
 | `docs/` | the plan, the rules, the grammar set, the references for rline and usql, the backlog and the decisions |
