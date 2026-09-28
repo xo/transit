@@ -4,7 +4,7 @@ This document is for a coding agent that works in
 [usql](https://github.com/xo/usql). It says what transit will give usql for
 tab completion and for highlighting, what is decided, and what is still open.
 
-On 2026-09-29 transit holds no code. Nothing here is an API yet. The target
+On 2026-09-29 transit holds no parser yet. Nothing here is an API yet. The target
 API comes from a working C example in phase 1 of [`PLAN.md`](PLAN.md) (D10).
 When it exists, this document will name each identifier that usql uses.
 

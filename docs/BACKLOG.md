@@ -11,43 +11,15 @@ questions for Ken. When an item here is done, delete it, and record in
 ## Units in progress
 
 An agent claims a unit of port work here before it starts, with the unit, the
-agent and the date, and deletes the claim when Ken commits the unit (D50). No
-unit is claimed on 2026-09-29, because no code is written yet (D3).
+agent and the date, and deletes the claim when Ken commits the unit (D50).
+
+| Unit | Agent | Date |
+| --- | --- | --- |
+| Phase 1, unit 1: the tests of the agent setup and the documents, CI and the lint configuration (D54) | transit | 2026-09-29 |
 
 ## The setup of the repository
 
-These items wait for Ken to say that the plan is ready, because each one is
-code (D3).
-
-### Add the tests of the agent setup and the documents
-
-Every other `xo` repository has `skills_test.go` and `docs_test.go` (dbmeta
-D110). Copy them from dbmeta or resvg, and change them for the layout here.
-They make sure of these facts:
-
-1. Each skill is an ordinary folder in `.agents/skills` and in
-   `.claude/skills`, and the two copies are the same (`TestSkillsAreCopies`).
-2. `CLAUDE.md` holds `@AGENTS.md` and nothing else
-   (`TestClaudeImportsAgents`).
-3. The root holds only `README.md`, `AGENTS.md`, `CLAUDE.md` and
-   `CONTRIBUTING.md` as Markdown files (`TestTheRootHoldsFourDocuments`).
-4. Every document in `docs/` is in the table of `AGENTS.md` and in the list of
-   `README.md` (`TestEveryDocumentIsInBothTables`).
-5. Every row of `docs/decisions/README.md` matches its file, and every file
-   has a row (`TestTheDecisionIndexIsComplete`).
-6. An amendment names the decision that it amends, and that decision names it
-   back (`TestAnAmendmentPointsBothWays`).
-7. Every bare decision number, such as D3, names a decision that exists
-   (`TestEveryDecisionReferenceExists`).
-
-The repository has no Go package yet, and `go test ./...` fails on a module
-that has no package. These tests are the first package.
-
-### Add CI and the lint configuration
-
-Add `.github/workflows/test.yml` and `.golangci.yml` with the first Go
-package. The workflow also runs the test module in `test/`, which needs a C
-compiler (D12). D36 holds the details.
+These items come in phase 1 and later, as the plan says.
 
 ### Add the script that writes the replace blocks
 

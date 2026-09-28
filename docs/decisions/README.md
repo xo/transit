@@ -72,3 +72,4 @@ An open question is not a decision. It goes at the end of
 | [D51](D051-a-grammar-is-pinned-by-its-commit.md) | A grammar is pinned by its commit | Decided |
 | [D52](D052-the-concurrency-guarantees-follow-upstream.md) | The concurrency guarantees follow upstream, in Go terms | Decided |
 | [D53](D053-examples-and-two-sample-programs.md) | Examples, and two sample programs | Decided |
+| [D54](D054-the-plan-is-ready-and-phase-1-starts.md) | The plan is ready, and phase 1 starts | Decided |

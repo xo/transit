@@ -5,7 +5,7 @@ This document holds the plan for `github.com/xo/transit`. The decisions are in
 
 This plan was written on 2026-09-29, before any code existed (D3). Ken
 answered every open question on that date, and each answer is a decision, D1
-to D53. A part of this plan that names a decision follows it. A new question
+to D54. A part of this plan that names a decision follows it. A new question
 goes at the end of this document until Ken answers it.
 
 These documents hold the rules and the references that come from this plan:
@@ -615,8 +615,8 @@ in `BACKLOG.md`, and one staged change covers one unit (D50).
 
 ### Phase 0. The plan and the rules
 
-This phase is now. It writes this plan, the rules, the references and the
-decisions. It ends when Ken says that the plan is ready (D3).
+This phase wrote this plan, the rules, the references and the decisions. It
+ended on 2026-09-29, when Ken said that the plan is ready (D54).
 
 ### Phase 1. The working C example, the target API and the golden harness
 
@@ -883,5 +883,5 @@ An open question stays here until Ken answers it. Then it becomes a decision
 in [`decisions/`](decisions/README.md), and it is deleted from this list.
 
 No question is open. Ken answered the last ones on 2026-09-29, and D24 to D53
-record the answers. The next question is question 53. Raise a new question
+record the answers, and D54 starts phase 1. The next question is question 53. Raise a new question
 here rather than deciding one alone.

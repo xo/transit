@@ -13,8 +13,8 @@ Read three things before you change anything:
 Do not decide an open question on your own. Add it to the end of
 `docs/PLAN.md`, and ask Ken.
 
-transit holds no code yet, and no code is written until Ken says that the plan
-is ready (D3).
+transit is in phase 1 of its plan (D54). Code follows the plan and the
+decisions.
 
 ## The upstream checkout
 
@@ -62,5 +62,5 @@ person. The root `.gitignore` ignores it.
 
 ## Before you send a change
 
-Stage the change for review. Ken commits. [`AGENTS.md`](AGENTS.md), under
-"Before you stage", says what to run.
+Run the commands under "Before you stage" in [`AGENTS.md`](AGENTS.md). Then
+stage the change for review. Ken commits.

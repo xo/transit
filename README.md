@@ -16,9 +16,9 @@ the Go toolchain and nothing else.
 
 ## Status
 
-transit holds no code yet. The plan comes first, and the code starts when the
-plan is ready. [docs/PLAN.md](docs/PLAN.md) holds the plan. Ken answered
-every open question on 2026-09-29, and the decisions record the answers.
+transit is in phase 1 of its plan (D54). It holds no parser yet.
+[docs/PLAN.md](docs/PLAN.md) holds the plan, and the decisions record every
+answer that shapes it.
 
 ## Documents
 

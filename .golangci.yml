@@ -1,0 +1,106 @@
+# Lint configuration for the root module (D36).
+#
+# The posture is the one of dburl: every linter is on, and a linter that makes
+# idiomatic Go worse is turned off here, with the reason beside it. Only a real
+# fault gets a change in the code. A change made only to quiet a linter leaves
+# code that no reader can explain.
+#
+# The version of golangci-lint in CI is pinned, because `default: all` turns on
+# each new linter that a release adds.
+version: "2"
+
+run:
+  modules-download-mode: readonly
+
+linters:
+  default: all
+  disable:
+    # Complexity metrics count a long table or a long switch as complex code.
+    # The port follows the shape of the upstream functions (D24).
+    - cyclop
+    - funlen
+    - gocognit
+    - gocyclo
+    - maintidx
+    - nestif
+    # Style opinions that argue with gofmt or with plain code.
+    - lll
+    - nlreturn
+    - varnamelen
+    - wsl
+    - wsl_v5
+    - mnd
+    - nilnil
+    - noinlineerr
+    - nonamedreturns
+    # exhaustruct wants every field of every literal named, which buries the
+    # field that matters.
+    - exhaustruct
+    - exhaustruct_v5
+    # err113 and wrapcheck want every error wrapped. The errors of transit are
+    # constants of a string type, as in the other xo repositories (D24).
+    - err113
+    - wrapcheck
+    # The tests of the documents read the repository, and some tests share
+    # state with a parser on purpose.
+    - paralleltest
+    - testpackage
+    # A package level table is how the port holds the tables of upstream.
+    - gochecknoglobals
+    - gochecknoinits
+    # prealloc rewrites readable loops for a gain that nothing measured.
+    - prealloc
+    # depguard holds the rule on dependencies, so gomodguard would hold it
+    # twice.
+    - gomodguard
+    - gomodguard_v2
+  settings:
+    # D11: the root module imports only the standard library.
+    depguard:
+      rules:
+        main:
+          list-mode: strict
+          allow:
+            - $gostd
+            - github.com/xo/transit
+    errorlint:
+      errorf: true
+      asserts: true
+      comparison: true
+    revive:
+      rules:
+        - name: context-as-argument
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: exported
+        - name: indent-error-flow
+        - name: package-comments
+        - name: receiver-naming
+        - name: var-naming
+  exclusions:
+    paths:
+      # the upstream checkout (D4)
+      - tree-sitter
+      # Ken's sample, which is C
+      - _samples
+    rules:
+      # A test reads the files of the repository by name. It is not the attack
+      # surface that gosec looks for, and a file name repeated in a test reads
+      # better than a constant.
+      - path: _test\.go
+        linters:
+          - gosec
+          - goconst
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/xo/transit
+  exclusions:
+    paths:
+      - tree-sitter

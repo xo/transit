@@ -12,9 +12,9 @@ completes from the context at the cursor (D6). transit gives parsing
 information only. It does not import either of them, and they take their
 design from transit.
 
-On 2026-09-29 the repository holds no code. It holds the plan, the rules for
-adding a grammar, the rules for following upstream, and the decisions. No code
-is written until Ken says that the plan is ready (D3).
+Ken said on 2026-09-29 that the plan is ready, and phase 1 started (D54). The
+repository holds the plan, the rules, the decisions, and the first Go package,
+which holds the tests of the agent setup and the documents.
 
 [ts]: https://github.com/tree-sitter/tree-sitter
 
@@ -68,8 +68,8 @@ to 52 are answered, and the next question is question 53.
 
 ## Hard rules
 
-1. Do not write code until Ken says that the plan is ready (D3). Code is Go
-   source, Go tests, scripts and the CI workflow.
+1. Code follows the plan and the decisions (D3, D54). A change to the plan is a
+   decision first. If the plan does not say how to do something, ask Ken.
 2. The module that a user imports is pure Go. It does not use cgo, it does not
    link a C library and it does not run WebAssembly (D1). Only the test module
    in `test/`, which has its own `go.mod`, can use cgo (D12).
@@ -138,6 +138,9 @@ these files:
 | `README.md`, `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md` | the four documents in the root |
 | `LICENSE` | the MIT license, with the copyright line of upstream |
 | `go.mod` | the module `github.com/xo/transit` |
+| `doc.go` | the comment of the root package, which will hold the runtime |
+| `skills_test.go`, `docs_test.go` | the tests of the agent setup and the documents |
+| `.github/workflows/test.yml`, `.golangci.yml` | CI and the lint configuration (D36) |
 | `skills-lock.json`, `.agents/skills/`, `.claude/skills/` | the agent skills |
 | `docs/` | the plan, the rules, the grammar set, the references for rline and usql, the backlog and the decisions |
 | `_samples/sample.c` | Ken's first sample of a C program that uses a grammar, the start of the working C example (D10) |
@@ -159,13 +162,18 @@ Before you stage a change to a document, make sure of these facts:
 2. A new document is in the table of this file and in the list of `README.md`.
 3. A new decision has a row in `docs/decisions/README.md`.
 
-The Go commands to run before you stage come with the first Go package. They
-will be the same as in the other `xo` repositories:
+Before you stage a change to Go code, run these commands in the root of the
+repository. All of them must pass:
 
 ```sh
-gofmt -l . && go vet ./... && go test -race -count=1 ./...
+test -z "$(gofmt -l $(git ls-files '*.go'))"
+go vet ./...
+go test -race -count=1 ./...
 golangci-lint run ./...
 ```
+
+The first command runs `gofmt` only on the files that git tracks, because
+`tree-sitter/` holds Go files of upstream.
 
 ## Writing documentation
 
