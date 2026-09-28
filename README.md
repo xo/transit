@@ -27,6 +27,7 @@ answer that shapes it.
 | [docs/PLAN.md](docs/PLAN.md) | the plan, the testing plan, the phases and any open question |
 | [docs/GRAMMAR.md](docs/GRAMMAR.md) | the rules for adding a grammar and porting its scanner |
 | [docs/CANDIDATES.md](docs/CANDIDATES.md) | the set of grammars that Ken accepted, and how it was measured |
+| [docs/API.md](docs/API.md) | the target Go API, from the working C example |
 | [docs/UPSTREAM.md](docs/UPSTREAM.md) | the rules for porting upstream tree-sitter and each change that it makes |
 | [docs/RLINE.md](docs/RLINE.md) | what rline gets from transit, for the coding agents that work in rline |
 | [docs/USQL.md](docs/USQL.md) | what usql gets from transit, for the coding agents that work in usql |

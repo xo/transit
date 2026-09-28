@@ -15,7 +15,7 @@ agent and the date, and deletes the claim when Ken commits the unit (D50).
 
 | Unit | Agent | Date |
 | --- | --- | --- |
-| Phase 1, unit 2: the ledger of upstream commits and its test (D30, D54) | transit | 2026-09-29 |
+| Phase 1, unit 4: the working C example and the target API (D10, D54) | transit | 2026-09-29 |
 
 ## The setup of the repository
 

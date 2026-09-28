@@ -73,3 +73,6 @@ An open question is not a decision. It goes at the end of
 | [D52](D052-the-concurrency-guarantees-follow-upstream.md) | The concurrency guarantees follow upstream, in Go terms | Decided |
 | [D53](D053-examples-and-two-sample-programs.md) | Examples, and two sample programs | Decided |
 | [D54](D054-the-plan-is-ready-and-phase-1-starts.md) | The plan is ready, and phase 1 starts | Decided |
+| [D55](D055-transit-adds-the-lua-match-predicate.md) | transit adds the #lua-match? predicate | Decided |
+| [D56](D056-a-node-lookup-returns-a-bool.md) | A node lookup returns the node and a bool | Decided |
+| [D57](D057-statesat-is-the-first-api-that-upstream-lacks.md) | StatesAt is the first API that upstream does not have | Decided |

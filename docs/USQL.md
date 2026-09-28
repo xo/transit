@@ -4,9 +4,9 @@ This document is for a coding agent that works in
 [usql](https://github.com/xo/usql). It says what transit will give usql for
 tab completion and for highlighting, what is decided, and what is still open.
 
-On 2026-09-29 transit holds no parser yet. Nothing here is an API yet. The target
-API comes from a working C example in phase 1 of [`PLAN.md`](PLAN.md) (D10).
-When it exists, this document will name each identifier that usql uses.
+On 2026-09-29 transit holds no parser yet. [`API.md`](API.md) holds the target
+API, which came from the working C example of phase 1 (D10). This document
+names the parts that usql uses.
 
 ## The direction
 
@@ -79,6 +79,14 @@ This is the plan, not an API. The names can change in phase 1.
    does not need a splitter of its own.
 5. A sample program in `_example/` of transit completes at a cursor as usql
    will, in phase 5 (D53).
+6. The C example found that `Node.NextParseState` gives state 0 for a token
+   that the parser lexed before a reduce, such as `FROM` in
+   `SELECT id FROM u`. The state after such a token comes from the state of
+   its parent or of the sibling before it. `API.md` gives both methods, and
+   `StatesAt` replaces them (D57).
+7. The generic SQL grammar parses `SELECT id, FROM users` with no error. It
+   reads `FROM` as a column. usql cannot find every mistake from `ERROR`
+   nodes.
 
 ## Dialects
 

@@ -42,6 +42,7 @@ every other agent read the same rules. Edit this file, not `CLAUDE.md`.
 | adding a grammar, updating one, or porting a scanner | [docs/GRAMMAR.md](docs/GRAMMAR.md) |
 | choosing which grammars are in the set | [docs/CANDIDATES.md](docs/CANDIDATES.md) |
 | porting upstream code or an upstream change | [docs/UPSTREAM.md](docs/UPSTREAM.md) |
+| designing or changing the exported API | [docs/API.md](docs/API.md), then D24 and D25 |
 | working on what rline gets from transit | [docs/RLINE.md](docs/RLINE.md) |
 | working on what usql gets from transit | [docs/USQL.md](docs/USQL.md) |
 | looking for work that is known and not done | [docs/BACKLOG.md](docs/BACKLOG.md) |
@@ -64,7 +65,7 @@ A bare number, such as D3, names a decision of this repository, in
 `docs/decisions/`. A decision of another repository names that repository,
 such as dbmeta D110. An open question has a number, and it is at the end of
 `docs/PLAN.md` until Ken answers it. The numbers do not repeat: questions 1
-to 52 are answered, and the next question is question 53.
+to 55 are answered, and the next question is question 56.
 
 ## Hard rules
 
@@ -145,6 +146,7 @@ these files:
 | `skills-lock.json`, `.agents/skills/`, `.claude/skills/` | the agent skills |
 | `docs/` | the plan, the rules, the grammar set, the references for rline and usql, the backlog and the decisions |
 | `_samples/sample.c` | Ken's first sample of a C program that uses a grammar, the start of the working C example (D10) |
+| `_samples/example/` | the working C example and its build script (D10) |
 | `tree-sitter/` | the upstream checkout, which git ignores |
 
 ## Before you stage

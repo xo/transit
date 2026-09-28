@@ -4,9 +4,9 @@ This document is for a coding agent that works in
 [rline](https://github.com/xo/rline). It says what transit will give rline
 for syntax highlighting, what is decided, and what is still open.
 
-On 2026-09-29 transit holds no parser yet. Nothing here is an API yet. The target
-API comes from a working C example in phase 1 of [`PLAN.md`](PLAN.md) (D10).
-When it exists, this document will name each identifier that rline uses.
+On 2026-09-29 transit holds no parser yet. [`API.md`](API.md) holds the target
+API, which came from the working C example of phase 1 (D10). This document
+names the parts that rline uses.
 
 ## The direction
 
@@ -72,6 +72,13 @@ This is the plan, not an API. The names can change in phase 1.
    goroutine at a time (D52). The target API of phase 1 will say how.
 8. A sample program in `_example/` of transit highlights a SQL statement as
    rline will, in phase 5 (D53).
+9. The C example measured the cost of one key: edit, parse again, changed
+   ranges and highlight took 12.2 µs on average in C, for the SQL grammar. A
+   query took 6.7 ms to compile, so rline compiles each query once.
+10. A query of a grammar can hold patterns written for Neovim, such as the
+    Lua pattern `%d` in `#match?`. Under the rules of the Rust binding they do
+    not match. transit adds `#lua-match?` for queries written for Neovim
+    (D55).
 
 ## What rline must not do
 

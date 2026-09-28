@@ -5,7 +5,7 @@ This document holds the plan for `github.com/xo/transit`. The decisions are in
 
 This plan was written on 2026-09-29, before any code existed (D3). Ken
 answered every open question on that date, and each answer is a decision, D1
-to D54. A part of this plan that names a decision follows it. A new question
+to D57. A part of this plan that names a decision follows it. A new question
 goes at the end of this document until Ken answers it.
 
 These documents hold the rules and the references that come from this plan:
@@ -15,6 +15,8 @@ These documents hold the rules and the references that come from this plan:
   upstream change is ported after that.
 - [`CANDIDATES.md`](CANDIDATES.md) holds the set of grammars that tests the
   generator and the runtime (D16, D18).
+- [`API.md`](API.md) holds the target Go API, from the working C example
+  (D10).
 - [`RLINE.md`](RLINE.md) and [`USQL.md`](USQL.md) are for the coding agents
   that work in rline and in usql.
 
@@ -882,6 +884,8 @@ Gemini and DeepSeek reviewed the plan a last time on 2026-09-29, after D44.
 An open question stays here until Ken answers it. Then it becomes a decision
 in [`decisions/`](decisions/README.md), and it is deleted from this list.
 
-No question is open. Ken answered the last ones on 2026-09-29, and D24 to D53
-record the answers, and D54 starts phase 1. The next question is question 53. Raise a new question
-here rather than deciding one alone.
+Ken answered the questions of phase 0 on 2026-09-29, and D24 to D53
+record the answers, and D54 starts phase 1. The working C example of phase 1
+raised questions 53 to 55, and D55 to D57 record the answers. No question is
+open. The next question is question 56. Raise a new question here rather than
+deciding one alone.
