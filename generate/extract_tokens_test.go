@@ -6,12 +6,6 @@ import (
 	"testing"
 )
 
-// The tests of extract_tokens.rs call expand_and_commit, which comes with
-// expand_tokens.rs. Each test below makes the checks that do not need it:
-// the pending tokens, the variables that stay, and the metadata. The checks
-// of the rewritten rules and of the lexical grammar come with
-// expand_and_commit.
-
 // TestExtraction is test_extraction in extract_tokens.rs.
 func TestExtraction(t *testing.T) {
 	t.Parallel()
@@ -55,15 +49,39 @@ func TestExtraction(t *testing.T) {
 		}
 	}
 
+	ext, lexicalGrammar := commitForTest(t, pending)
+
 	// rule_1 became a token, and rule_0, rule_2 and rule_3 stay
 	expectVariableNames(t, g, []string{"rule_0", "rule_2", "rule_3"})
-	if expected := []VariableType{VariableNamed, VariableNamed, VariableNamed}; !slices.Equal(pending.meta.kinds, expected) {
-		t.Errorf("expected kinds %v, got: %v", expected, pending.meta.kinds)
+	if expected := []VariableType{VariableNamed, VariableNamed, VariableNamed}; !slices.Equal(ext.kinds, expected) {
+		t.Errorf("expected kinds %v, got: %v", expected, ext.kinds)
 	}
+
+	// rule_0: repeat(seq(terminal(0), terminal(1), choice(terminal(3), non_terminal(1), terminal(2))))
+	//  - Its leaves became terminals: "a" is t0, "b" is t1, and token(...)
+	//    is t2.
+	//  - Its references changed: rule_1 became a token, t3, and the index of
+	//    rule_2 went down to 1, because rule_1 left.
+	expectSubtree(t, p, g.Variables[0].Root, p.Repeat(p.Seq([]RuleID{
+		term(p, 0),
+		term(p, 1),
+		p.Choice([]RuleID{term(p, 3), nonTerm(p, 1), term(p, 2)}),
+	})))
+
+	// rule_2 is /b/, which is terminal(1). It does not become a token,
+	// because /b/ is in two places, rule_0 and rule_2, so its terminal is
+	// used more than once.
+	if n := g.Pool.Node(g.Variables[1].Root); n != (Rule{Kind: RuleSym, Sym: TerminalSymbol(1)}) {
+		t.Errorf("expected terminal 1, got: %v", n)
+	}
+
+	// rule_3: seq(non_terminal(1), blank), with the index of rule_2 down
+	// after rule_1 left
+	expectSubtree(t, p, g.Variables[2].Root, p.Seq([]RuleID{nonTerm(p, 1), p.Blank()}))
 
 	// /e/ is used in one place only, the whole body of rule_1, so rule_1
 	// became a token and gave its name to it
-	expectTokens(t, g.Pool, pending.lexicalVariables, []tokenNameKind{
+	expectLexicalVariables(t, g.Pool, lexicalGrammar, []tokenNameKind{
 		{"a", VariableAnonymous},
 		{"rule_0_token1", VariableAuxiliary},
 		{"rule_0_token2", VariableAuxiliary},
@@ -84,8 +102,13 @@ func TestStartRuleIsToken(t *testing.T) {
 	if !g.Pool.SubtreeEqual(pending.lexicalVariables[0].Root, str(g.Pool, "hello")) {
 		t.Error("expected the token body to be the original body")
 	}
+
+	_, lexicalGrammar := commitForTest(t, pending)
 	expectVariableNames(t, g, []string{"rule_0"})
-	expectTokens(t, g.Pool, pending.lexicalVariables, []tokenNameKind{{"hello", VariableAnonymous}})
+	if n := g.Pool.Node(g.Variables[0].Root); n != (Rule{Kind: RuleSym, Sym: TerminalSymbol(0)}) {
+		t.Errorf("expected terminal 0, got: %v", n)
+	}
+	expectLexicalVariables(t, g.Pool, lexicalGrammar, []tokenNameKind{{"hello", VariableAnonymous}})
 }
 
 // TestExtractingExtraSymbols is test_extracting_extra_symbols in
@@ -115,8 +138,9 @@ func TestExtractingExtraSymbols(t *testing.T) {
 	if !g.Pool.SubtreeEqual(pending.separatorRoots[0], str(g.Pool, " ")) {
 		t.Error(`expected the separator to be " "`)
 	}
-	if !slices.Equal(pending.meta.extraSymbols, []Symbol{TerminalSymbol(1)}) {
-		t.Errorf("expected the extra symbols [t1], got: %v", pending.meta.extraSymbols)
+	ext, _ := commitForTest(t, pending)
+	if !slices.Equal(ext.extraSymbols, []Symbol{TerminalSymbol(1)}) {
+		t.Errorf("expected the extra symbols [t1], got: %v", ext.extraSymbols)
 	}
 }
 
@@ -139,7 +163,7 @@ func TestExtractExternals(t *testing.T) {
 	})
 	external0, a, rule2 := pool.Intern("external_0"), pool.Intern("a"), pool.Intern("rule_2")
 	g.ExternalRoots = []RuleID{e0, ea, er2}
-	pending := extractPending(t, g)
+	ext, _ := commitForTest(t, extractPending(t, g))
 
 	expected := []ExternalToken{
 		// a real external token, with no internal token
@@ -149,8 +173,8 @@ func TestExtractExternals(t *testing.T) {
 		// rule_2 shadows a variable that became terminal 2
 		{Name: rule2, Kind: VariableNamed, CorrespondingInternalToken: TerminalSymbol(2), HasCorrespondingInternalToken: true},
 	}
-	if !slices.Equal(pending.meta.externalTokens, expected) {
-		t.Errorf("expected %v, got: %v", expected, pending.meta.externalTokens)
+	if !slices.Equal(ext.externalTokens, expected) {
+		t.Errorf("expected %v, got: %v", expected, ext.externalTokens)
 	}
 }
 
@@ -197,11 +221,18 @@ func TestExtractionOnHiddenTerminal(t *testing.T) {
 	if !g.Pool.SubtreeEqual(pending.lexicalVariables[0].Root, str(g.Pool, "a")) {
 		t.Error("expected the token body to be the original body")
 	}
+	ext, lexicalGrammar := commitForTest(t, pending)
 	expectVariableNames(t, g, []string{"rule_0", "_rule_1"})
-	if expected := []VariableType{VariableNamed, VariableHidden}; !slices.Equal(pending.meta.kinds, expected) {
-		t.Errorf("expected kinds %v, got: %v", expected, pending.meta.kinds)
+	if expected := []VariableType{VariableNamed, VariableHidden}; !slices.Equal(ext.kinds, expected) {
+		t.Errorf("expected kinds %v, got: %v", expected, ext.kinds)
 	}
-	expectTokens(t, g.Pool, pending.lexicalVariables, []tokenNameKind{{"a", VariableAnonymous}})
+	if n := g.Pool.Node(g.Variables[0].Root); n != nt(1) {
+		t.Errorf("expected %v, got: %v", nt(1), n)
+	}
+	if n := g.Pool.Node(g.Variables[1].Root); n != (Rule{Kind: RuleSym, Sym: TerminalSymbol(0)}) {
+		t.Errorf("expected terminal 0, got: %v", n)
+	}
+	expectLexicalVariables(t, g.Pool, lexicalGrammar, []tokenNameKind{{"a", VariableAnonymous}})
 }
 
 // TestExtractionWithEmptyString is test_extraction_with_empty_string in
@@ -268,23 +299,34 @@ func extractPending(t *testing.T, g *InputGrammar) *pendingTokenExtraction {
 	return pending
 }
 
-// tokenNameKind is the name and the kind of a token.
-type tokenNameKind struct {
-	name string
-	kind VariableType
+// commitForTest expands and commits a pending extraction, and fails the test
+// on an error.
+func commitForTest(t *testing.T, pending *pendingTokenExtraction) (*extractedGrammarMeta, *LexicalGrammar) {
+	t.Helper()
+	ext, lexicalGrammar, err := pending.expandAndCommit()
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	return ext, lexicalGrammar
 }
 
-// expectTokens fails the test unless the tokens have the expected names and
-// kinds.
-func expectTokens(t *testing.T, pool *RulePool, tokens []LexicalToken, expected []tokenNameKind) {
+// expectLexicalVariables fails the test unless the tokens of a lexical
+// grammar have the expected names and kinds.
+func expectLexicalVariables(t *testing.T, pool *RulePool, g *LexicalGrammar, expected []tokenNameKind) {
 	t.Helper()
-	actual := make([]tokenNameKind, 0, len(tokens))
-	for _, tok := range tokens {
-		actual = append(actual, tokenNameKind{pool.Resolve(tok.Name), tok.Kind})
+	actual := make([]tokenNameKind, 0, len(g.Variables))
+	for _, v := range g.Variables {
+		actual = append(actual, tokenNameKind{pool.Resolve(v.Name), v.Kind})
 	}
 	if !slices.Equal(actual, expected) {
 		t.Errorf("expected tokens %v, got: %v", expected, actual)
 	}
+}
+
+// tokenNameKind is the name and the kind of a token.
+type tokenNameKind struct {
+	name string
+	kind VariableType
 }
 
 // expectVariableNames fails the test unless the variables of a grammar have

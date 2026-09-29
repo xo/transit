@@ -197,8 +197,16 @@ keys in the same order.
 The generator reads a pattern with a port of the Rust crate `regex-syntax`,
 and it uses the Unicode tables of that port for every output (D59, D60).
 Upstream pins the version of the crate in its `Cargo.toml` and `Cargo.lock`.
-When upstream moves to a new version, port the changes of the crate between
-the two versions, with its tables, in the same way as a change of upstream.
+When upstream moves to a new version, follow these steps:
+
+1. Port the changes of the crate between the two versions to the packages
+   `ast` and `hir` in `generate/internal/regexsyntax`, in the same way as a
+   change of upstream.
+2. Fetch the new version of the crate with `cargo fetch` in the upstream
+   checkout. Cargo keeps its source under `~/.cargo/registry/src`.
+3. Write the tables again with `cd test && go run ./cmd/regextables -version
+   <version>`. The command writes the package `unicodetables`, and its test
+   compares the files with the crate.
 
 ## Porting an upstream change
 

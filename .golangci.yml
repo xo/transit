@@ -61,6 +61,10 @@ linters:
     # and one that takes &mut self a method with a pointer receiver. That mix
     # is the translation, and recvcheck reports it.
     - recvcheck
+    # A Rust enum with data, such as the Ast of regex-syntax, becomes an
+    # interface with one struct type for each variant. A function that
+    # returns the enum returns the interface, and ireturn reports it.
+    - ireturn
     # depguard holds the rule on dependencies, so gomodguard would hold it
     # twice.
     - gomodguard
@@ -112,12 +116,30 @@ linters:
         linters:
           - gosec
           - goconst
+          # A ported test keeps the shape of the upstream test, and upstream
+          # has pairs of tests of the same shape.
+          - dupl
       # The golden harness runs the upstream tool, reads the files that it
       # writes, and writes files of the repository with the modes of any
       # checkout (D58). That is what gosec warns about, and it is the job.
       - path: test/cmd/
         linters:
           - gosec
+      # The Visitor of the port of regex-syntax has the 11 methods of the Rust
+      # trait ast::Visitor.
+      - path: generate/internal/regexsyntax/ast/visitor\.go
+        linters:
+          - interfacebloat
+      # A ported test uses the text of the upstream test, such as a capture
+      # name in Han characters, which gosmopolitan reports, or an input of a
+      # fuzzer with repeated words, which dupword reports. A helper of a
+      # ported test keeps the parameters of upstream, which unparam reports
+      # when every call passes the same value.
+      - path: generate/internal/regexsyntax/.*_test\.go
+        linters:
+          - dupword
+          - gosmopolitan
+          - unparam
 
 formatters:
   enable:

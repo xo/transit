@@ -88,6 +88,10 @@ to 57 are answered, question 58 is open, and the next question is question 59.
 7. Do not edit a file that the generator writes, or a file that is copied from
    a grammar repository. [docs/GRAMMAR.md](docs/GRAMMAR.md) says which files
    these are. The code that the Go backend writes is idiomatic Go too (D24).
+   The same rule holds for the Unicode tables in
+   `generate/internal/regexsyntax/unicodetables`, which `test/cmd/regextables`
+   writes, and for the license files that it copies from `regex-syntax` (D59,
+   D60). To change a table, run that command again.
 8. Do not add a Go package from outside this repository without Ken's
    approval, and that includes a package that only a test imports (D15). Ken
    approved chroma for the module `github.com/xo/transit/chromastyles` only,
@@ -147,8 +151,9 @@ these files:
 | `docs/` | the plan, the rules, the grammar set, the references for rline and usql, the backlog and the decisions |
 | `_samples/sample.c` | Ken's first sample of a C program that uses a grammar, the start of the working C example (D10) |
 | `_samples/example/` | the working C example and its build script (D10) |
-| `test/` | the test module, with its own `go.mod` (D12). `test/cmd/golden` is the golden harness (D58) |
+| `test/` | the test module, with its own `go.mod` (D12). `test/cmd/golden` is the golden harness (D58), and `test/cmd/regextables` writes the Unicode tables of the port of `regex-syntax` (D60) |
 | `generate/` | the generator (D7). One Go file ports one Rust file of `crates/generate` (D24) |
+| `generate/internal/regexsyntax/` | the port of the Rust crate `regex-syntax`, in the packages `ast`, `hir` and `unicodetables` (D59) |
 | `generate/testdata/` | the golden files of the 68 test grammars, which the harness writes |
 | `grammars/grammars.json` | the record of every grammar, with the hashes of its golden files (D40) |
 | `tree-sitter/` | the upstream checkout, which git ignores |

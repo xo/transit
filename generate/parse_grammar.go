@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/xo/transit/generate/internal/regexsyntax/hir"
 )
 
 // This file ports crates/generate/src/parse_grammar.rs, which reads
@@ -157,11 +158,7 @@ func (g *InputGrammar) normalize(diagnostics *[]Diagnostic) {
 		case RuleString:
 			matchesEmpty = p.Resolve(n.Str) == ""
 		case RulePattern:
-			// Upstream compiles the pattern with the Rust crate regex. The
-			// result only decides a warning, and Go's regexp stands in for it.
-			if re, err := regexp.Compile(p.Resolve(n.Str)); err == nil {
-				matchesEmpty = re.MatchString("")
-			}
+			matchesEmpty = regexMatchesEmpty(p.Resolve(n.Str))
 		}
 		if matchesEmpty {
 			*diagnostics = append(*diagnostics, Diagnostic{Kind: DiagnosticEmptyStringMatch, Name: p.Resolve(v.Name)})
@@ -612,4 +609,52 @@ func orderedObject(raw json.RawMessage) ([]objectEntry, error) {
 		entries = append(entries, objectEntry{key: key, value: value})
 	}
 	return entries, nil
+}
+
+// regexMatchesEmpty reports whether a pattern compiles and matches the empty
+// string. It does what Regex::new(pattern).is_ok_and(|r| r.is_match("")) of
+// the Rust crate regex does, and it is not a port of that crate (D59).
+//
+// The crate regex parses and translates a pattern with the defaults of
+// regex-syntax, which hir.Parse uses. The crate also rejects a program over
+// 10 MB, which no pattern of a token comes near. On the empty string a match
+// can start only at 0, where the input has no character before and none
+// after. So an anchor holds, \b does not, \B does, a word start or end does
+// not, and a half word start or end does.
+func regexMatchesEmpty(pattern string) bool {
+	h, err := hir.Parse(pattern)
+	return err == nil && matchesEmptyInput(h)
+}
+
+// matchesEmptyInput reports whether an HIR matches the empty input.
+func matchesEmptyInput(h *hir.Hir) bool {
+	switch k := h.Kind().(type) {
+	case *hir.Empty:
+		return true
+	case *hir.Literal:
+		return len(*k) == 0
+	case *hir.Look:
+		switch *k {
+		case hir.LookWordASCII, hir.LookWordUnicode,
+			hir.LookWordStartASCII, hir.LookWordEndASCII,
+			hir.LookWordStartUnicode, hir.LookWordEndUnicode:
+			return false
+		}
+		return true
+	case *hir.Repetition:
+		return k.Min == 0 || matchesEmptyInput(k.Sub)
+	case *hir.Capture:
+		return matchesEmptyInput(k.Sub)
+	case *hir.Concat:
+		for _, sub := range *k {
+			if !matchesEmptyInput(sub) {
+				return false
+			}
+		}
+		return true
+	case *hir.Alternation:
+		return slices.ContainsFunc(*k, matchesEmptyInput)
+	}
+	// a class matches one character, and the empty input has none
+	return false
 }

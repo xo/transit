@@ -8,11 +8,8 @@ import (
 
 // This file ports crates/generate/src/prepare_grammar/extract_tokens.rs: the
 // pass that moves the tokens of the grammar into the lexical grammar.
-// PendingTokenExtraction::expand_and_commit, and renumber_root, which only it
-// calls, come with expand_tokens.rs, because expand_and_commit calls
-// expand_tokens. Upstream wraps NonTerminalWordTokenError in the variant
-// WordToken, which only passes it through, so the Go pass returns it as it
-// is.
+// Upstream wraps NonTerminalWordTokenError in the variant WordToken, which
+// only passes it through, so the Go pass returns it as it is.
 
 // ExtractTokensErrorKind is the kind of an error of the pass that extracts
 // the tokens.
@@ -283,6 +280,46 @@ type pendingTokenExtraction struct {
 	stack                      []RuleID
 }
 
+// expandAndCommit expands the roots of the tokens and of the separators,
+// then commits the rewrites of the terminals and renumbers the symbols of
+// the syntax grammar that are left.
+//
+// expandAndCommit is PendingTokenExtraction::expand_and_commit.
+func (p *pendingTokenExtraction) expandAndCommit() (*extractedGrammarMeta, *LexicalGrammar, error) {
+	g := p.grammar
+	lexicalGrammar, err := expandTokens(g.Pool, p.lexicalVariables, p.separatorRoots)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for _, r := range p.rewrites {
+		g.Pool.SetNode(r.id, Rule{Kind: RuleSym, Sym: TerminalSymbol(int(r.token))})
+	}
+
+	replaceSymbol := func(s Symbol) Symbol {
+		index, ok := s.NonTerminalIndex()
+		if !ok {
+			return s
+		}
+		if tokenIndex, ok := p.syntaxVariableReplacements[uint32(index)]; ok {
+			return TerminalSymbol(int(tokenIndex))
+		}
+		return NonTerminalSymbol(int(uint32(index) - p.syntaxVariableShift[index]))
+	}
+
+	if len(p.syntaxVariableReplacements) > 0 {
+		renumberedNodes := make([]bool, g.Pool.NodeCount())
+		for _, v := range g.Variables {
+			renumberRoot(g.Pool, v.Root, replaceSymbol, &p.stack, renumberedNodes)
+		}
+		for _, root := range g.ExternalRoots {
+			renumberRoot(g.Pool, root, replaceSymbol, &p.stack, renumberedNodes)
+		}
+	}
+
+	return p.meta, lexicalGrammar, nil
+}
+
 // extractTokens finds the tokens of the grammar, and decides which variables
 // become tokens and how the other symbols are numbered. It changes no rule,
 // and the result holds the changes until they are committed.
@@ -487,4 +524,29 @@ func extractTokens(g *InputGrammar, interned *internedGrammarMeta) (*pendingToke
 		syntaxVariableShift:        shift,
 		stack:                      stack,
 	}, nil
+}
+
+// renumberRoot renumbers the symbols of the nodes that root reaches. It skips
+// each node that another root reached before in this pass.
+//
+// renumberRoot is renumber_root.
+func renumberRoot(pool *RulePool, root RuleID, replace func(Symbol) Symbol, stack *[]RuleID, visited []bool) {
+	*stack = append((*stack)[:0], root)
+	for len(*stack) > 0 {
+		id := (*stack)[len(*stack)-1]
+		*stack = (*stack)[:len(*stack)-1]
+		if visited[id.Index()] {
+			continue
+		}
+		visited[id.Index()] = true
+		n := pool.Node(id)
+		switch n.Kind {
+		case RuleSym:
+			pool.SetNode(id, Rule{Kind: RuleSym, Sym: replace(n.Sym)})
+		case RuleSeq, RuleChoice:
+			*stack = append(*stack, pool.ChildSlice(n.Children)...)
+		case RuleRepeat, RuleMetadata, RuleReserved:
+			*stack = append(*stack, n.Child)
+		}
+	}
 }

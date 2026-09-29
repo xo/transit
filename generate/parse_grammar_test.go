@@ -163,3 +163,68 @@ func TestParseGrammarReadsEveryTestGrammar(t *testing.T) {
 		}
 	}
 }
+
+// TestRegexMatchesEmpty makes sure that regexMatchesEmpty gives what
+// Regex::new(pattern).is_ok_and(|r| r.is_match("")) of the Rust crate regex
+// 1.13.1 gives. The expected values come from that crate. The same check
+// agreed with the crate on every pattern of the 86 grammars on disk on
+// 2026-09-29.
+func TestRegexMatchesEmpty(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		pattern  string
+		expected bool
+	}{
+		{`a*`, true},
+		{`a`, false},
+		{`^`, true},
+		{`$`, true},
+		{`\b`, false},
+		{`\B`, true},
+		{`(a|)`, true},
+		{`a?`, true},
+		{`[`, false},
+		{`(?-u:\xFF)*`, false},
+		{`\b{start-half}`, true},
+		{`\b{end-half}`, true},
+		{`\b{start}`, false},
+		{`\b{end}`, false},
+		{`(?m)^$`, true},
+		{`\A\z`, true},
+		{`(?-u)\b`, false},
+		{`(?-u)\B`, true},
+		{`[^a]*`, true},
+		{`[a&&b]`, false},
+		{`(?i)`, true},
+		{`()`, true},
+		{`(?:)|a`, true},
+		{`a{0}`, true},
+		{`a{0,3}`, true},
+		{`a{1,}`, false},
+		{`x|`, true},
+		{`\p{L}*`, true},
+		{`[]a]`, false},
+		{`(?x) a # c`, false},
+		{`(?P<n>)`, true},
+		{`\d{0}`, true},
+		{`.`, false},
+		{`.*`, true},
+		{`(?s).?`, true},
+		{`[\x00-\x{10FFFF}]*`, true},
+		{`(?-u:[\x80-\xFF])*`, false},
+		{`\u{D800}`, false},
+		{`a**`, true},
+		{`(`, false},
+		{`)`, false},
+		{`{`, false},
+		{`\Q`, false},
+		{`a{2,1}`, false},
+		{`(?<=a)`, false},
+		{`\1`, false},
+	}
+	for _, test := range tests {
+		if actual := regexMatchesEmpty(test.pattern); actual != test.expected {
+			t.Errorf("%q: expected %t, got: %t", test.pattern, test.expected, actual)
+		}
+	}
+}

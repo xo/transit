@@ -6,11 +6,10 @@ import (
 	"strings"
 )
 
-// This file ports crates/generate/src/prepare_grammar.rs. The function
-// prepare_grammar, which runs the passes in order, comes when every pass that
-// it calls is ported, and its tests come with it. Upstream wraps the error of
-// each pass in PrepareGrammarError and ValidatePrecedenceError, which only
-// pass the error through, so the Go functions return the error of the pass.
+// This file ports crates/generate/src/prepare_grammar.rs. Upstream wraps the
+// error of each pass in PrepareGrammarError and ValidatePrecedenceError,
+// which only pass the error through, so the Go functions return the error of
+// the pass.
 
 // IndirectRecursionError is the error of a grammar with a rule that derives
 // itself through a chain of rules of one symbol, such as A -> B -> A.
@@ -78,6 +77,56 @@ type LexicalToken struct {
 	Kind VariableType
 	// Root is the rule in the pool that defines the token.
 	Root RuleID
+}
+
+// PrepareGrammar splits a grammar into the parts that the builder of the
+// tables reads. It runs each pass in order, and it changes g.
+//
+// PrepareGrammar is prepare_grammar.
+func PrepareGrammar(g *InputGrammar, diagnostics *[]Diagnostic) (*PreparedGrammar, error) {
+	if err := validatePrecedences(g); err != nil {
+		return nil, err
+	}
+	if err := validateIndirectRecursion(g); err != nil {
+		return nil, err
+	}
+
+	internedMeta, err := internSymbols(g, diagnostics)
+	if err != nil {
+		return nil, err
+	}
+	pendingTokens, err := extractTokens(g, internedMeta)
+	if err != nil {
+		return nil, err
+	}
+	extMeta, lexicalGrammar, err := pendingTokens.expandAndCommit()
+	if err != nil {
+		return nil, err
+	}
+	if err := expandRepeats(g, extMeta); err != nil {
+		return nil, err
+	}
+
+	var state flattenState
+	var out ProductionStore
+	if err := flattenGrammar(g, extMeta, &state, &out); err != nil {
+		return nil, err
+	}
+
+	defaultAliases := extractDefaultAliases(g, extMeta, lexicalGrammar.Variables, &out)
+	inlines, err := processInlines(g, extMeta, lexicalGrammar.Variables, &out)
+	if err != nil {
+		return nil, err
+	}
+
+	syntaxGrammar, strPool := assembleSyntaxGrammar(g, extMeta, &out)
+	return &PreparedGrammar{
+		SyntaxGrammar:  *syntaxGrammar,
+		LexicalGrammar: *lexicalGrammar,
+		Inlines:        inlines,
+		DefaultAliases: defaultAliases,
+		StrPool:        strPool,
+	}, nil
 }
 
 // validateIndirectRecursion returns an error when a rule derives itself

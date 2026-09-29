@@ -59,6 +59,11 @@ func TestEveryDecisionReferenceExists(t *testing.T) {
 			if written[num] {
 				continue
 			}
+			// a code point in hex, such as \x{D800} in a test of regex
+			// syntax, is not a decision
+			if m[0] > 0 && body[m[0]-1] == '{' {
+				continue
+			}
 			before := strings.Fields(body[max(0, m[0]-40):m[0]])
 			if len(before) != 0 && repositories[strings.Trim(before[len(before)-1], "(`\"")] {
 				continue

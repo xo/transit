@@ -1,0 +1,279 @@
+package main
+
+import (
+	"bytes"
+	"fmt"
+	"go/format"
+	"strconv"
+	"strings"
+	"unicode/utf8"
+)
+
+// goTypeKind is the kind of a Go type of the package unicodetables.
+type goTypeKind int
+
+// The kinds of Go type that the converter writes.
+const (
+	goSlice goTypeKind = iota
+	goStruct
+	goRune
+	goString
+)
+
+// goType is a Go type of the package unicodetables.
+type goType struct {
+	kind   goTypeKind
+	elem   *goType   // the element of a slice
+	name   string    // the name of a struct
+	fields []*goType // the fields of a struct, in order
+	rust   string    // the Rust type, in the short form of rustType.String
+}
+
+// String returns the type as Go code names it.
+func (t *goType) String() string {
+	switch t.kind {
+	case goSlice:
+		return "[]" + t.elem.String()
+	case goStruct:
+		return t.name
+	case goRune:
+		return "rune"
+	case goString:
+		return "string"
+	}
+	return fmt.Sprintf("Go type kind %d", t.kind)
+}
+
+// structs holds the struct type of doc.go in the package unicodetables for
+// each Rust tuple type that the tables use.
+var structs = map[string]string{
+	"(char,char)":           "Range",
+	"(&str,&[(char,char)])": "Named",
+	"(char,&[char])":        "Fold",
+	"(&str,&str)":           "Alias",
+	"(&str,&[(&str,&str)])": "Property",
+}
+
+// goTypeOf returns the Go type for a Rust type.
+func goTypeOf(t *rustType) (*goType, error) {
+	switch t.kind {
+	case typeRef:
+		switch e := t.elems[0]; e.kind {
+		case typeSlice:
+			elem, err := goTypeOf(e.elems[0])
+			if err != nil {
+				return nil, err
+			}
+			return &goType{kind: goSlice, elem: elem, rust: t.String()}, nil
+		case typeStr:
+			return &goType{kind: goString, rust: t.String()}, nil
+		}
+	case typeChar:
+		return &goType{kind: goRune, rust: t.String()}, nil
+	case typeTuple:
+		name, ok := structs[t.String()]
+		if !ok {
+			return nil, fmt.Errorf("converting the tuple type %s, which has no struct in the package unicodetables", t)
+		}
+		g := &goType{kind: goStruct, name: name, rust: t.String()}
+		for _, e := range t.elems {
+			f, err := goTypeOf(e)
+			if err != nil {
+				return nil, err
+			}
+			g.fields = append(g.fields, f)
+		}
+		return g, nil
+	}
+	return nil, fmt.Errorf("converting the type %s, which has no Go type in the package unicodetables", t)
+}
+
+// mixedCaps returns a Rust name in capitals, such as CASED_LETTER, in the
+// MixedCaps of Go, such as CasedLetter. An underscore stays between two
+// digits, so that V1_1 becomes V1_1 and V11_0 becomes V11_0.
+func mixedCaps(name string) (string, error) {
+	var b strings.Builder
+	parts := strings.Split(name, "_")
+	for i, part := range parts {
+		if part == "" {
+			return "", fmt.Errorf("converting the name %q, which has an empty part between underscores", name)
+		}
+		for _, r := range part {
+			if r == '_' || !isIdent(r) {
+				return "", fmt.Errorf("converting the name %q, which holds the character %q", name, r)
+			}
+		}
+		if i > 0 && isDigit(parts[i-1][len(parts[i-1])-1]) && isDigit(part[0]) {
+			b.WriteByte('_')
+		}
+		b.WriteString(part[:1])
+		b.WriteString(strings.ToLower(part[1:]))
+	}
+	return b.String(), nil
+}
+
+// isDigit reports whether c is an ASCII digit.
+func isDigit(c byte) bool {
+	return '0' <= c && c <= '9'
+}
+
+// goName returns the Go name of the item name of the table file base. The
+// name starts with the name of the table. An item with the name of its file,
+// such as PERL_WORD of perl_word, takes the name of the table alone.
+func goName(base, name string) (string, error) {
+	table, err := mixedCaps(strings.ToUpper(base))
+	if err != nil {
+		return "", err
+	}
+	if name == strings.ToUpper(base) {
+		return table, nil
+	}
+	n, err := mixedCaps(name)
+	if err != nil {
+		return "", err
+	}
+	return table + n, nil
+}
+
+// emitter writes the Go file of one table file.
+type emitter struct {
+	file  string            // the name of the Rust file, such as age.rs
+	names map[string]string // the Go name of each item, by the Rust name
+	types map[string]string // the Rust type of each item, by the Rust name
+	b     bytes.Buffer
+}
+
+// emit returns the Go file for the table file f, which has the base name base,
+// such as general_category. The Go names of the items go into names, which maps
+// each Go name to the file that holds it, so that emit fails when two tables
+// make the same Go name.
+func emit(base, version string, f *rustFile, names map[string]string) ([]byte, error) {
+	e := &emitter{
+		file:  base + ".rs",
+		names: map[string]string{},
+		types: map[string]string{},
+	}
+	for _, it := range f.items {
+		if _, ok := e.names[it.name]; ok {
+			return nil, fmt.Errorf("%s: reading the item %s twice", e.file, it.name)
+		}
+		n, err := goName(base, it.name)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", e.file, err)
+		}
+		if other, ok := names[n]; ok {
+			return nil, fmt.Errorf("%s: making the Go name %s for %s, which %s makes too", e.file, n, it.name, other)
+		}
+		names[n] = e.file
+		e.names[it.name] = n
+		e.types[it.name] = it.typ.String()
+	}
+	fmt.Fprintf(&e.b, "// Code generated by test/cmd/regextables from regex-syntax %s. DO NOT EDIT.\n", version)
+	fmt.Fprintf(&e.b, "//\n// ucd-generate %s made the Rust file %s with this command, at Unicode %s:\n", f.generator, e.file, f.unicode)
+	fmt.Fprintf(&e.b, "//\n//\t%s\n\npackage unicodetables\n", f.command)
+	for _, it := range f.items {
+		t, err := goTypeOf(it.typ)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %s: %w", e.file, it.name, err)
+		}
+		if t.kind != goSlice {
+			return nil, fmt.Errorf("%s: %s: converting the type %s, which is not a slice", e.file, it.name, it.typ)
+		}
+		fmt.Fprintf(&e.b, "\n// %s is the table %s of %s.\nvar %s = ", e.names[it.name], it.name, e.file, e.names[it.name])
+		if err := e.value(t, it.val, false); err != nil {
+			return nil, fmt.Errorf("%s: %s: %w", e.file, it.name, err)
+		}
+		e.b.WriteByte('\n')
+	}
+	out, err := format.Source(e.b.Bytes())
+	if err != nil {
+		return nil, fmt.Errorf("%s: formatting the Go code: %w", e.file, err)
+	}
+	return out, nil
+}
+
+// value writes the value v, of the Go type t. When elide is true, the value is
+// an element of a slice, and a struct leaves out its type.
+func (e *emitter) value(t *goType, v *value, elide bool) error {
+	switch t.kind {
+	case goSlice:
+		return e.slice(t, v)
+	case goStruct:
+		if v.kind != valTuple {
+			return fmt.Errorf("%d:%d: expecting a tuple for %s", v.line, v.col, t.rust)
+		}
+		if len(v.elems) != len(t.fields) {
+			return fmt.Errorf("%d:%d: expecting a tuple of %d elements for %s, got: %d", v.line, v.col, len(t.fields), t.rust, len(v.elems))
+		}
+		if !elide {
+			e.b.WriteString(t.name)
+		}
+		e.b.WriteByte('{')
+		for i, f := range t.fields {
+			if i > 0 {
+				e.b.WriteString(", ")
+			}
+			if err := e.value(f, v.elems[i], false); err != nil {
+				return err
+			}
+		}
+		e.b.WriteByte('}')
+		return nil
+	case goRune:
+		if v.kind != valChar {
+			return fmt.Errorf("%d:%d: expecting a char", v.line, v.col)
+		}
+		if !utf8.ValidRune(v.r) {
+			return fmt.Errorf("%d:%d: reading the char %U, which is not a Unicode scalar value", v.line, v.col, v.r)
+		}
+		fmt.Fprintf(&e.b, "0x%04X", v.r)
+		return nil
+	case goString:
+		if v.kind != valString {
+			return fmt.Errorf("%d:%d: expecting a string", v.line, v.col)
+		}
+		e.b.WriteString(strconv.Quote(v.s))
+		return nil
+	}
+	return fmt.Errorf("%d:%d: writing a value of %s", v.line, v.col, t)
+}
+
+// slice writes the value v of the slice type t. The value is an array, or the
+// name of an item of the same file that has the same type. A slice of structs
+// puts each element on a line of its own.
+func (e *emitter) slice(t *goType, v *value) error {
+	switch v.kind {
+	case valName:
+		n, ok := e.names[v.s]
+		if !ok {
+			return fmt.Errorf("%d:%d: naming %s, which is not an item of %s", v.line, v.col, v.s, e.file)
+		}
+		if e.types[v.s] != t.rust {
+			return fmt.Errorf("%d:%d: naming %s, which has the type %s, where %s is needed", v.line, v.col, v.s, e.types[v.s], t.rust)
+		}
+		e.b.WriteString(n)
+		return nil
+	case valArray:
+	default:
+		return fmt.Errorf("%d:%d: expecting an array or a name for %s", v.line, v.col, t.rust)
+	}
+	e.b.WriteString(t.String())
+	e.b.WriteByte('{')
+	lines := t.elem.kind == goStruct
+	if lines {
+		e.b.WriteByte('\n')
+	}
+	for i, el := range v.elems {
+		if !lines && i > 0 {
+			e.b.WriteString(", ")
+		}
+		if err := e.value(t.elem, el, true); err != nil {
+			return err
+		}
+		if lines {
+			e.b.WriteString(",\n")
+		}
+	}
+	e.b.WriteByte('}')
+	return nil
+}
