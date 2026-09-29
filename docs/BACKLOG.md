@@ -15,7 +15,7 @@ agent and the date, and deletes the claim when Ken commits the unit (D50).
 
 | Unit | Agent | Date |
 | --- | --- | --- |
-| Phase 1, unit 3: the golden harness and grammars/grammars.json (D58) | transit | 2026-09-29 |
+| Phase 2, unit 1: the input layer of the generator (strpool.rs, bitvec.rs, rules.rs, grammars.rs, parse_grammar.rs) | transit | 2026-09-29 |
 
 ## The setup of the repository
 

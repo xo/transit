@@ -65,16 +65,16 @@ func (h *harness) testGrammar(ctx context.Context, src, dst string, report *cove
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return fmt.Errorf("making %s: %w", dir, err)
 		}
+		if o.grammarJSON != nil {
+			if err := writeFile(filepath.Join(dst, "grammar.json"), o.grammarJSON); err != nil {
+				return err
+			}
+		}
 		if o.err != "" {
 			if err := writeFile(filepath.Join(dir, "error.txt"), []byte(o.err+"\n")); err != nil {
 				return err
 			}
 			continue
-		}
-		if o.grammarJSON != nil {
-			if err := writeFile(filepath.Join(dst, "grammar.json"), o.grammarJSON); err != nil {
-				return err
-			}
 		}
 		if err := writeFile(filepath.Join(dir, "parser.c"), o.parserC); err != nil {
 			return err

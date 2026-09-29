@@ -94,16 +94,19 @@ func (h *harness) generate(ctx context.Context, dir, grammar, out string, v vari
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	var o output
-	if err := cmd.Run(); err != nil {
-		if _, ok := errors.AsType[*exec.ExitError](err); !ok {
-			return o, fmt.Errorf("running the upstream tool on %s: %w", grammar, err)
-		}
-		o.err = strings.TrimSpace(stderr.String())
-		return o, nil
-	}
+	runErr := cmd.Run()
+	// the tool writes grammar.json before it builds the tables, so a grammar
+	// that it rejects has one too, and the error tests of the generator read it
 	var err error
 	if o.grammarJSON, err = readIfExists(filepath.Join(out, "grammar.json")); err != nil {
 		return o, err
+	}
+	if runErr != nil {
+		if _, ok := errors.AsType[*exec.ExitError](runErr); !ok {
+			return o, fmt.Errorf("running the upstream tool on %s: %w", grammar, runErr)
+		}
+		o.err = strings.TrimSpace(stderr.String())
+		return o, nil
 	}
 	if o.parserC, err = os.ReadFile(filepath.Join(out, "parser.c")); err != nil {
 		return o, fmt.Errorf("reading parser.c of %s: %w", grammar, err)

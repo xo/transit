@@ -50,6 +50,17 @@ linters:
     - gochecknoinits
     # prealloc rewrites readable loops for a gain that nothing measured.
     - prealloc
+    # The port keeps the functions of each upstream file in the order of that
+    # file (D24), and funcorder wants the unexported methods last.
+    - funcorder
+    # The port keeps the match arms of upstream, and a match that ends in
+    # `_ =>` becomes a switch with the rest after it. exhaustive wants each
+    # case named.
+    - exhaustive
+    # A Rust method that takes &self becomes a method with a value receiver,
+    # and one that takes &mut self a method with a pointer receiver. That mix
+    # is the translation, and recvcheck reports it.
+    - recvcheck
     # depguard holds the rule on dependencies, so gomodguard would hold it
     # twice.
     - gomodguard
@@ -66,6 +77,12 @@ linters:
           allow:
             - $gostd
             - github.com/xo/transit
+    gosec:
+      excludes:
+        # The port keeps the integer widths of upstream and its conversions
+        # with `as`, which cut a value the same way (D25). G115 reports each
+        # one.
+        - G115
     errorlint:
       errorf: true
       asserts: true

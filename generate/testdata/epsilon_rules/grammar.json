@@ -1,0 +1,38 @@
+{
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/grammar.schema.json",
+  "name": "epsilon_rules",
+  "rules": {
+    "rule_1": {
+      "type": "SYMBOL",
+      "name": "rule_2"
+    },
+    "rule_2": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "rule_3"
+        },
+        {
+          "type": "BLANK"
+        }
+      ]
+    },
+    "rule_3": {
+      "type": "STRING",
+      "value": "x"
+    }
+  },
+  "extras": [
+    {
+      "type": "PATTERN",
+      "value": "\\s"
+    }
+  ],
+  "conflicts": [],
+  "precedences": [],
+  "externals": [],
+  "inline": [],
+  "supertypes": [],
+  "reserved": {}
+}
