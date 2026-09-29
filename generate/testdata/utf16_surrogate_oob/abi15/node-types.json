@@ -1,0 +1,30 @@
+[
+  {
+    "type": "program",
+    "named": true,
+    "root": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "supplementary",
+          "named": true
+        },
+        {
+          "type": "surrogate",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "supplementary",
+    "named": true
+  },
+  {
+    "type": "surrogate",
+    "named": true
+  }
+]

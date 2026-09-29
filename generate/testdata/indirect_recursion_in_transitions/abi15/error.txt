@@ -1,0 +1,4 @@
+Error: Error when generating parser
+
+Caused by:
+    Grammar contains an indirectly recursive rule: type_expression -> _expression -> type_expression

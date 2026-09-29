@@ -1,0 +1,4 @@
+Error: Error when generating parser
+
+Caused by:
+    Terminal rule 'A' cannot be used as a supertype

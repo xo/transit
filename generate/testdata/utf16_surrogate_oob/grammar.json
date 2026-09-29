@@ -1,0 +1,43 @@
+{
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/grammar.schema.json",
+  "name": "utf16_surrogate_oob",
+  "rules": {
+    "program": {
+      "type": "REPEAT",
+      "content": {
+        "type": "CHOICE",
+        "members": [
+          {
+            "type": "SYMBOL",
+            "name": "surrogate"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "supplementary"
+          }
+        ]
+      }
+    }
+  },
+  "extras": [
+    {
+      "type": "PATTERN",
+      "value": "\\s"
+    }
+  ],
+  "conflicts": [],
+  "precedences": [],
+  "externals": [
+    {
+      "type": "SYMBOL",
+      "name": "surrogate"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "supplementary"
+    }
+  ],
+  "inline": [],
+  "supertypes": [],
+  "reserved": {}
+}

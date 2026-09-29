@@ -174,10 +174,19 @@ are the paths, and what reaches each:
 | the limit of 65,535 parse action lists | the largest grammars | the harness |
 
 "The harness" means that only the `parser.c` that the upstream tool writes
-can show the path. The golden harness of phase 1 will scan each `parser.c` for
-the code of each path and report which grammars reach it. A path that no
-grammar reaches is a gap, and a grammar or a test grammar that reaches it
-joins the set.
+can show the path. The golden harness scans each `parser.c` for the code of
+each path and reports which grammars reach it (D58). A path that no grammar
+reaches is a gap, and a grammar or a test grammar that reaches it joins the
+set.
+
+The first run of the harness, on 2026-09-29, covered the 68 test grammars and
+the 15 fixture grammars, which hold 17 grammars. It looked for 26 paths, and
+each path was reached by at least one output. The rarest were the anonymous
+unique alias, reached only by the test grammar `named_rule_aliased_as_anonymous`,
+the pragma for a large lexer (bash, c, cpp and ruby), and the reserved word sets
+(the test grammar `reserved_words`, and go, javascript, php and php_only). The
+python fixture is at `v0.23.6`, which has no reserved words yet. The rest of the set follows in a
+later run (D58).
 
 The harness makes each grammar at ABI 14 and at ABI 15 (D19). It makes the
 test grammars also with the merge of states off.

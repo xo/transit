@@ -1,0 +1,4 @@
+Error: Error when generating parser
+
+Caused by:
+    Rule `source_file` has no reachable productions.

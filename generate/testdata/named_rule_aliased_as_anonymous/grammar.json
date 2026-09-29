@@ -1,0 +1,48 @@
+{
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/grammar.schema.json",
+  "name": "named_rule_aliased_as_anonymous",
+  "rules": {
+    "a": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "b"
+          },
+          "named": false,
+          "value": "the-alias"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "c"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "b"
+        }
+      ]
+    },
+    "b": {
+      "type": "STRING",
+      "value": "B"
+    },
+    "c": {
+      "type": "STRING",
+      "value": "C"
+    }
+  },
+  "extras": [
+    {
+      "type": "PATTERN",
+      "value": "\\s"
+    }
+  ],
+  "conflicts": [],
+  "precedences": [],
+  "externals": [],
+  "inline": [],
+  "supertypes": [],
+  "reserved": {}
+}

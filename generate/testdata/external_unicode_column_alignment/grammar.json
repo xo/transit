@@ -1,0 +1,62 @@
+{
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/grammar.schema.json",
+  "name": "external_unicode_column_alignment",
+  "rules": {
+    "expression": {
+      "type": "REPEAT",
+      "content": {
+        "type": "SYMBOL",
+        "name": "list"
+      }
+    },
+    "list": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "_start_list"
+        },
+        {
+          "type": "REPEAT1",
+          "content": {
+            "type": "SYMBOL",
+            "name": "list_item"
+          }
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_end_list"
+        }
+      ]
+    }
+  },
+  "extras": [
+    {
+      "type": "PATTERN",
+      "value": "\\s"
+    },
+    {
+      "type": "STRING",
+      "value": "□"
+    }
+  ],
+  "conflicts": [],
+  "precedences": [],
+  "externals": [
+    {
+      "type": "SYMBOL",
+      "name": "_start_list"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "list_item"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_end_list"
+    }
+  ],
+  "inline": [],
+  "supertypes": [],
+  "reserved": {}
+}

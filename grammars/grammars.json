@@ -1,0 +1,1036 @@
+{
+  "upstream": "dcdc8cc55e5dfedfc858080835f153999a29ec40",
+  "tool": "tree-sitter 0.28.0",
+  "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "grammars": [
+    {
+      "name": "bash",
+      "package": "bash",
+      "repository": "https://github.com/tree-sitter/tree-sitter-bash",
+      "tag": "v0.25.0",
+      "commit": "56b54c61fb48bce0c63e3dfa2240b5d274384763",
+      "path": ".",
+      "license": "MIT",
+      "scanner": true,
+      "set": "fixture",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "51bae897e0489134f92366b6397acaedd7325bb3288022978bc801f4a4e23d2f",
+          "node_types": "89e30c1a5ba8015b5d87e78d91db18f3cecc0a604bb9479490f20e27f55e5899",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "non-terminal alias map",
+            "keyword lexer",
+            "large character set",
+            "external scanner",
+            "external lex state",
+            "pragma for a large lexer",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "0e79ca70f0f21c2b9170926fd8d6f5cbf82312afc511cbc563e69d7e00216dd5",
+          "node_types": "89e30c1a5ba8015b5d87e78d91db18f3cecc0a604bb9479490f20e27f55e5899",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "non-terminal alias map",
+            "supertype map",
+            "keyword lexer",
+            "large character set",
+            "external scanner",
+            "external lex state",
+            "pragma for a large lexer",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      }
+    },
+    {
+      "name": "c",
+      "package": "c",
+      "repository": "https://github.com/tree-sitter/tree-sitter-c",
+      "tag": "v0.24.2",
+      "commit": "b780e47fc780ddc8da13afa35a3f4ed5c157823d",
+      "path": ".",
+      "license": "MIT",
+      "scanner": false,
+      "set": "fixture",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "10e9bdcce023ae4b4e2c488f4d6772c279b2b904114cdc37e73085bf74b66e9e",
+          "node_types": "23e819ef1eefd357bb6eba844f47f8492f6a88da3e5046b06ec4acd4da8a9fd6",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "keyword lexer",
+            "large character set",
+            "pragma for a large lexer",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "f2883ff9b21f4a5bd5553c1b10366c418947d17a7bc6bf256124a7542f079dd2",
+          "node_types": "23e819ef1eefd357bb6eba844f47f8492f6a88da3e5046b06ec4acd4da8a9fd6",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "supertype map",
+            "keyword lexer",
+            "large character set",
+            "pragma for a large lexer",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      }
+    },
+    {
+      "name": "cpp",
+      "package": "cpp",
+      "repository": "https://github.com/tree-sitter/tree-sitter-cpp",
+      "tag": "v0.23.4",
+      "commit": "f41e1a044c8a84ea9fa8577fdd2eab92ec96de02",
+      "path": ".",
+      "license": "MIT",
+      "scanner": true,
+      "set": "fixture",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "070de9585caa2887585c17a45f042bd4ce6496d18119b4fd394c03e1b5a4725a",
+          "node_types": "dc4948fd6acf50b2dca56ef4d360c066e4304be4dbbc461044f5a2ced206a1e2",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "keyword lexer",
+            "large character set",
+            "external scanner",
+            "external lex state",
+            "pragma for a large lexer",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "8fc8ddedc487f3355c3d339b4a3033425d23d0f36b21b18d6392769c8320c863",
+          "node_types": "dc4948fd6acf50b2dca56ef4d360c066e4304be4dbbc461044f5a2ced206a1e2",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "supertype map",
+            "keyword lexer",
+            "large character set",
+            "external scanner",
+            "external lex state",
+            "pragma for a large lexer",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      }
+    },
+    {
+      "name": "embedded_template",
+      "package": "embeddedtemplate",
+      "repository": "https://github.com/tree-sitter/tree-sitter-embedded-template",
+      "tag": "v0.25.0",
+      "commit": "c70c1de07dedd532089c0c90835c8ed9fa694f5c",
+      "path": ".",
+      "license": "MIT",
+      "scanner": false,
+      "set": "fixture",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "2a2c513b7b0f1afaa95101b1a9d33cffe8fa3a9390b31ecb8b15c1227f5a014d",
+          "node_types": "664fb0151af64d3eb81081d77797617a6468405a87acf4254130b9f9ef6fe9c7",
+          "paths": [
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "ADVANCE_MAP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "RECOVER",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "640afe8a9ef0c53598e75f8559bbefc238d7021b099e9f46d8c4f8a827f1549d",
+          "node_types": "664fb0151af64d3eb81081d77797617a6468405a87acf4254130b9f9ef6fe9c7",
+          "paths": [
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "ADVANCE_MAP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "RECOVER",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      }
+    },
+    {
+      "name": "go",
+      "package": "go",
+      "repository": "https://github.com/tree-sitter/tree-sitter-go",
+      "tag": "v0.25.0",
+      "commit": "1547678a9da59885853f5f5cc8a99cc203fa2e2c",
+      "path": ".",
+      "license": "MIT",
+      "scanner": false,
+      "set": "fixture",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "b2e5b76e02fdf2b6958dc8ca016bb069763a0de01c9a3c19e4374d6fc8b21a50",
+          "node_types": "24d2fd2597d4eab4afb35ddf3c542901b1a4feb26b90e9bb886874191ae82f27",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "keyword lexer",
+            "large character set",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "4751ded447b92e64f49c647e5f413f1cb87921a0490b8b6b892932977621c618",
+          "node_types": "24d2fd2597d4eab4afb35ddf3c542901b1a4feb26b90e9bb886874191ae82f27",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "supertype map",
+            "keyword lexer",
+            "large character set",
+            "reserved words",
+            "reserved word set of a state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      }
+    },
+    {
+      "name": "html",
+      "package": "html",
+      "repository": "https://github.com/tree-sitter/tree-sitter-html",
+      "tag": "v0.23.2",
+      "commit": "5a5ca8551a179998360b4a4ca2c0f366a35acc03",
+      "path": ".",
+      "license": "MIT",
+      "scanner": true,
+      "set": "fixture",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "b043b57daf37ea4cb48fbcf92d974137867eefd88caed08ea700a13c420bb93d",
+          "node_types": "50956d14821e11b12cf43301deb0350239161f0e63111afa35c79eda581faefe",
+          "paths": [
+            "alias sequences",
+            "non-terminal alias map",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "4648a49ceb3c3febb804c189b86c199f92869cdd447c28ca8552c32c39f8976e",
+          "node_types": "50956d14821e11b12cf43301deb0350239161f0e63111afa35c79eda581faefe",
+          "paths": [
+            "alias sequences",
+            "non-terminal alias map",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      }
+    },
+    {
+      "name": "java",
+      "package": "java",
+      "repository": "https://github.com/tree-sitter/tree-sitter-java",
+      "tag": "v0.23.5",
+      "commit": "94703d5a6bed02b98e438d7cad1136c01a60ba2c",
+      "path": ".",
+      "license": "MIT",
+      "scanner": false,
+      "set": "fixture",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "9fc9af536bb3528b0a40a3291b85b3477e7853ba36c6879e61bc3e121df5e865",
+          "node_types": "eb6b0ace9dd94b23dca6fbcf17e53b28c48338afbec1b437d43857f0dee53c51",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "keyword lexer",
+            "large character set",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "85977add5c0918e0991c2decf75ad7aa66539811786703653ee9c9f1ed4ef523",
+          "node_types": "eb6b0ace9dd94b23dca6fbcf17e53b28c48338afbec1b437d43857f0dee53c51",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "supertype map",
+            "keyword lexer",
+            "large character set",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      }
+    },
+    {
+      "name": "javascript",
+      "package": "javascript",
+      "repository": "https://github.com/tree-sitter/tree-sitter-javascript",
+      "tag": "v0.25.0",
+      "commit": "44c892e0be055ac465d5eeddae6d3e194424e7de",
+      "path": ".",
+      "license": "MIT",
+      "scanner": true,
+      "set": "fixture",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "d12e410877d412eca1b3ba048fecfc5ab34510f839ad5adbf58ab6773934d5e2",
+          "node_types": "188a8baa97018edaf63bf7ece372c07bc0d74d1301004bc8f211eb7dee5a6e70",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "keyword lexer",
+            "large character set",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "dd77f92c8894a0ff67451ab3fbd9ef042f95ef2d274f2b85e28386e25975ee04",
+          "node_types": "188a8baa97018edaf63bf7ece372c07bc0d74d1301004bc8f211eb7dee5a6e70",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "supertype map",
+            "keyword lexer",
+            "large character set",
+            "reserved words",
+            "reserved word set of a state",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      }
+    },
+    {
+      "name": "jsdoc",
+      "package": "jsdoc",
+      "repository": "https://github.com/tree-sitter/tree-sitter-jsdoc",
+      "tag": "v0.23.2",
+      "commit": "b253abf68a73217b7a52c0ec254f4b6a7bb86665",
+      "path": ".",
+      "license": "MIT",
+      "scanner": true,
+      "set": "fixture",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "28a041e2ad4180ffdd22ed0b4af7b0710db1438eea2e4e368d08cc27daaf32de",
+          "node_types": "98aab16785e27bd86211316e3f4cb1b5f7c23317d2feb8e6f730525994a6b395",
+          "paths": [
+            "alias sequences",
+            "non-terminal alias map",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "RECOVER",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "a56297bf06a8fd62f7e09032223b1de1e1fe90ab6de81a83d3b6996ba86a9b07",
+          "node_types": "98aab16785e27bd86211316e3f4cb1b5f7c23317d2feb8e6f730525994a6b395",
+          "paths": [
+            "alias sequences",
+            "non-terminal alias map",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "RECOVER",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      }
+    },
+    {
+      "name": "json",
+      "package": "json",
+      "repository": "https://github.com/tree-sitter/tree-sitter-json",
+      "tag": "v0.24.8",
+      "commit": "ee35a6ebefcef0c5c416c0d1ccec7370cfca5a24",
+      "path": ".",
+      "license": "MIT",
+      "scanner": false,
+      "set": "fixture",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "cc9a3adfccdb038c943d3b64d415da49dd1dc48b77b04beb98c5b8adf2aaa2b2",
+          "node_types": "48689e9f2cb4d854b4f6068350800c15c89ab04db1f227830230d29ab88cb596",
+          "paths": [
+            "field map",
+            "alias sequences",
+            "non-terminal alias map",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "a279c32be3e2cadd82967a3c7945b3c3a027edc31872399c171750f91a9798b7",
+          "node_types": "48689e9f2cb4d854b4f6068350800c15c89ab04db1f227830230d29ab88cb596",
+          "paths": [
+            "field map",
+            "alias sequences",
+            "non-terminal alias map",
+            "supertype map",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      }
+    },
+    {
+      "name": "php",
+      "package": "php",
+      "repository": "https://github.com/tree-sitter/tree-sitter-php",
+      "tag": "v0.24.2",
+      "branch": "upstream_test_fixture",
+      "commit": "e8074c9943298d30a1af9ff84c2b61a6dc600d86",
+      "path": "php",
+      "license": "MIT",
+      "scanner": true,
+      "set": "fixture",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "8f81ebf4f33c1da13cbefb46e3f15b838e340ec766051b3b9b4a36c6a53d5d30",
+          "node_types": "ea3ee1d58c18e7d40571ce12f867dcab57a61780c2734ce96f280d82bed8112c",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "keyword lexer",
+            "large character set",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "end of a non-terminal extra",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "cad9e4daedcf4d464e107205369e27178d9994ab184c7af2ef05549b67fd41f6",
+          "node_types": "ea3ee1d58c18e7d40571ce12f867dcab57a61780c2734ce96f280d82bed8112c",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "supertype map",
+            "keyword lexer",
+            "large character set",
+            "reserved words",
+            "reserved word set of a state",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "end of a non-terminal extra",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      }
+    },
+    {
+      "name": "php_only",
+      "package": "phponly",
+      "repository": "https://github.com/tree-sitter/tree-sitter-php",
+      "tag": "v0.24.2",
+      "branch": "upstream_test_fixture",
+      "commit": "e8074c9943298d30a1af9ff84c2b61a6dc600d86",
+      "path": "php_only",
+      "license": "MIT",
+      "scanner": true,
+      "set": "fixture",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "97814c1388f329a7d78ca242379a2fc6ac39c597a2421abc37894e8da40bb1c5",
+          "node_types": "1fe7af8b80e1efc831b9d90b8c33b59f2d109e1aae045345fa91cc0d8b7e8147",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "keyword lexer",
+            "large character set",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "97de0c0f0fa6fbd737e2062eedf5b5fb4a988d7dc2bef342caa3571c3590c7ee",
+          "node_types": "1fe7af8b80e1efc831b9d90b8c33b59f2d109e1aae045345fa91cc0d8b7e8147",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "supertype map",
+            "keyword lexer",
+            "large character set",
+            "reserved words",
+            "reserved word set of a state",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      }
+    },
+    {
+      "name": "python",
+      "package": "python",
+      "repository": "https://github.com/tree-sitter/tree-sitter-python",
+      "tag": "v0.23.6",
+      "commit": "bffb65a8cfe4e46290331dfef0dbf0ef3679de11",
+      "path": ".",
+      "license": "MIT",
+      "scanner": true,
+      "set": "fixture",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "6d79386fa595ba6ebfcc899730ade6a2bb996c72a842092f0aaa049359628440",
+          "node_types": "07453021054f96dfce4ef0fe19aee17fb7785c607bd0579f303f6583a3660d2a",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "keyword lexer",
+            "large character set",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "8a66d115d6776effc095154f9765a699790a69f369fb6b8bfb3575ff42a04cbf",
+          "node_types": "07453021054f96dfce4ef0fe19aee17fb7785c607bd0579f303f6583a3660d2a",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "supertype map",
+            "keyword lexer",
+            "large character set",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      }
+    },
+    {
+      "name": "ruby",
+      "package": "ruby",
+      "repository": "https://github.com/tree-sitter/tree-sitter-ruby",
+      "tag": "v0.23.1",
+      "commit": "71bd32fb7607035768799732addba884a37a6210",
+      "path": ".",
+      "license": "MIT",
+      "scanner": true,
+      "set": "fixture",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "c885d809c0951027d7e40eb21c1be32dcab036d601a0e249508fc94ec12e5230",
+          "node_types": "a95d2f382017895771063837dbb959c4e5fde829fc185a2967695c770cc297bf",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "keyword lexer",
+            "external scanner",
+            "external lex state",
+            "pragma for a large lexer",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "end of a non-terminal extra",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "ef3bd34033f6da4d94081c4fd0dd2203b2a3c8c43c6e810eee4da8d3dffc6717",
+          "node_types": "a95d2f382017895771063837dbb959c4e5fde829fc185a2967695c770cc297bf",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "supertype map",
+            "keyword lexer",
+            "external scanner",
+            "external lex state",
+            "pragma for a large lexer",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "end of a non-terminal extra",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      }
+    },
+    {
+      "name": "rust",
+      "package": "rust",
+      "repository": "https://github.com/tree-sitter/tree-sitter-rust",
+      "tag": "v0.24.0",
+      "commit": "18b0515fca567f5a10aee9978c6d2640e878671a",
+      "path": ".",
+      "license": "MIT",
+      "scanner": true,
+      "set": "fixture",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "595889dc0e2d3fb251be39acf2503dc1d536e24d38a9a825387431773643ef48",
+          "node_types": "7c167fe0b216c0aa3e3104645250824ea1652b593a29390ac4735132b32430d3",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "keyword lexer",
+            "large character set",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "end of a non-terminal extra",
+            "SHIFT_REPEAT",
+            "RECOVER",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "9e0f694c58934251c620f48b261ad1a712936858e7b2ea518638b58c961c88a3",
+          "node_types": "7c167fe0b216c0aa3e3104645250824ea1652b593a29390ac4735132b32430d3",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "supertype map",
+            "keyword lexer",
+            "large character set",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "end of a non-terminal extra",
+            "SHIFT_REPEAT",
+            "RECOVER",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      }
+    },
+    {
+      "name": "tsx",
+      "package": "tsx",
+      "repository": "https://github.com/tree-sitter/tree-sitter-typescript",
+      "tag": "v0.23.2",
+      "commit": "f975a621f4e7f532fe322e13c4f79495e0a7b2e7",
+      "path": "tsx",
+      "license": "MIT",
+      "scanner": true,
+      "set": "fixture",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "21b13449b70337737d3bf62f857d166fe5219bcff737427983e9c3dd36cff5a5",
+          "node_types": "9a6b3b2c79875a36f9591627e33d5b2376b2b25352b38d5368efcc7b2fa4e01f",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "keyword lexer",
+            "large character set",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "b068b83c1416c24725aa9013e29408b72833c6722f8fe14a3e9bafb212aa53c0",
+          "node_types": "9a6b3b2c79875a36f9591627e33d5b2376b2b25352b38d5368efcc7b2fa4e01f",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "supertype map",
+            "keyword lexer",
+            "large character set",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      }
+    },
+    {
+      "name": "typescript",
+      "package": "typescript",
+      "repository": "https://github.com/tree-sitter/tree-sitter-typescript",
+      "tag": "v0.23.2",
+      "commit": "f975a621f4e7f532fe322e13c4f79495e0a7b2e7",
+      "path": "typescript",
+      "license": "MIT",
+      "scanner": true,
+      "set": "fixture",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "a931b93aed2f2cb18fed6042a09d0eea00c748da9c2d8646c542f1484a1c9bf9",
+          "node_types": "10fc80f3b49f46aa6a64c805372359c08540fc8232934ef0f75f84a5cf91e000",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "keyword lexer",
+            "large character set",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "f719065cac4af87cc1f22c1b55cca6813f7dfb82a794c4b93dc971e20673c7d6",
+          "node_types": "10fc80f3b49f46aa6a64c805372359c08540fc8232934ef0f75f84a5cf91e000",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "supertype map",
+            "keyword lexer",
+            "large character set",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      }
+    }
+  ]
+}

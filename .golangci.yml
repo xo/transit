@@ -54,6 +54,9 @@ linters:
     # twice.
     - gomodguard
     - gomodguard_v2
+    # tagliatelle wants camelCase keys in JSON. The files of transit, such as
+    # grammars/grammars.json, use snake_case keys, as go-pedantry says.
+    - tagliatelle
   settings:
     # D11: the root module imports only the standard library.
     depguard:
@@ -92,6 +95,12 @@ linters:
         linters:
           - gosec
           - goconst
+      # The golden harness runs the upstream tool, reads the files that it
+      # writes, and writes files of the repository with the modes of any
+      # checkout (D58). That is what gosec warns about, and it is the job.
+      - path: test/cmd/
+        linters:
+          - gosec
 
 formatters:
   enable:

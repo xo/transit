@@ -1,0 +1,44 @@
+{
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/grammar.schema.json",
+  "name": "eof_repeat_via_rule",
+  "rules": {
+    "start": {
+      "type": "SYMBOL",
+      "name": "body"
+    },
+    "body": {
+      "type": "REPEAT1",
+      "content": {
+        "type": "SEQ",
+        "members": [
+          {
+            "type": "SYMBOL",
+            "name": "b"
+          },
+          {
+            "type": "EOF"
+          }
+        ]
+      }
+    },
+    "b": {
+      "type": "REPEAT1",
+      "content": {
+        "type": "STRING",
+        "value": "a"
+      }
+    }
+  },
+  "extras": [
+    {
+      "type": "PATTERN",
+      "value": "\\s"
+    }
+  ],
+  "conflicts": [],
+  "precedences": [],
+  "externals": [],
+  "inline": [],
+  "supertypes": [],
+  "reserved": {}
+}

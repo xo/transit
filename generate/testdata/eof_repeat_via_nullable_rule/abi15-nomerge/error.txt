@@ -1,0 +1,4 @@
+Error: Error when generating parser
+
+Caused by:
+    Rule `body` contains a repetition that can match the empty string at end of input

@@ -50,8 +50,11 @@ in the root of the repository, lists them under `grammars`, each with a
 
 ## The record of each grammar
 
-`grammars/grammars.json` lists every grammar in transit. It has one entry for
-each grammar, with these fields:
+`grammars/grammars.json` lists every grammar in transit. The golden harness
+writes it (D58). Its top level names the upstream commit that made the golden
+files (`upstream`), the version of the upstream tool (`tool`) and the version
+of the Rust compiler that built the tool (`rust`). It has one entry for each
+grammar under `grammars`, with these fields:
 
 | Field | What it holds |
 | --- | --- |
@@ -59,12 +62,26 @@ each grammar, with these fields:
 | `package` | the Go package name, as "Names" below says |
 | `repository` | the URL of the upstream repository |
 | `tag` | the release tag, such as `v0.24.8` |
-| `commit` | the full hash that the tag names |
+| `branch` | the branch, when upstream names a branch in place of a tag |
+| `commit` | the full hash of the commit that the harness fetched (D51) |
 | `path` | the folder of the grammar in the repository, or `.` |
-| `license` | the SPDX name of the license, such as `MIT` |
+| `license` | the license that `tree-sitter.json` names, such as `MIT` |
 | `scanner` | `true` if the grammar has `src/scanner.c` |
+| `set` | why the grammar is in the set, such as `fixture` |
+| `status` | `available`, or `unavailable` when the repository disappeared (D51) |
+| `golden` | the golden files at `abi14` and `abi15` (D19) |
+
+Each golden file has these fields:
+
+| Field | What it holds |
+| --- | --- |
 | `parser_c` | the SHA-256 of the `parser.c` that the upstream tool writes, as "The generator test" says |
 | `node_types` | the SHA-256 of the `node-types.json` that the upstream tool writes |
+| `error` | the error text, in place of the two hashes, when the tool rejects the grammar |
+| `paths` | the paths of `render.rs` that the `parser.c` reaches |
+
+`TestTheGoldenFilesNameTheBaseCommit`, in `upstream_test.go`, makes sure of the
+form of the file.
 
 A test will make sure that each folder in `grammars/` has an entry, and that
 each entry has a folder.

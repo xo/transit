@@ -147,6 +147,9 @@ these files:
 | `docs/` | the plan, the rules, the grammar set, the references for rline and usql, the backlog and the decisions |
 | `_samples/sample.c` | Ken's first sample of a C program that uses a grammar, the start of the working C example (D10) |
 | `_samples/example/` | the working C example and its build script (D10) |
+| `test/` | the test module, with its own `go.mod` (D12). `test/cmd/golden` is the golden harness (D58) |
+| `generate/testdata/` | the golden files of the 68 test grammars, which the harness writes |
+| `grammars/grammars.json` | the record of every grammar, with the hashes of its golden files (D40) |
 | `tree-sitter/` | the upstream checkout, which git ignores |
 
 ## Before you stage
@@ -173,7 +176,11 @@ test -z "$(gofmt -l $(git ls-files '*.go'))"
 go vet ./...
 go test -race -count=1 ./...
 golangci-lint run ./...
+(cd test && go vet ./... && go test -race -count=1 ./... && golangci-lint run ./...)
 ```
+
+The test module in `test/` has its own `go.mod`, so `./...` in the root does
+not reach it. The last command runs the same commands in that module.
 
 The first command runs `gofmt` only on the files that git tracks, because
 `tree-sitter/` holds Go files of upstream.

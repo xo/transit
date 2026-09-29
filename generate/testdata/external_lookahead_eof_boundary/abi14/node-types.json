@@ -1,0 +1,53 @@
+[
+  {
+    "type": "document",
+    "named": true,
+    "root": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "span",
+          "named": true
+        },
+        {
+          "type": "unclosed_delim",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "span",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "close_delim",
+          "named": true
+        },
+        {
+          "type": "open_delim",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "close_delim",
+    "named": true
+  },
+  {
+    "type": "open_delim",
+    "named": true
+  },
+  {
+    "type": "unclosed_delim",
+    "named": true
+  }
+]

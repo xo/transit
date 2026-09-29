@@ -5,7 +5,7 @@ This document holds the plan for `github.com/xo/transit`. The decisions are in
 
 This plan was written on 2026-09-29, before any code existed (D3). Ken
 answered every open question on that date, and each answer is a decision, D1
-to D57. A part of this plan that names a decision follows it. A new question
+to D58. A part of this plan that names a decision follows it. A new question
 goes at the end of this document until Ken answers it.
 
 These documents hold the rules and the references that come from this plan:
@@ -633,9 +633,10 @@ The phase ends when all of these are true:
 
 1. The C example runs every step of its list, and Ken accepts the document of
    the target API.
-2. The golden harness makes the golden files of every grammar of the set at
-   ABI 14 and ABI 15, twice with the same result, and reports which paths of
-   `render.rs` each grammar reaches.
+2. The golden harness makes the golden files of the test grammars and the
+   fixture grammars at ABI 14 and ABI 15, twice with the same result, and
+   reports which paths of `render.rs` each grammar reaches (D58). The rest of
+   the set follows in a later change.
 3. The ledger holds every upstream commit after the base commit.
 4. CI passes.
 

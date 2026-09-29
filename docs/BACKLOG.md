@@ -15,7 +15,7 @@ agent and the date, and deletes the claim when Ken commits the unit (D50).
 
 | Unit | Agent | Date |
 | --- | --- | --- |
-| Phase 1, unit 4: the working C example and the target API (D10, D54) | transit | 2026-09-29 |
+| Phase 1, unit 3: the golden harness and grammars/grammars.json (D58) | transit | 2026-09-29 |
 
 ## The setup of the repository
 
@@ -27,6 +27,13 @@ With the first module that imports another module of this repository, add
 the script that writes the `replace` block of each `go.mod`, and a CI step
 that fails when the script changes a file (D49).
 
+### Run the golden harness on the rest of the set
+
+The first run covered the test grammars and the fixture grammars (D58). Add
+the other grammars of `CANDIDATES.md` to the harness, with their sets, and
+run it on them. A grammar that commits no `src/grammar.json`, such as
+`DerekStride/tree-sitter-sql`, needs the path of D51 that runs `grammar.js`.
+
 ### Add the tests of the port rules
 
 [`UPSTREAM.md`](UPSTREAM.md) and [`GRAMMAR.md`](GRAMMAR.md) name tests that
@@ -34,6 +41,5 @@ hold their rules:
 
 1. Each folder in `grammars/` has an entry in `grammars/grammars.json`, and
    each entry has a folder.
-2. The test data of the generator names the commit that transit ports.
-3. Each ported function has a doc comment that names its C function or its
+2. Each ported function has a doc comment that names its C function or its
    Rust function.

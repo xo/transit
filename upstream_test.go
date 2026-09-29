@@ -2,6 +2,7 @@ package transit_test
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -318,6 +319,67 @@ func TestThePathRulesFollowUpstreamMD(t *testing.T) {
 	} {
 		if got := ruleForPath(c.path); got != c.want {
 			t.Errorf("ruleForPath(%q) = %d, expected %d", c.path, got, c.want)
+		}
+	}
+}
+
+// TestTheGoldenFilesNameTheBaseCommit makes sure that the golden files come
+// from the upstream commit that transit ports (D30, D40), and that the record
+// of the grammars has the form that docs/GRAMMAR.md gives.
+func TestTheGoldenFilesNameTheBaseCommit(t *testing.T) {
+	t.Parallel()
+	var testdata struct {
+		Upstream string `json:"upstream"`
+	}
+	if err := json.Unmarshal([]byte(read(t, filepath.Join("generate", "testdata", "upstream.json"))), &testdata); err != nil {
+		t.Fatalf("decoding generate/testdata/upstream.json: %v", err)
+	}
+	if testdata.Upstream != baseCommit {
+		t.Errorf("generate/testdata/upstream.json names %s, and the base commit is %s", testdata.Upstream, baseCommit)
+	}
+	var rec struct {
+		Upstream string `json:"upstream"`
+		Grammars []struct {
+			Name       string `json:"name"`
+			Repository string `json:"repository"`
+			Commit     string `json:"commit"`
+			Path       string `json:"path"`
+			Status     string `json:"status"`
+			Golden     map[string]struct {
+				ParserC   string `json:"parser_c"`
+				NodeTypes string `json:"node_types"`
+				Error     string `json:"error"`
+			} `json:"golden"`
+		} `json:"grammars"`
+	}
+	if err := json.Unmarshal([]byte(read(t, filepath.Join("grammars", "grammars.json"))), &rec); err != nil {
+		t.Fatalf("decoding grammars/grammars.json: %v", err)
+	}
+	if rec.Upstream != baseCommit {
+		t.Errorf("grammars/grammars.json names %s, and the base commit is %s", rec.Upstream, baseCommit)
+	}
+	commit := regexp.MustCompile(`^[0-9a-f]{40}$`)
+	hash := regexp.MustCompile(`^[0-9a-f]{64}$`)
+	seen := map[string]bool{}
+	for _, g := range rec.Grammars {
+		key := g.Repository + " " + g.Path
+		switch {
+		case seen[key]:
+			t.Errorf("grammars/grammars.json holds %s twice", key)
+		case !commit.MatchString(g.Commit):
+			t.Errorf("%s: %q is not a full commit hash (D51)", g.Name, g.Commit)
+		case g.Status != "available" && g.Status != "unavailable":
+			t.Errorf("%s: the status %q is not available or unavailable (D51)", g.Name, g.Status)
+		}
+		seen[key] = true
+		for _, abi := range []string{"abi14", "abi15"} {
+			v, ok := g.Golden[abi]
+			switch {
+			case !ok:
+				t.Errorf("%s has no golden files at %s (D19)", g.Name, abi)
+			case v.Error == "" && (!hash.MatchString(v.ParserC) || !hash.MatchString(v.NodeTypes)):
+				t.Errorf("%s at %s has no SHA-256 of parser.c and node-types.json (D40)", g.Name, abi)
+			}
 		}
 	}
 }

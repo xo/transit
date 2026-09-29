@@ -360,23 +360,46 @@ A real grammar, such as a fixture grammar, commits its own `grammar.json`. Its
 upstream files, in `grammars/grammars.json`. [`GRAMMAR.md`](GRAMMAR.md) says
 how. D40 holds this.
 
-The script that makes the test data is code, so it is not written yet (D3).
-It will do these steps:
+The golden harness makes the test data. It is the command `test/cmd/golden`
+of the test module (D58). To make the golden files again, run:
 
-1. Build the upstream tool, `cargo build --release -p tree-sitter-cli`, in the
-   checkout.
-2. For each test grammar, run `tree-sitter generate` in a copy of its folder,
-   and copy the three files to the test data of the package `generate`.
-3. For each grammar in `grammars/grammars.json`, fetch the repository at its
-   tag, run `tree-sitter generate src/grammar.json`, and write the two hashes
-   to its entry.
-4. Write the upstream commit and the version of the tool beside the test
-   data, and for each golden file, the ABI version, the version of the
-   grammar and whether parse states were merged (D17, D19).
+```bash
+cd test && go run ./cmd/golden
+```
 
-The test fails if the upstream commit beside the test data is not the commit
-that transit ports. That is the base commit until phase 6 ends, and the commit
-in `upstream.txt` after that.
+It does these steps:
+
+1. It makes sure that the checkout in `tree-sitter/` is at the base commit,
+   and builds the upstream tool with `cargo build --release -p
+   tree-sitter-cli` if it is not built.
+2. For each test grammar, it runs `tree-sitter generate` in a copy of its
+   folder, at ABI 15, at ABI 14, and at ABI 15 with `--disable-optimizations`.
+   It writes `generate/testdata/<grammar>/grammar.json`, and `parser.c` and
+   `node-types.json` in a folder for each variant, such as
+   `generate/testdata/<grammar>/abi14/`. A grammar that the tool rejects gets
+   `error.txt` in place of the two files. Upstream expects 12 of the 68 test
+   grammars to fail.
+3. For each fixture grammar, it fetches the repository at its tag or branch,
+   runs `tree-sitter generate` on the committed `src/grammar.json` at ABI 14
+   and ABI 15, and writes the hashes and the fetched commit to
+   `grammars/grammars.json`.
+4. It runs the tool twice for each file, and it fails when the two runs
+   differ.
+5. It writes the upstream commit, the version of the tool and the version of
+   Rust to `generate/testdata/upstream.json`, and to the top of
+   `grammars/grammars.json`.
+6. It prints which paths of `render.rs` the outputs reach, and names each
+   path that no output reaches.
+
+The flag `-set` chooses `tests`, `fixtures` or both, and `-only` names single
+grammars. The environment variables `TREE_SITTER_ABI_VERSION` and
+`TREE_SITTER_JS_RUNTIME` change the output of the tool, so the harness clears
+them. It sets `NO_COLOR`, so that an error has no codes for the colors of a
+terminal.
+
+`TestTheGoldenFilesNameTheBaseCommit` fails if the upstream commit beside the
+test data is not the commit that transit ports. That is the base commit until
+phase 6 ends, and the commit in `upstream.txt` after that.
 
 ## A change to the ABI
 

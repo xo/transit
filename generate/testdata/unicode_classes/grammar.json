@@ -1,0 +1,58 @@
+{
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/grammar.schema.json",
+  "name": "unicode_classes",
+  "rules": {
+    "program": {
+      "type": "REPEAT",
+      "content": {
+        "type": "CHOICE",
+        "members": [
+          {
+            "type": "SYMBOL",
+            "name": "lower"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "upper"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "math_sym"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "letter_number"
+          }
+        ]
+      }
+    },
+    "lower": {
+      "type": "PATTERN",
+      "value": "\\p{Ll}\\p{L}*"
+    },
+    "upper": {
+      "type": "PATTERN",
+      "value": "\\p{Lu}\\p{L}*"
+    },
+    "math_sym": {
+      "type": "PATTERN",
+      "value": "\\p{Sm}+"
+    },
+    "letter_number": {
+      "type": "PATTERN",
+      "value": "\\p{Letter_Number}"
+    }
+  },
+  "extras": [
+    {
+      "type": "PATTERN",
+      "value": "\\s"
+    }
+  ],
+  "conflicts": [],
+  "precedences": [],
+  "externals": [],
+  "inline": [],
+  "supertypes": [],
+  "reserved": {}
+}

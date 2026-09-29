@@ -76,3 +76,4 @@ An open question is not a decision. It goes at the end of
 | [D55](D055-transit-adds-the-lua-match-predicate.md) | transit adds the #lua-match? predicate | Decided |
 | [D56](D056-a-node-lookup-returns-a-bool.md) | A node lookup returns the node and a bool | Decided |
 | [D57](D057-statesat-is-the-first-api-that-upstream-lacks.md) | StatesAt is the first API that upstream does not have | Decided |
+| [D58](D058-the-golden-harness-is-a-command-of-the-test-module.md) | The golden harness is a command of the test module | Decided |

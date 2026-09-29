@@ -1,0 +1,81 @@
+{
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/grammar.schema.json",
+  "name": "aliased_unit_reductions",
+  "rules": {
+    "statement": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "_a"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_b"
+          },
+          "named": true,
+          "value": "b_prime"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "_c"
+          },
+          "named": true,
+          "value": "c_prime"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_c"
+        },
+        {
+          "type": "STRING",
+          "value": ";"
+        }
+      ]
+    },
+    "_a": {
+      "type": "SYMBOL",
+      "name": "_A"
+    },
+    "_b": {
+      "type": "SYMBOL",
+      "name": "_B"
+    },
+    "_c": {
+      "type": "SYMBOL",
+      "name": "_C"
+    },
+    "_A": {
+      "type": "SYMBOL",
+      "name": "identifier"
+    },
+    "_B": {
+      "type": "SYMBOL",
+      "name": "identifier"
+    },
+    "_C": {
+      "type": "SYMBOL",
+      "name": "identifier"
+    },
+    "identifier": {
+      "type": "PATTERN",
+      "value": "[a-z]+"
+    }
+  },
+  "extras": [
+    {
+      "type": "PATTERN",
+      "value": "\\s"
+    }
+  ],
+  "conflicts": [],
+  "precedences": [],
+  "externals": [],
+  "inline": [],
+  "supertypes": [],
+  "reserved": {}
+}

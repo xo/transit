@@ -1,0 +1,60 @@
+{
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/grammar.schema.json",
+  "name": "external_lookahead_eof_boundary",
+  "rules": {
+    "document": {
+      "type": "REPEAT",
+      "content": {
+        "type": "CHOICE",
+        "members": [
+          {
+            "type": "SYMBOL",
+            "name": "span"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "unclosed_delim"
+          }
+        ]
+      }
+    },
+    "span": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "open_delim"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "close_delim"
+        }
+      ]
+    }
+  },
+  "extras": [
+    {
+      "type": "PATTERN",
+      "value": "\\s"
+    }
+  ],
+  "conflicts": [],
+  "precedences": [],
+  "externals": [
+    {
+      "type": "SYMBOL",
+      "name": "open_delim"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "close_delim"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "unclosed_delim"
+    }
+  ],
+  "inline": [],
+  "supertypes": [],
+  "reserved": {}
+}

@@ -1,0 +1,56 @@
+{
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/grammar.schema.json",
+  "name": "duplicate_reduction_precedence",
+  "rules": {
+    "start": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "a"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "c"
+        }
+      ]
+    },
+    "a": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "x"
+        },
+        {
+          "type": "PREC",
+          "value": 2,
+          "content": {
+            "type": "SYMBOL",
+            "name": "x"
+          }
+        }
+      ]
+    },
+    "c": {
+      "type": "SYMBOL",
+      "name": "x"
+    },
+    "x": {
+      "type": "STRING",
+      "value": "x"
+    }
+  },
+  "extras": [
+    {
+      "type": "PATTERN",
+      "value": "\\s"
+    }
+  ],
+  "conflicts": [],
+  "precedences": [],
+  "externals": [],
+  "inline": [],
+  "supertypes": [],
+  "reserved": {}
+}
