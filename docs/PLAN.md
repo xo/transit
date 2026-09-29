@@ -5,7 +5,7 @@ This document holds the plan for `github.com/xo/transit`. The decisions are in
 
 This plan was written on 2026-09-29, before any code existed (D3). Ken
 answered every open question on that date, and each answer is a decision, D1
-to D65. A part of this plan that names a decision follows it. A new question
+to D67. A part of this plan that names a decision follows it. A new question
 goes at the end of this document until Ken answers it.
 
 These documents hold the rules and the references that come from this plan:
@@ -636,7 +636,9 @@ writes the `replace` blocks (D49).
 The phase ends when all of these are true:
 
 1. The C example runs every step of its list, and Ken accepts the document of
-   the target API.
+   the target API. On 2026-09-29, Ken chose to review the document after
+   wave 3 of the runtime, when the parser, the tree, the node and the tree
+   cursor are ported.
 2. The golden harness makes the golden files of the test grammars and the
    fixture grammars at ABI 14 and ABI 15, twice with the same result, and
    reports which paths of `render.rs` each grammar reaches (D58). The rest of
@@ -896,29 +898,11 @@ in [`decisions/`](decisions/README.md), and it is deleted from this list.
 Ken answered the questions of phase 0 on 2026-09-29, and D24 to D53
 record the answers, and D54 starts phase 1. The working C example of phase 1
 raised questions 53 to 55, and D55 to D57 record the answers. Phase 2 raised
-questions 56 and 57, and D59 and D60 record the answers. Phase 3 raised
-question 59, and D63 records the answer. Questions 58 and 60 are open. The
-next question is question 61.
+questions 56 to 58, and D59, D60 and D66 record the answers. Phase 3 raised
+questions 59 and 60, and D63 and D64 record the answers. The next question is
+question 61.
 
-58. What text does the generator give for a `grammar.json` that is not valid
-    JSON? Upstream decodes `grammar.json` with the Rust crate `serde_json`,
-    and its error gives the text of that crate, such as
-    ``expected `,` or `}` at line 3 column 5``. `ParseGrammar` gives the text
-    of Go's `encoding/json`, and no decision covers that difference. The
-    upstream tool writes `grammar.json` itself, so the error comes only from a
-    file that a person edits by hand. No golden file holds such an error. The
-    proposal is to keep the text of Go, as a difference from upstream that
-    this question records.
-
-60. Does a Go subtree keep the reference count and the inline flag of C?
-    D62 says that the garbage collector replaces the reference counts. But
-    upstream reads the count to decide whether to change a node in place,
-    and the compression and the balancing of a repetition stop at a node
-    that two trees hold, which changes the shape of the tree. The inline
-    form of a small leaf also changes what the leaf keeps. The proposal is
-    D64: the Go node keeps an atomic count and a flag for the inline form,
-    for the behavior of upstream, and the garbage collector still frees the
-    memory. `subtree.go` does this today.
+No question is open.
 
 Raise a new question here rather than deciding one alone.
 

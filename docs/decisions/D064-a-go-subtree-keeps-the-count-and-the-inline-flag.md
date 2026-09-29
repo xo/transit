@@ -1,8 +1,9 @@
 # D64. A Go subtree keeps the reference count and the inline flag of C
 
-Status: Proposed, amends D62.
+Status: Decided, amends D62.
 
-Question 60 asks Ken to decide this. The port of `subtree.c` in phase 3
+Ken decided on 2026-09-29, answering question 60, that a Go subtree keeps the
+reference count and the inline flag of C. The port of `subtree.c` in phase 3
 found two facts that D62 did not know.
 
 ## The reference count

@@ -1,6 +1,6 @@
 # D62. A subtree is a pointer to a node from a chunk
 
-Status: Decided. D64 proposes to amend it.
+Status: Decided, amended by D64.
 
 Ken decided on 2026-09-29, from the benchmark that D29 asks for, that a
 subtree of the Go runtime is a pointer to a struct that holds a slice of its

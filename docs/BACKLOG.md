@@ -23,8 +23,9 @@ agent and the date, and deletes the claim when Ken commits the unit (D50, D61).
 Upstream writes log lines with `debug!` and `info!` in `build_tables/`, and
 `report_state_info` in `build_tables.rs` writes the parse states of one rule
 for the option `--report-states-for-rule` of the tool. The generator has no
-logger yet, so the port leaves them out. Decide how the generator logs, then
-port the lines and `report_state_info`. Some functions of
+logger yet, so the port leaves them out. The generator logs with `log/slog`
+(D67). Add the logger to the options, then port the lines,
+`report_state_info` and `--report-states-for-rule`. Some functions of
 `build_lex_table.go` then take the `StrPool` again, as upstream does.
 
 ## The runtime

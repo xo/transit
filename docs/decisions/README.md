@@ -80,7 +80,9 @@ An open question is not a decision. It goes at the end of
 | [D59](D059-the-generator-ports-regex-syntax.md) | The generator ports the parser and the translator of regex-syntax | Decided |
 | [D60](D060-the-generator-uses-the-unicode-tables-of-regex-syntax.md) | The generator uses the Unicode tables of regex-syntax | Decided. Amends D38 and D45 |
 | [D61](D061-a-staged-change-can-hold-several-units.md) | A staged change can hold several units | Decided. Amends D50 |
-| [D62](D062-a-subtree-is-a-pointer-from-a-chunk.md) | A subtree is a pointer to a node from a chunk | Decided. D64 proposes to amend it |
+| [D62](D062-a-subtree-is-a-pointer-from-a-chunk.md) | A subtree is a pointer to a node from a chunk | Decided, amended by D64 |
 | [D63](D063-a-language-is-built-from-internal-tables.md) | A language is built from tables of an internal type | Decided |
-| [D64](D064-a-go-subtree-keeps-the-count-and-the-inline-flag.md) | A Go subtree keeps the reference count and the inline flag of C | Proposed, amends D62 |
+| [D64](D064-a-go-subtree-keeps-the-count-and-the-inline-flag.md) | A Go subtree keeps the reference count and the inline flag of C | Decided, amends D62 |
 | [D65](D065-transit-publishes-its-own-styles.md) | transit publishes its own styles as embedded JSON files | Decided, supersedes D32 and D48, amends D14, D15, D26, D43 and D49 |
+| [D66](D066-a-json-error-keeps-the-text-of-go.md) | An error of grammar.json keeps the text of Go | Decided |
+| [D67](D067-the-generator-logs-with-slog.md) | The generator logs with log/slog | Decided |
