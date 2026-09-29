@@ -22,6 +22,9 @@ type record struct {
 	Grammars []grammar `json:"grammars"`
 }
 
+// statusAvailable is the status of a grammar whose repository exists (D51).
+const statusAvailable = "available"
+
 // grammar is one entry of the record.
 type grammar struct {
 	Name       string            `json:"name"`
@@ -36,6 +39,10 @@ type grammar struct {
 	Set        string            `json:"set"`
 	Status     string            `json:"status"`
 	Golden     map[string]golden `json:"golden"`
+	// Corpus is the result of the corpus of the grammar, which the set
+	// corpus writes, or nil when the grammar has no corpus or the set has
+	// not run.
+	Corpus *corpusResult `json:"corpus,omitempty"`
 }
 
 // golden is what the upstream tool writes for one grammar in one variant.
@@ -160,7 +167,7 @@ func (h *harness) fixtureGrammar(ctx context.Context, f fixture, report *coverag
 			return nil, err
 		}
 		g.Repository, g.Tag, g.Branch, g.Commit, g.License = repo, f.tag, f.branch, commit, license
-		g.Set, g.Status = "fixture", "available"
+		g.Set, g.Status = "fixture", statusAvailable
 		out = append(out, g)
 		h.logf("  %s %s\n", f.name, p)
 	}

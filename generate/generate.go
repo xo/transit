@@ -10,15 +10,24 @@
 package generate
 
 import (
+	_ "embed"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
-// This file ports crates/generate/src/generate.rs. The port holds the
-// functions that run the generator from a grammar.json in memory. The
-// functions that read and write the files of a grammar folder, and that run
-// grammar.js, are the job of the command (D17, D41). Upstream calls
-// render_c_code, and the port calls a Backend in its place (D8).
+// This file ports crates/generate/src/generate.rs. Upstream calls
+// render_c_code, and the port calls a Backend in its place (D8). The port
+// reads only grammar.json and runs no JavaScript (D17), so it leaves out
+// load_js_grammar_file and the option js_runtime, and a grammar.js path is an
+// error. It also leaves out report_symbol_name, which only the log of
+// build_tables reads. An error of the operating system has the text of Go,
+// and not the text of Rust.
 
 // LanguageVersion is the ABI version that the generator writes when no
 // other one is asked for.
@@ -34,6 +43,86 @@ const (
 	ABIVersionMin = 14
 	ABIVersionMax = LanguageVersion
 )
+
+// The headers that a generated parser includes, copied from upstream into
+// generate/templates. ParserInDirectory writes them to src/tree_sitter.
+//
+// AllocHeader, ArrayHeader and ParserHeader are ALLOC_HEADER, ARRAY_HEADER
+// and PARSER_HEADER.
+var (
+	//go:embed templates/alloc.h
+	AllocHeader string
+	//go:embed templates/array.h
+	ArrayHeader string
+	//go:embed templates/parser.h
+	ParserHeader string
+)
+
+// ErrorKind is the kind of an Error.
+type ErrorKind uint8
+
+// The kinds of error, in the order of upstream. The other variants of
+// GenerateError pass the error of a pass through, so ParserInDirectory
+// returns that error as it is.
+const (
+	ErrorGrammarPath ErrorKind = iota
+	ErrorIO
+	ErrorLoadGrammarFile
+	ErrorGrammarFileNotFound
+	ErrorParseVersion
+)
+
+// Error is an error of ParserInDirectory. Its text is the text of upstream,
+// but the text of an error of the operating system is the text of Go.
+//
+// Error is GenerateError, with LoadGrammarError, ParseVersionError and
+// IoError in it, without the prefix Generate, which would repeat the name of
+// the package.
+type Error struct {
+	Kind ErrorKind
+	// Path is the file or the folder of the error.
+	Path string
+	// Text is the text of a ErrorLoadGrammarFile or ErrorParseVersion
+	// error that has no Err.
+	Text string
+	// Err is the error of the operating system, when there is one.
+	Err error
+}
+
+// Error returns the text of the error.
+func (e *Error) Error() string {
+	io := ""
+	if e.Err != nil {
+		io = e.Err.Error()
+		if e.Path != "" && !strings.Contains(io, e.Path) {
+			io += " (" + e.Path + ")"
+		}
+	}
+	switch e.Kind {
+	case ErrorGrammarPath:
+		return "Error with specified path -- " + io
+	case ErrorIO:
+		return io
+	case ErrorLoadGrammarFile:
+		if e.Err != nil {
+			return "Failed to load grammar.json -- " + io
+		}
+		return e.Text
+	case ErrorGrammarFileNotFound:
+		return "Grammar file `" + e.Path + "` not found"
+	case ErrorParseVersion:
+		if e.Err != nil {
+			return io
+		}
+		return e.Text
+	}
+	return ""
+}
+
+// Unwrap returns the error of the operating system.
+func (e *Error) Unwrap() error {
+	return e.Err
+}
 
 // SemanticVersion is the version of a grammar, from tree-sitter.json.
 //
@@ -264,4 +353,202 @@ func nameOrAnonymous(name string) string {
 		return "<ANONYMOUS>"
 	}
 	return name
+}
+
+// ParserInDirectory generates the parser of a grammar folder: it reads
+// src/grammar.json of repoPath, or the grammar file of grammarPath, and writes
+// parser.c, node-types.json and the headers to outPath, or to the folder
+// src of the grammar. With generateParser false, it writes node-types.json
+// only. repoPath is the folder of the grammar when grammarPath is empty.
+//
+// ParserInDirectory is generate_parser_in_directory, without the prefix
+// Generate, which would repeat the name of the package. It reads no
+// grammar.js (D17).
+func ParserInDirectory(repoPath, outPath, grammarPath string, abiVersion int, generateParser bool, optimizations OptLevel, backend Backend, diagnostics *[]Diagnostic) error {
+	// Fill a new empty grammar folder, or find the root of the grammar from
+	// the explicit path of its file: grammar.js is in the root, and
+	// grammar.json is in <root>/src.
+	var grammarFile string
+	if grammarPath != "" {
+		if _, err := os.Stat(grammarPath); err != nil {
+			if !errors.Is(err, os.ErrNotExist) {
+				return &Error{Kind: ErrorGrammarPath, Path: grammarPath, Err: err}
+			}
+			// a missing path with an extension, such as
+			// tree-sitter-foo/grammar.json, is a missing input file, and
+			// not a folder to make
+			if filepath.Ext(grammarPath) != "" {
+				return &Error{Kind: ErrorGrammarFileNotFound, Path: grammarPath}
+			}
+			if err := os.MkdirAll(grammarPath, 0o755); err != nil {
+				return &Error{Kind: ErrorIO, Path: grammarPath, Err: err}
+			}
+			repoPath = grammarPath
+			grammarFile = filepath.Join(repoPath, "grammar.js")
+		} else {
+			switch filepath.Ext(grammarPath) {
+			case ".js":
+				repoPath = filepath.Dir(grammarPath)
+			case ".json":
+				repoPath = filepath.Dir(filepath.Dir(grammarPath))
+			}
+			grammarFile = grammarPath
+		}
+	} else {
+		// upstream reads grammar.js here, and the port reads the grammar.json
+		// that the upstream tool makes from it (D17)
+		grammarFile = filepath.Join(repoPath, "src", "grammar.json")
+	}
+
+	grammarJSON, err := loadGrammarFile(grammarFile)
+	if err != nil {
+		return err
+	}
+
+	srcPath := outPath
+	if srcPath == "" {
+		srcPath = filepath.Join(repoPath, "src")
+	}
+	headerPath := filepath.Join(srcPath, "tree_sitter")
+
+	if err := os.MkdirAll(srcPath, 0o755); err != nil {
+		return &Error{Kind: ErrorIO, Path: srcPath, Err: err}
+	}
+
+	inputGrammar, err := ParseGrammar(grammarJSON, diagnostics)
+	if err != nil {
+		return err
+	}
+
+	if !generateParser {
+		out, err := generateNodeTypesFromGrammar(inputGrammar, diagnostics)
+		if err != nil {
+			return err
+		}
+		return writeFile(filepath.Join(srcPath, "node-types.json"), out.nodeTypesJSON)
+	}
+
+	semanticVersion, err := readGrammarVersion(repoPath)
+	if err != nil {
+		return err
+	}
+
+	parser, err := ParserForGrammarWithOpts(inputGrammar, abiVersion, semanticVersion, optimizations, backend, diagnostics)
+	if err != nil {
+		return err
+	}
+
+	if err := writeFile(filepath.Join(srcPath, "parser.c"), parser.Code); err != nil {
+		return err
+	}
+	if err := writeFile(filepath.Join(srcPath, "node-types.json"), parser.NodeTypesJSON); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(headerPath, 0o755); err != nil {
+		return &Error{Kind: ErrorIO, Path: headerPath, Err: err}
+	}
+	for _, h := range []struct{ name, body string }{
+		{"alloc.h", AllocHeader},
+		{"array.h", ArrayHeader},
+		{"parser.h", ParserHeader},
+	} {
+		if err := writeFile(filepath.Join(headerPath, h.name), h.body); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// semver matches a version in the strict form of the Rust crate semver:
+// three numbers with no leading zero, and a pre-release and build metadata
+// after them.
+var semver = regexp.MustCompile(`^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$`)
+
+// readGrammarVersion reads the version of a grammar from the nearest
+// tree-sitter.json, in the folder of the grammar or in a folder above it.
+// It returns nil when no folder has one. Each number is cut to 8 bits, as
+// the cast of upstream does.
+//
+// readGrammarVersion is read_grammar_version. The text of an error of JSON
+// is the text of encoding/json, and the text of a version error is that of
+// the port, not of the Rust crate semver.
+func readGrammarVersion(repoPath string) (*SemanticVersion, error) {
+	const filename = "tree-sitter.json"
+	dir, err := filepath.Abs(repoPath)
+	if err != nil {
+		return nil, &Error{Kind: ErrorParseVersion, Path: repoPath, Err: err}
+	}
+	for {
+		path := filepath.Join(dir, filename)
+		b, err := os.ReadFile(path)
+		switch {
+		case err == nil:
+			var cfg struct {
+				Metadata *struct {
+					Version *string `json:"version"`
+				} `json:"metadata"`
+			}
+			if err := json.Unmarshal(b, &cfg); err != nil {
+				return nil, &Error{Kind: ErrorParseVersion, Text: "Failed to parse `" + path + "` -- " + err.Error()}
+			}
+			if cfg.Metadata == nil || cfg.Metadata.Version == nil {
+				field := "metadata"
+				if cfg.Metadata != nil {
+					field = "version"
+				}
+				return nil, &Error{Kind: ErrorParseVersion, Text: "Failed to parse `" + path + "` -- missing field `" + field + "`"}
+			}
+			m := semver.FindStringSubmatch(*cfg.Metadata.Version)
+			if m == nil {
+				return nil, &Error{Kind: ErrorParseVersion, Text: "Failed to parse `" + path + "` version as semver -- " + strconv.Quote(*cfg.Metadata.Version) + " is not a version of the form MAJOR.MINOR.PATCH"}
+			}
+			var parts [3]uint8
+			for i := range parts {
+				n, err := strconv.ParseUint(m[i+1], 10, 64)
+				if err != nil {
+					return nil, &Error{Kind: ErrorParseVersion, Text: "Failed to parse `" + path + "` version as semver -- " + err.Error()}
+				}
+				parts[i] = uint8(n)
+			}
+			return &SemanticVersion{Major: parts[0], Minor: parts[1], Patch: parts[2]}, nil
+		case !errors.Is(err, os.ErrNotExist):
+			return nil, &Error{Kind: ErrorParseVersion, Path: path, Err: err}
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return nil, nil
+		}
+		dir = parent
+	}
+}
+
+// loadGrammarFile reads a grammar.json. A grammar.js is an error, because
+// the port runs no JavaScript (D17).
+//
+// loadGrammarFile is load_grammar_file.
+func loadGrammarFile(grammarPath string) ([]byte, error) {
+	if fi, err := os.Stat(grammarPath); err == nil && fi.IsDir() {
+		return nil, &Error{Kind: ErrorLoadGrammarFile, Text: "Path to a grammar file with `.js` or `.json` extension is required"}
+	}
+	switch filepath.Ext(grammarPath) {
+	case ".js":
+		return nil, &Error{Kind: ErrorLoadGrammarFile, Text: "Failed to load grammar.js -- transit reads only grammar.json and runs no JavaScript (D17). Make src/grammar.json with the upstream tool first: " + grammarPath}
+	case ".json":
+		b, err := os.ReadFile(grammarPath)
+		if err != nil {
+			return nil, &Error{Kind: ErrorLoadGrammarFile, Path: grammarPath, Err: err}
+		}
+		return b, nil
+	}
+	return nil, &Error{Kind: ErrorLoadGrammarFile, Text: "Unknown grammar file extension: " + strconv.Quote(grammarPath)}
+}
+
+// writeFile writes a file of the output.
+//
+// writeFile is write_file.
+func writeFile(path, body string) error {
+	if err := os.WriteFile(path, []byte(body), 0o644); err != nil {
+		return &Error{Kind: ErrorIO, Path: path, Err: err}
+	}
+	return nil
 }

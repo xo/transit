@@ -125,6 +125,12 @@ linters:
       - path: test/cmd/
         linters:
           - gosec
+      # The generator reads the grammar file and writes the files of the
+      # folder that the user names, with the modes of upstream. That is what
+      # gosec warns about, and it is the job.
+      - path: generate/generate\.go
+        linters:
+          - gosec
       # The Visitor of the port of regex-syntax has the 11 methods of the Rust
       # trait ast::Visitor.
       - path: generate/internal/regexsyntax/ast/visitor\.go

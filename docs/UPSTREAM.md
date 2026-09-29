@@ -401,14 +401,21 @@ It does these steps:
    grammar keeps its tag.
 5. It runs the tool twice for each file, and it fails when the two runs
    differ.
-6. It writes the upstream commit, the version of the tool and the version of
+6. The set `corpus` runs the corpus of each recorded grammar, which the other
+   sets must have fetched. It copies the grammar twice. It generates one copy
+   with the upstream tool and one with `transit generate`, at ABI 15, and runs
+   `tree-sitter test` on each. It writes the result of the upstream copy to the
+   field `corpus` of the record, and whether transit gives the same result. It
+   fails when transit gives another result. This is the test of the gate of D9
+   that the `parser.c` of transit passes the corpus.
+7. It writes the upstream commit, the version of the tool and the version of
    Rust to `generate/testdata/upstream.json`, and to the top of
    `grammars/grammars.json`.
-7. It prints which paths of `render.rs` the outputs reach, and names each
+8. It prints which paths of `render.rs` the outputs reach, and names each
    path that no output reaches.
 
-The flag `-set` chooses `tests`, `fixtures` and `candidates`, separated by
-commas, and the default is `tests,fixtures`. The flag `-only` names single
+The flag `-set` chooses `tests`, `fixtures`, `candidates` and `corpus`,
+separated by commas, and the default is `tests,fixtures`. The flag `-only` names single
 grammars, or for the candidates, single repositories such as
 `gmr/tree-sitter-postgres`. The harness keeps each repository in its cache
 under its owner and its name, such as

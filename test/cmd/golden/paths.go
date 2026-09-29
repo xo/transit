@@ -85,6 +85,11 @@ func (c *coverage) add(grammar string, parserC []byte) {
 
 // print writes the coverage, and names each path that no output reaches.
 func (c *coverage) print(w io.Writer) {
+	// a run of the set corpus makes no output of the generator, and has
+	// nothing to report
+	if c.outputs == 0 {
+		return
+	}
 	var b bytes.Buffer
 	fmt.Fprintf(&b, "\npaths of render.rs, over %d outputs\n", c.outputs)
 	var gaps []string

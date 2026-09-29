@@ -254,7 +254,7 @@ func (h *harness) candidateRepo(ctx context.Context, rec *record, repo string, c
 			return nil, err
 		}
 		g.Repository, g.Tag, g.Branch, g.Commit, g.License = url, tag, branch, commit, license
-		g.Set, g.Status = cs[0].set, "available"
+		g.Set, g.Status = cs[0].set, statusAvailable
 		out = append(out, g)
 		h.logf("  %s %s\n", repo, p)
 	}

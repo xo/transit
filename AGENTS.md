@@ -13,10 +13,11 @@ information only. It does not import either of them, and they take their
 design from transit.
 
 Ken said on 2026-09-29 that the plan is ready, and phase 1 started (D54).
-Phase 1 ends when Ken accepts `docs/API.md`. Phase 2 is under way: the
-generator in `generate` and the C backend in `generate/backend/c` are ported,
-and they write the golden files of every test grammar and fixture grammar
-byte for byte. The runtime of phase 3 is not started.
+Phase 1 ends when Ken accepts `docs/API.md`. The generator in `generate` and
+the C backend in `generate/backend/c` are ported, and they write the golden
+files of all 185 grammars of the set byte for byte. On 2026-09-29 the gate of
+D9 holds, with 151 grammars that count, and that ends phase 2. The runtime of
+phase 3 is not started.
 
 [ts]: https://github.com/tree-sitter/tree-sitter
 
@@ -90,7 +91,8 @@ to 57 are answered, question 58 is open, and the next question is question 59.
 7. Do not edit a file that the generator writes, or a file that is copied from
    a grammar repository. [docs/GRAMMAR.md](docs/GRAMMAR.md) says which files
    these are. The code that the Go backend writes is idiomatic Go too (D24).
-   The same rule holds for the Unicode tables in
+   The same rule holds for the headers in `generate/templates`, which are
+   copied from upstream, and for the Unicode tables in
    `generate/internal/regexsyntax/unicodetables`, which `test/cmd/regextables`
    writes, and for the license files that it copies from `regex-syntax` (D59,
    D60). To change a table, run that command again.
@@ -154,7 +156,9 @@ these files:
 | `_samples/sample.c` | Ken's first sample of a C program that uses a grammar, the start of the working C example (D10) |
 | `_samples/example/` | the working C example and its build script (D10) |
 | `test/` | the test module, with its own `go.mod` (D12). `test/cmd/golden` is the golden harness (D58), and `test/cmd/regextables` writes the Unicode tables of the port of `regex-syntax` (D60) |
+| `cmd/transit/` | the command `transit`, with the subcommand `generate` (D41) |
 | `generate/` | the generator (D7). One Go file ports one Rust file of `crates/generate` (D24) |
+| `generate/templates/` | the headers `parser.h`, `alloc.h` and `array.h` that a generated parser includes, copied from upstream |
 | `generate/backend/c/` | the C backend, a port of `render.rs` (D8) |
 | `generate/internal/fxhash/` | the hash of the Rust crate `rustc-hash` and the order of a small `FxHashSet` of the Rust standard library, where upstream output depends on them |
 | `generate/internal/regexsyntax/` | the port of the Rust crate `regex-syntax`, in the packages `ast`, `hir` and `unicodetables` (D59) |

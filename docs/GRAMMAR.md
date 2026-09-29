@@ -70,6 +70,7 @@ grammar under `grammars`, with these fields:
 | `set` | why the grammar is in the set, such as `fixture` |
 | `status` | `available`, or `unavailable` when the repository disappeared (D51) |
 | `golden` | the golden files at `abi14` and `abi15` (D19) |
+| `corpus` | the result of the corpus of the grammar, which the set `corpus` of the golden harness writes. The grammar has none when it has no `test/corpus` or the tool rejects it |
 
 Each golden file has these fields:
 
@@ -79,6 +80,14 @@ Each golden file has these fields:
 | `node_types` | the SHA-256 of the `node-types.json` that the upstream tool writes |
 | `error` | the error text, in place of the two hashes, when the tool rejects the grammar |
 | `paths` | the paths of `render.rs` that the `parser.c` reaches |
+
+The field `corpus` has these fields:
+
+| Field | What it holds |
+| --- | --- |
+| `tests` | the number of corpus tests that `tree-sitter test` runs with the `parser.c` of the upstream tool |
+| `failures` | the number of those tests that fail |
+| `transit` | `same` when the `parser.c` of transit gives the same result, and `different` when it does not |
 
 `TestTheGoldenFilesNameTheBaseCommit`, in `upstream_test.go`, makes sure of the
 form of the file.
