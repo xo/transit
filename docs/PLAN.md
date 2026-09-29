@@ -5,7 +5,7 @@ This document holds the plan for `github.com/xo/transit`. The decisions are in
 
 This plan was written on 2026-09-29, before any code existed (D3). Ken
 answered every open question on that date, and each answer is a decision, D1
-to D61. A part of this plan that names a decision follows it. A new question
+to D63. A part of this plan that names a decision follows it. A new question
 goes at the end of this document until Ken answers it.
 
 These documents hold the rules and the references that come from this plan:
@@ -203,9 +203,9 @@ decide where the Go runtime needs a pool (D37).
 
 In C, a small leaf lives inside the pointer itself, and a node keeps its
 children in the memory just before the node, where `ts_subtree_children`
-finds them. Go has neither form. At the start of phase 3, a benchmark chooses
-between two Go forms, and the choice becomes a decision before `subtree.c` is
-ported (D29).
+finds them. Go has neither form. At the start of phase 3, a benchmark chose
+the Go form (D29): a subtree is a pointer to a struct that holds a slice of
+its children, and a parser takes the nodes and the slices from chunks (D62).
 
 ### The public API
 
@@ -890,8 +890,9 @@ in [`decisions/`](decisions/README.md), and it is deleted from this list.
 Ken answered the questions of phase 0 on 2026-09-29, and D24 to D53
 record the answers, and D54 starts phase 1. The working C example of phase 1
 raised questions 53 to 55, and D55 to D57 record the answers. Phase 2 raised
-questions 56 and 57, and D59 and D60 record the answers. Question 58 is open.
-The next question is question 59.
+questions 56 and 57, and D59 and D60 record the answers. Phase 3 raised
+question 59, and D63 records the answer. Question 58 is open. The next
+question is question 60.
 
 58. What text does the generator give for a `grammar.json` that is not valid
     JSON? Upstream decodes `grammar.json` with the Rust crate `serde_json`,

@@ -61,7 +61,7 @@ to the path is recorded and not ported.
 | --- | --- | --- |
 | `lib/src/*.c`, except `wasm_store.c` | Port | the Go file with the same base name, in the root package |
 | `lib/src/*.h` | Port | the Go file of the C file that uses the header most. The table below names each one |
-| `lib/src/parser.h` | Port | the `Language` type, the lexer interface, and the output of the generator |
+| `lib/src/parser.h` | Port | the tables of a language and the lexer that a lex function calls, in `internal/abi` (D63), and the output of the generator |
 | `lib/include/tree_sitter/api.h` | Port | the exported API of the root package |
 | `lib/src/wasm_store.*`, `lib/src/wasm-stdlib` | Not applicable | nothing (D1) |
 | `lib/src/unicode/`, `lib/src/portable/` | Review | the decoder in `lexer.go`. The rule for decoding is below |
@@ -104,7 +104,7 @@ applicable.
 | `language.h` | `language.go` |
 | `length.h` | `length.go` |
 | `lexer.h` | `lexer.go` |
-| `parser.h` | `language.go` and `lexer.go` |
+| `parser.h` | `internal/abi/parser.go` (D63) |
 | `point.h` | `point.go` |
 | `reduce_action.h` | `parser.go` |
 | `reusable_node.h` | `reusable_node.go` |

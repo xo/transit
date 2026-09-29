@@ -128,6 +128,11 @@ type InputEdit struct {
 // safe to share between goroutines.
 type Language struct{ /* unexported */ }
 
+// NewLanguage builds a language from its tables. Only code under
+// github.com/xo/transit/, such as a grammar package, can build an
+// *abi.Language, because the package abi is internal (D63).
+func NewLanguage(tables *abi.Language) *Language
+
 func (l *Language) Name() string
 func (l *Language) ABIVersion() int
 func (l *Language) Metadata() (LanguageMetadata, bool)

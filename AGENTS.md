@@ -16,8 +16,9 @@ Ken said on 2026-09-29 that the plan is ready, and phase 1 started (D54).
 Phase 1 ends when Ken accepts `docs/API.md`. The generator in `generate` and
 the C backend in `generate/backend/c` are ported, and they write the golden
 files of all 185 grammars of the set byte for byte. On 2026-09-29 the gate of
-D9 holds, with 151 grammars that count, and that ends phase 2. The runtime of
-phase 3 is not started.
+D9 holds, with 151 grammars that count, and that ends phase 2. Phase 3 ports
+the runtime. D62 chose the form of a subtree, and the root package holds the
+language and the lookahead iterator.
 
 [ts]: https://github.com/tree-sitter/tree-sitter
 
@@ -68,7 +69,8 @@ A bare number, such as D3, names a decision of this repository, in
 `docs/decisions/`. A decision of another repository names that repository,
 such as dbmeta D110. An open question has a number, and it is at the end of
 `docs/PLAN.md` until Ken answers it. The numbers do not repeat: questions 1
-to 57 are answered, question 58 is open, and the next question is question 59.
+to 57 and 59 are answered, question 58 is open, and the next question is
+question 60.
 
 ## Hard rules
 
@@ -147,7 +149,9 @@ these files:
 | `README.md`, `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md` | the four documents in the root |
 | `LICENSE` | the MIT license, with the copyright line of upstream |
 | `go.mod` | the module `github.com/xo/transit` |
-| `doc.go` | the comment of the root package, which will hold the runtime |
+| `doc.go` | the comment of the root package, which holds the runtime |
+| `language.go`, `length.go`, `point.go`, `assert.go` | the runtime. One Go file ports one file of `lib/src` of upstream (D24) |
+| `internal/abi/` | the tables of a grammar in the shape of `TSLanguage`, a port of `lib/src/parser.h` (D63) |
 | `skills_test.go`, `docs_test.go` | the tests of the agent setup and the documents |
 | `upstream_test.go`, `docs/upstream/ledger.tsv` | the ledger of upstream commits and its test (D30) |
 | `.github/workflows/test.yml`, `.golangci.yml` | CI and the lint configuration (D36) |
@@ -155,6 +159,7 @@ these files:
 | `docs/` | the plan, the rules, the grammar set, the references for rline and usql, the backlog and the decisions |
 | `_samples/sample.c` | Ken's first sample of a C program that uses a grammar, the start of the working C example (D10) |
 | `_samples/example/` | the working C example and its build script (D10) |
+| `_samples/subtree/` | the benchmark of the Go form of a subtree (D29, D62) |
 | `test/` | the test module, with its own `go.mod` (D12). `test/cmd/golden` is the golden harness (D58), and `test/cmd/regextables` writes the Unicode tables of the port of `regex-syntax` (D60) |
 | `cmd/transit/` | the command `transit`, with the subcommand `generate` (D41) |
 | `generate/` | the generator (D7). One Go file ports one Rust file of `crates/generate` (D24) |

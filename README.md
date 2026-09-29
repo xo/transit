@@ -20,8 +20,9 @@ The generator and its C backend are ported. They write the golden `parser.c`
 and `node-types.json` of all 185 grammars of the set byte for byte, and on
 2026-09-29 the gate of D9 holds: 151 grammars count, which ends phase 2.
 Phase 1 ends when Ken accepts the target API in [docs/API.md](docs/API.md)
-(D54). The runtime and the Go backend are not written yet, so transit parses
-nothing yet.
+(D54). The port of the runtime started in phase 3, and it holds the language
+and the lookahead iterator. The parser and the Go backend are not written
+yet, so transit parses nothing yet.
 [docs/PLAN.md](docs/PLAN.md) holds the plan, and the decisions record every
 answer that shapes it.
 

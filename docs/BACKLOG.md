@@ -15,8 +15,6 @@ agent and the date, and deletes the claim when Ken commits the unit (D50, D61).
 
 | Unit | Agent | Date |
 | --- | --- | --- |
-| Phase 2, unit 24: generate_parser_in_directory of generate.rs, and the subcommand generate of cmd/transit | transit | 2026-09-29 |
-| Phase 2, unit 25: the set corpus of the golden harness, for the gate of D9 | transit | 2026-09-29 |
 
 ## The generator
 
@@ -28,6 +26,17 @@ for the option `--report-states-for-rule` of the tool. The generator has no
 logger yet, so the port leaves them out. Decide how the generator logs, then
 port the lines and `report_state_info`. Some functions of
 `build_lex_table.go` then take the `StrPool` again, as upstream does.
+
+## The runtime
+
+### Port the tests of the language
+
+`crates/cli/src/tests/language_test.rs` of upstream tests the lookahead
+iterator, the metadata of the symbols and the supertypes on real grammars,
+such as the grammar of Rust. The root package has no grammar, so its tests of
+`language.go` use a small language that the test writes by hand. Port the
+five upstream tests in the test module, when it can copy the tables of a C
+grammar into `internal/abi` (D12, D35).
 
 ## The setup of the repository
 
