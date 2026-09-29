@@ -2,10 +2,7 @@ package generate
 
 import (
 	"errors"
-	"os"
-	"path/filepath"
 	"slices"
-	"strings"
 	"testing"
 )
 
@@ -237,44 +234,6 @@ func TestInternSymbolsWarnsOnUnaryRules(t *testing.T) {
 	}
 	if !slices.Equal(texts, expected) {
 		t.Errorf("expected %q, got: %q", expected, texts)
-	}
-}
-
-// TestInternSymbolsOnEveryTestGrammar runs the pass on each test grammar. A
-// grammar that the pass rejects must have the same error in its golden file.
-func TestInternSymbolsOnEveryTestGrammar(t *testing.T) {
-	t.Parallel()
-	files, err := filepath.Glob(filepath.Join("testdata", "*", "grammar.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	rejected := 0
-	for _, f := range files {
-		b, err := os.ReadFile(f)
-		if err != nil {
-			t.Fatal(err)
-		}
-		g, err := ParseGrammar(b, new([]Diagnostic))
-		if err != nil {
-			t.Fatalf("%s: %v", f, err)
-		}
-		_, err = internSymbols(g, new([]Diagnostic))
-		if err == nil {
-			continue
-		}
-		rejected++
-		golden, rerr := os.ReadFile(filepath.Join(filepath.Dir(f), "abi15", "error.txt"))
-		if rerr != nil {
-			t.Errorf("%s: the pass gives %q, and the grammar has no error golden: %v", f, err, rerr)
-			continue
-		}
-		if !strings.Contains(string(golden), "Caused by:\n    "+err.Error()+"\n") {
-			t.Errorf("%s: expected the error of the golden file, got: %q", f, err)
-		}
-	}
-	// invisible_start_rule is the one test grammar that the pass rejects
-	if rejected != 1 {
-		t.Errorf("expected the pass to reject 1 test grammar, it rejected %d", rejected)
 	}
 }
 

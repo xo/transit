@@ -11,11 +11,16 @@ questions for Ken. When an item here is done, delete it, and record in
 ## Units in progress
 
 An agent claims a unit of port work here before it starts, with the unit, the
-agent and the date, and deletes the claim when Ken commits the unit (D50).
+agent and the date, and deletes the claim when Ken commits the unit (D50, D61).
 
 | Unit | Agent | Date |
 | --- | --- | --- |
-| Phase 2, unit 3: intern_symbols.rs | transit | 2026-09-29 |
+| Phase 2, unit 4: the validators of prepare_grammar.rs | transit | 2026-09-29 |
+| Phase 2, unit 5: extract_tokens.rs, without expand_and_commit | transit | 2026-09-29 |
+| Phase 2, unit 6: expand_repeats.rs | transit | 2026-09-29 |
+| Phase 2, unit 7: flatten_grammar.rs | transit | 2026-09-29 |
+| Phase 2, unit 8: extract_default_aliases.rs | transit | 2026-09-29 |
+| Phase 2, unit 9: process_inlines.rs | transit | 2026-09-29 |
 
 ## The generator
 
@@ -24,6 +29,17 @@ agent and the date, and deletes the claim when Ken commits the unit (D50).
 Port the parts of `regex-syntax` 0.8.11 that the generator calls, with their
 tests and their Unicode tables, to an internal package of `generate` (D59,
 D60). `pattern.rs` and `expand_tokens.rs` need it.
+
+### Finish prepare_grammar after expand_tokens.rs
+
+`expand_tokens.rs` needs the port of `regex-syntax`. When it exists, port
+`PendingTokenExtraction::expand_and_commit` and `renumber_root` in
+`extract_tokens.go`, and `prepare_grammar` in `prepare_grammar.go`. Then port
+the checks of the tests of `extract_tokens.rs` that read the rewritten rules
+and the lexical grammar, and the five tests of `prepare_grammar.rs` that call
+`prepare_grammar`. Then extend `TestTheFirstPassesOnEveryTestGrammar` to every
+pass, so that the goldens of `eof_misplaced`, `epsilon_rules` and
+`eof_repeat_via_nullable_rule` check the errors of the later passes.
 
 ### Use the port in parse_grammar.go
 

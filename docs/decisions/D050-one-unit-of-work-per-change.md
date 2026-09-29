@@ -1,6 +1,6 @@
 # D50. One unit of work per change
 
-Status: Decided.
+Status: Decided. Amended by D61.
 
 Ken decided on 2026-09-29, answering question 49, how coding agents split the
 port:

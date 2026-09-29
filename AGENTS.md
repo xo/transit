@@ -160,8 +160,8 @@ proposed commit message. Do not commit and do not tag.
 
 Port work goes in units: one upstream file of the runtime, one Rust module of
 the generator, or one ported part, with its tests. Claim a unit under "Units
-in progress" in `docs/BACKLOG.md` before you start, and stage one unit in one
-change. Delete the claim when Ken commits it (D50).
+in progress" in `docs/BACKLOG.md` before you start. One staged change can hold
+several units (D61). Delete the claims when Ken commits the change (D50).
 
 Before you stage a change to a document, make sure of these facts:
 

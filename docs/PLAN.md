@@ -5,7 +5,7 @@ This document holds the plan for `github.com/xo/transit`. The decisions are in
 
 This plan was written on 2026-09-29, before any code existed (D3). Ken
 answered every open question on that date, and each answer is a decision, D1
-to D60. A part of this plan that names a decision follows it. A new question
+to D61. A part of this plan that names a decision follows it. A new question
 goes at the end of this document until Ken answers it.
 
 These documents hold the rules and the references that come from this plan:
@@ -612,7 +612,7 @@ SQL grammars that exist.
 Each phase ends when its tests pass, and each phase below says which. Phases 2
 and 3 run at the same time (D12). Agents split each phase into units, one
 upstream file or one Rust module with its tests each. An agent claims a unit
-in `BACKLOG.md`, and one staged change covers one unit (D50).
+in `BACKLOG.md`, and one staged change holds one unit or several (D50, D61).
 
 ### Phase 0. The plan and the rules
 

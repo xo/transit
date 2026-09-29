@@ -68,7 +68,7 @@ An open question is not a decision. It goes at the end of
 | [D47](D047-phase-3-measures-with-a-prototype-go-lexer.md) | Phase 3 measures with a prototype of the Go output | Decided, amends D31 and D37 |
 | [D48](D048-the-chroma-module-is-chromastyles.md) | The chroma module is chromastyles | Decided, amends D26, D32 and D43 |
 | [D49](D049-local-modules-are-wired-with-generated-replace-blocks.md) | Local modules are wired with generated replace blocks | Decided |
-| [D50](D050-one-unit-of-work-per-change.md) | One unit of work per change | Decided |
+| [D50](D050-one-unit-of-work-per-change.md) | One unit of work per change | Decided. Amended by D61 |
 | [D51](D051-a-grammar-is-pinned-by-its-commit.md) | A grammar is pinned by its commit | Decided |
 | [D52](D052-the-concurrency-guarantees-follow-upstream.md) | The concurrency guarantees follow upstream, in Go terms | Decided |
 | [D53](D053-examples-and-two-sample-programs.md) | Examples, and two sample programs | Decided |
@@ -79,3 +79,4 @@ An open question is not a decision. It goes at the end of
 | [D58](D058-the-golden-harness-is-a-command-of-the-test-module.md) | The golden harness is a command of the test module | Decided |
 | [D59](D059-the-generator-ports-regex-syntax.md) | The generator ports the parser and the translator of regex-syntax | Decided |
 | [D60](D060-the-generator-uses-the-unicode-tables-of-regex-syntax.md) | The generator uses the Unicode tables of regex-syntax | Decided. Amends D38 and D45 |
+| [D61](D061-a-staged-change-can-hold-several-units.md) | A staged change can hold several units | Decided. Amends D50 |
