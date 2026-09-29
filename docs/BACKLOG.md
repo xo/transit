@@ -30,14 +30,16 @@ logger yet, so the port leaves them out. The generator logs with `log/slog`
 
 ## The runtime
 
-### Port the tests of the language
+### Port the tests of the runtime
 
-`crates/cli/src/tests/language_test.rs` of upstream tests the lookahead
-iterator, the metadata of the symbols and the supertypes on real grammars,
-such as the grammar of Rust. The root package has no grammar, so its tests of
-`language.go` use a small language that the test writes by hand. Port the
-five upstream tests in the test module, when it can copy the tables of a C
-grammar into `internal/abi` (D12, D35).
+`crates/cli/src/tests` of upstream tests the runtime on real grammars:
+`parser_test.rs`, `tree_test.rs`, `node_test.rs`, `corpus_test.rs` and
+`pathological_test.rs`. The package `test/cgrammar` loads the fixture
+grammars, and `language_test.go` there ports `language_test.rs`. Port the
+other files there too (D35). `corpus_test.rs` adds random edits of each
+corpus input, which the edit test of `test/cgrammar` does only once for each
+input. Compare the trees at ABI 14 too, from the `src/parser.c` of each
+grammar.
 
 ### Compare the decoders with the C decoders
 
@@ -51,12 +53,6 @@ UTF-16 decoders case by case. Add the comparison with `U8_NEXT` and
 ## The setup of the repository
 
 These items come in phase 1 and later, as the plan says.
-
-### Add the script that writes the replace blocks
-
-With the first module that imports another module of this repository, add
-the script that writes the `replace` block of each `go.mod`, and a CI step
-that fails when the script changes a file (D49).
 
 ### Add the tests of the port rules
 

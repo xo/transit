@@ -65,6 +65,9 @@ linters:
     # interface with one struct type for each variant. A function that
     # returns the enum returns the interface, and ireturn reports it.
     - ireturn
+    # The port keeps the comments of upstream, and some of them are TODO
+    # comments (D24).
+    - godox
     # depguard holds the rule on dependencies, so gomodguard would hold it
     # twice.
     - gomodguard
@@ -91,6 +94,10 @@ linters:
       errorf: true
       asserts: true
       comparison: true
+    gomoddirectives:
+      # The replace block of each go.mod points at the folder of a module of
+      # this repository, and ./gen.sh -m writes it (D49).
+      replace-local: true
     staticcheck:
       checks:
         # the default checks of golangci-lint
@@ -138,6 +145,18 @@ linters:
       - path: test/cmd/
         linters:
           - gosec
+      # The package cgrammar builds the C runtime and the grammars in the
+      # cache, from the files of the checkout of upstream and of the cache.
+      # That is what gosec warns about, and it is the job.
+      - path: test/cgrammar/
+        linters:
+          - gosec
+      # ts_node_field_name_for_child and ts_node_field_name_for_named_child
+      # are two functions of the same shape in node.c of upstream, and the
+      # port keeps both (D24).
+      - path: node\.go
+        linters:
+          - dupl
       # The generator reads the grammar file and writes the files of the
       # folder that the user names, with the modes of upstream. That is what
       # gosec warns about, and it is the job.

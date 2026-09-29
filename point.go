@@ -2,10 +2,10 @@ package transit
 
 import "math"
 
-// This file ports lib/src/point.h, and the type TSPoint of
-// lib/include/tree_sitter/api.h. The runtime computes with point, which keeps
-// the widths of TSPoint, and the exported API uses Point, which counts with
-// int (D25).
+// This file ports lib/src/point.h and lib/src/point.c, and the type TSPoint
+// of lib/include/tree_sitter/api.h. The runtime computes with point, which
+// keeps the widths of TSPoint, and the exported API uses Point, which counts
+// with int (D25).
 
 // Point is a position as a row and a column. Both count from zero, and the
 // column counts bytes.
@@ -86,4 +86,21 @@ func (a point) gte(b point) bool {
 // eq is point_eq.
 func (a point) eq(b point) bool {
 	return a.row == b.row && a.column == b.column
+}
+
+// pointEdit is ts_point_edit of lib/src/point.c. The C function changes a
+// point and its byte offset in place, and the Go function returns them.
+func pointEdit(pt point, byteOffset uint32, edit InputEdit) (point, uint32) {
+	startByte := byteOffset
+	startPoint := pt
+
+	if startByte >= uint32(edit.OldEndByte) {
+		startByte = uint32(edit.NewEndByte) + (startByte - uint32(edit.OldEndByte))
+		startPoint = edit.NewEndPoint.internal().add(startPoint.sub(edit.OldEndPoint.internal()))
+	} else if startByte > uint32(edit.StartByte) {
+		startByte = uint32(edit.NewEndByte)
+		startPoint = edit.NewEndPoint.internal()
+	}
+
+	return startPoint, startByte
 }

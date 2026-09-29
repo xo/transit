@@ -18,6 +18,9 @@ jobs:
         go-version-file: go.mod
     - name: Format
       run: test -z "$(gofmt -l $(git ls-files '*.go'))"
+    - name: Replace blocks
+      # the replace block of each go.mod is what ./gen.sh -m writes (D49)
+      run: ./gen.sh -m && git diff --exit-code
     - name: Vet
       run: go vet ./...
     - name: Test

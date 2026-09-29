@@ -17,8 +17,11 @@ Phase 1 ends when Ken accepts `docs/API.md`. The generator in `generate` and
 the C backend in `generate/backend/c` are ported, and they write the golden
 files of all 185 grammars of the set byte for byte. On 2026-09-29 the gate of
 D9 holds, with 151 grammars that count, and that ends phase 2. Phase 3 ports
-the runtime. D62 chose the form of a subtree, and the root package holds the
-language, the lookahead iterator, the lexer and the subtree.
+the runtime. The root package holds the language, the lexer, the subtree,
+the stack, the parser, the tree, the node and the tree cursor. The test
+module compares the Go trees with the C trees, and they match for every
+corpus input of every fixture grammar, after an edit too. The query engine
+and the measurements of D47 are not done, so phase 3 goes on.
 
 [ts]: https://github.com/tree-sitter/tree-sitter
 
@@ -150,7 +153,7 @@ these files:
 | `LICENSE` | the MIT license, with the copyright line of upstream |
 | `go.mod` | the module `github.com/xo/transit` |
 | `doc.go` | the comment of the root package, which holds the runtime |
-| `language.go`, `lexer.go`, `subtree.go`, `parser.go`, `length.go`, `point.go`, `assert.go` | the runtime. One Go file ports one file of `lib/src` of upstream (D24) |
+| `language.go`, `lexer.go`, `subtree.go`, `stack.go`, `parser.go`, `reusable_node.go`, `tree.go`, `node.go`, `tree_cursor.go`, `get_changed_ranges.go`, `length.go`, `point.go`, `assert.go` | the runtime. One Go file ports one file of `lib/src` of upstream (D24) |
 | `internal/abi/` | the tables of a grammar in the shape of `TSLanguage`, a port of `lib/src/parser.h` (D63) |
 | `skills_test.go`, `docs_test.go` | the tests of the agent setup and the documents |
 | `upstream_test.go`, `docs/upstream/ledger.tsv` | the ledger of upstream commits and its test (D30) |
@@ -160,7 +163,8 @@ these files:
 | `_samples/sample.c` | Ken's first sample of a C program that uses a grammar, the start of the working C example (D10) |
 | `_samples/example/` | the working C example and its build script (D10) |
 | `_samples/subtree/` | the benchmark of the Go form of a subtree (D29, D62) |
-| `test/` | the test module, with its own `go.mod` (D12). `test/cmd/golden` is the golden harness (D58), and `test/cmd/regextables` writes the Unicode tables of the port of `regex-syntax` (D60) |
+| `test/` | the test module, with its own `go.mod` (D12). `test/cmd/golden` is the golden harness (D58), `test/cmd/regextables` writes the Unicode tables of the port of `regex-syntax` (D60), and `test/cgrammar` loads a C grammar into the Go runtime and compares the Go trees with the C trees |
+| `gen.sh` | the script that writes the `replace` block of each `go.mod`, with `-m` (D49) |
 | `cmd/transit/` | the command `transit`, with the subcommand `generate` (D41) |
 | `generate/` | the generator (D7). One Go file ports one Rust file of `crates/generate` (D24) |
 | `generate/templates/` | the headers `parser.h`, `alloc.h` and `array.h` that a generated parser includes, copied from upstream |
@@ -192,6 +196,7 @@ repository. All of them must pass:
 
 ```sh
 test -z "$(gofmt -l $(git ls-files '*.go'))"
+./gen.sh -m && git diff --exit-code -- '*go.mod'
 go vet ./...
 go test -race -count=1 ./...
 golangci-lint run ./...
@@ -199,7 +204,10 @@ golangci-lint run ./...
 ```
 
 The test module in `test/` has its own `go.mod`, so `./...` in the root does
-not reach it. The last command runs the same commands in that module.
+not reach it. The last command runs the same commands in that module. Its
+package `test/cgrammar` builds the C runtime and the fixture grammars from the
+checkout of upstream and the cache of the golden harness, and it skips its
+tests when they are missing.
 
 The first command runs `gofmt` only on the files that git tracks, because
 `tree-sitter/` holds Go files of upstream.

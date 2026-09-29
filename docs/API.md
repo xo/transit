@@ -352,8 +352,17 @@ func (e Error) Error() string
 const (
 	ErrIncompatibleLanguage Error = "incompatible language version"
 	ErrInvalidRanges        Error = "invalid included ranges"
+	ErrNoLanguage           Error = "parser has no language"
+	ErrLanguageMismatch     Error = "old tree has another language"
+	ErrInvalidInput         Error = "invalid input"
 )
 ```
+
+`ErrNoLanguage`, `ErrLanguageMismatch` and `ErrInvalidInput` came with the
+port of the parser. The C parser returns NULL for a parse with no language,
+with an old tree of another language, or with no input, and Go names each
+case. A parse whose context ends keeps its state, as a parse whose progress
+callback stops does in C, and the next parse goes on from it.
 
 `Parse` returns the error of its context when the context ends, wrapped with
 `%w`. `Captures` gives each match with the index of the capture in the match,

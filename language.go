@@ -41,6 +41,10 @@ type StateID uint16
 // name.
 const unknownName = "unknown"
 
+// noneName is the name that String gives the value of an enum that means
+// none.
+const noneName = "none"
+
 // SymbolType is the kind of a symbol.
 //
 // SymbolType is TSSymbolType.
