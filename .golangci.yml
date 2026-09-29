@@ -91,6 +91,19 @@ linters:
       errorf: true
       asserts: true
       comparison: true
+    staticcheck:
+      checks:
+        # the default checks of golangci-lint
+        - all
+        - -ST1000
+        - -ST1003
+        - -ST1016
+        - -ST1020
+        - -ST1021
+        - -ST1022
+        # QF1001 rewrites a boolean expression with De Morgan's law. The port
+        # keeps the expressions of upstream (D24).
+        - -QF1001
     revive:
       rules:
         - name: context-as-argument

@@ -505,6 +505,7 @@ func TestLanguageProductions(t *testing.T) {
 	if got := l.aliasSequence(0); got != nil {
 		t.Errorf("aliasSequence(0) = %v, want nil", got)
 	}
+	// production 1 is the last, so its sequence runs to the end of the table
 	if got := l.aliasSequence(1); !slices.Equal(got, []uint16{0, uint16(testSymAlias), 0}) {
 		t.Errorf("aliasSequence(1) = %v", got)
 	}

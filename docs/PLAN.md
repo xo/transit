@@ -5,7 +5,7 @@ This document holds the plan for `github.com/xo/transit`. The decisions are in
 
 This plan was written on 2026-09-29, before any code existed (D3). Ken
 answered every open question on that date, and each answer is a decision, D1
-to D63. A part of this plan that names a decision follows it. A new question
+to D64. A part of this plan that names a decision follows it. A new question
 goes at the end of this document until Ken answers it.
 
 These documents hold the rules and the references that come from this plan:
@@ -891,8 +891,8 @@ Ken answered the questions of phase 0 on 2026-09-29, and D24 to D53
 record the answers, and D54 starts phase 1. The working C example of phase 1
 raised questions 53 to 55, and D55 to D57 record the answers. Phase 2 raised
 questions 56 and 57, and D59 and D60 record the answers. Phase 3 raised
-question 59, and D63 records the answer. Question 58 is open. The next
-question is question 60.
+question 59, and D63 records the answer. Questions 58 and 60 are open. The
+next question is question 61.
 
 58. What text does the generator give for a `grammar.json` that is not valid
     JSON? Upstream decodes `grammar.json` with the Rust crate `serde_json`,
@@ -902,6 +902,17 @@ question is question 60.
     upstream tool writes `grammar.json` itself, so the error comes only from a
     file that a person edits by hand. No golden file holds such an error. The
     proposal is to keep the text of Go, as a difference from upstream that
-    this question records. Raise a new question here rather than
-deciding one alone.
+    this question records.
+
+60. Does a Go subtree keep the reference count and the inline flag of C?
+    D62 says that the garbage collector replaces the reference counts. But
+    upstream reads the count to decide whether to change a node in place,
+    and the compression and the balancing of a repetition stop at a node
+    that two trees hold, which changes the shape of the tree. The inline
+    form of a small leaf also changes what the leaf keeps. The proposal is
+    D64: the Go node keeps an atomic count and a flag for the inline form,
+    for the behavior of upstream, and the garbage collector still frees the
+    memory. `subtree.go` does this today.
+
+Raise a new question here rather than deciding one alone.
 

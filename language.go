@@ -37,6 +37,10 @@ type FieldID uint16
 // StateID is TSStateId.
 type StateID uint16
 
+// unknownName is the name that String gives a value of an enum that has no
+// name.
+const unknownName = "unknown"
+
 // SymbolType is the kind of a symbol.
 //
 // SymbolType is TSSymbolType.
@@ -70,7 +74,7 @@ func (t SymbolType) String() string {
 	case SymbolAuxiliary:
 		return "auxiliary"
 	}
-	return "unknown"
+	return unknownName
 }
 
 // LanguageMetadata is the version of a grammar.
@@ -102,6 +106,8 @@ const (
 	builtinSymError = Symbol(abi.BuiltinSymError)
 	// builtinSymErrorRepeat is ts_builtin_sym_error_repeat.
 	builtinSymErrorRepeat = builtinSymError - 1
+	// builtinSymEnd is ts_builtin_sym_end.
+	builtinSymEnd = Symbol(abi.BuiltinSymEnd)
 )
 
 // The first ABI versions that have a part of the tables.
@@ -145,7 +151,7 @@ func (p lookaheadPhase) String() string {
 	case lookaheadDone:
 		return "done"
 	}
-	return "unknown"
+	return unknownName
 }
 
 // LookaheadIterator lists the symbols that the parser can accept in a state.
@@ -347,15 +353,16 @@ func (l *Language) enabledExternalTokens(externalScannerState uint32) []bool {
 }
 
 // aliasSequence returns the aliases of the children of a production, or nil
-// for the production 0.
+// for the production 0. The C function returns a pointer into the table, and
+// a caller can read past the production into the next one, so the Go
+// function returns the table from the start of the production.
 //
 // aliasSequence is ts_language_alias_sequence.
 func (l *Language) aliasSequence(productionID uint32) []uint16 {
 	if productionID == 0 {
 		return nil
 	}
-	start := productionID * uint32(l.tables.MaxAliasSequenceLength)
-	return l.tables.AliasSequences[start : start+uint32(l.tables.MaxAliasSequenceLength)]
+	return l.tables.AliasSequences[productionID*uint32(l.tables.MaxAliasSequenceLength):]
 }
 
 // aliasAt is ts_language_alias_at.

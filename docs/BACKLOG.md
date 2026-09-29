@@ -38,6 +38,15 @@ such as the grammar of Rust. The root package has no grammar, so its tests of
 five upstream tests in the test module, when it can copy the tables of a C
 grammar into `internal/abi` (D12, D35).
 
+### Compare the decoders with the C decoders
+
+[`UPSTREAM.md`](UPSTREAM.md) says that the test of the decoder compares the
+Go decoders with the C decoders for every sequence of up to four bytes, in
+the test module. The tests of `lexer.go` compare `decodeUTF8` with the
+maximal subpart of the Unicode standard, which ICU follows, and they test the
+UTF-16 decoders case by case. Add the comparison with `U8_NEXT` and
+`U16_NEXT` of C when the test module can call the decoders of the runtime.
+
 ## The setup of the repository
 
 These items come in phase 1 and later, as the plan says.

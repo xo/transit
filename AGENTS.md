@@ -18,7 +18,7 @@ the C backend in `generate/backend/c` are ported, and they write the golden
 files of all 185 grammars of the set byte for byte. On 2026-09-29 the gate of
 D9 holds, with 151 grammars that count, and that ends phase 2. Phase 3 ports
 the runtime. D62 chose the form of a subtree, and the root package holds the
-language and the lookahead iterator.
+language, the lookahead iterator, the lexer and the subtree.
 
 [ts]: https://github.com/tree-sitter/tree-sitter
 
@@ -69,8 +69,8 @@ A bare number, such as D3, names a decision of this repository, in
 `docs/decisions/`. A decision of another repository names that repository,
 such as dbmeta D110. An open question has a number, and it is at the end of
 `docs/PLAN.md` until Ken answers it. The numbers do not repeat: questions 1
-to 57 and 59 are answered, question 58 is open, and the next question is
-question 60.
+to 57 and 59 are answered, questions 58 and 60 are open, and the next
+question is question 61.
 
 ## Hard rules
 
@@ -150,7 +150,7 @@ these files:
 | `LICENSE` | the MIT license, with the copyright line of upstream |
 | `go.mod` | the module `github.com/xo/transit` |
 | `doc.go` | the comment of the root package, which holds the runtime |
-| `language.go`, `length.go`, `point.go`, `assert.go` | the runtime. One Go file ports one file of `lib/src` of upstream (D24) |
+| `language.go`, `lexer.go`, `subtree.go`, `parser.go`, `length.go`, `point.go`, `assert.go` | the runtime. One Go file ports one file of `lib/src` of upstream (D24) |
 | `internal/abi/` | the tables of a grammar in the shape of `TSLanguage`, a port of `lib/src/parser.h` (D63) |
 | `skills_test.go`, `docs_test.go` | the tests of the agent setup and the documents |
 | `upstream_test.go`, `docs/upstream/ledger.tsv` | the ledger of upstream commits and its test (D30) |
