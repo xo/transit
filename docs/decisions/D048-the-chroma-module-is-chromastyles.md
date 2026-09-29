@@ -1,6 +1,6 @@
 # D48. The chroma module is chromastyles
 
-Status: Decided, amends D26, D32 and D43.
+Status: Decided, amends D26, D32 and D43, superseded by D65.
 
 Ken decided on 2026-09-29 that the package that matches capture names to
 chroma token types is named `chromastyles`, to avoid a clash with the package

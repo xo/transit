@@ -1,6 +1,6 @@
 # D15. No Go package is added without Ken
 
-Status: Decided, amended by D32.
+Status: Decided, amended by D32 and D65.
 
 Ken decided on 2026-09-29 that no Go package from outside this repository is
 added without his approval, as in the other `xo` repositories. This holds for

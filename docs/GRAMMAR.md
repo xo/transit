@@ -233,9 +233,9 @@ Every grammar has the same tests, and `transit generate` writes them in
    engine.
 3. The highlight test, if the grammar has `test/highlight/`. transit does not
    port the upstream highlighter (D7), so the test compares the captures of
-   `queries/highlights.scm` with the assertions in each file. The test module
-   also draws the captures with a chroma style (D14). That test is not in the
-   grammar package, so the package does not require chroma (D32).
+   `queries/highlights.scm` with the assertions in each file. Each capture
+   name of `queries/highlights.scm` is also in the list of captures of the
+   package `styles`, and it reaches an entry of each bundled style (D65).
 4. The generator test, as below.
 
 The test module (D12) also parses each corpus input

@@ -5,7 +5,7 @@ This document holds the plan for `github.com/xo/transit`. The decisions are in
 
 This plan was written on 2026-09-29, before any code existed (D3). Ken
 answered every open question on that date, and each answer is a decision, D1
-to D64. A part of this plan that names a decision follows it. A new question
+to D65. A part of this plan that names a decision follows it. A new question
 goes at the end of this document until Ken answers it.
 
 These documents hold the rules and the references that come from this plan:
@@ -126,8 +126,8 @@ transit also holds these parts, which are not ports:
 3. The grammars that the Go backend generates, each with its external scanner
    ported to Go.
 4. The grammars that `xo` writes, in `grammars/xo/` (D42).
-5. The chromastyles module, which matches capture names to chroma token
-   types (D32, D48).
+5. The package `styles`, which holds the styles of transit as embedded JSON
+   files, and the command that converts the styles of chroma (D65).
 6. The APIs that upstream does not have, one decision each (D28).
 7. The documents `RLINE.md` and `USQL.md` (D6).
 
@@ -149,14 +149,14 @@ D26 names each package:
 | `generate/backend/go` | `golang` | the Go backend |
 | `inject` | `inject` | the injections |
 | `cmd/transit` | `main` | the command |
-| `chromastyles` | `chromastyles` | a module of its own, which requires chroma (D32, D48) |
+| `styles` | `styles` | the styles, as embedded JSON files. It imports only the standard library (D65) |
 | `grammars/<repository>` | one for each grammar | one module for each grammar repository |
 | `grammars/xo/<name>` | the grammar | a grammar that `xo` writes (D42) |
 | `test` | | the test module, which uses cgo (D12) |
 
 rline imports the root package and no grammar (D11). usql imports the root
 package, `inject`, the grammars that it needs and, if it wants the shared
-colors, `chromastyles`.
+colors, `styles`.
 
 ### The port is idiomatic Go
 
@@ -420,15 +420,20 @@ can list too many symbols or none. Upstream gives no API for the states before
 the recovery. transit adds one: it gives the parse states of each stack
 version at a byte offset (D28).
 
-### Highlighting and chroma
+### Highlighting and styles
 
-A consumer uses chroma only for its styles (D14). The tokens and their kinds
-come from the tree and the highlight query of the grammar. A capture name,
-such as `keyword` or `string.special`, is matched to a chroma token type, and
-the chroma style gives the color. The module `github.com/xo/transit/chromastyles`
-holds that match, so that rline and usql draw the same code in the same
-colors (D32). It has its own `go.mod`, and its tests draw the captures of each
-grammar with a chroma style.
+The tokens and their kinds come from the tree and the highlight query of the
+grammar, and never from a chroma lexer (D14). transit does not use chroma. The
+package `styles` holds the styles of transit as embedded JSON files, with a
+small parser for their style strings (D65). A style gives an entry for a
+capture name, such as `keyword` or `string.special`, and a lookup falls back
+to each shorter prefix of the name. rline and usql then draw the same code in
+the same colors.
+
+A command of the test module converts the styles of chroma from a checkout,
+without an import of chroma, and a person tunes a few of them by hand. The
+styles key on a list of capture names that is measured from the highlight
+queries of the grammar set.
 
 ### The usql grammar and the other xo grammars
 
@@ -675,7 +680,7 @@ and the speed targets hold on them (D37, D47).
 ### Phase 5. The grammars and the modules for rline and usql
 
 Generate the SQL grammars in Go. Write the usql grammar and the other grammars
-that `xo` needs (D13, D42). Write the chromastyles module (D32, D48), the APIs
+that `xo` needs (D13, D42). Write the package `styles` (D65), the APIs
 that upstream does not have (D28), the example functions and the two sample
 programs (D53), and bring `RLINE.md` and `USQL.md` up to date with the code.
 
@@ -849,7 +854,8 @@ Gemini and DeepSeek reviewed the plan a last time on 2026-09-29, after D44.
 3. Phase 3 measures with a prototype of the Go lexer, because no Go lexer
    exists before phase 4 (D47).
 4. The chroma package is `chromastyles`, so that it does not clash with the
-   package `chroma` (D48).
+   package `chroma` (D48). D65 later replaced it with the package `styles`,
+   and transit does not use chroma.
 5. The modules of this repository find each other through generated `replace`
    blocks (D49).
 6. Work goes in units, and each phase has a test that ends it (D50).

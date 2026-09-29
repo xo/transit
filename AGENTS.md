@@ -99,11 +99,11 @@ question is question 61.
    writes, and for the license files that it copies from `regex-syntax` (D59,
    D60). To change a table, run that command again.
 8. Do not add a Go package from outside this repository without Ken's
-   approval, and that includes a package that only a test imports (D15). Ken
-   approved chroma for the module `github.com/xo/transit/chromastyles` only,
-   which has its own `go.mod` (D32, D48).
-9. transit does not import rline, usql or dbmeta (D6). A consumer uses chroma
-   only for its styles, and never its lexers (D14).
+   approval, and that includes a package that only a test imports (D15). No
+   such package is approved today (D65).
+9. transit does not import rline, usql or dbmeta (D6). transit does not use
+   chroma. Its colors are the styles of the package `styles`, and a consumer
+   never uses a chroma lexer (D14, D65).
 10. transit does not decide what a node means, such as whether an identifier
     names a table or a column. The consumer does (D6).
 11. Posts to GitHub follow three rules. Ken set them on 2026-09-29:

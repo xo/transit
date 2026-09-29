@@ -1,6 +1,6 @@
 # D49. Local modules are wired with generated replace blocks
 
-Status: Decided.
+Status: Decided, amended by D65.
 
 Ken decided on 2026-09-29, answering question 48, that each module in this
 repository that imports another module of this repository, such as the test

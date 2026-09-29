@@ -1,6 +1,6 @@
 # D26. The packages and modules of transit
 
-Status: Decided, amended by D48.
+Status: Decided, amended by D48 and D65.
 
 Ken decided on 2026-09-29, answering questions 5, 8, 39 and 40:
 
@@ -12,7 +12,7 @@ Ken decided on 2026-09-29, answering questions 5, 8, 39 and 40:
 | `generate/backend/go` | `golang` | the Go backend. `go` is a keyword, so the package name differs from the folder |
 | `inject` | `inject` | the injections (D27) |
 | `cmd/transit` | `main` | the command (D41) |
-| `chroma` | `chroma` | a module of its own (D32) |
+| `chroma` | `chroma` | a module of its own (D32). D65 replaced it with the package `styles` in the root module |
 | `grammars/<repository>` | the grammar | one Go module for each grammar repository |
 | `test` | | the test module, with its own `go.mod` (D12) |
 

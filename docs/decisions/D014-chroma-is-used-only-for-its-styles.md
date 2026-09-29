@@ -1,6 +1,6 @@
 # D14. chroma is used only for its styles
 
-Status: Decided, amended by D32.
+Status: Decided, amended by D32 and D65.
 
 Ken decided on 2026-09-29 that a consumer of transit uses
 [chroma](https://github.com/alecthomas/chroma) only for its styles. A style

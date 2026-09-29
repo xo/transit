@@ -24,9 +24,9 @@ change transit from usql.
    commands and the variables, and hands each SQL statement to a SQL grammar
    through an injection (D13). An injection is a range of the input that
    another grammar parses.
-3. usql uses chroma only for its styles (D14). usql does this today with the
-   `styles` package. The tokens and their kinds come from transit, and never
-   from a chroma lexer.
+3. The tokens and their kinds come from transit, and never from a chroma
+   lexer (D14). usql uses chroma styles today, in its own `styles` package.
+   The package `styles` of transit replaces them (D65).
 4. usql gives rline a `*transit.Language` for highlighting, because rline
    imports no grammar (D11).
 5. The Go API follows the Rust binding, in Go idioms (D25). An offset, a row
@@ -36,9 +36,9 @@ change transit from usql.
 7. Each grammar repository is a Go module of its own, so usql downloads only
    the grammars that it imports (D26). Each grammar package embeds its
    queries (D31).
-8. The module `github.com/xo/transit/chromastyles` matches capture names to chroma
-   token types, so that usql and rline draw the same code in the same colors
-   (D32).
+8. The package `github.com/xo/transit/styles` holds styles that are keyed on
+   capture names, so that usql and rline draw the same code in the same
+   colors (D65).
 
 ## What usql will replace
 
@@ -46,6 +46,8 @@ change transit from usql.
    keywords and prefixes by hand.
 2. The highlighting in `handler/handler.go`: `outputHighlighter`, and the
    chroma lexer that `drivers.Lexer` returns.
+3. The chroma styles of its `styles` package, with the package `styles` of
+   transit (D65).
 
 ## How completion will work
 

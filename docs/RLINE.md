@@ -25,8 +25,9 @@ rline.
    `*transit.Language`, and rline highlights any language with it (D11).
 4. transit gives parsing information only. rline decides what to draw and how
    (D6).
-5. rline uses chroma, if at all, only for its styles. The tokens and their
-   kinds come from transit, and never from a chroma lexer (D14).
+5. The tokens and their kinds come from transit, and never from a chroma
+   lexer (D14). rline takes its colors, if it wants shared ones, from the
+   package `styles` (D65).
 
 rline has its own rule on its dependencies, rline D7. Adding transit to it is
 a decision of rline. Ken makes it in rline.
@@ -61,10 +62,11 @@ This is the plan, not an API. The names can change in phase 1.
    Markdown (D27). rline imports it only if it highlights such a language.
 4. Each grammar package embeds its queries, so the caller gives rline the
    highlight query with the language (D31).
-5. The module `github.com/xo/transit/chromastyles` matches capture names to chroma
-   token types, so that rline and usql draw the same code in the same colors
-   (D32). It has its own `go.mod`. rline imports it only if rline chooses to
-   use chroma styles.
+5. The package `github.com/xo/transit/styles` holds styles that are keyed on
+   capture names, so that rline and usql draw the same code in the same
+   colors (D65). It is in the root module and imports only the standard
+   library. The background of a style applies only when rline asks for it,
+   and rline chooses the color depth.
 6. A parse after one key and the highlight query on the result take less than
    2 ms on a statement of 10 KB, as a target that phase 3 confirms (D37).
 7. A compiled query and a query cursor can be kept and used again on each

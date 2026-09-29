@@ -1,6 +1,6 @@
 # D32. A chroma module maps capture names to chroma token types
 
-Status: Decided, amends D14 and D15, amended by D48.
+Status: Decided, amends D14 and D15, amended by D48, superseded by D65.
 
 Ken decided on 2026-09-29, answering questions 23 and 25, that transit
 publishes a Go package that matches capture names, such as `keyword.function`,
