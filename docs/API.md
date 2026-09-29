@@ -10,7 +10,7 @@ find no node returns the node and a `bool` (D56). Ken accepts this document
 before phase 1 ends, and until then it is a proposal. The choices that the
 example raised are decided: `#lua-match?` (D55, which waits for the tier 1
 grammars, D69), the form of a lookup (D56)
-and `StatesAt` (D57).
+and `StatesAt` (D57). The API of the package `inject` is decided too (D72).
 
 ## The working C example
 
@@ -514,6 +514,62 @@ match the text of a capture with a Lua pattern, as Neovim does (D55). They
 wait until the tier 1 grammars need them (D69), with the rest of the Neovim
 dialect that [`NEOVIM.md`](NEOVIM.md) lists.
 
+## The package inject
+
+The package `inject` finds the injections of a text and parses each layer
+(D27). An injection is a range of the text that another grammar parses, such
+as a `<script>` element of HTML, or a SQL statement in the input of usql
+(D13). A layer is one tree of one language over the ranges of its
+injections. It ports the part of `crates/highlight` that does this, without
+the highlighting. Upstream has no public API for it, so D72 sets this one:
+
+```go
+package inject
+
+// Config is the injection part of HighlightConfiguration: a language, its
+// name and its injection query.
+type Config struct{ /* unexported */ }
+
+func NewConfig(language *transit.Language, name, injectionQuery string) (*Config, error)
+func (c *Config) Name() string
+func (c *Config) Language() *transit.Language
+
+// Layer is one tree of one language over the ranges of its injections.
+type Layer struct {
+	Name   string // the language name that the query gave, such as "js"
+	Config *Config
+	Tree   *transit.Tree
+	Ranges []transit.Range
+	Depth  int // 0 for the root layer
+}
+
+// Layers parses src with c, finds every injection, and parses the layer of
+// each. lookup gives the configuration of an injected language name.
+func (c *Config) Layers(ctx context.Context, p *transit.Parser, src []byte,
+	lookup func(name string) (*Config, bool)) ([]Layer, error)
+```
+
+`inject` takes UTF-8 only, and a Rust oracle in the test module compares its
+layers with the layers of `crates/highlight` (D71). The layers come sorted by
+the start of their first range, then by depth, so the root layer comes first.
+D72 holds the rest of the rules: the skips, the errors and the faults of
+upstream that the port keeps.
+
+usql finds the layer at the cursor, and asks it for the node there:
+
+```go
+layers, err := usqlConfig.Layers(ctx, parser, src, lookup)
+for _, l := range slices.Backward(layers) {
+	if holds(l.Ranges, cursor) {
+		node, _ := l.Tree.RootNode().DescendantForByteRange(cursor, cursor)
+		// ...
+	}
+}
+```
+
+`holds` is code of usql that reports whether one of the ranges holds the
+offset.
+
 ## A generated grammar package
 
 The Go backend writes one package for each grammar (D26, D31). For the SQL
@@ -558,8 +614,10 @@ joins the list above when the Go backend exists.
 ## What rline and usql call
 
 rline highlights with `Parse`, `Edit`, `NewQuery` once, and `Captures` with a
-byte range for the rows that it shows. usql completes with `Parse`,
-`DescendantForByteRange`, `Parent`, `FieldNameForChild`, `StatesAt` and
-`LookaheadIterator`, and it decides what kind of name goes at the cursor from
-the symbols that come back and from its own queries (D6). `RLINE.md` and
-`USQL.md` hold the details.
+byte range for the rows that it shows. For a language with injections, it
+takes the layers from `inject` and runs its highlight query on each tree.
+usql takes the layers of its input from `inject`. On the layer at the cursor,
+it completes with `DescendantForByteRange`, `Parent`, `FieldNameForChild`,
+`StatesAt` and `LookaheadIterator`. It decides what kind of name goes at the
+cursor from the symbols that come back and from its own queries (D6).
+`RLINE.md` and `USQL.md` hold the details.

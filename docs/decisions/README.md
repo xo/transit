@@ -89,3 +89,5 @@ An open question is not a decision. It goes at the end of
 | [D68](D068-node-equal-is-ts-node-eq.md) | Node.Equal is ts_node_eq, and == also compares the position | Decided |
 | [D69](D069-the-neovim-dialect-waits-for-the-tier-1-grammars.md) | The Neovim dialect of queries waits for the tier 1 grammars | Decided, amends D55 |
 | [D70](D070-statesat-stops-before-the-first-token-after-the-offset.md) | StatesAt stops before the first token that ends after the offset | Decided |
+| [D71](D071-inject-takes-utf-8-and-a-rust-oracle-tests-it.md) | The package inject takes UTF-8, and a Rust oracle tests it | Decided |
+| [D72](D072-the-api-of-inject-gives-every-layer-at-once.md) | The API of inject gives every layer at once | Decided |

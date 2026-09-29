@@ -60,7 +60,7 @@ This is the plan, not an API. The names can change in phase 1.
    captures of a query come back as an `iter.Seq` or an `iter.Seq2`.
 2. The query engine evaluates the predicates, such as `#match?` and `#eq?`,
    that most `highlights.scm` files use (D27).
-3. The package `inject` builds the layers of an injection, for HTML or
+3. The package `inject` gives the layers of an injection (D72), for HTML or
    Markdown (D27). rline imports it only if it highlights such a language.
 4. Each grammar package embeds its queries, so the caller gives rline the
    highlight query with the language (D31).

@@ -68,7 +68,7 @@ to the path is recorded and not ported.
 | `crates/generate/src`, except `render.rs` | Port | the package `generate` |
 | `crates/generate/src/render.rs` | Port | the C backend (D8). A change here can also change what the Go backend must write, so read the diff for the Go backend too |
 | `crates/generate/src/dsl.js`, `crates/generate/src/quickjs.rs` | Review | nothing, because the generator reads `grammar.json` (D17). A change of `dsl.js` can change what `grammar.json` holds, and then the parser of `grammar.json` changes |
-| `crates/highlight`, the code that finds injections and builds their layers | Port | the package `inject` (D27) |
+| `crates/highlight`, the code that finds injections and builds their layers | Port | the package `inject` (D27, D72) |
 | `crates/highlight`, the rest | Not applicable | nothing (D7) |
 | `crates/tags` | Not applicable | nothing (D7) |
 | `crates/cli/src/tests`, the tests of the ported parts | Port | the Go tests of each package (D35) |

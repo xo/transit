@@ -17,13 +17,14 @@ Phase 1 ends when Ken accepts `docs/API.md`. The generator in `generate` and
 the C backend in `generate/backend/c` are ported, and they write the golden
 files of all 185 grammars of the set byte for byte. On 2026-09-29 the gate of
 D9 holds, with 151 grammars that count, and that ends phase 2. Phase 3 ports
-the runtime. The root package holds the language, the lexer, the subtree,
-the stack, the parser, the tree, the node, the tree cursor and the query
-engine with its predicates. The test module compares them with the C
-runtime. The trees match for every corpus input of every fixture grammar,
-after an edit too, and so do the matches of the queries of those grammars.
-The ported runtime tests of upstream pass. `StatesAt` (D57, D70) gives the parse states at a cursor. The injections
-(D27) and the measurements of D47 are not done, so phase 3 goes on.
+the runtime. The root package holds the language, the lexer, the subtree, the
+stack, the parser, the tree, the node, the tree cursor and the query engine
+with its predicates. The test module compares them with the C runtime. The
+trees match for every corpus input of every fixture grammar, after an edit
+too, and so do the matches of the queries of those grammars. The ported
+runtime tests of upstream pass. `StatesAt` (D57, D70) gives the parse states
+at a cursor. The API of the injections is decided (D72). The injections (D27)
+and the measurements of D47 are not done, so phase 3 goes on.
 
 [ts]: https://github.com/tree-sitter/tree-sitter
 
@@ -75,8 +76,8 @@ A bare number, such as D3, names a decision of this repository, in
 `docs/decisions/`. A decision of another repository names that repository,
 such as dbmeta D110. An open question has a number, and it is at the end of
 `docs/PLAN.md` until Ken answers it. The numbers do not repeat: questions 1
-to 61 are answered, no question is open, and the next question is question
-62.
+to 62 are answered, no question is open, and the next question is question
+63.
 
 ## Hard rules
 

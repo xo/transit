@@ -15,6 +15,9 @@ two parts that D7 left out:
    language of each, and builds the tree of each layer. It goes in the
    package `inject` (D26). The part that highlights is not ported.
 
+D71 says that `inject` takes UTF-8 and that a Rust oracle tests it, and D72
+sets its API.
+
 The C runtime parses predicates and does not evaluate them, and it has no
 injection engine. rline needs the predicates, because most `highlights.scm`
 files use them. The usql grammar needs injections (D13).

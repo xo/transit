@@ -77,7 +77,8 @@ This is the plan, not an API. The names can change in phase 1.
    offset, before the recovery (D28, D57). To complete a word, usql gives the
    offset of the start of the word (D70).
 2. The usql grammar hands SQL to a SQL grammar through an injection. The
-   package `inject` builds the layers (D27).
+   package `inject` gives the layers, and usql takes the layer at the cursor
+   (D27, D72).
 3. A keyword can be written in any case in most SQL dialects. The generated
    package of a grammar lists its keywords, so that usql can offer them.
 4. The usql grammar also splits the input into statements (D13), so usql

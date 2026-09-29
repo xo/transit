@@ -5,7 +5,7 @@ This document holds the plan for `github.com/xo/transit`. The decisions are in
 
 This plan was written on 2026-09-29, before any code existed (D3). Ken
 answered its open questions on that date, and later ones as they came. The
-decisions D1 to D70 record the answers and the other choices of Ken. A part
+decisions D1 to D72 record the answers and the other choices of Ken. A part
 of this plan that names a decision follows it. A new question
 goes at the end of this document until Ken answers it.
 
@@ -411,7 +411,8 @@ C runtime also has no engine for injections: it gives
 `ts_parser_set_included_ranges`, and `crates/highlight` does the rest. transit
 ports both (D27). The predicates go in the query code of the root package, and
 `match?` uses the package `regexp`. The injections go in the package
-`inject`, without the highlighting.
+`inject`, without the highlighting. It takes UTF-8, and a Rust oracle tests it
+against `crates/highlight` (D71). Its API gives every layer at once (D72).
 
 Many grammars ship queries written for Neovim, which adds predicates and
 directives of its own, such as `#lua-match?` and `#offset!`. Upstream does
@@ -919,8 +920,8 @@ Ken answered the questions of phase 0 on 2026-09-29, and D24 to D53
 record the answers, and D54 starts phase 1. The working C example of phase 1
 raised questions 53 to 55, and D55 to D57 record the answers. Phase 2 raised
 questions 56 to 58, and D59, D60 and D66 record the answers. Phase 3 raised
-questions 59 to 61, and D63, D64 and D70 record the answers. The next
-question is question 62.
+questions 59 to 62, and D63, D64, D70 and D72 record the answers. The next
+question is question 63.
 
 No question is open.
 
