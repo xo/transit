@@ -3,8 +3,10 @@
 // grammar.json (D17), builds the parse table and the lexer tables, and gives
 // them to a backend, which writes a parser (D8).
 //
-// The package holds only the first modules of the port yet, and it has no
-// function that runs the whole generator.
+// ParserForGrammar runs the whole generator on a grammar.json, and
+// ParserForGrammarWithOpts gives the ABI version and the other
+// options. The package writes no parser itself. A backend, such as the C
+// backend in generate/backend/c, takes a RenderInput and writes one.
 package generate
 
 import (
@@ -12,9 +14,164 @@ import (
 	"strings"
 )
 
-// This file ports crates/generate/src/generate.rs. It holds only OptLevel and
-// Diagnostic yet. The functions that run the whole generator come when the
-// modules that they call are ported.
+// This file ports crates/generate/src/generate.rs. The port holds the
+// functions that run the generator from a grammar.json in memory. The
+// functions that read and write the files of a grammar folder, and that run
+// grammar.js, are the job of the command (D17, D41). Upstream calls
+// render_c_code, and the port calls a Backend in its place (D8).
+
+// LanguageVersion is the ABI version that the generator writes when no
+// other one is asked for.
+//
+// LanguageVersion is LANGUAGE_VERSION.
+const LanguageVersion = 15
+
+// The lowest and the highest ABI version that a backend writes.
+//
+// ABIVersionMin and ABIVersionMax are ABI_VERSION_MIN and ABI_VERSION_MAX of
+// render.rs, which generate.rs exports.
+const (
+	ABIVersionMin = 14
+	ABIVersionMax = LanguageVersion
+)
+
+// SemanticVersion is the version of a grammar, from tree-sitter.json.
+//
+// SemanticVersion is the (u8, u8, u8) of upstream.
+type SemanticVersion struct {
+	Major, Minor, Patch uint8
+}
+
+// RenderInput is what a backend reads to write a parser: the grammar and
+// its tables, as the generator builds them (D8).
+//
+// RenderInput holds the arguments of render_c_code.
+type RenderInput struct {
+	// Name is the name of the grammar, in StrPool.
+	Name           StrID
+	Tables         *Tables
+	SyntaxGrammar  *SyntaxGrammar
+	LexicalGrammar *LexicalGrammar
+	DefaultAliases AliasMap
+	StrPool        *StrPool
+	ABIVersion     int
+	// SemanticVersion is the version of the grammar, or nil when it has
+	// none.
+	SemanticVersion    *SemanticVersion
+	SupertypeSymbolMap SupertypeSymbolMap
+}
+
+// Backend writes a parser in one target language (D8).
+type Backend interface {
+	// Render writes the parser of a grammar.
+	Render(in *RenderInput) (string, error)
+}
+
+// jsonOutput is what the generator makes before it builds the tables: the
+// prepared grammar, the variable info and node-types.json.
+//
+// jsonOutput is JSONOutput.
+type jsonOutput struct {
+	nodeTypesJSON  string
+	syntaxGrammar  *SyntaxGrammar
+	lexicalGrammar *LexicalGrammar
+	inlines        *InlinedProductionMap
+	simpleAliases  AliasMap
+	variableInfo   []VariableInfo
+	strPool        *StrPool
+}
+
+// GeneratedParser is the output of the generator: the code that the backend
+// writes, and node-types.json.
+//
+// GeneratedParser is GeneratedParser. Its field c_code is Code, because a
+// backend other than the C backend writes it too.
+type GeneratedParser struct {
+	Code          string
+	NodeTypesJSON string
+}
+
+// ParserForGrammar runs the generator on a grammar.json at
+// LanguageVersion, and returns the name of the grammar and the code that the
+// backend writes.
+//
+// ParserForGrammar is generate_parser_for_grammar, without the prefix
+// Generate, which would repeat the name of the package.
+func ParserForGrammar(grammarJSON []byte, semanticVersion *SemanticVersion, optimizations OptLevel, backend Backend, diagnostics *[]Diagnostic) (string, string, error) {
+	inputGrammar, err := ParseGrammar(grammarJSON, diagnostics)
+	if err != nil {
+		return "", "", err
+	}
+	name := inputGrammar.Pool.Resolve(inputGrammar.Name)
+	parser, err := ParserForGrammarWithOpts(inputGrammar, LanguageVersion, semanticVersion, optimizations, backend, diagnostics)
+	if err != nil {
+		return "", "", err
+	}
+	return name, parser.Code, nil
+}
+
+// generateNodeTypesFromGrammar prepares a grammar and makes its variable
+// info and node-types.json.
+//
+// generateNodeTypesFromGrammar is generate_node_types_from_grammar.
+func generateNodeTypesFromGrammar(inputGrammar *InputGrammar, diagnostics *[]Diagnostic) (*jsonOutput, error) {
+	prepared, err := PrepareGrammar(inputGrammar, diagnostics)
+	if err != nil {
+		return nil, err
+	}
+	variableInfo, err := GetVariableInfo(&prepared.SyntaxGrammar, &prepared.LexicalGrammar, prepared.DefaultAliases, prepared.StrPool)
+	if err != nil {
+		return nil, err
+	}
+	nodeTypesJSON, err := NodeTypesJSON(&prepared.SyntaxGrammar, &prepared.LexicalGrammar, prepared.DefaultAliases, variableInfo, prepared.StrPool)
+	if err != nil {
+		return nil, err
+	}
+	return &jsonOutput{
+		nodeTypesJSON:  nodeTypesJSON,
+		syntaxGrammar:  &prepared.SyntaxGrammar,
+		lexicalGrammar: &prepared.LexicalGrammar,
+		inlines:        &prepared.Inlines,
+		simpleAliases:  prepared.DefaultAliases,
+		variableInfo:   variableInfo,
+		strPool:        prepared.StrPool,
+	}, nil
+}
+
+// ParserForGrammarWithOpts runs the generator on a parsed grammar at
+// an ABI version, and gives the result to a backend. It changes inputGrammar.
+//
+// ParserForGrammarWithOpts is generate_parser_for_grammar_with_opts, without
+// the prefix Generate, which would repeat the name of the package.
+// The port leaves out its argument report_symbol_name, which only the log of
+// build_tables reads.
+func ParserForGrammarWithOpts(inputGrammar *InputGrammar, abiVersion int, semanticVersion *SemanticVersion, optimizations OptLevel, backend Backend, diagnostics *[]Diagnostic) (*GeneratedParser, error) {
+	grammarName := inputGrammar.Name
+	out, err := generateNodeTypesFromGrammar(inputGrammar, diagnostics)
+	if err != nil {
+		return nil, err
+	}
+	supertypeSymbolMap := GetSupertypeSymbolMap(out.syntaxGrammar, out.simpleAliases, out.variableInfo)
+	tables, err := BuildTables(out.syntaxGrammar, out.lexicalGrammar, out.simpleAliases, out.variableInfo, out.inlines, out.strPool, optimizations, diagnostics)
+	if err != nil {
+		return nil, err
+	}
+	code, err := backend.Render(&RenderInput{
+		Name:               grammarName,
+		Tables:             tables,
+		SyntaxGrammar:      out.syntaxGrammar,
+		LexicalGrammar:     out.lexicalGrammar,
+		DefaultAliases:     out.simpleAliases,
+		StrPool:            out.strPool,
+		ABIVersion:         abiVersion,
+		SemanticVersion:    semanticVersion,
+		SupertypeSymbolMap: supertypeSymbolMap,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &GeneratedParser{Code: code, NodeTypesJSON: out.nodeTypesJSON}, nil
+}
 
 // OptLevel is a set of flags for the optimizations of the generator.
 //

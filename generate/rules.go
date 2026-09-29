@@ -1045,10 +1045,16 @@ func (s *TokenSet) Compare(other *TokenSet) int {
 	)
 }
 
-// Key returns a string that is the same for two equal sets, for a map key.
-// It stands in for the Hash of TokenSet.
+// Key returns a string that is the same for two equal sets and differs for
+// two sets that are not equal, for a map key. It stands in for the Hash and
+// the Eq of TokenSet. The key starts with the length of the terminal part,
+// because the bytes of a part can hold any value, so no separator byte can
+// mark where the part ends.
 func (s *TokenSet) Key() string {
-	return s.terminalBits.key() + "\x00" + s.externalBits.key() + string([]byte{byte(boolWord(s.eof, s.endOfNonTerminalExtra))})
+	terminals := s.terminalBits.key()
+	n := len(terminals)
+	return string([]byte{byte(n), byte(n >> 8), byte(n >> 16), byte(n >> 24)}) +
+		terminals + s.externalBits.key() + string([]byte{byte(boolWord(s.eof, s.endOfNonTerminalExtra))})
 }
 
 // TokenSetFrom returns the set of the symbols.

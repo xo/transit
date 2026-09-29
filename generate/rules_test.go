@@ -68,3 +68,42 @@ func TestBitVecCompare(t *testing.T) {
 		t.Errorf("expected the first InsertAll to add a bit, and the second none")
 	}
 }
+
+// TestTokenSetKeyTellsThePartsApart makes sure that two different sets never
+// share a key. The set of terminal 8 and the set of external 0 once shared
+// one, because the bytes of a part can be the byte that marked the end of
+// the terminal part.
+func TestTokenSetKeyTellsThePartsApart(t *testing.T) {
+	t.Parallel()
+	var a, b TokenSet
+	a.Insert(TerminalSymbol(8))
+	b.Insert(ExternalSymbol(0))
+	if a.Key() == b.Key() {
+		t.Error("expected the set of terminal 8 and the set of external 0 to have different keys")
+	}
+	var sets []TokenSet
+	for i := range 70 {
+		var terminal, external TokenSet
+		terminal.Insert(TerminalSymbol(i))
+		external.Insert(ExternalSymbol(i))
+		sets = append(sets, terminal, external)
+	}
+	var eof TokenSet
+	eof.Insert(SymbolEndValue)
+	sets = append(sets, TokenSet{}, eof)
+	keys := map[string]int{}
+	for i := range sets {
+		if j, ok := keys[sets[i].Key()]; ok && !sets[i].Equal(&sets[j]) {
+			t.Errorf("sets %d and %d are different and share a key", j, i)
+		}
+		keys[sets[i].Key()] = i
+	}
+	// equal sets share a key, even when one has more zero words
+	c := NewTokenSetWithCapacity(200, 200)
+	c.Insert(TerminalSymbol(3))
+	var d TokenSet
+	d.Insert(TerminalSymbol(3))
+	if c.Key() != d.Key() {
+		t.Error("expected two equal sets to have the same key")
+	}
+}

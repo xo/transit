@@ -15,12 +15,8 @@ agent and the date, and deletes the claim when Ken commits the unit (D50, D61).
 
 | Unit | Agent | Date |
 | --- | --- | --- |
-| Phase 2, unit 15: tables.rs, dedup.rs, build_tables/item.rs and build_tables/item_set_builder.rs | transit | 2026-09-29 |
-| Phase 2, unit 16: node_types.rs | transit | 2026-09-29 |
-| Phase 2, unit 17: the FxHash emulation, for the hash of rustc-hash and the order of a small FxHashSet | transit | 2026-09-29 |
-| Phase 2, unit 18: build_tables/coincident_tokens.rs, token_conflicts.rs and build_lex_table.rs | transit | 2026-09-29 |
-| Phase 2, unit 19: build_tables/build_parse_table.rs and minimize_parse_table.rs | transit | 2026-09-29 |
-| Phase 2, unit 20: build_tables.rs | transit | 2026-09-29 |
+| Phase 2, unit 21: the functions of generate.rs that run the generator in memory, and the backend interface (D8) | transit | 2026-09-29 |
+| Phase 2, unit 22: render.rs, as the C backend in generate/backend/c | transit | 2026-09-29 |
 
 ## The generator
 

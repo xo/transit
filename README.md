@@ -16,7 +16,11 @@ the Go toolchain and nothing else.
 
 ## Status
 
-transit is in phase 1 of its plan (D54). It holds no parser yet.
+transit is in phase 2 of its plan. Phase 1 ends when Ken accepts the target
+API in [docs/API.md](docs/API.md) (D54). The generator and its C backend are
+ported, and they write the golden `parser.c` and `node-types.json` of every
+test grammar and fixture grammar byte for byte. The runtime and the Go
+backend are not written yet, so transit parses nothing yet.
 [docs/PLAN.md](docs/PLAN.md) holds the plan, and the decisions record every
 answer that shapes it.
 
