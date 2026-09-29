@@ -12,9 +12,28 @@ import (
 	"strings"
 )
 
-// This file ports crates/generate/src/generate.rs. It holds only Diagnostic
-// yet. The functions that run the whole generator come when the modules that
-// they call are ported.
+// This file ports crates/generate/src/generate.rs. It holds only OptLevel and
+// Diagnostic yet. The functions that run the whole generator come when the
+// modules that they call are ported.
+
+// OptLevel is a set of flags for the optimizations of the generator.
+//
+// OptLevel is OptLevel, a bitflags type upstream. Its Default is
+// OptLevelMergeStates.
+type OptLevel uint32
+
+// The optimizations.
+const (
+	// OptLevelMergeStates merges the parse states that are compatible.
+	OptLevelMergeStates OptLevel = 1 << 0
+)
+
+// Contains reports whether o holds every flag of other.
+//
+// Contains is OptLevel::contains.
+func (o OptLevel) Contains(other OptLevel) bool {
+	return o&other == other
+}
 
 // DiagnosticKind is the kind of a diagnostic.
 type DiagnosticKind uint8

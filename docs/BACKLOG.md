@@ -15,11 +15,23 @@ agent and the date, and deletes the claim when Ken commits the unit (D50, D61).
 
 | Unit | Agent | Date |
 | --- | --- | --- |
-| Phase 2, unit 10: the ast module of regex-syntax (ast/mod.rs, ast/parse.rs, ast/visitor.rs) | transit | 2026-09-29 |
-| Phase 2, unit 11: the Unicode tables of regex-syntax, and the program that converts them | transit | 2026-09-29 |
-| Phase 2, unit 12: the hir module of regex-syntax (hir/mod.rs, hir/interval.rs, hir/translate.rs, unicode.rs) | transit | 2026-09-29 |
-| Phase 2, unit 13: pattern.rs and expand_tokens.rs | transit | 2026-09-29 |
-| Phase 2, unit 14: the rest of extract_tokens.rs and prepare_grammar.rs, and the check of parse_grammar.rs that a pattern matches the empty string | transit | 2026-09-29 |
+| Phase 2, unit 15: tables.rs, dedup.rs, build_tables/item.rs and build_tables/item_set_builder.rs | transit | 2026-09-29 |
+| Phase 2, unit 16: node_types.rs | transit | 2026-09-29 |
+| Phase 2, unit 17: the FxHash emulation, for the hash of rustc-hash and the order of a small FxHashSet | transit | 2026-09-29 |
+| Phase 2, unit 18: build_tables/coincident_tokens.rs, token_conflicts.rs and build_lex_table.rs | transit | 2026-09-29 |
+| Phase 2, unit 19: build_tables/build_parse_table.rs and minimize_parse_table.rs | transit | 2026-09-29 |
+| Phase 2, unit 20: build_tables.rs | transit | 2026-09-29 |
+
+## The generator
+
+### Port the log of the generator
+
+Upstream writes log lines with `debug!` and `info!` in `build_tables/`, and
+`report_state_info` in `build_tables.rs` writes the parse states of one rule
+for the option `--report-states-for-rule` of the tool. The generator has no
+logger yet, so the port leaves them out. Decide how the generator logs, then
+port the lines and `report_state_info`. Some functions of
+`build_lex_table.go` then take the `StrPool` again, as upstream does.
 
 ## The setup of the repository
 

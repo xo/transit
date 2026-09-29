@@ -7,7 +7,7 @@ import (
 )
 
 // This file ports crates/generate/src/grammars.rs. ProductionStep::child_type
-// waits for node_types.rs, because it returns the ChildType of that module.
+// is in node_types.go, because it returns the ChildType of that module.
 
 // VariableType is the kind of a variable. The order of the values is the
 // order of upstream.

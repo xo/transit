@@ -153,6 +153,7 @@ these files:
 | `_samples/example/` | the working C example and its build script (D10) |
 | `test/` | the test module, with its own `go.mod` (D12). `test/cmd/golden` is the golden harness (D58), and `test/cmd/regextables` writes the Unicode tables of the port of `regex-syntax` (D60) |
 | `generate/` | the generator (D7). One Go file ports one Rust file of `crates/generate` (D24) |
+| `generate/internal/fxhash/` | the hash of the Rust crate `rustc-hash` and the order of a small `FxHashSet` of the Rust standard library, where upstream output depends on them |
 | `generate/internal/regexsyntax/` | the port of the Rust crate `regex-syntax`, in the packages `ast`, `hir` and `unicodetables` (D59) |
 | `generate/testdata/` | the golden files of the 68 test grammars, which the harness writes |
 | `grammars/grammars.json` | the record of every grammar, with the hashes of its golden files (D40) |
