@@ -245,7 +245,7 @@ func grammarPaths(repo string) ([]string, string, error) {
 // fetch fetches one ref of a repository into the cache, and returns its
 // folder and the commit of the ref.
 func (h *harness) fetch(ctx context.Context, repo, ref string) (string, string, error) {
-	dir := filepath.Join(h.cache, "grammars", filepath.Base(repo))
+	dir := filepath.Join(h.cache, "grammars", cacheName(repo))
 	if _, err := os.Stat(filepath.Join(dir, ".git")); err != nil {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return "", "", fmt.Errorf("making %s: %w", dir, err)
@@ -285,4 +285,11 @@ func merge(old, updates []grammar) []grammar {
 		return cmp.Or(cmp.Compare(a.Repository, b.Repository), cmp.Compare(a.Path, b.Path))
 	})
 	return out
+}
+
+// cacheName returns the folder of a repository in the cache: its owner and
+// its name, such as tree-sitter/tree-sitter-json, so that two repositories
+// with one name, such as the two tree-sitter-sql, do not share a folder.
+func cacheName(repo string) string {
+	return filepath.Join(filepath.Base(filepath.Dir(repo)), filepath.Base(repo))
 }

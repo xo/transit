@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"flag"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -107,6 +108,8 @@ type fixtureRecord struct {
 		Name       string `json:"name"`
 		Repository string `json:"repository"`
 		Path       string `json:"path"`
+		Set        string `json:"set"`
+		Status     string `json:"status"`
 		Golden     map[string]struct {
 			ParserC   string `json:"parser_c"`
 			NodeTypes string `json:"node_types"`
@@ -115,19 +118,27 @@ type fixtureRecord struct {
 	} `json:"grammars"`
 }
 
-// TestRenderOnEveryFixtureGrammar runs the whole generator with the C backend
-// on each fixture grammar of grammars/grammars.json, at ABI 14 and ABI 15,
+// allGrammars asks TestRenderOnEveryRecordedGrammar for every grammar of the
+// record, and not only the fixture grammars. Pass it after -args:
+//
+//	go test ./generate/backend/c -run Recorded -args -all-grammars
+var allGrammars = flag.Bool("all-grammars", false, "generate every grammar of grammars/grammars.json, not only the fixture grammars")
+
+// TestRenderOnEveryRecordedGrammar runs the whole generator with the C
+// backend on each grammar of grammars/grammars.json, at ABI 14 and ABI 15,
 // and compares the SHA-256 of parser.c and node-types.json with the record.
 // It reads the grammars from the cache of the golden harness, and it skips
-// when the cache is absent, or in short mode.
+// when the cache is absent, or in short mode. It takes the fixture grammars,
+// and every other available grammar with the flag -all-grammars, because the
+// whole set takes much longer.
 //
 // The harness ran the upstream tool in the folder of the grammar, so the
 // semantic version comes from the nearest tree-sitter.json, as
 // read_grammar_version in generate.rs finds it.
-func TestRenderOnEveryFixtureGrammar(t *testing.T) {
+func TestRenderOnEveryRecordedGrammar(t *testing.T) {
 	t.Parallel()
 	if testing.Short() {
-		t.Skip("the fixture grammars are slow to generate")
+		t.Skip("the recorded grammars are slow to generate")
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -147,7 +158,10 @@ func TestRenderOnEveryFixtureGrammar(t *testing.T) {
 	}
 	total, matched := 0, 0
 	for _, g := range rec.Grammars {
-		dir := filepath.Join(cache, filepath.Base(g.Repository), g.Path)
+		if g.Status != "available" || (g.Set != "fixture" && !*allGrammars) {
+			continue
+		}
+		dir := filepath.Join(cache, filepath.Base(filepath.Dir(g.Repository)), filepath.Base(g.Repository), g.Path)
 		grammarJSON, err := os.ReadFile(filepath.Join(dir, "src", "grammar.json"))
 		if err != nil {
 			t.Logf("%s: skipped, the cache has no grammar.json: %v", g.Name, err)
@@ -169,7 +183,7 @@ func TestRenderOnEveryFixtureGrammar(t *testing.T) {
 			}
 		}
 	}
-	t.Logf("%d of %d fixture grammar runs match the record", matched, total)
+	t.Logf("%d of %d grammar runs match the record", matched, total)
 }
 
 // fixtureMatches generates a fixture grammar in one mode, and reports whether

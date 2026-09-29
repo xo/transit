@@ -25,7 +25,7 @@ BUILD=$CACHE/example
 BASE=dcdc8cc55e5dfedfc858080835f153999a29ec40
 GRAMMAR_REPO=https://github.com/DerekStride/tree-sitter-sql.git
 GRAMMAR_TAG=v0.3.11
-GRAMMAR=$CACHE/grammars/tree-sitter-sql
+GRAMMAR=$CACHE/grammars/DerekStride/tree-sitter-sql
 
 # the upstream checkout must be at the base commit
 if [ "$(git -C "$TS" rev-parse HEAD)" != "$BASE" ]; then

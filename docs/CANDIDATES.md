@@ -185,8 +185,17 @@ each path was reached by at least one output. The rarest were the anonymous
 unique alias, reached only by the test grammar `named_rule_aliased_as_anonymous`,
 the pragma for a large lexer (bash, c, cpp and ruby), and the reserved word sets
 (the test grammar `reserved_words`, and go, javascript, php and php_only). The
-python fixture is at `v0.23.6`, which has no reserved words yet. The rest of the set follows in a
+python fixture is at `v0.23.6`, which has no reserved words yet. The rest of the set followed in a
 later run (D58).
+
+The run over the whole set, on 2026-09-29, made 516 outputs of 228
+grammars: the 56 test grammars that the tool accepts, at three variants, and
+the 185 grammars of the record, at ABI 14 and ABI 15, less the 22 variants
+that the tool rejects. Each of the 26 paths was reached by at least one
+output. The rarest were the reserved words, in 11 grammars, among them
+fsharp, go, javascript and ocaml, the anonymous unique alias, in 18, and the
+end of a non-terminal extra, in 32. The generator of transit writes the same
+files as upstream for every one of these outputs.
 
 The harness makes each grammar at ABI 14 and at ABI 15 (D19). It makes the
 test grammars also with the merge of states off.

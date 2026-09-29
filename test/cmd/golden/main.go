@@ -42,7 +42,7 @@ func main() {
 // mainCode runs the harness and returns the exit code, so that the deferred
 // calls run before the program exits.
 func mainCode() int {
-	set := flag.String("set", "tests,fixtures", "the grammars to run, from tests and fixtures, separated by commas")
+	set := flag.String("set", "tests,fixtures", "the grammars to run, from tests, fixtures and candidates, separated by commas")
 	only := flag.String("only", "", "run only the grammars with these names, separated by commas")
 	jobs := flag.Int("j", max(1, runtime.NumCPU()/4), "the number of grammars to generate at once")
 	flag.Parse()
@@ -93,6 +93,8 @@ func run(ctx context.Context, w io.Writer, sets []string, only map[string]bool, 
 		return err
 	}
 	var report coverage
+	// the report covers the grammars that were made, even when a set fails
+	defer report.print(w)
 	for _, s := range sets {
 		switch strings.TrimSpace(s) {
 		case "tests":
@@ -103,11 +105,14 @@ func run(ctx context.Context, w io.Writer, sets []string, only map[string]bool, 
 			if err := h.fixtureGrammars(ctx, &report); err != nil {
 				return err
 			}
+		case "candidates":
+			if err := h.candidateGrammars(ctx, &report); err != nil {
+				return err
+			}
 		default:
-			return fmt.Errorf("naming the set %q, which is not tests or fixtures", s)
+			return fmt.Errorf("naming the set %q, which is not tests, fixtures or candidates", s)
 		}
 	}
-	report.print(w)
 	return nil
 }
 

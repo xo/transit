@@ -1,6 +1,7 @@
 package main
 
 import (
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -59,5 +60,39 @@ func TestReachedPaths(t *testing.T) {
 	want := []string{"dynamic precedence", "ABI 15 lex modes"}
 	if !slices.Equal(got, want) {
 		t.Errorf("expected %v, got: %v", want, got)
+	}
+}
+
+// TestReadCandidatesReadsTheWholeSet makes sure that the harness reads every
+// grammar of docs/CANDIDATES.md: the 171 of the tiers, the SQL grammars that
+// are not archived (D18) and the grammars for the languages of dbmeta (D23).
+// A grammar that two tables name counts once.
+func TestReadCandidatesReadsTheWholeSet(t *testing.T) {
+	t.Parallel()
+	b, err := os.ReadFile(filepath.Join("..", "..", "..", "docs", "CANDIDATES.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cs, err := readCandidates(string(b))
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := map[string]int{}
+	for _, c := range cs {
+		n[c.set]++
+	}
+	expected := map[string]int{"tier1": 30, "tier2": 83, "tier3": 58, "sql": 8, "dbmeta": 5}
+	if !maps.Equal(n, expected) {
+		t.Errorf("expected the sets %v, got: %v", expected, n)
+	}
+	for _, c := range cs {
+		if c.repo == "dhcmrlchtdj/tree-sitter-sqlite" {
+			t.Error("expected the archived SQLite grammar to be left out")
+		}
+	}
+	for _, c := range cs {
+		if c.repo == "gmr/tree-sitter-postgres" && c.name == "" {
+			t.Error("expected the grammars of gmr/tree-sitter-postgres to be named")
+		}
 	}
 }

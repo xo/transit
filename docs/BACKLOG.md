@@ -15,10 +15,20 @@ agent and the date, and deletes the claim when Ken commits the unit (D50, D61).
 
 | Unit | Agent | Date |
 | --- | --- | --- |
-| Phase 2, unit 21: the functions of generate.rs that run the generator in memory, and the backend interface (D8) | transit | 2026-09-29 |
-| Phase 2, unit 22: render.rs, as the C backend in generate/backend/c | transit | 2026-09-29 |
+| Phase 2, unit 23: the candidate set of the golden harness, and its first run over the whole set | transit | 2026-09-29 |
 
 ## The generator
+
+### Run the corpus of each grammar on the C output
+
+A grammar counts toward the gate of D9 only when the `parser.c` of the C
+backend passes the corpus of the grammar with the upstream C runtime, with
+the same result as `tree-sitter test` ("The gate for the Go backend" in
+[`PLAN.md`](PLAN.md)). On 2026-09-29 the C backend writes the golden files of
+all 185 grammars of the record, so this is the condition that is left. Build
+the step in the test module (D12): compile the `parser.c` and the scanner of
+each grammar with the upstream runtime, run its corpus, and compare the
+result with what the upstream tool reports.
 
 ### Port the log of the generator
 
@@ -38,13 +48,6 @@ These items come in phase 1 and later, as the plan says.
 With the first module that imports another module of this repository, add
 the script that writes the `replace` block of each `go.mod`, and a CI step
 that fails when the script changes a file (D49).
-
-### Run the golden harness on the rest of the set
-
-The first run covered the test grammars and the fixture grammars (D58). Add
-the other grammars of `CANDIDATES.md` to the harness, with their sets, and
-run it on them. A grammar that commits no `src/grammar.json`, such as
-`DerekStride/tree-sitter-sql`, needs the path of D51 that runs `grammar.js`.
 
 ### Add the tests of the port rules
 

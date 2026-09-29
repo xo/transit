@@ -266,7 +266,9 @@ D40 holds this.
    `node-types.json` to the entry. If the repository commits no
    `src/grammar.json`, the harness installs the npm packages that `grammar.js`
    requires, at the versions in its `package.json`, runs `grammar.js`, and
-   keeps the `grammar.json` that the tool writes (D51).
+   keeps the `grammar.json` that the tool writes (D51). It installs the
+   packages with `npm install --ignore-scripts`, so that no install script of
+   a package runs.
 7. Run the generator test of the grammar, and the corpus of its C output in
    the test module.
 8. Stage the change, and give Ken a commit message of this form:
@@ -277,8 +279,20 @@ D40 holds this.
 
    Do not commit. Ken commits (D2).
 
-The golden harness is code, and it does not exist yet (D3). Its commands will
-be written here when it does.
+The golden harness does step 6 for every grammar of `CANDIDATES.md`. After
+you add a grammar to `CANDIDATES.md`, run it on the repository of the
+grammar:
+
+```bash
+cd test && go run ./cmd/golden -set candidates -only <owner>/<repository>
+```
+
+Then run the generator test on every recorded grammar. The fixture grammars
+run without the flag:
+
+```bash
+go test ./generate/backend/c -run Recorded -args -all-grammars
+```
 
 ## Steps to add a Go package
 

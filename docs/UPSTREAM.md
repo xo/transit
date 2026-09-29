@@ -392,16 +392,27 @@ It does these steps:
    runs `tree-sitter generate` on the committed `src/grammar.json` at ABI 14
    and ABI 15, and writes the hashes and the fetched commit to
    `grammars/grammars.json`.
-4. It runs the tool twice for each file, and it fails when the two runs
+4. For each candidate grammar of [`CANDIDATES.md`](CANDIDATES.md), it does
+   the same. It reads the tables of the tiers, of SQL and of the languages of
+   dbmeta. It fetches a grammar that the record holds at its commit (D51),
+   and a new one at the latest release of its repository, or its latest tag,
+   or its default branch. A grammar that commits no `src/grammar.json` gets
+   one from `grammar.js`, as [`GRAMMAR.md`](GRAMMAR.md) says. A fixture
+   grammar keeps its tag.
+5. It runs the tool twice for each file, and it fails when the two runs
    differ.
-5. It writes the upstream commit, the version of the tool and the version of
+6. It writes the upstream commit, the version of the tool and the version of
    Rust to `generate/testdata/upstream.json`, and to the top of
    `grammars/grammars.json`.
-6. It prints which paths of `render.rs` the outputs reach, and names each
+7. It prints which paths of `render.rs` the outputs reach, and names each
    path that no output reaches.
 
-The flag `-set` chooses `tests`, `fixtures` or both, and `-only` names single
-grammars. The environment variables `TREE_SITTER_ABI_VERSION` and
+The flag `-set` chooses `tests`, `fixtures` and `candidates`, separated by
+commas, and the default is `tests,fixtures`. The flag `-only` names single
+grammars, or for the candidates, single repositories such as
+`gmr/tree-sitter-postgres`. The harness keeps each repository in its cache
+under its owner and its name, such as
+`~/.cache/transit/grammars/tree-sitter/tree-sitter-json`. The environment variables `TREE_SITTER_ABI_VERSION` and
 `TREE_SITTER_JS_RUNTIME` change the output of the tool, so the harness clears
 them. It sets `NO_COLOR`, so that an error has no codes for the colors of a
 terminal.
