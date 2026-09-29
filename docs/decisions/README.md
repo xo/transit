@@ -86,3 +86,4 @@ An open question is not a decision. It goes at the end of
 | [D65](D065-transit-publishes-its-own-styles.md) | transit publishes its own styles as embedded JSON files | Decided, supersedes D32 and D48, amends D14, D15, D26, D43 and D49 |
 | [D66](D066-a-json-error-keeps-the-text-of-go.md) | An error of grammar.json keeps the text of Go | Decided |
 | [D67](D067-the-generator-logs-with-slog.md) | The generator logs with log/slog | Decided |
+| [D68](D068-node-equal-is-ts-node-eq.md) | Node.Equal is ts_node_eq, and == also compares the position | Decided |

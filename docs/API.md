@@ -204,7 +204,8 @@ func (t *Tree) IncludedRanges() []Range
 func (t *Tree) Walk() *TreeCursor
 func (t *Tree) PrintDotGraph(w io.Writer)
 
-// Node is a node of a tree. It is a small value, and two nodes compare with ==.
+// Node is a node of a tree. It is a small value, and two nodes compare with ==,
+// which also compares their positions. Equal is the comparison of C (D68).
 type Node struct{ /* unexported */ }
 
 func (n Node) Kind() string
@@ -225,6 +226,7 @@ func (n Node) EndPoint() Point
 func (n Node) Range() Range
 func (n Node) Text(src []byte) string
 func (n Node) String() string
+func (n Node) Equal(other Node) bool
 func (n Node) ParseState() StateID
 func (n Node) NextParseState() StateID
 func (n Node) Parent() (Node, bool)
@@ -390,7 +392,7 @@ The example calls these C functions. Each row names the Go form.
 | `ts_node_named_descendant_for_byte_range` | `Node.NamedDescendantForByteRange` |
 | `ts_node_is_error`, `ts_node_is_missing`, `ts_node_has_error` | `Node.IsError`, `Node.IsMissing`, `Node.HasError` |
 | `ts_node_parse_state`, `ts_node_next_parse_state` | `Node.ParseState`, `Node.NextParseState` |
-| `ts_node_eq` | `==` |
+| `ts_node_eq` | `Node.Equal`. `==` also compares the position (D68) |
 | `ts_tree_cursor_new`, `ts_tree_cursor_delete` | `Node.Walk` |
 | `ts_tree_cursor_goto_first_child`, `ts_tree_cursor_goto_next_sibling` | `(*TreeCursor).GotoFirstChild`, `GotoNextSibling` |
 | `ts_tree_cursor_current_node`, `ts_tree_cursor_current_field_name` | `(*TreeCursor).Node`, `FieldName` |

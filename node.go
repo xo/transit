@@ -7,9 +7,13 @@ import "iter"
 //
 // A method whose C function can return a null node returns the node and a
 // bool, which is false for the null node (D56). The zero Node is the null
-// node. These parts have no exported form. ts_node_eq is ==, because a Node
-// holds what TSNode holds. ts_node_is_null is the method isNull, because a
-// lookup returns a bool with the node.
+// node. ts_node_is_null has no exported form, and it is the method isNull,
+// because a lookup returns a bool with the node.
+//
+// Two nodes compare with ==, which also compares the position of the node.
+// Equal is ts_node_eq, which compares only the tree and the node, so a node
+// that Node.Edit moved is Equal to the node before the edit, and not == to
+// it (D68).
 //
 // The exported API counts with int (D25). A function of this file that
 // needs the width of C converts the int back to a uint32.
@@ -18,7 +22,8 @@ import "iter"
 // port no C function.
 
 // Node is a node of a tree. It is a small value, and two nodes compare with
-// ==. The zero Node is no node.
+// ==, which also compares their positions. Equal compares them as C does
+// (D68). The zero Node is no node.
 //
 // Node is TSNode. context holds the start byte, the start row, the start
 // column and the alias of the node, as in C. id is the address of the
@@ -582,6 +587,15 @@ func (n Node) String() string {
 		n.tree.language,
 		false,
 	)
+}
+
+// Equal reports whether n and other are the same node of the same tree. It
+// does not compare the positions of the nodes, so a node that Edit moved is
+// Equal to the node before the edit, as in C, and == tells them apart.
+//
+// Equal is ts_node_eq.
+func (n Node) Equal(other Node) bool {
+	return n.tree == other.tree && n.id == other.id
 }
 
 // isNull is ts_node_is_null.

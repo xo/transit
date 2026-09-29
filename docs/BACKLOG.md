@@ -41,6 +41,13 @@ corpus input, which the edit test of `test/cgrammar` does only once for each
 input. Compare the trees at ABI 14 too, from the `src/parser.c` of each
 grammar.
 
+### Run the comparison with C in a nightly job
+
+The tests of `test/cgrammar` skip in CI, because CI has no checkout of
+upstream and no cache of grammars. The nightly tier of D36 can check out
+upstream at the base commit, fetch the fixture grammars with the golden
+harness, and run the test module. On 2026-09-29 Ken chose to wait with it.
+
 ### Compare the decoders with the C decoders
 
 [`UPSTREAM.md`](UPSTREAM.md) says that the test of the decoder compares the

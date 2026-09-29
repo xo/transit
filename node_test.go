@@ -473,3 +473,44 @@ func TestNodeInheritedField(t *testing.T) {
 		t.Errorf("FieldNameForChild(1) = %q", got)
 	}
 }
+
+func TestNodeEqual(t *testing.T) {
+	l := testLanguage(15)
+	tree := treeSample(l)
+	root := tree.RootNode()
+	child, ok := root.Child(1)
+	if !ok {
+		t.Fatal("the root has no child 1")
+	}
+	again, _ := root.Child(1)
+	if again != child || !again.Equal(child) {
+		t.Error("the same child twice is not == and Equal")
+	}
+
+	// a node that Edit moved is Equal to the old node, and not ==
+	moved := child
+	moved.Edit(InputEdit{
+		StartByte: 0, OldEndByte: 0, NewEndByte: 2,
+		StartPoint: Point{0, 0}, OldEndPoint: Point{0, 0}, NewEndPoint: Point{0, 2},
+	})
+	if moved.StartByte() == child.StartByte() {
+		t.Fatalf("Edit did not move the node from %d", child.StartByte())
+	}
+	if moved == child {
+		t.Error("the moved node is == to the old node")
+	}
+	if !moved.Equal(child) {
+		t.Error("the moved node is not Equal to the old node")
+	}
+
+	other, _ := root.Child(2)
+	if other.Equal(child) {
+		t.Error("two children are Equal")
+	}
+	if treeSample(l).RootNode().Equal(root) {
+		t.Error("the roots of two trees are Equal")
+	}
+	if !(Node{}).Equal(Node{}) {
+		t.Error("two null nodes are not Equal, as ts_node_eq says they are")
+	}
+}
