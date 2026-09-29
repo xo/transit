@@ -4,7 +4,8 @@
 // them to a backend, which writes a parser (D8).
 //
 // The package holds only the first modules of the port yet: the string pool,
-// the bit vectors, the rules, the grammars and the reader of grammar.json.
+// the bit vectors, the rules, the grammars, the reader of grammar.json and the
+// NFA of the tokens.
 package generate
 
 import (

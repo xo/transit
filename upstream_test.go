@@ -229,6 +229,8 @@ var pathRules = []pathRule{
 	{"crates/config/", ruleNotApplicable},
 	{"crates/language/", ruleNotApplicable},
 	{".github/", ruleNotApplicable},
+	{"Cargo.toml", ruleReview},
+	{"Cargo.lock", ruleReview},
 	{"Cargo.*", ruleNotApplicable},
 	{"flake.*", ruleNotApplicable},
 	{"build.zig*", ruleNotApplicable},
@@ -313,7 +315,7 @@ func TestThePathRulesFollowUpstreamMD(t *testing.T) {
 		{"crates/cli/src/main.rs", ruleNotApplicable},
 		{"crates/cli/src/tests/node_test.rs", ruleReview},
 		{"README.md", ruleNotApplicable},
-		{"Cargo.lock", ruleNotApplicable},
+		{"Cargo.lock", ruleReview},
 		{"test/fixtures/rust_wasm_web/Cargo.lock", ruleNotApplicable},
 		{"somewhere/new.c", ruleReview},
 	} {

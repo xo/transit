@@ -1,10 +1,13 @@
 package generate
 
-// This file ports crates/generate/src/grammars.rs. Two parts wait for the
-// modules that they use: LexicalGrammar, which holds the NFA of nfa.rs, with
-// its methods variable_indices_for_nfa_states and
-// variable_index_for_nfa_state, and ProductionStep::child_type, which returns
-// the ChildType of node_types.rs. Each one comes with its module.
+import (
+	"cmp"
+	"iter"
+	"slices"
+)
+
+// This file ports crates/generate/src/grammars.rs. ProductionStep::child_type
+// waits for node_types.rs, because it returns the ChildType of that module.
 
 // VariableType is the kind of a variable. The order of the values is the
 // order of upstream.
@@ -88,6 +91,51 @@ type LexicalVariable struct {
 	Kind               VariableType
 	ImplicitPrecedence int32
 	StartState         uint32
+}
+
+// LexicalGrammar is the grammar of the lexer: one NFA for every token, and
+// the tokens.
+//
+// LexicalGrammar is LexicalGrammar.
+type LexicalGrammar struct {
+	Nfa       Nfa
+	Variables []LexicalVariable
+}
+
+// VariableIndicesForNfaStates returns the index of the variable of each
+// state. It skips an index that is the same as the one before it.
+//
+// VariableIndicesForNfaStates is
+// LexicalGrammar::variable_indices_for_nfa_states.
+func (g *LexicalGrammar) VariableIndicesForNfaStates(stateIDs []uint32) iter.Seq[int] {
+	return func(yield func(int) bool) {
+		prev, hasPrev := 0, false
+		for _, stateID := range stateIDs {
+			variableID := g.VariableIndexForNfaState(stateID)
+			if hasPrev && prev == variableID {
+				continue
+			}
+			prev, hasPrev = variableID, true
+			if !yield(variableID) {
+				return
+			}
+		}
+	}
+}
+
+// VariableIndexForNfaState returns the index of the variable that a state of
+// the NFA belongs to.
+//
+// VariableIndexForNfaState is LexicalGrammar::variable_index_for_nfa_state.
+func (g *LexicalGrammar) VariableIndexForNfaState(stateID uint32) int {
+	// The NFA is built in reverse, with the accepting state first and the
+	// entry state last, so the start state of each variable is the highest
+	// state of that variable. The start states increase, so a binary search
+	// finds the first variable whose start state is not before stateID.
+	i, _ := slices.BinarySearchFunc(g.Variables, stateID, func(v LexicalVariable, id uint32) int {
+		return cmp.Compare(v.StartState, id)
+	})
+	return i
 }
 
 // ProductionStep is one step of a production, packed as upstream packs it.

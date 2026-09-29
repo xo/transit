@@ -1,6 +1,6 @@
 # D45. Go grammars are compared with C grammars at the Unicode version of upstream
 
-Status: Decided.
+Status: Decided. Amended by D60.
 
 Ken decided on 2026-09-29, answering question 44, that the tests that
 compare a Go grammar with its C grammar use a test build of the Go grammar.

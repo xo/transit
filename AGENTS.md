@@ -65,7 +65,7 @@ A bare number, such as D3, names a decision of this repository, in
 `docs/decisions/`. A decision of another repository names that repository,
 such as dbmeta D110. An open question has a number, and it is at the end of
 `docs/PLAN.md` until Ken answers it. The numbers do not repeat: questions 1
-to 55 are answered, and the next question is question 56.
+to 57 are answered, and the next question is question 58.
 
 ## Hard rules
 

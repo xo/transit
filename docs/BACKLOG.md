@@ -15,7 +15,21 @@ agent and the date, and deletes the claim when Ken commits the unit (D50).
 
 | Unit | Agent | Date |
 | --- | --- | --- |
-| Phase 2, unit 1: the input layer of the generator (strpool.rs, bitvec.rs, rules.rs, grammars.rs, parse_grammar.rs) | transit | 2026-09-29 |
+| Phase 2, unit 2: nfa.rs, and LexicalGrammar of grammars.rs | transit | 2026-09-29 |
+
+## The generator
+
+### Port the parser and the translator of regex-syntax
+
+Port the parts of `regex-syntax` 0.8.11 that the generator calls, with their
+tests and their Unicode tables, to an internal package of `generate` (D59,
+D60). `pattern.rs` and `expand_tokens.rs` need it.
+
+### Use the port in parse_grammar.go
+
+`ParseGrammar` asks Go's `regexp` whether a pattern matches the empty string,
+where upstream asks the Rust crate `regex`. When the port of `regex-syntax`
+exists, use it there (D59).
 
 ## The setup of the repository
 

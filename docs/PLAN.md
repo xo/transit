@@ -5,7 +5,7 @@ This document holds the plan for `github.com/xo/transit`. The decisions are in
 
 This plan was written on 2026-09-29, before any code existed (D3). Ken
 answered every open question on that date, and each answer is a decision, D1
-to D58. A part of this plan that names a decision follows it. A new question
+to D60. A part of this plan that names a decision follows it. A new question
 goes at the end of this document until Ken answers it.
 
 These documents hold the rules and the references that come from this plan:
@@ -281,16 +281,16 @@ and writes the result to `src/grammar.json`. The transit generator reads only
 `grammar.json`, such as `DerekStride/tree-sitter-sql`, gets the one that the
 golden harness makes with the upstream tool.
 
-The generator takes four more inputs:
+The generator takes three more inputs:
 
 1. The ABI version, 14 or 15 (D17, D19). It does not write ABI 13 (D22).
 2. The version of the grammar, from `tree-sitter.json` (D17).
 3. Whether parse states are merged (D17).
-4. The Unicode tables for a class such as `\p{L}` (D38). The generator uses
-   the tables of the Go package `unicode`, which is at Unicode 17.0.0 on
-   2026-09-29. The test of the C backend gives it tables at the Unicode
-   version of the Rust crate `regex-syntax`, 16.0.0, so that its output
-   matches the golden files.
+
+The generator reads a pattern with a port of the parser and the translator of
+the Rust crate `regex-syntax`, at the version that upstream pins (D59). The
+Unicode tables for a class such as `\p{L}` are the tables of that port, at
+Unicode 16.0.0 on 2026-09-29, for every output (D60).
 
 ### External scanners
 
@@ -475,8 +475,8 @@ ported is listed with the reason.
 For each grammar, the golden harness makes `parser.c` and `node-types.json`
 with the upstream tool at the base commit, at ABI 14 and ABI 15 (D19). The C
 backend must write the same two files, byte for byte (D8). A difference of one
-byte is a fault. The test gives the generator the Unicode tables of
-`regex-syntax` (D38).
+byte is a fault. The generator uses the Unicode tables of `regex-syntax`, as
+upstream does (D60).
 
 The golden harness runs the upstream tool twice on each grammar and makes sure
 that the two outputs are the same, so that a difference in upstream itself is
@@ -511,10 +511,9 @@ name and the flags. It does the same after each edit, and it compares the
 changed ranges. It runs each query on both and compares the captures. It
 compares the symbols that the lookahead iterator lists at each offset.
 
-When the Go backend exists, the same tests also run on the Go grammars. They
-use a test build of each Go grammar, made with the Unicode tables of
-`regex-syntax`, so that a character that Unicode 17.0 added does not make the
-trees differ (D45).
+When the Go backend exists, the same tests also run on the Go grammars. A Go
+grammar and its C grammar use the same Unicode tables, so their trees must be
+the same (D60).
 
 ### 4a. The lexer, compared with the C lexer
 
@@ -741,9 +740,10 @@ This list merges the risks of the two reviews, most serious first:
    (`GRAMMAR.md`). Most grammars stay in the golden stage.
 5. A large grammar gives large tables, and the Go compiler can be slow on
    them. Phase 3 measures it (D31).
-6. The Unicode tables of Go and of `regex-syntax` differ, so a real transit
-   grammar lexes some characters otherwise than upstream (D38). The
-   differences are in the characters that Unicode 17.0 added.
+6. The generator uses the Unicode tables of `regex-syntax`, at Unicode 16.0.0
+   on 2026-09-29, and not the tables of Go, at 17.0.0 (D60). A grammar does
+   not know a character that Unicode 17.0 added until upstream moves to a
+   new `regex-syntax`.
 7. Upstream made about 1.6 commits each day. A freeze of one year leaves about
    580 commits, of which about 220 touch the runtime or the generator, at the
    rate of 2026. The ledger sorts them as they arrive (D30).
@@ -842,7 +842,8 @@ Gemini and DeepSeek reviewed the plan a last time on 2026-09-29, after D44.
 ### What the plan took from it
 
 1. The Go grammars are compared with the C grammars through a test build at
-   the Unicode version of upstream (D45).
+   the Unicode version of upstream (D45). D60 later made every output use
+   those tables, so the test build is not needed.
 2. The character functions of the Go scanners behave as the C library does in
    the test module (D46).
 3. Phase 3 measures with a prototype of the Go lexer, because no Go lexer
@@ -862,8 +863,9 @@ Gemini and DeepSeek reviewed the plan a last time on 2026-09-29, after D44.
 ### What it got wrong
 
 1. Both reviews said that the Unicode tables of Go make the golden files
-   impossible to match. D38 answers it: the test of the C backend gives the
-   generator the tables of `regex-syntax`.
+   impossible to match. D38 answered it: the test of the C backend gives the
+   generator the tables of `regex-syntax`. D60 later made every output use
+   those tables.
 2. Both warned that patterns for the Rust crate `regex` fail to compile in
    Go. None of the 202 patterns in the queries of the set failed.
 3. DeepSeek said that Go 1.27.1 does not exist. It is the toolchain of this
@@ -887,6 +889,8 @@ in [`decisions/`](decisions/README.md), and it is deleted from this list.
 
 Ken answered the questions of phase 0 on 2026-09-29, and D24 to D53
 record the answers, and D54 starts phase 1. The working C example of phase 1
-raised questions 53 to 55, and D55 to D57 record the answers. No question is
-open. The next question is question 56. Raise a new question here rather than
+raised questions 53 to 55, and D55 to D57 record the answers. Phase 2 raised
+questions 56 and 57, and D59 and D60 record the answers. No question is open.
+The next question is question 58. Raise a new question here rather than
 deciding one alone.
+

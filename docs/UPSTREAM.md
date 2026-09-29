@@ -82,6 +82,7 @@ to the path is recorded and not ported.
 | `lib/binding_rust`, the rest | Review | the exported API, if the change adds or changes a method (D25) |
 | `docs/` | Review | the doc comments of the API, if the change says how a function behaves |
 | `lib/binding_web`, `crates/loader`, `crates/xtask`, `crates/config`, `crates/language` | Not applicable | nothing |
+| `Cargo.toml`, `Cargo.lock` | Review | the port of `regex-syntax`, if the change moves the version of that crate (D59) |
 | `.github`, `Cargo.*`, `flake.*`, `build.zig*`, `CMakeLists.txt`, `Makefile` | Not applicable | nothing |
 | any other file in the root of upstream, such as `README.md` | Not applicable | nothing |
 | any other path | Review | a person decides, and adds a row here if the path returns |
@@ -193,11 +194,11 @@ generator uses `IndexMap` and `IndexSet`, which keep the order of insertion.
 Where upstream uses one, transit uses a slice with a map beside it, or the
 keys in the same order.
 
-The generator takes its Unicode tables as an input (D38). Its output uses the
-tables of the Go package `unicode`. The test of the C backend gives it tables
-at the Unicode version of the `regex-syntax` crate that upstream pins, so that
-its output matches the golden files. When upstream moves to a new
-`regex-syntax`, make those tables again.
+The generator reads a pattern with a port of the Rust crate `regex-syntax`,
+and it uses the Unicode tables of that port for every output (D59, D60).
+Upstream pins the version of the crate in its `Cargo.toml` and `Cargo.lock`.
+When upstream moves to a new version, port the changes of the crate between
+the two versions, with its tables, in the same way as a change of upstream.
 
 ## Porting an upstream change
 

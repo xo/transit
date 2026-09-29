@@ -56,14 +56,14 @@ An open question is not a decision. It goes at the end of
 | [D35](D035-every-upstream-test-of-the-ported-parts-is-ported.md) | Every upstream test of the ported parts is ported | Decided |
 | [D36](D036-ci-runs-in-tiers-on-linux-amd64.md) | CI comes with the first package, runs in tiers, and runs on linux/amd64 | Decided |
 | [D37](D037-the-speed-targets.md) | The speed targets are proposed, and phase 3 confirms them | Decided, amended by D47 |
-| [D38](D038-unicode-tables-are-an-input-of-the-generator.md) | The generator uses Go's Unicode tables, and takes them as an input | Decided |
+| [D38](D038-unicode-tables-are-an-input-of-the-generator.md) | The generator uses Go's Unicode tables, and takes them as an input | Decided. Amended by D60 |
 | [D39](D039-scanner-character-functions-use-go-unicode.md) | Scanner character functions use Go's unicode package | Decided, amended by D46 |
 | [D40](D040-golden-files-are-hashes.md) | Golden files are hashes, and the test grammars keep their files | Decided |
 | [D41](D041-cmd-transit-generates-tests-parses-and-queries.md) | cmd/transit generates, tests, parses and queries | Decided, amends D7 |
 | [D42](D042-xo-grammars-live-in-transit.md) | Grammars that xo writes live in transit | Decided |
 | [D43](D043-modules-are-tagged-one-by-one.md) | Each module is tagged on its own | Decided, amended by D48 |
 | [D44](D044-input-that-transit-cannot-trust.md) | Input that transit cannot trust | Decided |
-| [D45](D045-go-grammars-are-compared-with-c-at-unicode-16.md) | Go grammars are compared with C grammars at the Unicode version of upstream | Decided |
+| [D45](D045-go-grammars-are-compared-with-c-at-unicode-16.md) | Go grammars are compared with C grammars at the Unicode version of upstream | Decided. Amended by D60 |
 | [D46](D046-scanner-character-functions-can-be-swapped-in-tests.md) | Scanner character functions can be swapped in tests | Decided, amends D39 |
 | [D47](D047-phase-3-measures-with-a-prototype-go-lexer.md) | Phase 3 measures with a prototype of the Go output | Decided, amends D31 and D37 |
 | [D48](D048-the-chroma-module-is-chromastyles.md) | The chroma module is chromastyles | Decided, amends D26, D32 and D43 |
@@ -77,3 +77,5 @@ An open question is not a decision. It goes at the end of
 | [D56](D056-a-node-lookup-returns-a-bool.md) | A node lookup returns the node and a bool | Decided |
 | [D57](D057-statesat-is-the-first-api-that-upstream-lacks.md) | StatesAt is the first API that upstream does not have | Decided |
 | [D58](D058-the-golden-harness-is-a-command-of-the-test-module.md) | The golden harness is a command of the test module | Decided |
+| [D59](D059-the-generator-ports-regex-syntax.md) | The generator ports the parser and the translator of regex-syntax | Decided |
+| [D60](D060-the-generator-uses-the-unicode-tables-of-regex-syntax.md) | The generator uses the Unicode tables of regex-syntax | Decided. Amends D38 and D45 |
