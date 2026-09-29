@@ -3,9 +3,8 @@
 // grammar.json (D17), builds the parse table and the lexer tables, and gives
 // them to a backend, which writes a parser (D8).
 //
-// The package holds only the first modules of the port yet: the string pool,
-// the bit vectors, the rules, the grammars, the reader of grammar.json and the
-// NFA of the tokens.
+// The package holds only the first modules of the port yet, and it has no
+// function that runs the whole generator.
 package generate
 
 import (

@@ -15,7 +15,7 @@ agent and the date, and deletes the claim when Ken commits the unit (D50).
 
 | Unit | Agent | Date |
 | --- | --- | --- |
-| Phase 2, unit 2: nfa.rs, and LexicalGrammar of grammars.rs | transit | 2026-09-29 |
+| Phase 2, unit 3: intern_symbols.rs | transit | 2026-09-29 |
 
 ## The generator
 

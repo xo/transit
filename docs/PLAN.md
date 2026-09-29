@@ -890,7 +890,17 @@ in [`decisions/`](decisions/README.md), and it is deleted from this list.
 Ken answered the questions of phase 0 on 2026-09-29, and D24 to D53
 record the answers, and D54 starts phase 1. The working C example of phase 1
 raised questions 53 to 55, and D55 to D57 record the answers. Phase 2 raised
-questions 56 and 57, and D59 and D60 record the answers. No question is open.
-The next question is question 58. Raise a new question here rather than
+questions 56 and 57, and D59 and D60 record the answers. Question 58 is open.
+The next question is question 59.
+
+58. What text does the generator give for a `grammar.json` that is not valid
+    JSON? Upstream decodes `grammar.json` with the Rust crate `serde_json`,
+    and its error gives the text of that crate, such as
+    ``expected `,` or `}` at line 3 column 5``. `ParseGrammar` gives the text
+    of Go's `encoding/json`, and no decision covers that difference. The
+    upstream tool writes `grammar.json` itself, so the error comes only from a
+    file that a person edits by hand. No golden file holds such an error. The
+    proposal is to keep the text of Go, as a difference from upstream that
+    this question records. Raise a new question here rather than
 deciding one alone.
 
