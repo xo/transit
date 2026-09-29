@@ -78,7 +78,7 @@ to the path is recorded and not ported.
 | `test/fixtures/test_grammars`, `test/fixtures/fixtures.json` | Port | the test data of the generator, and the list of fixture grammars |
 | `test/fixtures/error_corpus`, `test/fixtures/template_corpus` | Port | the test data of the ported corpus tests |
 | `test/fixtures/rust_wasm_web` | Not applicable | nothing (D1) |
-| `lib/binding_rust/lib.rs`, the evaluation of query predicates | Port | the query code of the root package (D27) |
+| `lib/binding_rust/lib.rs`, the evaluation of query predicates | Port | `query_binding.go`, with the types `Query` and `QueryCursor` of the Rust binding (D27) |
 | `lib/binding_rust`, the rest | Review | the exported API, if the change adds or changes a method (D25) |
 | `docs/` | Review | the doc comments of the API, if the change says how a function behaves |
 | `lib/binding_web`, `crates/loader`, `crates/xtask`, `crates/config`, `crates/language` | Not applicable | nothing |

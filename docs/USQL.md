@@ -4,8 +4,8 @@ This document is for a coding agent that works in
 [usql](https://github.com/xo/usql). It says what transit will give usql for
 tab completion and for highlighting, what is decided, and what is still open.
 
-transit holds the runtime but the query engine. It parses through the tables
-and the lexers of C grammars in the test module, until the Go backend writes
+transit holds the runtime, with the query engine. It parses through the
+tables and the lexers of C grammars in the test module, until the Go backend writes
 Go grammars. [`API.md`](API.md) holds the target API, which came from the
 working C example of phase 1 (D10). This document
 names the parts that usql uses.

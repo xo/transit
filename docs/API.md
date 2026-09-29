@@ -310,6 +310,62 @@ type QueryError struct {
 
 func (e *QueryError) Error() string
 
+// QueryErrorKind is the kind of a QueryError. QueryErrorPredicate comes from
+// the Rust binding, and the others from TSQueryError.
+type QueryErrorKind int
+
+const (
+	QueryErrorNone QueryErrorKind = iota
+	QueryErrorSyntax
+	QueryErrorNodeType
+	QueryErrorField
+	QueryErrorCapture
+	QueryErrorStructure
+	QueryErrorLanguage
+	QueryErrorPredicate
+)
+
+// Quantifier says how many times a capture can occur in a pattern.
+type Quantifier int
+
+const (
+	QuantifierZero Quantifier = iota
+	QuantifierZeroOrOne
+	QuantifierZeroOrMore
+	QuantifierOne
+	QuantifierOneOrMore
+)
+
+// QueryProperty is a key and a value of #set!, #is? or #is-not?. CaptureID is
+// -1 when the predicate names no capture.
+type QueryProperty struct {
+	Key       string
+	Value     string
+	HasValue  bool
+	CaptureID int
+}
+
+// QueryPropertyPredicate is a property of #is?, which is positive, or of
+// #is-not?.
+type QueryPropertyPredicate struct {
+	Property QueryProperty
+	Positive bool
+}
+
+// QueryPredicate is a predicate that the query does not evaluate, such as a
+// predicate of Neovim, with its arguments.
+type QueryPredicate struct {
+	Operator string
+	Args     []QueryPredicateArg
+}
+
+// QueryPredicateArg is a capture or a string.
+type QueryPredicateArg struct {
+	IsCapture bool
+	Capture   int
+	Value     string
+}
+
 // QueryCursor runs a query on a tree. It belongs to one goroutine at a time.
 // Matches and Captures evaluate the text predicates of the query (D27).
 // The predicates of Neovim, such as #lua-match?, wait for the tier 1 grammars
@@ -329,7 +385,8 @@ func (c *QueryCursor) SetContainingPointRange(start, end Point)
 func (c *QueryCursor) Matches(ctx context.Context, q *Query, n Node, src []byte) iter.Seq[QueryMatch]
 func (c *QueryCursor) Captures(ctx context.Context, q *Query, n Node, src []byte) iter.Seq2[QueryMatch, int]
 
-// QueryMatch is one match of a pattern.
+// QueryMatch is one match of a pattern. Captures is valid until the sequence
+// moves on, because the cursor reuses it, as the Rust binding does.
 type QueryMatch struct {
 	PatternIndex int
 	Captures     []QueryCapture

@@ -20,12 +20,13 @@ The generator and its C backend are ported. They write the golden `parser.c`
 and `node-types.json` of all 185 grammars of the set byte for byte, and on
 2026-09-29 the gate of D9 holds: 151 grammars count, which ends phase 2.
 Phase 1 ends when Ken accepts the target API in [docs/API.md](docs/API.md)
-(D54). Phase 3 has ported the runtime: the parser, the tree, the node and the
-tree cursor. The Go runtime gives the same tree as the C runtime for every
-corpus input of every fixture grammar. It parses with the tables and the
-lexers of C grammars, through the test module, because the Go backend that
-writes Go grammars is not written yet. The query engine, `StatesAt` (D57) and
-the measurements of D47 remain in phase 3.
+(D54). Phase 3 has ported the runtime: the parser, the tree, the node, the
+tree cursor, and the query engine with the predicates of the Rust binding.
+The Go runtime gives the same trees and the same query matches as the C
+runtime for every corpus input of every fixture grammar. It parses with the
+tables and the lexers of C grammars, through the test module, because the Go
+backend that writes Go grammars is not written yet. The injections (D27),
+`StatesAt` (D57) and the measurements of D47 remain in phase 3.
 [docs/PLAN.md](docs/PLAN.md) holds the plan, and the decisions record every
 answer that shapes it.
 

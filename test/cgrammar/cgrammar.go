@@ -89,6 +89,9 @@ func LoadRuntime(path string) error {
 	if missing := C.rt_load(lib); missing != nil {
 		return fmt.Errorf("finding %s in %s", C.GoString(missing), path)
 	}
+	if err := loadQuery(lib); err != nil {
+		return err
+	}
 	runtimeLoaded = true
 	return nil
 }

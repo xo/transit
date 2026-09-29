@@ -33,8 +33,8 @@ logger yet, so the port leaves them out. The generator logs with `log/slog`
 ### Port the tests of the runtime
 
 `crates/cli/src/tests` of upstream tests the runtime on real grammars:
-`parser_test.rs`, `tree_test.rs`, `node_test.rs`, `corpus_test.rs` and
-`pathological_test.rs`. The package `test/cgrammar` loads the fixture
+`parser_test.rs`, `tree_test.rs`, `node_test.rs`, `query_test.rs`,
+`corpus_test.rs` and `pathological_test.rs`. The package `test/cgrammar` loads the fixture
 grammars, and `language_test.go` there ports `language_test.rs`. Port the
 other files there too (D35). `corpus_test.rs` adds random edits of each
 corpus input, which the edit test of `test/cgrammar` does only once for each
