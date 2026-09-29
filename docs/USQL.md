@@ -72,9 +72,10 @@ This is the plan, not an API. The names can change in phase 1.
 ## Completion at the cursor
 
 1. After an error at the cursor, the lookahead iterator can list too many
-   symbols or none, because the parser recovered first. transit adds an API
-   that gives the parse states of each stack version at a byte offset, before
-   the recovery (D28).
+   symbols or none, because the parser recovered first. transit adds
+   `StatesAt`, which gives the parse states of each stack version at a byte
+   offset, before the recovery (D28, D57). To complete a word, usql gives the
+   offset of the start of the word (D70).
 2. The usql grammar hands SQL to a SQL grammar through an injection. The
    package `inject` builds the layers (D27).
 3. A keyword can be written in any case in most SQL dialects. The generated
@@ -87,7 +88,9 @@ This is the plan, not an API. The names can change in phase 1.
    that the parser lexed before a reduce, such as `FROM` in
    `SELECT id FROM u`. The state after such a token comes from the state of
    its parent or of the sibling before it. `API.md` gives both methods, and
-   `StatesAt` adds the states before a recovery (D57).
+   `StatesAt` adds the states before a recovery (D57). After
+   `SELECT * FROM `, it gives the state after `FROM`, which accepts 14
+   symbols, where state 0 accepts 408 (D70).
 7. The generic SQL grammar parses `SELECT id, FROM users` with no error. It
    reads `FROM` as a column. usql cannot find every mistake from `ERROR`
    nodes.

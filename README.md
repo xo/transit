@@ -25,8 +25,9 @@ tree cursor, and the query engine with the predicates of the Rust binding.
 The Go runtime gives the same trees and the same query matches as the C
 runtime for every corpus input of every fixture grammar. It parses with the
 tables and the lexers of C grammars, through the test module, because the Go
-backend that writes Go grammars is not written yet. The injections (D27),
-`StatesAt` (D57) and the measurements of D47 remain in phase 3.
+backend that writes Go grammars is not written yet. The ported runtime tests
+of upstream pass. `StatesAt` gives the parse states at a cursor (D57, D70).
+The injections (D27) and the measurements of D47 remain in phase 3.
 [docs/PLAN.md](docs/PLAN.md) holds the plan, and the decisions record every
 answer that shapes it.
 
@@ -66,7 +67,7 @@ transit differs from upstream tree-sitter only where a decision says so:
    `Node.Equal` compares them as `ts_node_eq` does (D68).
 
 transit also adds an API that upstream does not have, one decision each
-(D28), such as `StatesAt` (D57). It does not evaluate the predicates of
+(D28), such as `StatesAt` (D57, D70). It does not evaluate the predicates of
 Neovim, and upstream does not either ([docs/NEOVIM.md](docs/NEOVIM.md)).
 [docs/UPSTREAM.md](docs/UPSTREAM.md) says when one can be made. This section
 will list each one with its decision.

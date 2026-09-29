@@ -178,6 +178,20 @@ linters:
           - dupword
           - gosmopolitan
           - unparam
+      # A ported test of the runtime uses the text of the upstream test, such
+      # as the node name "clas" that a test of query errors misspells, and a
+      # source with repeated words. A helper of a ported test keeps the
+      # parameters of upstream, such as the count of retry(10).
+      - path: test/cgrammar/upstream_.*_test\.go
+        linters:
+          - dupword
+          - misspell
+          - unparam
+      # The test of StatesAt parses SQL that is not finished, such as
+      # "SELECT * FROM ". The text is the input of a parser, not a query.
+      - path: test/cgrammar/states_at_test\.go
+        linters:
+          - unqueryvet
 
 formatters:
   enable:

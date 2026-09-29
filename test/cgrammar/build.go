@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -160,14 +161,65 @@ func BuildGrammar(ctx context.Context, dir, cache string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("reading %s: %w", grammarJSON, err)
 	}
-	var diagnostics []generate.Diagnostic
-	_, code, err := generate.ParserForGrammar(b, nil, generate.OptLevelMergeStates, c.Backend{}, &diagnostics)
+	if err := buildLibrary(ctx, b, nil, build, src, scanners, out); err != nil {
+		return "", fmt.Errorf("building the grammar in %s: %w", dir, err)
+	}
+	return out, nil
+}
+
+// BuildGrammarJSON builds the shared library of a grammar from the text of
+// its grammar.json, in the cache, and returns its path and the name of the
+// grammar. It is generate_parser and get_test_language of the upstream
+// tests, so it generates parser.c with the version 0.0.0, as they do.
+// scannerDir is the folder of the scanner.c of the grammar, or "" for a
+// grammar with no scanner. A library of the same inputs in the cache is used
+// again.
+func BuildGrammarJSON(ctx context.Context, grammarJSON []byte, scannerDir, cache string) (string, string, error) {
+	var head struct {
+		Name string `json:"name"`
+	}
+	if err := json.Unmarshal(grammarJSON, &head); err != nil {
+		return "", "", fmt.Errorf("reading the name of the grammar: %w", err)
+	}
+	var scanners []string
+	if scannerDir != "" {
+		if _, err := os.Stat(filepath.Join(scannerDir, "scanner.c")); err == nil {
+			scanners = []string{filepath.Join(scannerDir, "scanner.c")}
+		}
+	}
+	h := sha256.New()
+	// a write to a hash never fails
+	_, _ = h.Write(grammarJSON)
+	key, err := hashFiles(scanners...)
 	if err != nil {
-		return "", fmt.Errorf("generating the parser of %s: %w", dir, err)
+		return "", "", err
+	}
+	_, _ = h.Write([]byte(key))
+	build := filepath.Join(cache, "cgrammar", "json-"+head.Name+"-"+hex.EncodeToString(h.Sum(nil))[:16])
+	out := filepath.Join(build, "grammar.so")
+	defer lockBuild(out)()
+	if _, err := os.Stat(out); err == nil {
+		return out, head.Name, nil
+	}
+	if err := buildLibrary(ctx, grammarJSON, &generate.SemanticVersion{}, build, scannerDir, scanners, out); err != nil {
+		return "", "", fmt.Errorf("building the grammar %s: %w", head.Name, err)
+	}
+	return out, head.Name, nil
+}
+
+// buildLibrary generates parser.c from a grammar.json at ABI 15 with the
+// generator of transit, in the folder build, and compiles it to out with the
+// headers of generate/templates and the scanners. src is the folder that the
+// scanners include from, or "".
+func buildLibrary(ctx context.Context, grammarJSON []byte, version *generate.SemanticVersion, build, src string, scanners []string, out string) error {
+	var diagnostics []generate.Diagnostic
+	_, code, err := generate.ParserForGrammar(grammarJSON, version, generate.OptLevelMergeStates, c.Backend{}, &diagnostics)
+	if err != nil {
+		return fmt.Errorf("generating the parser: %w", err)
 	}
 	headers := filepath.Join(build, "tree_sitter")
 	if err := os.MkdirAll(headers, 0o755); err != nil {
-		return "", fmt.Errorf("making the build folder of %s: %w", dir, err)
+		return fmt.Errorf("making the build folder: %w", err)
 	}
 	for name, text := range map[string]string{
 		"parser.h": generate.ParserHeader,
@@ -175,22 +227,29 @@ func BuildGrammar(ctx context.Context, dir, cache string) (string, error) {
 		"array.h":  generate.ArrayHeader,
 	} {
 		if err := os.WriteFile(filepath.Join(headers, name), []byte(text), 0o644); err != nil {
-			return "", fmt.Errorf("writing %s: %w", name, err)
+			return fmt.Errorf("writing %s: %w", name, err)
 		}
 	}
 	if err := os.WriteFile(filepath.Join(build, "parser.c"), []byte(code), 0o644); err != nil {
-		return "", fmt.Errorf("writing the parser of %s: %w", dir, err)
+		return fmt.Errorf("writing the parser: %w", err)
 	}
 	// The headers of the build folder come first, so that the scanner gets
 	// the headers of the same version as parser.c.
-	args := []string{"-shared", "-fPIC", "-O1", "-g", "-I", build, "-I", src, filepath.Join(build, "parser.c")}
+	args := []string{"-shared", "-fPIC", "-O1", "-g", "-I", build}
+	if src != "" {
+		args = append(args, "-I", src)
+	}
+	args = append(args, filepath.Join(build, "parser.c"))
 	args = append(args, scanners...)
 	tmp := out + ".tmp"
 	args = append(args, "-o", tmp)
 	if err := cc(ctx, build, args...); err != nil {
-		return "", err
+		return err
 	}
-	return out, os.Rename(tmp, out)
+	if err := os.Rename(tmp, out); err != nil {
+		return fmt.Errorf("renaming the library: %w", err)
+	}
+	return nil
 }
 
 // scannerFiles returns the C files of the scanner in src: scanner.c, and

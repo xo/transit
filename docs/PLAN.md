@@ -5,7 +5,7 @@ This document holds the plan for `github.com/xo/transit`. The decisions are in
 
 This plan was written on 2026-09-29, before any code existed (D3). Ken
 answered its open questions on that date, and later ones as they came. The
-decisions D1 to D69 record the answers and the other choices of Ken. A part
+decisions D1 to D70 record the answers and the other choices of Ken. A part
 of this plan that names a decision follows it. A new question
 goes at the end of this document until Ken answers it.
 
@@ -433,7 +433,8 @@ recover from an error before it builds the tree. The parse state at the cursor
 can then be a state of the recovery, and the lookahead iterator in that state
 can list too many symbols or none. Upstream gives no API for the states before
 the recovery. transit adds one: it gives the parse states of each stack
-version at a byte offset (D28).
+version at a byte offset (D28, D57). Each version stops before the first
+token that ends after the offset, and the lexer reads all of the text (D70).
 
 ### Highlighting and styles
 
@@ -675,7 +676,7 @@ grammars of the set byte for byte, and 151 grammars count toward the gate.
 Choose the Go form of a subtree with a benchmark (D29). Port the runtime and
 its tests, the query engine, the evaluation of predicates and the injections
 (D27), and build the test module (D12). Write `StatesAt`, the first API that
-upstream does not have, and measure it in the test module (D57). The Go
+upstream does not have, and measure it in the test module (D57, D70). The Go
 runtime runs on the tables of C grammars that the upstream tool generates, so
 this phase does not wait for phase 2.
 
@@ -918,8 +919,8 @@ Ken answered the questions of phase 0 on 2026-09-29, and D24 to D53
 record the answers, and D54 starts phase 1. The working C example of phase 1
 raised questions 53 to 55, and D55 to D57 record the answers. Phase 2 raised
 questions 56 to 58, and D59, D60 and D66 record the answers. Phase 3 raised
-questions 59 and 60, and D63 and D64 record the answers. The next question is
-question 61.
+questions 59 to 61, and D63, D64 and D70 record the answers. The next
+question is question 62.
 
 No question is open.
 

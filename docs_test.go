@@ -75,11 +75,8 @@ func TestEveryDecisionReferenceExists(t *testing.T) {
 }
 
 // planned are the tests that a document names before they are written. Each
-// one names the phase that writes it.
-var planned = map[string]string{
-	// docs/PLAN.md gives it as the example of a ported Rust test name.
-	"TestNodeChild": "phase 3",
-}
+// one names the phase that writes it. No test waits today.
+var planned = map[string]string{}
 
 // TestEveryTestNameInTheDocsExists makes sure that a test that a document
 // names is a test that is written. A rule is often paired with the test that

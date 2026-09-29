@@ -495,11 +495,19 @@ decision for each. The first one is for completion (D57):
 func (p *Parser) StatesAt(ctx context.Context, src []byte, offset int, old *Tree) ([]StateID, error)
 ```
 
-For `SELECT * FROM `, the parser has shifted `FROM` when it reaches the end of
-the text, so the state before its recovery is expected to list the symbols of
-a table reference, as the state after `FROM` does in `SELECT id FROM u`. This
-is not measured yet, because the C runtime has no such API. Phase 3 measures
-it in the test module.
+`states_at.go` holds it. Each stack version stops before the first token
+that ends after the offset, or before the end of the text. The lexer reads
+all of `src`, so the tokens before the offset are the tokens of a parse of
+all of it. When the offset is inside a word, the states are the states before
+the word. A word that ends at the offset is handled, so to complete a word, a
+consumer gives the offset of its start. D70 records these rules.
+
+The test module measures it. For `SELECT * FROM `, the SQL grammar of the C
+example gives state 9144, which accepts 14 symbols, such as `identifier`,
+`object_reference` and `subquery`. The state after `FROM` in
+`SELECT id FROM u` is the same state. The tree has an error there, and state
+0 accepts 408 symbols. On the corpora of the 17 fixture grammars, a state that
+`StatesAt` gives accepts the next token at each of 13,664 offsets.
 
 The second one is the predicates `#lua-match?` and `#not-lua-match?`, which
 match the text of a capture with a Lua pattern, as Neovim does (D55). They

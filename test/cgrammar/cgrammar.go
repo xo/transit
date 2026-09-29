@@ -38,6 +38,12 @@ type Grammar struct {
 	lang *C.TSLanguage
 }
 
+// TokenCount returns the number of the terminal symbols of the grammar. The
+// symbols below it are tokens.
+func (g *Grammar) TokenCount() int {
+	return int(g.lang.token_count)
+}
+
 // Load opens the shared library of a grammar and returns the grammar that
 // the function tree_sitter_<name> of the library gives.
 func Load(path, name string) (*Grammar, error) {

@@ -22,8 +22,8 @@ the stack, the parser, the tree, the node, the tree cursor and the query
 engine with its predicates. The test module compares them with the C
 runtime. The trees match for every corpus input of every fixture grammar,
 after an edit too, and so do the matches of the queries of those grammars.
-The injections (D27), `StatesAt` (D57) and the measurements of D47 are not
-done, so phase 3 goes on.
+The ported runtime tests of upstream pass. `StatesAt` (D57, D70) gives the parse states at a cursor. The injections
+(D27) and the measurements of D47 are not done, so phase 3 goes on.
 
 [ts]: https://github.com/tree-sitter/tree-sitter
 
@@ -75,8 +75,8 @@ A bare number, such as D3, names a decision of this repository, in
 `docs/decisions/`. A decision of another repository names that repository,
 such as dbmeta D110. An open question has a number, and it is at the end of
 `docs/PLAN.md` until Ken answers it. The numbers do not repeat: questions 1
-to 60 are answered, no question is open, and the next question is question
-61.
+to 61 are answered, no question is open, and the next question is question
+62.
 
 ## Hard rules
 
@@ -158,6 +158,7 @@ these files:
 | `doc.go` | the comment of the root package, which holds the runtime |
 | `language.go`, `lexer.go`, `subtree.go`, `stack.go`, `parser.go`, `reusable_node.go`, `tree.go`, `node.go`, `tree_cursor.go`, `get_changed_ranges.go`, `query.go`, `length.go`, `point.go`, `assert.go` | the runtime. One Go file ports one file of `lib/src` of upstream (D24) |
 | `query_binding.go` | the query API and the predicates of the Rust binding (D27) |
+| `states_at.go` | `StatesAt`, the first API that upstream does not have (D57, D70). It ports no upstream file (D28) |
 | `internal/abi/` | the tables of a grammar in the shape of `TSLanguage`, a port of `lib/src/parser.h` (D63) |
 | `skills_test.go`, `docs_test.go` | the tests of the agent setup and the documents |
 | `upstream_test.go`, `docs/upstream/ledger.tsv` | the ledger of upstream commits and its test (D30) |
@@ -167,7 +168,7 @@ these files:
 | `_samples/sample.c` | Ken's first sample of a C program that uses a grammar, the start of the working C example (D10) |
 | `_samples/example/` | the working C example and its build script (D10). The Go sample programs of D53 come in phase 5, in `_example/` |
 | `_samples/subtree/` | the benchmark of the Go form of a subtree (D29, D62) |
-| `test/` | the test module, with its own `go.mod` (D12). `test/cmd/golden` is the golden harness (D58), `test/cmd/regextables` writes the Unicode tables of the port of `regex-syntax` (D60), and `test/cgrammar` loads a C grammar into the Go runtime and compares the Go trees and the matches of queries with those of the C runtime |
+| `test/` | the test module, with its own `go.mod` (D12). `test/cmd/golden` is the golden harness (D58), `test/cmd/regextables` writes the Unicode tables of the port of `regex-syntax` (D60), and `test/cgrammar` loads a C grammar into the Go runtime, compares the Go trees and the matches of queries with those of the C runtime, measures `StatesAt`, and holds the ported tests of `crates/cli/src/tests` of upstream in `upstream_*_test.go` (D35) |
 | `gen.sh` | the script that writes the `replace` block of each `go.mod`, with `-m` (D49) |
 | `cmd/transit/` | the command `transit`, with the subcommand `generate` (D41) |
 | `generate/` | the generator (D7). One Go file ports one Rust file of `crates/generate` (D24) |
