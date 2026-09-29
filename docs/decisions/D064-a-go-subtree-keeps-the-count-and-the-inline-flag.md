@@ -1,6 +1,6 @@
 # D64. A Go subtree keeps the reference count and the inline flag of C
 
-Status: Decided, amends D62.
+Status: Decided, amends D24 and D62.
 
 Ken decided on 2026-09-29, answering question 60, that a Go subtree keeps the
 reference count and the inline flag of C. The port of `subtree.c` in phase 3
@@ -47,6 +47,12 @@ leaf keeps:
 So a Go node that C would store inline has the flag `isInline`, and it keeps
 only what the inline form keeps. The node itself is a pointer from a chunk,
 as D62 says.
+
+## What this changes in D24
+
+D24 says that the garbage collector replaces the reference counts. It still
+frees the memory, and the `_delete` functions still have no Go form. The
+count itself stays, for the reasons above.
 
 ## What stays as D62 says
 

@@ -4,8 +4,9 @@ This document holds the plan for `github.com/xo/transit`. The decisions are in
 [`decisions/`](decisions/README.md), one file each (D5).
 
 This plan was written on 2026-09-29, before any code existed (D3). Ken
-answered every open question on that date, and each answer is a decision, D1
-to D68. A part of this plan that names a decision follows it. A new question
+answered its open questions on that date, and later ones as they came. The
+decisions D1 to D69 record the answers and the other choices of Ken. A part
+of this plan that names a decision follows it. A new question
 goes at the end of this document until Ken answers it.
 
 These documents hold the rules and the references that come from this plan:
@@ -75,7 +76,9 @@ count includes comments and tests that are in the same file.
 | Web binding | `lib/binding_web` | TypeScript | | Not ported |
 | Build tasks | `crates/xtask` | Rust | 2,790 | Not ported |
 
-The runtime has these files. Each one becomes one Go file (D24).
+The runtime has these files. Each one becomes one Go file (D24). `point.c`
+becomes `point.go` too. `alloc.c` and `lib.c` become nothing, because Go
+allocates and `lib.c` only includes the other files.
 
 | File | Lines | What it does |
 | --- | --- | --- |
@@ -163,7 +166,9 @@ colors, `styles`.
 The Go is idiomatic Go, and the `go-pedantry` skill applies to it (D24). Names
 are MixedCaps. A function returns an error value and several results, not an
 out parameter. A slice replaces a pointer and a length. The garbage collector
-replaces the reference counts and the `_delete` functions. A C enum becomes a
+replaces the `_delete` functions and frees the memory. The reference count of
+a subtree stays, because upstream reads it to decide what it does (D64). A C
+enum becomes a
 typed constant. A sequence comes back as an `iter.Seq`. Every exported
 identifier has a doc comment.
 
@@ -196,24 +201,28 @@ goes.
 ### Memory
 
 The C runtime counts references to each subtree, and it keeps a pool of freed
-subtrees. The Go runtime uses the garbage collector in place of the reference
-counts. rline parses on each key that the user presses, so a pause of the
-garbage collector is a pause that the user sees. The benchmarks of phase 3
-decide where the Go runtime needs a pool (D37).
+subtrees. The Go runtime frees the memory with the garbage collector. It keeps
+the reference count of a subtree, because upstream reads the count to decide
+whether to change a node in place, and whether to compress and balance a
+repetition (D64). rline parses on each key that the user presses, so a pause
+of the garbage collector is a pause that the user sees. The benchmarks of
+phase 3 decide where the Go runtime needs a pool (D37).
 
 In C, a small leaf lives inside the pointer itself, and a node keeps its
 children in the memory just before the node, where `ts_subtree_children`
 finds them. Go has neither form. At the start of phase 3, a benchmark chose
 the Go form (D29): a subtree is a pointer to a struct that holds a slice of
 its children, and a parser takes the nodes and the slices from chunks (D62).
+A node that C stores inline has a flag for it, and it keeps only what the
+inline form keeps (D64).
 
 ### The public API
 
 The exported API has the types and the method names of the Rust binding, in
 Go idioms (D25): `Parser`, `Tree`, `Node`, `TreeCursor`, `Query`,
 `QueryCursor`, `Language`, `LookaheadIterator`, `Point`, `Range` and
-`InputEdit`. The target API of phase 1 tests it against a working C example
-before any Go is written (D10).
+`InputEdit`. The target API of phase 1 tested it against a working C example
+before any Go was written (D10).
 
 A `Node` is a value, as `TSNode` is in C. Text input is a `[]byte` in UTF-8 or
 UTF-16, or a caller type that returns the text in chunks, as `TSInput` does.
@@ -355,15 +364,15 @@ need:
 8. It measures the time of each step, so that the benchmarks of the Go
    runtime have a C baseline.
 
-The example is code, so it waits for Ken to say that the plan is ready (D3).
-From it comes a document of the target API: the exported identifiers of the
-runtime and of a generated grammar package, each mapped to the C function
-that the example calls.
+The example is code, so it waited until Ken said that the plan was ready (D3,
+D54). From it came [`API.md`](API.md), the document of the target API: the
+exported identifiers of the runtime and of a generated grammar package, each
+mapped to the C function that the example calls.
 
 ### The generated grammar package
 
-A generated grammar package exports these identifiers. The target API will
-test the list:
+A generated grammar package exports these identifiers. [`API.md`](API.md)
+holds the list, as the target API:
 
 1. `Language`, which returns the `*transit.Language`.
 2. A typed constant for each symbol and each field, such as `SymSelect` and
@@ -403,6 +412,12 @@ C runtime also has no engine for injections: it gives
 ports both (D27). The predicates go in the query code of the root package, and
 `match?` uses the package `regexp`. The injections go in the package
 `inject`, without the highlighting.
+
+Many grammars ship queries written for Neovim, which adds predicates and
+directives of its own, such as `#lua-match?` and `#offset!`. Upstream does
+not evaluate them, and transit does not either for now (D69). Support waits
+until the tier 1 grammars need it. [`NEOVIM.md`](NEOVIM.md) lists the names,
+the grammars whose queries use them, and what support would take.
 
 The reviews warned that a pattern written for the Rust crate `regex` can fail
 to compile in Go. On 2026-09-29, every pattern of `#match?` and its relatives
@@ -652,13 +667,17 @@ Port `crates/generate` at the base commit, and port `render.rs` as the C
 backend (D8). Port the generator tests. Add grammars until the gate holds
 (D9). The phase ends when the gate holds.
 
+Phase 2 ended on 2026-09-29. The generator writes the golden files of all 185
+grammars of the set byte for byte, and 151 grammars count toward the gate.
+
 ### Phase 3. The runtime, beside phase 2
 
 Choose the Go form of a subtree with a benchmark (D29). Port the runtime and
 its tests, the query engine, the evaluation of predicates and the injections
-(D27), and build the test module (D12). The Go runtime runs on the tables of C
-grammars that the upstream tool generates, so this phase does not wait for
-phase 2.
+(D27), and build the test module (D12). Write `StatesAt`, the first API that
+upstream does not have, and measure it in the test module (D57). The Go
+runtime runs on the tables of C grammars that the upstream tool generates, so
+this phase does not wait for phase 2.
 
 Write a prototype of the Go lexer and tables for the JSON grammar and one
 large grammar, and measure with it the compile time, the lexer speed and the
@@ -682,7 +701,7 @@ and the speed targets hold on them (D37, D47).
 ### Phase 5. The grammars and the modules for rline and usql
 
 Generate the SQL grammars in Go. Write the usql grammar and the other grammars
-that `xo` needs (D13, D42). Write the package `styles` (D65), the APIs
+that `xo` needs (D13, D42). Write the package `styles` (D65), the other APIs
 that upstream does not have (D28), the example functions and the two sample
 programs (D53), and bring `RLINE.md` and `USQL.md` up to date with the code.
 

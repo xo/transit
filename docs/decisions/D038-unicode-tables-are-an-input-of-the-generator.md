@@ -1,6 +1,6 @@
 # D38. The generator uses Go's Unicode tables, and takes them as an input
 
-Status: Decided. Amended by D60.
+Status: Decided, amended by D60.
 
 Ken decided on 2026-09-29, answering questions 18 and 41, that the generator
 uses the Unicode tables of the Go package `unicode` for a class such as

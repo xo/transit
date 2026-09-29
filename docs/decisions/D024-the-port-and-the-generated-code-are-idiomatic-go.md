@@ -1,6 +1,6 @@
 # D24. The port and the generated code are idiomatic Go
 
-Status: Decided, amends D1.
+Status: Decided, amends D1, amended by D64.
 
 Ken decided on 2026-09-29 that the Go of the port is idiomatic Go, and that the
 Go that the Go backend writes is idiomatic Go too. The `go-pedantry` skill

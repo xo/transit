@@ -28,3 +28,5 @@ The other `xo` repositories have `skills_test.go` and `docs_test.go`. These
 tests make sure that the skills are copies, that the root holds only four
 documents, and that every decision reference exists. They are Go code, and D3
 holds all code until Ken says the plan is ready. `docs/BACKLOG.md` holds them.
+
+Both tests came in phase 1, after D54.

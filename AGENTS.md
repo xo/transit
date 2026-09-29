@@ -20,8 +20,9 @@ D9 holds, with 151 grammars that count, and that ends phase 2. Phase 3 ports
 the runtime. The root package holds the language, the lexer, the subtree,
 the stack, the parser, the tree, the node and the tree cursor. The test
 module compares the Go trees with the C trees, and they match for every
-corpus input of every fixture grammar, after an edit too. The query engine
-and the measurements of D47 are not done, so phase 3 goes on.
+corpus input of every fixture grammar, after an edit too. The query engine,
+`StatesAt` (D57) and the measurements of D47 are not done, so phase 3 goes
+on.
 
 [ts]: https://github.com/tree-sitter/tree-sitter
 
@@ -52,6 +53,7 @@ every other agent read the same rules. Edit this file, not `CLAUDE.md`.
 | designing or changing the exported API | [docs/API.md](docs/API.md), then D24 and D25 |
 | working on what rline gets from transit | [docs/RLINE.md](docs/RLINE.md) |
 | working on what usql gets from transit | [docs/USQL.md](docs/USQL.md) |
+| working with a query written for Neovim, or a grammar whose queries use one | [docs/NEOVIM.md](docs/NEOVIM.md) |
 | looking for work that is known and not done | [docs/BACKLOG.md](docs/BACKLOG.md) |
 | writing a document, a code comment, an error message or a commit message | the `simple-english` skill. Load it first. Then "Writing documentation" below |
 | writing or reviewing Go code | the `go-pedantry` skill. Load it first. Then "Hard rules" below |
@@ -161,7 +163,7 @@ these files:
 | `skills-lock.json`, `.agents/skills/`, `.claude/skills/` | the agent skills |
 | `docs/` | the plan, the rules, the grammar set, the references for rline and usql, the backlog and the decisions |
 | `_samples/sample.c` | Ken's first sample of a C program that uses a grammar, the start of the working C example (D10) |
-| `_samples/example/` | the working C example and its build script (D10) |
+| `_samples/example/` | the working C example and its build script (D10). The Go sample programs of D53 come in phase 5, in `_example/` |
 | `_samples/subtree/` | the benchmark of the Go form of a subtree (D29, D62) |
 | `test/` | the test module, with its own `go.mod` (D12). `test/cmd/golden` is the golden harness (D58), `test/cmd/regextables` writes the Unicode tables of the port of `regex-syntax` (D60), and `test/cgrammar` loads a C grammar into the Go runtime and compares the Go trees with the C trees |
 | `gen.sh` | the script that writes the `replace` block of each `go.mod`, with `-m` (D49) |
@@ -183,7 +185,7 @@ proposed commit message. Do not commit and do not tag.
 Port work goes in units: one upstream file of the runtime, one Rust module of
 the generator, or one ported part, with its tests. Claim a unit under "Units
 in progress" in `docs/BACKLOG.md` before you start. One staged change can hold
-several units (D61). Delete the claims when Ken commits the change (D50).
+several units (D61). When Ken commits the change, delete the claims (D50).
 
 Before you stage a change to a document, make sure of these facts:
 

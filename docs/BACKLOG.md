@@ -41,6 +41,23 @@ corpus input, which the edit test of `test/cgrammar` does only once for each
 input. Compare the trees at ABI 14 too, from the `src/parser.c` of each
 grammar.
 
+### Support the Neovim dialect when the tier 1 grammars need it
+
+D69 defers `#lua-match?` of D55 and the rest of the Neovim dialect of
+queries. When the work on the tier 1 grammars needs them, build the parts
+that "What support would take" in [`NEOVIM.md`](NEOVIM.md) lists. The first
+part is the port of the matcher of LuaJIT 2.1 from `src/lib_string.c`, for
+`#lua-match?`.
+
+### Keep the tables of NEOVIM.md current
+
+The tables of [`NEOVIM.md`](NEOVIM.md) come from one scan of the query files
+of the set on 2026-09-30. Add a check to the golden harness that scans the
+query files of each grammar in the cache, and that fails when a table of
+`NEOVIM.md` or a mark [N] of `CANDIDATES.md` differs from the scan. Until the
+check exists, step 8 of "Steps to add a grammar to the set" in
+[`GRAMMAR.md`](GRAMMAR.md) keeps them current by hand.
+
 ### Run the comparison with C in a nightly job
 
 The tests of `test/cgrammar` skip in CI, because CI has no checkout of
@@ -70,3 +87,6 @@ hold their rules:
    each entry has a folder.
 2. Each ported function has a doc comment that names its C function or its
    Rust function.
+3. From phase 6 on, the ledger has one line for each commit from the base
+   commit to `upstream.txt`, in order, with no gap and no line twice, as
+   "The ledger" in `UPSTREAM.md` says.

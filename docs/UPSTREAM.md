@@ -59,7 +59,7 @@ to the path is recorded and not ported.
 
 | Upstream path | Rule | Where it goes in transit |
 | --- | --- | --- |
-| `lib/src/*.c`, except `wasm_store.c` | Port | the Go file with the same base name, in the root package |
+| `lib/src/*.c`, except `wasm_store.c` | Port | the Go file with the same base name, in the root package. `alloc.c` and `lib.c` have none, as the note under "Where each header goes" says |
 | `lib/src/*.h` | Port | the Go file of the C file that uses the header most. The table below names each one |
 | `lib/src/parser.h` | Port | the tables of a language and the lexer that a lex function calls, in `internal/abi` (D63), and the output of the generator |
 | `lib/include/tree_sitter/api.h` | Port | the exported API of the root package |
@@ -115,9 +115,12 @@ applicable.
 | `ts_assert.h` | `assert.go` |
 | `unicode.h` | `lexer.go` |
 
-`length.go`, `point.go`, `reusable_node.go` and `assert.go` have no C file of
-the same name. They exist because their header holds enough code for a file of
-its own.
+`length.go`, `reusable_node.go` and `assert.go` have no C file of the same
+name. They exist because their header holds enough code for a file of its
+own. `point.go` ports `point.c` and `point.h`.
+
+`alloc.c` becomes nothing, because Go allocates. `lib.c` includes every other
+C file, to build the runtime as one file, and it becomes nothing.
 
 ## How Go code follows C code
 
@@ -184,10 +187,10 @@ The same rule holds for the two UTF-16 decoders.
 
 The same rules hold for `crates/generate` and for the parts of
 `lib/binding_rust` and `crates/highlight` that transit ports (D27), with Rust
-names in place of C names. A Rust module becomes a Go file with the same base name. A Rust `impl`
-method becomes a Go method on the same type. A Rust `enum` with data becomes a
-Go interface with one type for each variant, or a struct with a kind field.
-The file of each type names the choice.
+names in place of C names. A Rust module becomes a Go file with the same base
+name. A Rust `impl` method becomes a Go method on the same type. A Rust `enum`
+with data becomes a Go interface with one type for each variant, or a struct
+with a kind field. The file of each type names the choice.
 
 The generator must never write output in the order of a Go map. The upstream
 generator uses `IndexMap` and `IndexSet`, which keep the order of insertion.
@@ -210,10 +213,10 @@ When upstream moves to a new version, follow these steps:
 
 ## Porting an upstream change
 
-These steps start in phase 6, after the base port is done. From phase 1 on,
-steps 1 to 7 already run for each new upstream commit, so that the ledger
-sorts each one as it arrives (D30). Only the commits that transit ports wait
-for phase 6.
+These steps start in phase 6, after the base port is done. Until then,
+`upstream.txt` does not exist, and the ledger test does the work of steps 3 to
+11: it sorts each new upstream commit as it arrives (D30), as "The ledger"
+below says. Only the commits that transit ports wait for phase 6.
 
 1. Fetch the upstream changes:
 
@@ -353,7 +356,7 @@ base commit to `upstream.txt`, in order, with no gap and no line twice.
 
 ## The test data of the generator
 
-The test of part 3 of the testing plan compares the `parser.c` that transit
+The test of part 2 of the testing plan compares the `parser.c` that transit
 writes with the `parser.c` that upstream writes. The upstream files are made
 once for each upstream commit, and they are committed, so that nobody needs
 Rust to run the test.
@@ -415,14 +418,14 @@ It does these steps:
    path that no output reaches.
 
 The flag `-set` chooses `tests`, `fixtures`, `candidates` and `corpus`,
-separated by commas, and the default is `tests,fixtures`. The flag `-only` names single
-grammars, or for the candidates, single repositories such as
+separated by commas, and the default is `tests,fixtures`. The flag `-only`
+names single grammars, or for the candidates, single repositories such as
 `gmr/tree-sitter-postgres`. The harness keeps each repository in its cache
 under its owner and its name, such as
-`~/.cache/transit/grammars/tree-sitter/tree-sitter-json`. The environment variables `TREE_SITTER_ABI_VERSION` and
-`TREE_SITTER_JS_RUNTIME` change the output of the tool, so the harness clears
-them. It sets `NO_COLOR`, so that an error has no codes for the colors of a
-terminal.
+`~/.cache/transit/grammars/tree-sitter/tree-sitter-json`. The environment
+variables `TREE_SITTER_ABI_VERSION` and `TREE_SITTER_JS_RUNTIME` change the
+output of the tool, so the harness clears them. It sets `NO_COLOR`, so that an
+error has no codes for the colors of a terminal.
 
 `TestTheGoldenFilesNameTheBaseCommit` fails if the upstream commit beside the
 test data is not the commit that transit ports. That is the base commit until

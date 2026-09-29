@@ -1,6 +1,6 @@
 # D61. A staged change can hold several units
 
-Status: Decided. Amends D50.
+Status: Decided, amends D50.
 
 Ken decided on 2026-09-29 that one staged change can hold several units, such
 as the passes of `prepare_grammar/`. D50 said that one staged change covers

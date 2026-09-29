@@ -71,9 +71,10 @@ harness keeps the `grammar.json` that the upstream tool writes.
 | 3 | Elsewhere, in nvim-treesitter and not marked unmaintained there, 40 stars or more, pushed since 2025-06-01, a permissive license or no license (D20), not a fork | 58 |
 
 The total is 171 grammars in the tiers. The SQL grammars of "SQL" and the
-grammars of "The grammars for dbmeta's languages" join them (D18, D23). The 68 test grammars of upstream,
-`test/fixtures/test_grammars`, come in addition, and they are always in the
-set. The 15 fixture grammars of `fixtures.json` are all in tier 1.
+grammars of "The grammars for dbmeta's languages" join them (D18, D23). The 68
+test grammars of upstream, `test/fixtures/test_grammars`, come in addition,
+and they are always in the set. The 15 fixture grammars of `fixtures.json` are
+all in tier 1.
 
 These are left out of tier 1:
 
@@ -182,11 +183,11 @@ set.
 The first run of the harness, on 2026-09-29, covered the 68 test grammars and
 the 15 fixture grammars, which hold 17 grammars. It looked for 26 paths, and
 each path was reached by at least one output. The rarest were the anonymous
-unique alias, reached only by the test grammar `named_rule_aliased_as_anonymous`,
-the pragma for a large lexer (bash, c, cpp and ruby), and the reserved word sets
-(the test grammar `reserved_words`, and go, javascript, php and php_only). The
-python fixture is at `v0.23.6`, which has no reserved words yet. The rest of the set followed in a
-later run (D58).
+unique alias, reached only by the test grammar
+`named_rule_aliased_as_anonymous`, the pragma for a large lexer (bash, c, cpp
+and ruby), and the reserved word sets (the test grammar `reserved_words`, and
+go, javascript, php and php_only). The python fixture is at `v0.23.6`, which
+has no reserved words yet. The rest of the set followed in a later run (D58).
 
 The run over the whole set, on 2026-09-29, made 516 outputs of 228
 grammars: the 56 test grammars that the tool accepts, at three variants, and
@@ -397,13 +398,18 @@ file that the grammar commits. The grammar made that file with its own version
 of the tool, so the size is an estimate. "Features" uses the letters of the
 table above.
 
+[N] marks a grammar whose queries use a predicate or a directive of Neovim in
+a query file that transit reads. transit does not support them now (D69), so
+some of its patterns match more often than in Neovim.
+[`NEOVIM.md`](NEOVIM.md) lists the names that each grammar uses.
+
 | Tier | Grammar | Repository | Stars | Last push | Scanner | `parser.c` MB | License | Features |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 1 | python | tree-sitter/tree-sitter-python | 569 | 2026-09-13 | yes | 3.3 | MIT | REUDSW |
 | 1 | tsx | tree-sitter/tree-sitter-typescript `tsx` | 533 | 2026-09-17 | yes | 8.4 | MIT | NPEUDSW |
 | 1 | typescript | tree-sitter/tree-sitter-typescript `typescript` | 533 | 2026-09-17 | yes | 8.3 | MIT | NPEUDSW |
 | 1 | rust | tree-sitter/tree-sitter-rust | 532 | 2026-09-16 | yes | 6.2 | MIT | XUSW |
-| 1 | javascript | tree-sitter/tree-sitter-javascript | 494 | 2026-09-17 | yes | 2.7 | MIT | RNPEUDSW |
+| 1 | javascript [N](NEOVIM.md) | tree-sitter/tree-sitter-javascript | 494 | 2026-09-17 | yes | 2.7 | MIT | RNPEUDSW |
 | 1 | cpp | tree-sitter/tree-sitter-cpp | 457 | 2026-09-17 | yes | 24.7 | MIT | PUDSW |
 | 1 | go | tree-sitter/tree-sitter-go | 419 | 2026-09-13 | no | 1.5 | MIT | RUDSW |
 | 1 | c | tree-sitter/tree-sitter-c | 395 | 2026-09-16 | no | 3.7 | MIT | UDSW |
@@ -418,7 +424,7 @@ table above.
 | 1 | scala | tree-sitter/tree-sitter-scala | 199 | 2026-09-13 | yes | 26.0 | MIT | RNPEXFUDSW |
 | 1 | haskell | tree-sitter/tree-sitter-haskell | 188 | 2025-08-29 | yes | 18.9 | MIT | NPUDSW |
 | 1 | css | tree-sitter/tree-sitter-css | 139 | 2026-09-13 | yes | 0.5 | MIT |  |
-| 1 | julia | tree-sitter/tree-sitter-julia | 129 | 2025-11-08 | yes | 23.0 | MIT | XUDSW |
+| 1 | julia [N](NEOVIM.md) | tree-sitter/tree-sitter-julia | 129 | 2025-11-08 | yes | 23.0 | MIT | XUDSW |
 | 1 | verilog | tree-sitter/tree-sitter-verilog | 123 | 2026-09-13 | no | 44.2 | MIT | W |
 | 1 | regex | tree-sitter/tree-sitter-regex | 105 | 2025-09-13 | no | 0.1 | MIT |  |
 | 1 | ocaml | tree-sitter/tree-sitter-ocaml `grammars/ocaml` | 102 | 2026-09-19 | yes | 23.2 | MIT | RNPEXUDSW |
@@ -435,21 +441,21 @@ table above.
 | 2 | hcl | tree-sitter-grammars/tree-sitter-hcl | 146 | 2026-09-17 | yes | 0.6 | Apache-2.0 | FU |
 | 2 | terraform | tree-sitter-grammars/tree-sitter-hcl `dialects/terraform` | 146 | 2026-09-17 | yes | 0.6 | Apache-2.0 | FU |
 | 2 | lua | tree-sitter-grammars/tree-sitter-lua | 104 | 2026-06-19 | yes | 0.3 | MIT | XFUSW |
-| 2 | query | tree-sitter-grammars/tree-sitter-query | 80 | 2026-09-13 | no | 0.1 | Apache-2.0 | S |
-| 2 | diff | tree-sitter-grammars/tree-sitter-diff | 70 | 2026-09-13 | no | 0.1 | MIT |  |
+| 2 | query [N](NEOVIM.md) | tree-sitter-grammars/tree-sitter-query | 80 | 2026-09-13 | no | 0.1 | Apache-2.0 | S |
+| 2 | diff [N](NEOVIM.md) | tree-sitter-grammars/tree-sitter-diff | 70 | 2026-09-13 | no | 0.1 | MIT |  |
 | 2 | commonlisp | tree-sitter-grammars/tree-sitter-commonlisp | 63 | 2026-09-13 | no | 5.6 | MIT |  |
 | 2 | yaml | tree-sitter-grammars/tree-sitter-yaml | 58 | 2026-05-22 | yes | 1.2 | MIT |  |
 | 2 | dtd | tree-sitter-grammars/tree-sitter-xml `dtd` | 52 | 2026-09-13 | yes | 0.2 | MIT | SW |
 | 2 | xml | tree-sitter-grammars/tree-sitter-xml `xml` | 52 | 2026-09-13 | yes | 0.2 | MIT | ESW |
-| 2 | glsl | tree-sitter-grammars/tree-sitter-glsl | 50 | 2026-09-13 | no | 5.3 | MIT | UDSW |
+| 2 | glsl [N](NEOVIM.md) | tree-sitter-grammars/tree-sitter-glsl | 50 | 2026-09-13 | no | 5.3 | MIT | UDSW |
 | 2 | kdl | tree-sitter-grammars/tree-sitter-kdl | 48 | 2026-09-13 | yes | 0.5 | MIT | W |
-| 2 | zig | tree-sitter-grammars/tree-sitter-zig | 42 | 2026-09-13 | no | 5.5 | MIT | PDSW |
-| 2 | objc | tree-sitter-grammars/tree-sitter-objc | 41 | 2026-09-13 | no | 26.9 | MIT | FUDSW |
-| 2 | odin | tree-sitter-grammars/tree-sitter-odin | 39 | 2026-09-13 | yes | 14.1 | MIT | EFUSW |
+| 2 | zig [N](NEOVIM.md) | tree-sitter-grammars/tree-sitter-zig | 42 | 2026-09-13 | no | 5.5 | MIT | PDSW |
+| 2 | objc [N](NEOVIM.md) | tree-sitter-grammars/tree-sitter-objc | 41 | 2026-09-13 | no | 26.9 | MIT | FUDSW |
+| 2 | odin [N](NEOVIM.md) | tree-sitter-grammars/tree-sitter-odin | 39 | 2026-09-13 | yes | 14.1 | MIT | EFUSW |
 | 2 | vim | tree-sitter-grammars/tree-sitter-vim | 39 | 2026-09-13 | yes | 4.6 | MIT | DW |
 | 2 | cuda | tree-sitter-grammars/tree-sitter-cuda | 36 | 2026-09-15 | yes | 29.7 | MIT | PUDSW |
 | 2 | tcl | tree-sitter-grammars/tree-sitter-tcl | 26 | 2026-09-13 | yes | 0.4 | MIT | W |
-| 2 | vue | tree-sitter-grammars/tree-sitter-vue | 26 | 2026-09-13 | yes | 0.1 | MIT | E |
+| 2 | vue [N](NEOVIM.md) | tree-sitter-grammars/tree-sitter-vue | 26 | 2026-09-13 | yes | 0.1 | MIT | E |
 | 2 | starlark | tree-sitter-grammars/tree-sitter-starlark | 24 | 2026-09-13 | yes | 2.4 | MIT | EUDSW |
 | 2 | svelte | tree-sitter-grammars/tree-sitter-svelte | 23 | 2026-09-13 | yes | 0.2 | MIT | ES |
 | 2 | luadoc | tree-sitter-grammars/tree-sitter-luadoc | 21 | 2026-09-13 | no | 0.6 | MIT | S |
@@ -457,15 +463,15 @@ table above.
 | 2 | doxygen | tree-sitter-grammars/tree-sitter-doxygen | 17 | 2026-09-13 | yes | 0.3 | MIT |  |
 | 2 | make | tree-sitter-grammars/tree-sitter-make | 17 | 2026-09-13 | no | 0.9 | MIT | W |
 | 2 | toml | tree-sitter-grammars/tree-sitter-toml | 17 | 2025-07-10 | yes | 0.1 | MIT |  |
-| 2 | bitbake | tree-sitter-grammars/tree-sitter-bitbake | 14 | 2026-09-13 | yes | 3.2 | MIT | EUDS |
+| 2 | bitbake [N](NEOVIM.md) | tree-sitter-grammars/tree-sitter-bitbake | 14 | 2026-09-13 | yes | 3.2 | MIT | EUDS |
 | 2 | hlsl | tree-sitter-grammars/tree-sitter-hlsl | 14 | 2026-09-13 | yes | 19.9 | MIT | PUDSW |
-| 2 | hare | tree-sitter-grammars/tree-sitter-hare | 13 | 2026-09-13 | no | 0.9 | MIT | SW |
+| 2 | hare [N](NEOVIM.md) | tree-sitter-grammars/tree-sitter-hare | 13 | 2026-09-13 | no | 0.9 | MIT | SW |
 | 2 | ssh_config | tree-sitter-grammars/tree-sitter-ssh-config | 13 | 2026-09-13 | no | 1.1 | MIT | F |
 | 2 | csv | tree-sitter-grammars/tree-sitter-csv `csv` | 12 | 2026-09-13 | no | 0.0 | MIT |  |
 | 2 | psv | tree-sitter-grammars/tree-sitter-csv `psv` | 12 | 2026-09-13 | no | 0.0 | MIT |  |
 | 2 | tsv | tree-sitter-grammars/tree-sitter-csv `tsv` | 12 | 2026-09-13 | no | 0.0 | MIT |  |
 | 2 | wgsl_bevy | tree-sitter-grammars/tree-sitter-wgsl-bevy | 12 | 2026-09-13 | yes | 0.5 | MIT | W |
-| 2 | linkerscript | tree-sitter-grammars/tree-sitter-linkerscript | 11 | 2026-09-13 | no | 0.5 | MIT | FSW |
+| 2 | linkerscript [N](NEOVIM.md) | tree-sitter-grammars/tree-sitter-linkerscript | 11 | 2026-09-13 | no | 0.5 | MIT | FSW |
 | 2 | test | tree-sitter-grammars/tree-sitter-test | 11 | 2025-08-29 | yes | 0.0 | MIT |  |
 | 2 | bicep | tree-sitter-grammars/tree-sitter-bicep | 10 | 2026-09-13 | yes | 1.1 | MIT | PSW |
 | 2 | gosum | tree-sitter-grammars/tree-sitter-go-sum | 10 | 2026-09-13 | no | 0.0 | MIT |  |
@@ -473,19 +479,19 @@ table above.
 | 2 | requirements | tree-sitter-grammars/tree-sitter-requirements | 10 | 2026-09-13 | no | 0.2 | MIT | XW |
 | 2 | luap | tree-sitter-grammars/tree-sitter-luap | 9 | 2026-09-13 | no | 0.1 | MIT | D |
 | 2 | scss | tree-sitter-grammars/tree-sitter-scss | 9 | 2026-09-13 | yes | 0.7 | MIT |  |
-| 2 | smali | tree-sitter-grammars/tree-sitter-smali | 9 | 2026-09-13 | yes | 1.6 | MIT | SW |
-| 2 | kotlin | tree-sitter-grammars/tree-sitter-kotlin | 8 | 2026-09-13 | yes | 21.4 | MIT | PEFUDSW |
-| 2 | pony | tree-sitter-grammars/tree-sitter-pony | 8 | 2026-09-13 | yes | 4.5 | MIT | SW |
+| 2 | smali [N](NEOVIM.md) | tree-sitter-grammars/tree-sitter-smali | 9 | 2026-09-13 | yes | 1.6 | MIT | SW |
+| 2 | kotlin [N](NEOVIM.md) | tree-sitter-grammars/tree-sitter-kotlin | 8 | 2026-09-13 | yes | 21.4 | MIT | PEFUDSW |
+| 2 | pony [N](NEOVIM.md) | tree-sitter-grammars/tree-sitter-pony | 8 | 2026-09-13 | yes | 4.5 | MIT | SW |
 | 2 | printf | tree-sitter-grammars/tree-sitter-printf | 8 | 2026-09-13 | no | 0.0 | ISC |  |
 | 2 | arduino | tree-sitter-grammars/tree-sitter-arduino | 7 | 2026-09-13 | yes | 17.0 | MIT | PUDSW |
 | 2 | gn | tree-sitter-grammars/tree-sitter-gn | 7 | 2026-09-13 | yes | 0.2 | MIT | SW |
-| 2 | luau | tree-sitter-grammars/tree-sitter-luau | 7 | 2026-09-13 | yes | 0.6 | MIT | XFUSW |
+| 2 | luau [N](NEOVIM.md) | tree-sitter-grammars/tree-sitter-luau | 7 | 2026-09-13 | yes | 0.6 | MIT | XFUSW |
 | 2 | properties | tree-sitter-grammars/tree-sitter-properties | 7 | 2026-09-13 | yes | 0.1 | MIT |  |
 | 2 | ron | tree-sitter-grammars/tree-sitter-ron | 7 | 2026-09-13 | yes | 0.1 | Apache-2.0 | U |
 | 2 | slang | tree-sitter-grammars/tree-sitter-slang | 7 | 2026-09-13 | yes | 25.7 | MIT | PUDSW |
-| 2 | thrift | tree-sitter-grammars/tree-sitter-thrift | 7 | 2026-09-13 | no | 0.7 | MIT | SW |
+| 2 | thrift [N](NEOVIM.md) | tree-sitter-grammars/tree-sitter-thrift | 7 | 2026-09-13 | no | 0.7 | MIT | SW |
 | 2 | func | tree-sitter-grammars/tree-sitter-func | 6 | 2026-09-13 | no | 0.5 | MIT | W |
-| 2 | kconfig | tree-sitter-grammars/tree-sitter-kconfig | 6 | 2026-09-13 | yes | 0.3 | MIT | DSW |
+| 2 | kconfig [N](NEOVIM.md) | tree-sitter-grammars/tree-sitter-kconfig | 6 | 2026-09-13 | yes | 0.3 | MIT | DSW |
 | 2 | po | tree-sitter-grammars/tree-sitter-po | 6 | 2026-09-13 | no | 0.1 | MIT |  |
 | 2 | udev | tree-sitter-grammars/tree-sitter-udev | 6 | 2026-09-13 | no | 0.2 | MIT |  |
 | 2 | yuck | tree-sitter-grammars/tree-sitter-yuck | 6 | 2026-09-13 | yes | 0.1 | MIT | SW |
@@ -493,11 +499,11 @@ table above.
 | 2 | ungrammar | tree-sitter-grammars/tree-sitter-ungrammar | 5 | 2026-09-13 | no | 0.0 | MIT | W |
 | 2 | gpg | tree-sitter-grammars/tree-sitter-gpg-config | 4 | 2026-09-13 | no | 0.7 | MIT | F |
 | 2 | poe_filter | tree-sitter-grammars/tree-sitter-poe-filter | 4 | 2026-09-13 | no | 0.3 | MIT | FU |
-| 2 | squirrel | tree-sitter-grammars/tree-sitter-squirrel | 4 | 2026-09-13 | yes | 3.0 | MIT | SW |
-| 2 | tablegen | tree-sitter-grammars/tree-sitter-tablegen | 4 | 2026-09-13 | yes | 0.4 | MIT | SW |
-| 2 | cairo | tree-sitter-grammars/tree-sitter-cairo | 3 | 2026-09-13 | yes | 2.1 | MIT | ESW |
+| 2 | squirrel [N](NEOVIM.md) | tree-sitter-grammars/tree-sitter-squirrel | 4 | 2026-09-13 | yes | 3.0 | MIT | SW |
+| 2 | tablegen [N](NEOVIM.md) | tree-sitter-grammars/tree-sitter-tablegen | 4 | 2026-09-13 | yes | 0.4 | MIT | SW |
+| 2 | cairo [N](NEOVIM.md) | tree-sitter-grammars/tree-sitter-cairo | 3 | 2026-09-13 | yes | 2.1 | MIT | ESW |
 | 2 | cst | tree-sitter-grammars/tree-sitter-cst | 3 | 2026-09-13 | no | 0.0 | MIT |  |
-| 2 | ispc | tree-sitter-grammars/tree-sitter-ispc | 3 | 2026-09-13 | no | 7.5 | MIT | UDSW |
+| 2 | ispc [N](NEOVIM.md) | tree-sitter-grammars/tree-sitter-ispc | 3 | 2026-09-13 | no | 7.5 | MIT | UDSW |
 | 2 | move | tree-sitter-grammars/tree-sitter-move | 3 | 2026-09-13 | no | 0.4 | none | W |
 | 2 | pem | tree-sitter-grammars/tree-sitter-pem | 3 | 2026-09-13 | no | 0.0 | MIT |  |
 | 2 | qmldir | tree-sitter-grammars/tree-sitter-qmldir | 3 | 2026-09-13 | no | 0.0 | MIT |  |
@@ -505,22 +511,22 @@ table above.
 | 2 | nqc | tree-sitter-grammars/tree-sitter-nqc | 2 | 2026-09-13 | no | 4.2 | MIT | UDSW |
 | 2 | pymanifest | tree-sitter-grammars/tree-sitter-pymanifest | 2 | 2026-09-13 | no | 0.1 | MIT |  |
 | 2 | readline | tree-sitter-grammars/tree-sitter-readline | 2 | 2026-09-13 | no | 0.4 | MIT | F |
-| 2 | uxntal | tree-sitter-grammars/tree-sitter-uxntal | 2 | 2026-09-13 | yes | 0.3 | MIT | W |
+| 2 | uxntal [N](NEOVIM.md) | tree-sitter-grammars/tree-sitter-uxntal | 2 | 2026-09-13 | yes | 0.3 | MIT | W |
 | 2 | chatito | tree-sitter-grammars/tree-sitter-chatito | 1 | 2026-09-13 | no | 0.1 | MIT | S |
 | 2 | cpon | tree-sitter-grammars/tree-sitter-cpon | 1 | 2026-09-13 | no | 0.1 | MIT |  |
-| 2 | firrtl | tree-sitter-grammars/tree-sitter-firrtl | 1 | 2026-09-13 | yes | 0.5 | Apache-2.0 | SW |
+| 2 | firrtl [N](NEOVIM.md) | tree-sitter-grammars/tree-sitter-firrtl | 1 | 2026-09-13 | yes | 0.5 | Apache-2.0 | SW |
 | 2 | gstlaunch | tree-sitter-grammars/tree-sitter-gstlaunch | 1 | 2026-09-13 | no | 0.1 | MIT | U |
-| 2 | re2c | tree-sitter-grammars/tree-sitter-re2c | 1 | 2026-09-13 | no | 0.4 | MIT | XDSW |
+| 2 | re2c [N](NEOVIM.md) | tree-sitter-grammars/tree-sitter-re2c | 1 | 2026-09-13 | no | 0.4 | MIT | XDSW |
 | 2 | cyberchef | tree-sitter-grammars/tree-sitter-cyberchef | 0 | 2026-09-13 | no | 0.0 | MIT |  |
 | 3 | superhtml | kristoff-it/superhtml `tree-sitter-superhtml` | 1384 | 2026-09-26 | yes | 0.1 | MIT | E |
 | 3 | elixir | elixir-lang/tree-sitter-elixir | 286 | 2026-07-20 | yes | 12.3 | Apache-2.0 | FUD |
-| 3 | blade | EmranMR/tree-sitter-blade | 263 | 2026-08-31 | yes | 22.0 | MIT | E |
+| 3 | blade [N](NEOVIM.md) | EmranMR/tree-sitter-blade | 263 | 2026-08-31 | yes | 22.0 | MIT | E |
 | 3 | sql | DerekStride/tree-sitter-sql | 247 | 2026-09-19 | yes | none | MIT | not measured |
 | 3 | nix | nix-community/tree-sitter-nix | 240 | 2026-09-28 | yes | 0.6 | MIT | SW |
 | 3 | swift | alex-pinkus/tree-sitter-swift | 224 | 2026-09-28 | yes | none | MIT | UD |
 | 3 | v | vlang/v-analyzer `tree_sitter_v` | 204 | 2026-06-20 | no | 11.8 | MIT | XDSW |
 | 3 | just | casey/tree-sitter-just | 195 | 2026-03-25 | yes | 0.3 | Apache-2.0 | W |
-| 3 | kotlin | fwcd/tree-sitter-kotlin | 190 | 2026-09-09 | yes | 32.2 | MIT | UDW |
+| 3 | kotlin [N](NEOVIM.md) | fwcd/tree-sitter-kotlin | 190 | 2026-09-09 | yes | 32.2 | MIT | UDW |
 | 3 | clojure | sogaiu/tree-sitter-clojure | 189 | 2025-08-26 | no | 0.8 | CC0-1.0 |  |
 | 3 | solidity | JoranHonig/tree-sitter-solidity | 186 | 2026-02-11 | no | 2.4 | MIT | DW |
 | 3 | nu | nushell/tree-sitter-nu | 180 | 2026-09-14 | yes | 8.3 | MIT | XFUDW |
@@ -535,7 +541,7 @@ table above.
 | 3 | dockerfile | camdencheek/tree-sitter-dockerfile | 104 | 2025-08-06 | yes | 0.2 | MIT |  |
 | 3 | gleam | gleam-lang/tree-sitter-gleam | 104 | 2026-09-18 | yes | 2.9 | Apache-2.0 | X |
 | 3 | templ | vrischmann/tree-sitter-templ | 100 | 2026-09-10 | yes | 2.8 | MIT | RUDSW |
-| 3 | fsharp | ionide/tree-sitter-fsharp `fsharp` | 98 | 2026-09-14 | yes | 53.3 | MIT | REXUSW |
+| 3 | fsharp [N](NEOVIM.md) | ionide/tree-sitter-fsharp `fsharp` | 98 | 2026-09-14 | yes | 53.3 | MIT | REXUSW |
 | 3 | erlang | WhatsApp/tree-sitter-erlang | 97 | 2026-07-31 | yes | 2.1 | Apache-2.0 | DSW |
 | 3 | apex | aheber/tree-sitter-sfapex `apex` | 92 | 2026-08-19 | no | 7.2 | MIT | USW |
 | 3 | sflog | aheber/tree-sitter-sfapex `sflog` | 92 | 2026-08-19 | no | 0.0 | MIT |  |
@@ -546,18 +552,18 @@ table above.
 | 3 | powershell | airbus-cert/tree-sitter-powershell | 86 | 2026-07-10 | yes | 4.5 | MIT |  |
 | 3 | pascal | Isopod/tree-sitter-pascal | 80 | 2025-12-23 | no | 3.4 | MIT | FW |
 | 3 | tlaplus | tlaplus-community/tree-sitter-tlaplus | 78 | 2026-02-17 | yes | 35.3 | MIT | NPEXDSW |
-| 3 | heex | phoenixframework/tree-sitter-heex | 75 | 2026-03-23 | no | 0.1 | MIT |  |
+| 3 | heex [N](NEOVIM.md) | phoenixframework/tree-sitter-heex | 75 | 2026-03-23 | no | 0.1 | MIT |  |
 | 3 | d | gdamore/tree-sitter-d | 67 | 2026-06-19 | yes | 21.9 | MIT | NPUDW |
-| 3 | angular | dlvandenberg/tree-sitter-angular | 64 | 2026-05-15 | yes | 0.7 | MIT | EF |
+| 3 | angular [N](NEOVIM.md) | dlvandenberg/tree-sitter-angular | 64 | 2026-05-15 | yes | 0.7 | MIT | EF |
 | 3 | c3 | c3lang/tree-sitter-c3 | 64 | 2026-09-16 | yes | 5.5 | MIT | XSW |
 | 3 | gomod | camdencheek/tree-sitter-go-mod | 64 | 2025-10-23 | no | 0.1 | MIT | X |
-| 3 | http | rest-nvim/tree-sitter-http | 63 | 2025-09-24 | no | 0.4 | MIT | FUD |
-| 3 | perl | tree-sitter-perl/tree-sitter-perl | 62 | 2026-09-07 | yes | none | MIT | XFUDSW |
+| 3 | http [N](NEOVIM.md) | rest-nvim/tree-sitter-http | 63 | 2025-09-24 | no | 0.4 | MIT | FUD |
+| 3 | perl [N](NEOVIM.md) | tree-sitter-perl/tree-sitter-perl | 62 | 2026-09-07 | yes | none | MIT | XFUDSW |
 | 3 | rescript | rescript-lang/tree-sitter-rescript | 60 | 2026-09-25 | yes | 7.1 | MIT | RNPEXDSW |
 | 3 | ledger | cbarrete/tree-sitter-ledger | 59 | 2026-09-25 | no | 0.5 | MIT | U |
 | 3 | supercollider | madskjeldgaard/tree-sitter-supercollider | 59 | 2026-03-24 | yes | 1.2 | none | XW |
 | 3 | systemverilog | gmlarumbe/tree-sitter-systemverilog | 59 | 2026-09-15 | no | 63.2 | MIT | RNPDW |
-| 3 | cmake | uyha/tree-sitter-cmake | 58 | 2026-09-13 | yes | 0.5 | MIT |  |
+| 3 | cmake [N](NEOVIM.md) | uyha/tree-sitter-cmake | 58 | 2026-09-13 | yes | 0.5 | MIT |  |
 | 3 | rst | stsewd/tree-sitter-rst | 57 | 2026-09-15 | yes | 0.3 | MIT | S |
 | 3 | asm | RubixDev/tree-sitter-asm | 56 | 2025-11-08 | no | 0.1 | MIT | X |
 | 3 | beancount | polarmutex/tree-sitter-beancount | 56 | 2026-09-13 | yes | 0.5 | MIT | USW |

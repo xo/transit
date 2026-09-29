@@ -27,7 +27,7 @@ import (
 // do. ts_subtree_make_mut changes a node in place only when one tree holds
 // it, and ts_subtree_compress and the balancing of the parser stop at a node
 // that two trees hold. So retain and release keep the count as C keeps it,
-// and a count of 0 frees nothing.
+// and a count of 0 frees nothing (D64).
 //
 // C stores a small leaf inline, in the Subtree value itself. A Go node has
 // no inline form (D62), but the inline form of C changes what a leaf keeps:
@@ -35,7 +35,7 @@ import (
 // no depends_on_column. So a Go node that C would store inline has isInline,
 // and it keeps only what the inline form keeps. C copies an inline leaf as a
 // value, and Go shares the node, so ts_subtree_make_mut copies an inline
-// node before a change.
+// node before a change (D64).
 
 // InputEdit describes one edit of the text.
 //

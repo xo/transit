@@ -8,7 +8,8 @@ upstream runtime at the base commit and a real grammar.
 The API follows the Rust binding, in idiomatic Go (D24, D25). A lookup that can
 find no node returns the node and a `bool` (D56). Ken accepts this document
 before phase 1 ends, and until then it is a proposal. The choices that the
-example raised are decided: `#lua-match?` (D55), the form of a lookup (D56)
+example raised are decided: `#lua-match?` (D55, which waits for the tier 1
+grammars, D69), the form of a lookup (D56)
 and `StatesAt` (D57).
 
 ## The working C example
@@ -77,7 +78,9 @@ The SQL grammar has 729 symbols, 53 fields and 17,329 parse states.
 ## The package transit
 
 This is the proposed surface of the root package. The bodies are ports of the
-upstream functions that the table below names.
+upstream functions that the table below names. Each enum type, such as
+`SymbolType`, `Encoding` and `LogType`, also has a `String` method, which the
+list leaves out.
 
 ```go
 package transit
@@ -308,8 +311,10 @@ type QueryError struct {
 func (e *QueryError) Error() string
 
 // QueryCursor runs a query on a tree. It belongs to one goroutine at a time.
-// Matches and Captures evaluate the text predicates of the query (D27), and
-// #lua-match? and #not-lua-match? (D55).
+// Matches and Captures evaluate the text predicates of the query (D27).
+// The predicates of Neovim, such as #lua-match?, wait for the tier 1 grammars
+// (D69), and until then each one is a general predicate, as in the Rust
+// binding. docs/NEOVIM.md lists them.
 type QueryCursor struct{ /* unexported */ }
 
 func NewQueryCursor() *QueryCursor
@@ -440,7 +445,9 @@ is not measured yet, because the C runtime has no such API. Phase 3 measures
 it in the test module.
 
 The second one is the predicates `#lua-match?` and `#not-lua-match?`, which
-match the text of a capture with a Lua pattern, as Neovim does (D55).
+match the text of a capture with a Lua pattern, as Neovim does (D55). They
+wait until the tier 1 grammars need them (D69), with the rest of the Neovim
+dialect that [`NEOVIM.md`](NEOVIM.md) lists.
 
 ## A generated grammar package
 

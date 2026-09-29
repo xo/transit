@@ -20,11 +20,12 @@ The generator and its C backend are ported. They write the golden `parser.c`
 and `node-types.json` of all 185 grammars of the set byte for byte, and on
 2026-09-29 the gate of D9 holds: 151 grammars count, which ends phase 2.
 Phase 1 ends when Ken accepts the target API in [docs/API.md](docs/API.md)
-(D54). Phase 3 ported the runtime: the parser, the tree, the node and the
+(D54). Phase 3 has ported the runtime: the parser, the tree, the node and the
 tree cursor. The Go runtime gives the same tree as the C runtime for every
 corpus input of every fixture grammar. It parses with the tables and the
 lexers of C grammars, through the test module, because the Go backend that
-writes Go grammars is not written yet. The query engine is not ported yet.
+writes Go grammars is not written yet. The query engine, `StatesAt` (D57) and
+the measurements of D47 remain in phase 3.
 [docs/PLAN.md](docs/PLAN.md) holds the plan, and the decisions record every
 answer that shapes it.
 
@@ -39,6 +40,7 @@ answer that shapes it.
 | [docs/UPSTREAM.md](docs/UPSTREAM.md) | the rules for porting upstream tree-sitter and each change that it makes |
 | [docs/RLINE.md](docs/RLINE.md) | what rline gets from transit, for the coding agents that work in rline |
 | [docs/USQL.md](docs/USQL.md) | what usql gets from transit, for the coding agents that work in usql |
+| [docs/NEOVIM.md](docs/NEOVIM.md) | the predicates of Neovim that transit does not support, and the grammars whose queries use them |
 | [docs/BACKLOG.md](docs/BACKLOG.md) | the work that is known and not done |
 | [docs/decisions/](docs/decisions/README.md) | every decision, one file each, with an index |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | how to change transit |
@@ -46,13 +48,25 @@ answer that shapes it.
 
 ## Grammars
 
-transit has no grammars yet. [docs/GRAMMAR.md](docs/GRAMMAR.md) says how a
-grammar is added, and this section will list each one with its upstream
-repository and tag.
+transit has no grammar packages yet, because the Go backend writes them in
+phase 4. The set of 185 grammars is in [docs/CANDIDATES.md](docs/CANDIDATES.md).
+[docs/GRAMMAR.md](docs/GRAMMAR.md) says how a grammar is added, and this
+section will list each package with its upstream repository and tag. Some
+grammars ship queries written for Neovim, which transit does not support now.
+[docs/NEOVIM.md](docs/NEOVIM.md) lists them.
 
 ## Differences from upstream
 
-transit has no deliberate difference from upstream tree-sitter.
+transit differs from upstream tree-sitter only where a decision says so:
+
+1. For a `grammar.json` that is not valid JSON, the generator gives the error
+   text of Go's `encoding/json` (D66).
+2. Two nodes compare with `==`, which also compares their positions.
+   `Node.Equal` compares them as `ts_node_eq` does (D68).
+
+transit also adds an API that upstream does not have, one decision each
+(D28), such as `StatesAt` (D57). It does not evaluate the predicates of
+Neovim, and upstream does not either ([docs/NEOVIM.md](docs/NEOVIM.md)).
 [docs/UPSTREAM.md](docs/UPSTREAM.md) says when one can be made. This section
 will list each one with its decision.
 

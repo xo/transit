@@ -5,9 +5,10 @@ external scanner, and for updating it to a new release. A grammar describes
 one language, such as JSON or Go. In transit, a grammar is a Go package that
 exports one function, `Language`, which returns a `*transit.Language`.
 
-The rules were written on 2026-09-29, before any code existed (D3). The
-commands that name `cmd/transit` do not work yet. Each rule names the
-decision that it comes from.
+The rules were written on 2026-09-29, before any code existed (D3). Today
+`transit generate` works with the C backend, and the golden harness runs it.
+The commands that write a Go package wait for the Go backend of phase 4. Each
+rule names the decision that it comes from.
 
 ## Two stages
 
@@ -249,10 +250,10 @@ and it writes `parser.c` and `node-types.json` from the same `grammar.json`.
 The transit generator, with its C backend (D8), must write the same two files,
 byte for byte.
 
-A `parser.c` of a large grammar can be tens of megabytes, so a grammar
-package does not hold it. `grammars/grammars.json` holds the SHA-256 of each upstream file,
-and the test compares the hash. If the hashes differ, run the upstream tool on
-your machine and compare the files with `diff` to find the difference.
+A `parser.c` of a large grammar can be tens of megabytes, so a grammar package
+does not hold it. `grammars/grammars.json` holds the SHA-256 of each upstream
+file, and the test compares the hash. If the hashes differ, run the upstream
+tool on your machine and compare the files with `diff` to find the difference.
 D40 holds this.
 
 ## Steps to add a grammar to the set
@@ -280,7 +281,11 @@ D40 holds this.
    a package runs.
 7. Run the generator test of the grammar, and the corpus of its C output in
    the test module.
-8. Stage the change, and give Ken a commit message of this form:
+8. Search the query files of the grammar for the predicates and directives
+   of Neovim that [`NEOVIM.md`](NEOVIM.md) lists. If a query file that
+   transit reads uses one, add the grammar to the table of `NEOVIM.md`, and
+   mark it with [N] in `CANDIDATES.md`.
+9. Stage the change, and give Ken a commit message of this form:
 
    ```text
    grammars: add tree-sitter-<name> <tag> to the set

@@ -3,7 +3,7 @@
 //
 //	transit generate [flags] [grammar path]
 //
-// The subcommands test, parse and query of D41 come with the runtime.
+// The subcommands test, parse and query of D41 are not written yet.
 package main
 
 import (

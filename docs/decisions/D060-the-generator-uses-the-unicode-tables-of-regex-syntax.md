@@ -1,6 +1,6 @@
 # D60. The generator uses the Unicode tables of regex-syntax
 
-Status: Decided. Amends D38 and D45.
+Status: Decided, amends D38 and D45.
 
 Ken decided on 2026-09-29, answering question 57, that every output of the
 generator uses the Unicode tables of the port of `regex-syntax` (D59). On

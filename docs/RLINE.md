@@ -4,8 +4,10 @@ This document is for a coding agent that works in
 [rline](https://github.com/xo/rline). It says what transit will give rline
 for syntax highlighting, what is decided, and what is still open.
 
-On 2026-09-29 transit holds no parser yet. [`API.md`](API.md) holds the target
-API, which came from the working C example of phase 1 (D10). This document
+transit holds the runtime but the query engine. It parses through the tables
+and the lexers of C grammars in the test module, until the Go backend writes
+Go grammars. [`API.md`](API.md) holds the target API, which came from the
+working C example of phase 1 (D10). This document
 names the parts that rline uses.
 
 ## The direction
@@ -55,7 +57,7 @@ This is the plan, not an API. The names can change in phase 1.
 
 1. The Go API follows the Rust binding, in Go idioms (D25). An offset, a row
    and a column are an `int`, and each counts bytes. The matches and the
-   captures of a query come back as an `iter.Seq`.
+   captures of a query come back as an `iter.Seq` or an `iter.Seq2`.
 2. The query engine evaluates the predicates, such as `#match?` and `#eq?`,
    that most `highlights.scm` files use (D27).
 3. The package `inject` builds the layers of an injection, for HTML or
@@ -71,7 +73,7 @@ This is the plan, not an API. The names can change in phase 1.
    2 ms on a statement of 10 KB, as a target that phase 3 confirms (D37).
 7. A compiled query and a query cursor can be kept and used again on each
    key. A `Query` is safe to share, and a `QueryCursor` belongs to one
-   goroutine at a time (D52). The target API of phase 1 will say how.
+   goroutine at a time (D52). [`API.md`](API.md) says how.
 8. A sample program in `_example/` of transit highlights a SQL statement as
    rline will, in phase 5 (D53).
 9. The C example measured the cost of one key: edit, parse again, changed
@@ -79,8 +81,10 @@ This is the plan, not an API. The names can change in phase 1.
    query took 6.7 ms to compile, so rline compiles each query once.
 10. A query of a grammar can hold patterns written for Neovim, such as the
     Lua pattern `%d` in `#match?`. Under the rules of the Rust binding they do
-    not match. transit adds `#lua-match?` for queries written for Neovim
-    (D55).
+    not match. `#lua-match?` and the other predicates of Neovim wait until
+    the tier 1 grammars need them (D69). Until then transit does not
+    evaluate them, as the Rust binding does not. [`NEOVIM.md`](NEOVIM.md)
+    lists the grammars whose queries use them.
 
 ## What rline must not do
 

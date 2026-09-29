@@ -18,3 +18,7 @@ two parts that D7 left out:
 The C runtime parses predicates and does not evaluate them, and it has no
 injection engine. rline needs the predicates, because most `highlights.scm`
 files use them. The usql grammar needs injections (D13).
+
+The Rust binding does not evaluate the predicates and the directives that
+Neovim adds, such as `#lua-match?` and `#offset!`, and transit does not
+either for now (D69). [`NEOVIM.md`](../NEOVIM.md) lists them.

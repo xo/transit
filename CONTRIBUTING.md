@@ -1,6 +1,6 @@
 # Contributing to transit
 
-Read three things before you change anything:
+Before you change anything, read three things:
 
 1. [`AGENTS.md`](AGENTS.md) holds the rules. It is written for a coding agent,
    and every rule in it holds for a person too. `CLAUDE.md` holds one line
@@ -13,8 +13,9 @@ Read three things before you change anything:
 Do not decide an open question on your own. Add it to the end of
 `docs/PLAN.md`, and ask Ken.
 
-transit is in phase 1 of its plan (D54). Code follows the plan and the
-decisions.
+Phase 1 of the plan is open until Ken accepts `docs/API.md` (D54). Phase 2
+ended on 2026-09-29, and phase 3, the runtime, goes on. Code follows the plan
+and the decisions.
 
 ## The upstream checkout
 
