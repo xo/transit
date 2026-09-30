@@ -16,9 +16,7 @@ import (
 	"github.com/xo/transit"
 	"github.com/xo/transit/generate"
 	golang "github.com/xo/transit/generate/backend/go"
-	"github.com/xo/transit/grammars/json"
 	"github.com/xo/transit/internal/abi"
-	"github.com/xo/transit/internal/grammartest"
 )
 
 // This file runs the tests of phase 3 on the grammar packages that the Go
@@ -34,10 +32,10 @@ type goPackage struct {
 	language func() *transit.Language
 }
 
-// goPackages are the grammar packages in grammars/.
-var goPackages = []goPackage{
-	{"json", json.Language},
-}
+// goPackages are the grammar packages in grammars/. Each grammar package adds
+// itself in a file of its own, gopackage_<name>_test.go, so that two grammars
+// added at the same time do not change the same lines.
+var goPackages []goPackage
 
 // loadGoPackage builds and loads the C grammar of a grammar package, with
 // the version of its tree-sitter.json, and reads the corpus of the grammar
@@ -565,17 +563,4 @@ func TestGoPackageEditsMatchC(t *testing.T) {
 			t.Logf("%d inputs, %d differ", len(examples), failures)
 		})
 	}
-}
-
-// TestGoPackageHighlight runs the highlight test of internal/grammartest on
-// a file of JSON with assertions in its comments, because the corpus of
-// tree-sitter-json has no test/highlight.
-func TestGoPackageHighlight(t *testing.T) {
-	t.Parallel()
-	dir := t.TempDir()
-	src := "{\"key\": 12}\n//  ^ string.special.key\n//      ^ number\n//   ^ !number\n"
-	if err := os.WriteFile(filepath.Join(dir, "test.json"), []byte(src), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	grammartest.Highlight(t, json.Language(), json.Queries, dir)
 }

@@ -198,6 +198,13 @@ linters:
           - dupword
           - misspell
           - unparam
+      # The package comment of a grammar package is in its generated
+      # parser.go, and golangci-lint skips a generated file, so revive does
+      # not see the comment when it lints scanner.go.
+      - path: grammars/.*/scanner\.go
+        linters:
+          - revive
+        text: package-comments
       # The test of StatesAt parses SQL that is not finished, such as
       # "SELECT * FROM ". The text is the input of a parser, not a query.
       - path: test/cgrammar/states_at_test\.go

@@ -1,6 +1,6 @@
 # D79. The tests of a grammar module
 
-Status: Decided.
+Status: Decided, amended by D80.
 
 Ken decided on 2026-09-30 these rules of the tests that `transit generate`
 writes into a grammar module (`docs/GRAMMAR.md`, "Tests"):

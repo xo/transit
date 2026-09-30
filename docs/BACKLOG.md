@@ -15,6 +15,7 @@ agent and the date, and deletes the claim when Ken commits the unit (D50, D61).
 
 | Unit | Agent | Date |
 | --- | --- | --- |
+| Phase 4, unit 9: the upstream corpus failures and the CST cases (D79) | transit, agent 17 | 2026-09-30 |
 
 ## The generator
 

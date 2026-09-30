@@ -5,3 +5,9 @@
 # on checkout makes a test fail. Upstream tree-sitter and every grammar that
 # its tool writes use the same rule. See dbmeta D89 and D110.
 * text=auto eol=lf
+
+# The test data of a grammar module is a copy of the files of upstream, byte
+# for byte (docs/GRAMMAR.md). Some corpus files test CRLF input, such as
+# test/corpus/crlf.txt of tree-sitter-c, so git must not change their line
+# ends.
+grammars/**/testdata/** -text

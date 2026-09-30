@@ -36,17 +36,68 @@ import (
 // Each file and each case is a subtest. A case with the attribute :cst is
 // skipped, because the output of a concrete syntax tree waits for the
 // subcommand test of D41.
+//
+// A repository can hold more than one grammar, and its grammars share one
+// corpus, as tree-sitter-typescript does. Upstream runs a case with the
+// attribute :language(x) with the grammar x of the repository. A package
+// has only its own language, so a case for another grammar of the nearest
+// tree-sitter.json is skipped, and the package of that grammar runs it. A
+// case for a grammar that the repository does not hold fails with
+// "Language not found", as upstream does.
 func Corpus(t *testing.T, language *transit.Language, dir string) {
 	t.Helper()
 	entry, err := parseTests(dir)
 	if err != nil {
 		t.Fatalf("reading the corpus: %v", err)
 	}
+	others, err := otherGrammars(".", language.Name())
+	if err != nil {
+		t.Fatalf("reading tree-sitter.json: %v", err)
+	}
 	parser := transit.NewParser()
 	if err := parser.SetLanguage(language); err != nil {
 		t.Fatalf("setting the language: %v", err)
 	}
-	runTests(t, parser, language, entry)
+	runTests(t, parser, language, others, entry)
+}
+
+// otherGrammars returns the names of the grammars of the nearest
+// tree-sitter.json, in dir or in a folder above it, but for the grammar
+// name. It returns none when no folder holds a tree-sitter.json.
+func otherGrammars(dir, name string) ([]string, error) {
+	dir, err := filepath.Abs(dir)
+	if err != nil {
+		return nil, fmt.Errorf("finding the folder %s: %w", dir, err)
+	}
+	for {
+		b, err := os.ReadFile(filepath.Join(dir, "tree-sitter.json"))
+		switch {
+		case errors.Is(err, os.ErrNotExist):
+			parent := filepath.Dir(dir)
+			if parent == dir {
+				return nil, nil
+			}
+			dir = parent
+			continue
+		case err != nil:
+			return nil, fmt.Errorf("reading tree-sitter.json: %w", err)
+		}
+		var cfg struct {
+			Grammars []struct {
+				Name string `json:"name"`
+			} `json:"grammars"`
+		}
+		if err := json.Unmarshal(b, &cfg); err != nil {
+			return nil, fmt.Errorf("parsing %s: %w", filepath.Join(dir, "tree-sitter.json"), err)
+		}
+		var names []string
+		for _, g := range cfg.Grammars {
+			if g.Name != name && !slices.Contains(names, g.Name) {
+				names = append(names, g.Name)
+			}
+		}
+		return names, nil
+	}
 }
 
 // runTests runs the tests of a group, each as a subtest, and reports whether
@@ -54,7 +105,7 @@ func Corpus(t *testing.T, language *transit.Language, dir string) {
 //
 // runTests is run_tests, without the report and the update of a corpus
 // file.
-func runTests(t *testing.T, parser *transit.Parser, language *transit.Language, entry testEntry) bool {
+func runTests(t *testing.T, parser *transit.Parser, language *transit.Language, others []string, entry testEntry) bool {
 	t.Helper()
 	goOn := true
 	for _, child := range entry.children {
@@ -66,19 +117,20 @@ func runTests(t *testing.T, parser *transit.Parser, language *transit.Language, 
 				continue
 			}
 			t.Run(child.name, func(t *testing.T) {
-				goOn = runTests(t, parser, language, child)
+				goOn = runTests(t, parser, language, others, child)
 			})
 			continue
 		}
 		t.Run(child.name, func(t *testing.T) {
-			goOn = runExample(t, parser, language, child)
+			goOn = runExample(t, parser, language, others, child)
 		})
 	}
 	return goOn
 }
 
 // runExample runs one corpus test, and reports whether the run goes on.
-func runExample(t *testing.T, parser *transit.Parser, language *transit.Language, e testEntry) bool {
+// others holds the names of the other grammars of the repository.
+func runExample(t *testing.T, parser *transit.Parser, language *transit.Language, others []string, e testEntry) bool {
 	t.Helper()
 	a := e.attributes
 	switch {
@@ -90,6 +142,9 @@ func runExample(t *testing.T, parser *transit.Parser, language *transit.Language
 		t.Skip("the output of a concrete syntax tree waits for the subcommand test of D41")
 	}
 	for _, name := range a.languages {
+		if name != "" && name != language.Name() && slices.Contains(others, name) {
+			t.Skipf("the case is for the grammar %s of the same repository, and the package of that grammar runs it", name)
+		}
 		if name != "" && name != language.Name() {
 			t.Errorf("Language not found: %s", name)
 			return !a.failFast

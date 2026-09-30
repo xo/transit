@@ -333,3 +333,22 @@ func TestModuleFolderName(t *testing.T) {
 		}
 	}
 }
+
+func TestOtherGrammars(t *testing.T) {
+	dir := t.TempDir()
+	sub := filepath.Join(dir, "b", "c")
+	if err := os.MkdirAll(sub, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := otherGrammars(sub, "a"); err != nil || got != nil {
+		t.Errorf("with no tree-sitter.json, otherGrammars = %q, %v", got, err)
+	}
+	cfg := `{"grammars": [{"name": "a"}, {"name": "b"}, {"name": "c"}, {"name": "b"}]}`
+	if err := os.WriteFile(filepath.Join(dir, "tree-sitter.json"), []byte(cfg), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got, err := otherGrammars(sub, "a")
+	if err != nil || strings.Join(got, ",") != "b,c" {
+		t.Errorf("otherGrammars = %q, %v, want b,c", got, err)
+	}
+}

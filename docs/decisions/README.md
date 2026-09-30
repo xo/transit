@@ -97,4 +97,5 @@ An open question is not a decision. It goes at the end of
 | [D76](D076-nodetype-holds-node-types-json.md) | NodeType holds node-types.json | Decided |
 | [D77](D077-the-rules-of-a-generated-grammar-package.md) | The rules of a generated grammar package | Decided |
 | [D78](D078-a-large-character-set-of-surrogates-is-an-error.md) | A large character set of surrogates is an error | Decided |
-| [D79](D079-the-tests-of-a-grammar-module.md) | The tests of a grammar module | Decided |
+| [D79](D079-the-tests-of-a-grammar-module.md) | The tests of a grammar module | Decided, amended by D80 |
+| [D80](D080-the-highlight-test-follows-the-upstream-highlighter.md) | The highlight test follows the upstream highlighter | Decided, amends D79 |
