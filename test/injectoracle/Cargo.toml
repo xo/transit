@@ -1,0 +1,25 @@
+# The Rust oracle of D71. It prints the layers that the highlighter of
+# upstream builds, so that a test can compare them with the layers of the
+# package inject. BuildOracle in oracle.go builds it with cargo, offline.
+
+[package]
+name = "injectoracle"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# The oracle is not a member of the workspace of the checkout of upstream.
+[workspace]
+
+[dependencies]
+tree-sitter = { path = "../../tree-sitter/lib" }
+# The dependencies of crates/highlight, with the versions of the workspace of
+# upstream.
+regex = "1.12.3"
+streaming-iterator = "0.1.9"
+thiserror = "2.0.18"
+# The oracle loads a grammar from a shared library, and it reads and writes
+# JSON.
+libloading = "0.9.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"

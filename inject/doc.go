@@ -1,0 +1,13 @@
+// Package inject finds the injections of a text and parses the layer of each
+// (D27). An injection is a range of the text that another grammar parses,
+// such as a <script> element of HTML, or a SQL statement in the input of
+// usql. A layer is one tree of one language over the ranges of its
+// injections.
+//
+// The package ports the part of crates/highlight of upstream tree-sitter
+// that finds injections and parses their layers. The part that highlights
+// is not ported. Upstream has no public API for this part, so D72 sets the
+// API: NewConfig compiles the injection query of a language, and
+// Config.Layers gives every layer of a text at once. The text is UTF-8
+// (D71).
+package inject

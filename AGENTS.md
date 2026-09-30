@@ -23,8 +23,9 @@ with its predicates. The test module compares them with the C runtime. The
 trees match for every corpus input of every fixture grammar, after an edit
 too, and so do the matches of the queries of those grammars. The ported
 runtime tests of upstream pass. `StatesAt` (D57, D70) gives the parse states
-at a cursor. The API of the injections is decided (D72). The injections (D27)
-and the measurements of D47 are not done, so phase 3 goes on.
+at a cursor. The package `inject` finds the injections of a text and parses
+their layers (D27, D72), and its layers match those of upstream on the corpora
+of 22 grammars. The measurements of D47 are not done, so phase 3 goes on.
 
 [ts]: https://github.com/tree-sitter/tree-sitter
 
@@ -159,6 +160,7 @@ these files:
 | `doc.go` | the comment of the root package, which holds the runtime |
 | `language.go`, `lexer.go`, `subtree.go`, `stack.go`, `parser.go`, `reusable_node.go`, `tree.go`, `node.go`, `tree_cursor.go`, `get_changed_ranges.go`, `query.go`, `length.go`, `point.go`, `assert.go` | the runtime. One Go file ports one file of `lib/src` of upstream (D24) |
 | `query_binding.go` | the query API and the predicates of the Rust binding (D27) |
+| `inject/` | the package `inject`, which finds the injections of a text and parses their layers. `highlight.go` ports the injection part of `crates/highlight/src/highlight.rs` (D27, D72) |
 | `states_at.go` | `StatesAt`, the first API that upstream does not have (D57, D70). It ports no upstream file (D28) |
 | `internal/abi/` | the tables of a grammar in the shape of `TSLanguage`, a port of `lib/src/parser.h` (D63) |
 | `skills_test.go`, `docs_test.go` | the tests of the agent setup and the documents |
@@ -169,7 +171,7 @@ these files:
 | `_samples/sample.c` | Ken's first sample of a C program that uses a grammar, the start of the working C example (D10) |
 | `_samples/example/` | the working C example and its build script (D10). The Go sample programs of D53 come in phase 5, in `_example/` |
 | `_samples/subtree/` | the benchmark of the Go form of a subtree (D29, D62) |
-| `test/` | the test module, with its own `go.mod` (D12). `test/cmd/golden` is the golden harness (D58), `test/cmd/regextables` writes the Unicode tables of the port of `regex-syntax` (D60), and `test/cgrammar` loads a C grammar into the Go runtime, compares the Go trees and the matches of queries with those of the C runtime, measures `StatesAt`, and holds the ported tests of `crates/cli/src/tests` of upstream in `upstream_*_test.go` (D35) |
+| `test/` | the test module, with its own `go.mod` (D12). `test/cmd/golden` is the golden harness (D58), `test/cmd/regextables` writes the Unicode tables of the port of `regex-syntax` (D60), and `test/cgrammar` loads a C grammar into the Go runtime, compares the Go trees and the matches of queries with those of the C runtime, measures `StatesAt`, compares the layers of `inject` with those of the Rust oracle, and holds the ported tests of `crates/cli/src/tests` of upstream in `upstream_*_test.go` (D35). `test/injectoracle` is the Rust oracle of `inject` (D71). Its `build.rs` copies `highlight.rs` of the checkout and records each layer that upstream builds, and cargo builds it offline into the cache |
 | `gen.sh` | the script that writes the `replace` block of each `go.mod`, with `-m` (D49) |
 | `cmd/transit/` | the command `transit`, with the subcommand `generate` (D41) |
 | `generate/` | the generator (D7). One Go file ports one Rust file of `crates/generate` (D24) |
@@ -213,7 +215,8 @@ The test module in `test/` has its own `go.mod`, so `./...` in the root does
 not reach it. The last command runs the same commands in that module. Its
 package `test/cgrammar` builds the C runtime and the fixture grammars from the
 checkout of upstream and the cache of the golden harness, and it skips its
-tests when they are missing.
+tests when they are missing. The tests of `inject` also build the Rust oracle
+with `cargo build --offline`, and they skip when cargo is missing.
 
 The first command runs `gofmt` only on the files that git tracks, because
 `tree-sitter/` holds Go files of upstream.
