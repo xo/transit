@@ -428,7 +428,7 @@ func ParserInDirectory(repoPath, outPath, grammarPath string, abiVersion int, ge
 		return writeFile(filepath.Join(srcPath, "node-types.json"), out.nodeTypesJSON)
 	}
 
-	semanticVersion, err := readGrammarVersion(repoPath)
+	semanticVersion, err := ReadGrammarVersion(repoPath)
 	if err != nil {
 		return err
 	}
@@ -464,15 +464,15 @@ func ParserInDirectory(repoPath, outPath, grammarPath string, abiVersion int, ge
 // after them.
 var semver = regexp.MustCompile(`^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$`)
 
-// readGrammarVersion reads the version of a grammar from the nearest
+// ReadGrammarVersion reads the version of a grammar from the nearest
 // tree-sitter.json, in the folder of the grammar or in a folder above it.
 // It returns nil when no folder has one. Each number is cut to 8 bits, as
 // the cast of upstream does.
 //
-// readGrammarVersion is read_grammar_version. The text of an error of JSON
+// ReadGrammarVersion is read_grammar_version. The text of an error of JSON
 // is the text of encoding/json, and the text of a version error is that of
 // the port, not of the Rust crate semver.
-func readGrammarVersion(repoPath string) (*SemanticVersion, error) {
+func ReadGrammarVersion(repoPath string) (*SemanticVersion, error) {
 	const filename = "tree-sitter.json"
 	dir, err := filepath.Abs(repoPath)
 	if err != nil {

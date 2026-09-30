@@ -94,3 +94,7 @@ An open question is not a decision. It goes at the end of
 | [D73](D073-the-measurements-of-the-prototype.md) | The measurements of the prototype of phase 3 | Decided |
 | [D74](D074-the-go-backend-writes-literal-tables-and-a-lexer-as-data.md) | The Go backend writes literal tables and a lexer as data | Decided |
 | [D75](D075-phase-4-starts-before-the-review-of-api-md.md) | Phase 4 starts before the review of API.md | Decided |
+| [D76](D076-nodetype-holds-node-types-json.md) | NodeType holds node-types.json | Decided |
+| [D77](D077-the-rules-of-a-generated-grammar-package.md) | The rules of a generated grammar package | Decided |
+| [D78](D078-a-large-character-set-of-surrogates-is-an-error.md) | A large character set of surrogates is an error | Decided |
+| [D79](D079-the-tests-of-a-grammar-module.md) | The tests of a grammar module | Decided |

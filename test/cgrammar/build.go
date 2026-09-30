@@ -135,8 +135,29 @@ func BuildRuntime(ctx context.Context, root, cache string) (string, error) {
 // which holds src/grammar.json and the scanner, in the cache, and returns
 // its path. It generates parser.c at ABI 15 with the generator of transit,
 // and compiles it with the headers of generate/templates and the scanner
-// of the grammar. A library of the same inputs in the cache is used again.
+// of the grammar. The version of the grammar is 0.0.0. A library of the same
+// inputs in the cache is used again.
 func BuildGrammar(ctx context.Context, dir, cache string) (string, error) {
+	return buildGrammar(ctx, dir, cache, nil)
+}
+
+// BuildGrammarVersion is BuildGrammar with the version of the nearest
+// tree-sitter.json, as transit generate and the golden harness give it. The
+// tables of the library are then the tables of the Go package of the
+// grammar, with its metadata too.
+func BuildGrammarVersion(ctx context.Context, dir, cache string) (string, error) {
+	version, err := generate.ReadGrammarVersion(dir)
+	if err != nil {
+		return "", fmt.Errorf("reading the version of the grammar in %s: %w", dir, err)
+	}
+	if version == nil {
+		version = &generate.SemanticVersion{}
+	}
+	return buildGrammar(ctx, dir, cache, version)
+}
+
+// buildGrammar is BuildGrammar with a version, or nil for none.
+func buildGrammar(ctx context.Context, dir, cache string, version *generate.SemanticVersion) (string, error) {
 	src := filepath.Join(dir, "src")
 	grammarJSON := filepath.Join(src, "grammar.json")
 	if _, err := os.Stat(grammarJSON); err != nil {
@@ -150,7 +171,11 @@ func BuildGrammar(ctx context.Context, dir, cache string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	build := filepath.Join(cache, "cgrammar", filepath.Base(dir)+"-"+key)
+	name := filepath.Base(dir) + "-" + key
+	if version != nil {
+		name += fmt.Sprintf("-v%d.%d.%d", version.Major, version.Minor, version.Patch)
+	}
+	build := filepath.Join(cache, "cgrammar", name)
 	out := filepath.Join(build, "grammar.so")
 	defer lockBuild(out)()
 	if _, err := os.Stat(out); err == nil {
@@ -161,7 +186,7 @@ func BuildGrammar(ctx context.Context, dir, cache string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("reading %s: %w", grammarJSON, err)
 	}
-	if err := buildLibrary(ctx, b, nil, build, src, scanners, out); err != nil {
+	if err := buildLibrary(ctx, b, version, build, src, scanners, out); err != nil {
 		return "", fmt.Errorf("building the grammar in %s: %w", dir, err)
 	}
 	return out, nil

@@ -165,7 +165,9 @@ these files:
 | `query_binding.go` | the query API and the predicates of the Rust binding (D27) |
 | `inject/` | the package `inject`, which finds the injections of a text and parses their layers. `highlight.go` ports the injection part of `crates/highlight/src/highlight.rs` (D27, D72) |
 | `states_at.go` | `StatesAt`, the first API that upstream does not have (D57, D70). It ports no upstream file (D28) |
-| `internal/abi/` | the tables of a grammar in the shape of `TSLanguage`, a port of `lib/src/parser.h` (D63) |
+| `node_type.go` | `NodeType`, the form of `node-types.json` that the `NodeTypes` function of a grammar package returns. It ports no upstream file (D28) |
+| `internal/abi/` | the tables of a grammar in the shape of `TSLanguage`, a port of `lib/src/parser.h` (D63), and `LexTable`, which runs a lex table that the Go backend writes as data (D74) |
+| `internal/grammartest/` | the tests of a grammar package, which its `grammar_test.go` calls: the corpus, the queries, the highlight tests and the generator. `test.go` and `query_testing.go` port parts of `crates/cli/src/test.rs` and `query_testing.rs` |
 | `skills_test.go`, `docs_test.go` | the tests of the agent setup and the documents |
 | `upstream_test.go`, `docs/upstream/ledger.tsv` | the ledger of upstream commits and its test (D30) |
 | `.github/workflows/test.yml`, `.golangci.yml` | CI and the lint configuration (D36) |
@@ -174,16 +176,18 @@ these files:
 | `_samples/sample.c` | Ken's first sample of a C program that uses a grammar, the start of the working C example (D10) |
 | `_samples/example/` | the working C example and its build script (D10). The Go sample programs of D53 come in phase 5, in `_example/` |
 | `_samples/subtree/` | the benchmark of the Go form of a subtree (D29, D62) |
-| `test/` | the test module, with its own `go.mod` (D12). `test/cmd/golden` is the golden harness (D58), `test/cmd/regextables` writes the Unicode tables of the port of `regex-syntax` (D60), and `test/cgrammar` loads a C grammar into the Go runtime, compares the Go trees and the matches of queries with those of the C runtime, measures `StatesAt`, compares the layers of `inject` with those of the Rust oracle, and holds the ported tests of `crates/cli/src/tests` of upstream in `upstream_*_test.go` (D35). `test/injectoracle` is the Rust oracle of `inject` (D71). Its `build.rs` copies `highlight.rs` of the checkout and records each layer that upstream builds, and cargo builds it offline into the cache |
+| `test/` | the test module, with its own `go.mod` (D12). `test/cmd/golden` is the golden harness (D58), `test/cmd/regextables` writes the Unicode tables of the port of `regex-syntax` (D60), and `test/cgrammar` loads a C grammar into the Go runtime, compares the Go trees and the matches of queries with those of the C runtime, measures `StatesAt`, compares the layers of `inject` with those of the Rust oracle, compares the tables, the lexers and the trees of the Go backend and of the grammar packages with those of the C grammars in `gopackage_test.go`, and holds the ported tests of `crates/cli/src/tests` of upstream in `upstream_*_test.go` (D35). `test/injectoracle` is the Rust oracle of `inject` (D71). Its `build.rs` copies `highlight.rs` of the checkout and records each layer that upstream builds, and cargo builds it offline into the cache |
 | `gen.sh` | the script that writes the `replace` block of each `go.mod`, with `-m` (D49) |
 | `cmd/transit/` | the command `transit`, with the subcommand `generate` (D41) |
 | `generate/` | the generator (D7). One Go file ports one Rust file of `crates/generate` (D24) |
 | `generate/templates/` | the headers `parser.h`, `alloc.h` and `array.h` that a generated parser includes, copied from upstream |
 | `generate/backend/c/` | the C backend, a port of `render.rs` (D8) |
+| `generate/backend/go/` | the Go backend, the package `golang` (D26). `render.go` ports `render.rs`, `write.go` writes `parser.go`, and `package.go` writes the files of a grammar package |
 | `generate/internal/fxhash/` | the hash of the Rust crate `rustc-hash` and the order of a small `FxHashSet` of the Rust standard library, where upstream output depends on them |
 | `generate/internal/regexsyntax/` | the port of the Rust crate `regex-syntax`, in the packages `ast`, `hir` and `unicodetables` (D59) |
 | `generate/testdata/` | the golden files of the 68 test grammars, which the harness writes |
 | `grammars/grammars.json` | the record of every grammar, with the hashes of its golden files (D40) |
+| `grammars/json/` | the module of the grammar package `json`, from `tree-sitter/tree-sitter-json`, which `docs/GRAMMAR.md` lays out |
 | `tree-sitter/` | the upstream checkout, which git ignores |
 
 ## Before you stage
@@ -212,10 +216,12 @@ go vet ./...
 go test -race -count=1 ./...
 golangci-lint run ./...
 (cd test && go vet ./... && go test -race -count=1 ./... && golangci-lint run ./...)
+for m in grammars/*/go.mod; do (cd "$(dirname "$m")" && go vet ./... && go test -race -count=1 ./... && golangci-lint run ./...) || exit 1; done
 ```
 
-The test module in `test/` has its own `go.mod`, so `./...` in the root does
-not reach it. The last command runs the same commands in that module. Its
+The test module in `test/` and each grammar module under `grammars/` have
+their own `go.mod`, so `./...` in the root does not reach them. The last two
+commands run the same commands in those modules. Its
 package `test/cgrammar` builds the C runtime and the fixture grammars from the
 checkout of upstream and the cache of the golden harness, and it skips its
 tests when they are missing. The tests of `inject` also build the Rust oracle

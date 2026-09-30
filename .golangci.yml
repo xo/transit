@@ -163,6 +163,17 @@ linters:
       - path: generate/generate\.go
         linters:
           - gosec
+      # The Go backend reads grammar.json of the folder of a grammar package,
+      # and writes the files of the package there, with the modes of
+      # generate.ParserInDirectory. The tests of a grammar package read the
+      # files of the package and grammars/grammars.json. That is what gosec
+      # warns about, and it is the job.
+      - path: generate/backend/go/package\.go
+        linters:
+          - gosec
+      - path: internal/grammartest/
+        linters:
+          - gosec
       # The Visitor of the port of regex-syntax has the 11 methods of the Rust
       # trait ast::Visitor.
       - path: generate/internal/regexsyntax/ast/visitor\.go

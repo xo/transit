@@ -9,7 +9,6 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -167,7 +166,7 @@ func TestRenderOnEveryRecordedGrammar(t *testing.T) {
 			t.Logf("%s: skipped, the cache has no grammar.json: %v", g.Name, err)
 			continue
 		}
-		version, err := readGrammarVersion(dir)
+		version, err := generate.ReadGrammarVersion(dir)
 		if err != nil {
 			t.Errorf("%s: %v", g.Name, err)
 			continue
@@ -235,53 +234,6 @@ func generateForTest(grammarJSON []byte, abi int, version *generate.SemanticVers
 		return nil, err
 	}
 	return generate.ParserForGrammarWithOpts(g, abi, version, opts, c.Backend{}, &diagnostics)
-}
-
-// semverCore matches the major, the minor and the patch number at the start
-// of a semantic version.
-var semverCore = regexp.MustCompile(`^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+].*)?$`)
-
-// readGrammarVersion returns the version in metadata.version of the nearest
-// tree-sitter.json, from dir up to the root, and nil when there is none. Each
-// number is cut to 8 bits, as `as u8` does.
-//
-// readGrammarVersion is read_grammar_version in generate.rs, with a simple
-// parser of semantic versions in place of the crate semver.
-func readGrammarVersion(dir string) (*generate.SemanticVersion, error) {
-	for {
-		b, err := os.ReadFile(filepath.Join(dir, "tree-sitter.json"))
-		if err == nil {
-			var cfg struct {
-				Metadata struct {
-					Version string `json:"version"`
-				} `json:"metadata"`
-			}
-			if err := json.Unmarshal(b, &cfg); err != nil {
-				return nil, err
-			}
-			m := semverCore.FindStringSubmatch(cfg.Metadata.Version)
-			if m == nil {
-				return nil, errors.New("the version " + strconv.Quote(cfg.Metadata.Version) + " is not a semantic version")
-			}
-			var parts [3]uint8
-			for i := range parts {
-				n, err := strconv.ParseUint(m[i+1], 10, 64)
-				if err != nil {
-					return nil, err
-				}
-				parts[i] = uint8(n)
-			}
-			return &generate.SemanticVersion{Major: parts[0], Minor: parts[1], Patch: parts[2]}, nil
-		}
-		if !errors.Is(err, os.ErrNotExist) {
-			return nil, err
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return nil, nil
-		}
-		dir = parent
-	}
 }
 
 // indent indents each line of an error as the upstream tool writes it under

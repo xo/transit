@@ -132,20 +132,20 @@ func TestReadGrammarVersion(t *testing.T) {
 	if err := os.MkdirAll(inner, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if v, err := readGrammarVersion(inner); err != nil || v != nil {
+	if v, err := ReadGrammarVersion(inner); err != nil || v != nil {
 		t.Errorf("expected no version, got: %v, %v", v, err)
 	}
 	if err := os.WriteFile(filepath.Join(root, "tree-sitter.json"), []byte(`{"metadata": {"version": "0.23.300-rc.1"}}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	v, err := readGrammarVersion(inner)
+	v, err := ReadGrammarVersion(inner)
 	if err != nil || v == nil || *v != (SemanticVersion{Major: 0, Minor: 23, Patch: 300 % 256}) {
 		t.Errorf("expected 0.23.44, the patch cut to 8 bits, got: %v, %v", v, err)
 	}
 	if err := os.WriteFile(filepath.Join(root, "tree-sitter.json"), []byte(`{"metadata": {"version": "1.02.3"}}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := readGrammarVersion(inner); err == nil {
+	if _, err := ReadGrammarVersion(inner); err == nil {
 		t.Error("expected an error for a version with a leading zero")
 	}
 }

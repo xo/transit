@@ -3,6 +3,12 @@
 //
 //	transit generate [flags] [grammar path]
 //
+// With the C backend, which is the default, the grammar path is the folder
+// of a grammar repository, which holds src/grammar.json, or a grammar file.
+// With --backend go, it is the folder of a grammar package of transit, which
+// holds grammar.json, and generate writes parser.go, node-types.json and
+// grammar_test.go into that folder, as docs/GRAMMAR.md says.
+//
 // The subcommands test, parse and query of D41 are not written yet.
 package main
 
@@ -12,11 +18,13 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/xo/transit/generate"
 	"github.com/xo/transit/generate/backend/c"
+	golang "github.com/xo/transit/generate/backend/go"
 )
 
 // This file ports the parts of crates/cli/src/main.rs that run the
@@ -24,7 +32,9 @@ import (
 // out the flags that need a part of upstream that transit does not port: the
 // JavaScript runtime (D17), the log, --report-states-for-rule, the JSON
 // summary, and the deprecated --build. It adds --backend, because the
-// generator has backends (D8).
+// generator has backends (D8). The Go backend writes a grammar package, so
+// generate calls golang.PackageInDirectory for it, in place of
+// generate.ParserInDirectory.
 
 // defaultGenerateABIVersion is the ABI version that generate writes when the
 // flag --abi is not given.
@@ -91,12 +101,8 @@ func runGenerate(args []string, stderr io.Writer) error {
 			return errors.New("invalid abi version flag")
 		}
 	}
-	var backend generate.Backend
-	switch opts.backend {
-	case "c":
-		backend = c.Backend{}
-	default:
-		return fmt.Errorf("the backend %q does not exist. The backends are: c", opts.backend)
+	if opts.backend != "c" && opts.backend != "go" {
+		return fmt.Errorf("the backend %q does not exist. The backends are: c, go", opts.backend)
 	}
 	optimizations := generate.OptLevelMergeStates
 	if opts.disableOptimizations {
@@ -108,7 +114,19 @@ func runGenerate(args []string, stderr io.Writer) error {
 	}
 
 	var diagnostics []generate.Diagnostic
-	err = generate.ParserInDirectory(currentDir, opts.output, opts.grammarPath, abiVersion, !opts.noParser, optimizations, backend, &diagnostics)
+	if opts.backend == "go" {
+		dir := opts.grammarPath
+		switch {
+		case dir == "":
+			dir = currentDir
+		case filepath.Ext(dir) == ".json":
+			// the grammar.json of the package names its folder
+			dir = filepath.Dir(dir)
+		}
+		err = golang.PackageInDirectory(dir, opts.output, abiVersion, !opts.noParser, optimizations, &diagnostics)
+	} else {
+		err = generate.ParserInDirectory(currentDir, opts.output, opts.grammarPath, abiVersion, !opts.noParser, optimizations, c.Backend{}, &diagnostics)
+	}
 	for _, d := range diagnostics {
 		eprintf(stderr, "Warning: %s\n", d)
 	}

@@ -24,12 +24,13 @@ Phase 1 ends when Ken accepts the target API in [docs/API.md](docs/API.md)
 tree cursor, and the query engine with the predicates of the Rust binding. The
 Go runtime gives the same trees and the same query matches as the C runtime
 for every corpus input of every fixture grammar. It parses with the tables and
-the lexers of C grammars, through the test module, because the Go backend that
-writes Go grammars is not written yet. The ported runtime tests of upstream
-pass. `StatesAt` gives the parse states at a cursor (D57, D70). The package
+the lexers of C grammars, through the test module. The ported runtime tests
+of upstream pass. `StatesAt` gives the parse states at a cursor (D57, D70). The package
 `inject` finds the injections of a text and parses their layers, as upstream
 does (D72). The measurements of a prototype of the Go output are recorded in
-D73, and they end phase 3.
+D73, and they end phase 3. In phase 4, the Go backend writes a grammar
+package, and `json` is the first one. Its tables, its lexer and its trees are
+the ones of the C grammar.
 [docs/PLAN.md](docs/PLAN.md) holds the plan, and the decisions record every
 answer that shapes it.
 
@@ -52,12 +53,17 @@ answer that shapes it.
 
 ## Grammars
 
-transit has no grammar packages yet, because the Go backend writes them in
-phase 4. The set of 185 grammars is in [docs/CANDIDATES.md](docs/CANDIDATES.md).
-[docs/GRAMMAR.md](docs/GRAMMAR.md) says how a grammar is added, and this
-section will list each package with its upstream repository and tag. Some
-grammars ship queries written for Neovim, which transit does not support now.
-[docs/NEOVIM.md](docs/NEOVIM.md) lists them.
+The Go backend writes a package for each grammar that Ken chooses. The set of
+185 grammars is in [docs/CANDIDATES.md](docs/CANDIDATES.md), and
+[docs/GRAMMAR.md](docs/GRAMMAR.md) says how a grammar is added. These are the
+packages:
+
+| Package | Upstream repository | Tag |
+| --- | --- | --- |
+| `github.com/xo/transit/grammars/json` | [tree-sitter/tree-sitter-json](https://github.com/tree-sitter/tree-sitter-json) | `v0.24.8` |
+
+Some grammars ship queries written for Neovim, which transit does not support
+now. [docs/NEOVIM.md](docs/NEOVIM.md) lists them.
 
 ## Differences from upstream
 
@@ -67,6 +73,8 @@ transit differs from upstream tree-sitter only where a decision says so:
    text of Go's `encoding/json` (D66).
 2. Two nodes compare with `==`, which also compares their positions.
    `Node.Equal` compares them as `ts_node_eq` does (D68).
+3. The Go backend stops with an error for a large character set of
+   surrogates only, where the C code of upstream reads past its array (D78).
 
 transit also adds an API that upstream does not have, one decision each
 (D28), such as `StatesAt` (D57, D70). It does not evaluate the predicates of

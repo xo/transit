@@ -157,6 +157,31 @@ type LanguageMetadata struct {
 	Major, Minor, Patch int
 }
 
+// NodeType is one entry of node-types.json, which the NodeTypes function of
+// a grammar package returns. The JSON keys are the keys of the file.
+type NodeType struct {
+	Kind     string               // "type"
+	Named    bool                 // "named"
+	Root     bool                 // "root"
+	Extra    bool                 // "extra"
+	Fields   map[string]FieldInfo // "fields"
+	Children *FieldInfo           // "children", or nil
+	Subtypes []NodeKind           // "subtypes", for a supertype
+}
+
+// FieldInfo says which nodes a field, or the children of a node, can hold.
+type FieldInfo struct {
+	Multiple bool
+	Required bool
+	Types    []NodeKind
+}
+
+// NodeKind names a node type: its kind, and whether it is named.
+type NodeKind struct {
+	Kind  string
+	Named bool
+}
+
 // Parser builds trees. It belongs to one goroutine at a time.
 type Parser struct{ /* unexported */ }
 
@@ -514,6 +539,13 @@ match the text of a capture with a Lua pattern, as Neovim does (D55). They
 wait until the tier 1 grammars need them (D69), with the rest of the Neovim
 dialect that [`NEOVIM.md`](NEOVIM.md) lists.
 
+The third one is `NodeType`, `FieldInfo` and `NodeKind`, the form of
+`node-types.json` in Go, which the `NodeTypes` function of a grammar package
+returns. `node_type.go` holds them. Their names follow `NodeInfoJSON`,
+`FieldInfoJSON` and `NodeTypeJSON` of `crates/generate/src/node_types.rs`,
+and `Kind` is the key `type`, as `Node.Kind` is the type of a node. D76
+records them.
+
 ## The package inject
 
 The package `inject` finds the injections of a text and parses each layer
@@ -598,8 +630,8 @@ const (
 // Queries holds queries/*.scm of the grammar.
 var Queries embed.FS
 
-// Keywords returns the keywords of the grammar: the string tokens that the
-// word token captures, and the reserved words.
+// Keywords returns the names of the keywords of the grammar: the symbols
+// that the keyword lex table accepts, and the reserved words (D77).
 func Keywords() []string
 
 // NodeTypes returns the node types of node-types.json: the fields and the
@@ -608,8 +640,27 @@ func NodeTypes() []transit.NodeType
 ```
 
 The numbers in this sketch are examples. The generator writes the real ones.
-`transit.NodeType` is a type of the runtime that `NodeTypes` needs, and it
-joins the list above when the Go backend exists.
+`transit.NodeType` is a type of the runtime that `NodeTypes` needs, and it is
+in the list above.
+
+The name of each constant comes from the C name that `render.rs` gives the
+symbol or the field. The prefix `sym_` becomes `Sym`, `anon_sym_` becomes
+`AnonSym`, `aux_sym_` becomes `AuxSym`, `alias_sym_` becomes `AliasSym`,
+`anon_alias_sym_` becomes `AnonAliasSym`, `field_` becomes `Field`, and
+`ts_builtin_sym_end` becomes `BuiltinSymEnd`. Each part of the rest between
+two underscores starts with an upper case letter, and the rest of the part
+stays as it is. So `sym_keyword_select` becomes `SymKeywordSelect`, and
+`anon_sym_LBRACE` becomes `AnonSymLBRACE`. When two C names give the same
+Go name, such as `sym_value` and `sym__value`, the later one gets the number
+2 at its end, as `render.rs` does for two C names. The comment of each
+constant is the name of the symbol in the grammar. D77 holds these rules, and
+the rule that the grammar `go` gets the package `golang`.
+
+A grammar that has an external scanner gets its scanner from the function
+`newScanner` of `scanner.go`, which a person ports (`GRAMMAR.md`). It
+returns a value that implements the scanner of the tables, so `Language`
+wires `Scan`, `Serialize` and `Deserialize`. The runtime gives `Scan` the
+valid external tokens of each state from the tables.
 
 ## What rline and usql call
 

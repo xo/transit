@@ -75,13 +75,56 @@ func TestGenerateFlags(t *testing.T) {
 		{nil, 2, "usage"},
 		{[]string{"parse"}, 2, "usage"},
 		{[]string{"generate", "--abi", "x"}, 1, "invalid abi version flag"},
-		{[]string{"generate", "--backend", "go"}, 1, `the backend "go" does not exist`},
+		{[]string{"generate", "--backend", "rust"}, 1, `the backend "rust" does not exist. The backends are: c, go`},
+		{[]string{"generate", "--backend", "go", t.TempDir()}, 1, "Failed to load grammar.json"},
 		{[]string{"generate", "a.json", "b.json"}, 1, `unexpected argument "b.json"`},
 		{[]string{"generate", filepath.Join(t.TempDir(), "missing.json")}, 1, "not found"},
 	} {
 		var stderr bytes.Buffer
 		if code := run(test.args, &stderr); code != test.code || !strings.Contains(stderr.String(), test.text) {
 			t.Errorf("%q: expected code %d and %q, got code %d and %q", test.args, test.code, test.text, code, stderr.String())
+		}
+	}
+}
+
+// TestGenerateGoPackage runs transit generate --backend go on a copy of the
+// inputs of grammars/json, once with the folder and once with its
+// grammar.json, and compares the files that it writes with the files of
+// grammars/json.
+func TestGenerateGoPackage(t *testing.T) {
+	t.Parallel()
+	src := filepath.Join("..", "..", "grammars", "json")
+	for _, arg := range []string{"", "grammar.json"} {
+		dir := t.TempDir()
+		for _, name := range []string{"grammar.json", "tree-sitter.json", "queries/highlights.scm", "testdata/corpus/main.txt"} {
+			b, err := os.ReadFile(filepath.Join(src, name))
+			if err != nil {
+				t.Fatal(err)
+			}
+			p := filepath.Join(dir, name)
+			if err := os.MkdirAll(filepath.Dir(p), 0o750); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(p, b, 0o600); err != nil {
+				t.Fatal(err)
+			}
+		}
+		var stderr bytes.Buffer
+		if code := run([]string{"generate", "--backend", "go", filepath.Join(dir, arg)}, &stderr); code != 0 {
+			t.Fatalf("expected no error, got code %d and:\n%s", code, stderr.String())
+		}
+		for _, name := range []string{"parser.go", "node-types.json", "grammar_test.go"} {
+			actual, err := os.ReadFile(filepath.Join(dir, name))
+			if err != nil {
+				t.Fatal(err)
+			}
+			expected, err := os.ReadFile(filepath.Join(src, name))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(actual, expected) {
+				t.Errorf("%s differs from grammars/json/%s", name, name)
+			}
 		}
 	}
 }

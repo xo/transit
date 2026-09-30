@@ -7,8 +7,8 @@ exports one function, `Language`, which returns a `*transit.Language`.
 
 The rules were written on 2026-09-29, before any code existed (D3). Today
 `transit generate` works with the C backend, and the golden harness runs it.
-The commands that write a Go package wait for the Go backend of phase 4. Each
-rule names the decision that it comes from.
+`transit generate --backend go` writes a Go package, and `grammars/json` is
+the first one. Each rule names the decision that it comes from.
 
 ## Two stages
 
@@ -105,8 +105,10 @@ of D9. Ken decides whether another grammar replaces it (D51).
 
 A package has the name of the grammar with each `_` removed. `c_sharp`
 becomes `csharp`, and `embedded_template` becomes `embeddedtemplate`. A Go
-package name has no underscore, as the `go-pedantry` skill says. The folder of
-a package has the same name.
+package name has no underscore, as the `go-pedantry` skill says. The grammar
+`go` gets the package `golang`, because `go` is a keyword of Go (D77). Any
+other name that is not a Go package name stops the generator with an error.
+The folder of a package has the same name.
 
 The folder of a module has the name of the upstream repository without the
 `tree-sitter-` prefix and with each `-` removed. `tree-sitter-embedded-template`
@@ -125,9 +127,10 @@ A repository that holds one grammar, such as JSON, looks like this:
 | `grammars/json/go.mod` | the module `github.com/xo/transit/grammars/json` | a person, once |
 | `grammars/json/LICENSE` | the license file of the upstream repository | copied |
 | `grammars/json/grammar.json` | `src/grammar.json` of the upstream repository | copied |
-| `grammars/json/parser.go` | `Language`, the tables and the lexer | `transit generate` |
+| `grammars/json/tree-sitter.json` | `tree-sitter.json` of the upstream repository, which gives the version of the grammar | copied |
+| `grammars/json/parser.go` | `Language`, the constants, `Queries`, `NodeTypes`, `Keywords`, the tables and the lexer | `transit generate` |
 | `grammars/json/node-types.json` | the node types, which `parser.go` embeds | `transit generate` |
-| `grammars/json/grammar_test.go` | the tests of "Tests" below | `transit generate` |
+| `grammars/json/grammar_test.go` | the tests of "Tests" below, which call the package `internal/grammartest` | `transit generate` |
 | `grammars/json/scanner.go` | the external scanner, if the grammar has one | a person, as a port |
 | `grammars/json/queries/*.scm` | `queries/*.scm` of the upstream repository | copied |
 | `grammars/json/testdata/corpus/` | `test/corpus/` of the upstream repository | copied |
@@ -135,7 +138,9 @@ A repository that holds one grammar, such as JSON, looks like this:
 
 A repository that holds more than one grammar has one folder for each grammar
 under the folder of the module, such as `grammars/typescript/typescript` and
-`grammars/typescript/tsx`. Code that two scanners share, such as
+`grammars/typescript/tsx`. Its `tree-sitter.json` goes in the folder of the
+module, because the generator reads the nearest one, in the folder of the
+package or in a folder above it. Code that two scanners share, such as
 `common/scanner.h`, becomes a package under `internal/` of the module.
 
 Do not edit a file that `transit generate` writes, and do not edit a copied
@@ -234,10 +239,18 @@ Every grammar has the same tests, and `transit generate` writes them in
    engine.
 3. The highlight test, if the grammar has `test/highlight/`. transit does not
    port the upstream highlighter (D7), so the test compares the captures of
-   `queries/highlights.scm` with the assertions in each file. Each capture
-   name of `queries/highlights.scm` is also in the list of captures of the
-   package `styles`, and it reaches an entry of each bundled style (D65).
-4. The generator test, as below.
+   `queries/highlights.scm` with the assertions in each file. It compares each
+   assertion with the innermost capture that holds its position. Each
+   capture name of `queries/highlights.scm` is also in the list of captures
+   of the package `styles`, and it reaches an entry of each bundled style
+   (D65). That part of the test waits for the package `styles` of phase 5.
+4. The test of the node types and the test of the keywords. Each type of
+   `node-types.json` and each keyword is a symbol of the language.
+5. The generator test, as below.
+
+The package `internal/grammartest` holds the code of each test, so
+`grammar_test.go` holds one call for each test. A test uses no cgo, so a
+grammar module stays pure Go (D1).
 
 The test module (D12) also parses each corpus input
 with the C grammar and the C runtime, and it compares the two trees node by
@@ -255,6 +268,13 @@ does not hold it. `grammars/grammars.json` holds the SHA-256 of each upstream
 file, and the test compares the hash. If the hashes differ, run the upstream
 tool on your machine and compare the files with `diff` to find the difference.
 D40 holds this.
+
+The same run of the generator writes the files of the Go package again, and
+the test makes sure that they are the files of the package. If they differ,
+generate the package again. The test finds `grammars/grammars.json` in a
+folder above the package, and it skips the hashes when the package is not in
+a checkout of transit. It skips the whole test with `go test -short`, because
+the generator takes minutes for a large grammar.
 
 ## Steps to add a grammar to the set
 
@@ -314,14 +334,16 @@ These steps start after the gate of D9, for a grammar that is in the set and
 that Ken chose.
 
 1. Clone the grammar at the tag in its entry, outside this repository.
-2. Make the folder of the module and write its `go.mod`.
-3. Copy `LICENSE`, `grammar.json`, `queries/` and the folders of `test/`
-   into the layout above. Take `grammar.json` from the golden harness if the
-   repository does not commit it.
+2. Make the folder of the module and write its `go.mod`. It requires the
+   module `github.com/xo/transit`. Run `./gen.sh -m`, which writes its
+   `replace` block (D49).
+3. Copy `LICENSE`, `grammar.json`, `tree-sitter.json`, `queries/` and the
+   folders of `test/` into the layout above. Take `grammar.json` from the
+   golden harness if the repository does not commit it.
 4. Generate the package:
 
    ```bash
-   go run ./cmd/transit generate grammars/<name>
+   go run ./cmd/transit generate --backend go grammars/<name>
    ```
 
 5. If the grammar has `src/scanner.c`, port it to `scanner.go`, as "The

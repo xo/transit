@@ -15,7 +15,6 @@ agent and the date, and deletes the claim when Ken commits the unit (D50, D61).
 
 | Unit | Agent | Date |
 | --- | --- | --- |
-| Phase 4, unit 1: the Go backend in `generate/backend/go`, `transit generate --backend go`, and the module `grammars/json` (D26, D74) | transit, agent 9 | 2026-09-30 |
 
 ## The generator
 
@@ -30,6 +29,23 @@ logger yet, so the port leaves them out. The generator logs with `log/slog`
 `build_lex_table.go` then take the `StrPool` again, as upstream does.
 
 ## The runtime
+
+### Record the upstream corpus failures, and test the CST cases
+
+D79 says that `grammars/grammars.json` names the corpus cases that fail
+upstream, and that the corpus test of a grammar module tests the cases with
+`:cst`. Neither is done. Seven grammars of the set have failing cases, and
+none of them is a fixture grammar. The golden harness reads the failures in
+`test/cmd/golden/corpus.go`. `render_cst` is ported in
+`test/cgrammar/upstream_helpers_test.go` and can move to
+`internal/grammartest`.
+
+### Compare the highlight test with the upstream tool
+
+The highlight test of a grammar module follows the rule of D79, which is not
+the rule of the upstream tool. Compare its results with `tree-sitter test` on
+the grammars of the set that have `test/highlight`, and record each
+difference as a decision.
 
 ### Meet target 3 of D37
 

@@ -9,11 +9,15 @@
 package abi
 
 // This file ports the types and the constants of lib/src/parser.h: the
-// language, the lexer, the parse actions and the external scanner. The
-// inline functions, the macros and TSCharacterRange of the header are for the
-// lex functions that a generator writes, and they come with the Go backend.
-// TSLexMode, the lex mode of ABI 14, has no Go form, because LexModes holds
-// the modes of both versions.
+// language, the lexer, the parse actions and the external scanner. The Go
+// backend writes a lex table as data, and not as a C lex function. So the
+// macros of a lex function (START_LEXER, ADVANCE, SKIP, ADVANCE_MAP,
+// ACCEPT_TOKEN and END_STATE) and set_contains become one interpreter,
+// LexTable.Lex, with the same calls of the lexer. TSCharacterRange has no Go
+// form, because LexRange holds the ranges. The macros of the parse table,
+// such as STATE and ACTIONS, have no Go form, because the Go backend writes
+// the numbers. TSLexMode, the lex mode of ABI 14, has no Go form, because
+// LexModes holds the modes of both versions.
 
 // The symbols that every language has.
 const (
@@ -193,6 +197,90 @@ type EntryHeader struct {
 // LexFunc is the type of lex_fn and keyword_lex_fn. It lexes one token from
 // the lexer in a lex state, and reports whether it found one.
 type LexFunc func(lexer *Lexer, state uint16) bool
+
+// LexTable is a lex table as data: the states of a lex function of the C
+// backend, with the transitions of each state as sorted ranges of
+// characters. The Go backend writes it, and its lex function calls Lex.
+type LexTable struct {
+	States []LexState
+	Ranges []LexRange
+}
+
+// LexState is one state of a LexTable.
+type LexState struct {
+	// Start and Count give the transitions of the state in Ranges: Count
+	// ranges from Start. The ranges are sorted, and they do not overlap.
+	Start uint32
+	Count uint32
+	// Accept is the symbol that the state accepts, when HasAccept is true.
+	// It is ACCEPT_TOKEN of the C lex function.
+	Accept    uint16
+	HasAccept bool
+	// EOFState is the state that the state goes to at the end of the input,
+	// when HasEOF is true. EOFSkip is true when it skips, as SKIP does.
+	EOFState uint16
+	HasEOF   bool
+	EOFSkip  bool
+}
+
+// LexRange is a transition of a LexState: each character from Lo to Hi goes
+// to State. Skip is true when the character is not part of the token, as
+// SKIP does.
+type LexRange struct {
+	Lo    int32
+	Hi    int32
+	State uint16
+	Skip  bool
+}
+
+// Lex lexes one token from the lexer in a state of the table, and reports
+// whether it found one. It calls the lexer as the C lex function of the same
+// table does, in the same order: Lookahead and EOF when it enters a state,
+// MarkEnd when the state accepts a token, and Advance for each transition.
+//
+// Lex is the lex function of parser.c, with the macros START_LEXER, ADVANCE,
+// SKIP, ADVANCE_MAP, ACCEPT_TOKEN and END_STATE, and set_contains.
+func (t *LexTable) Lex(lexer *Lexer, state uint16) bool {
+	result := false
+	for {
+		lookahead := lexer.Lookahead
+		eof := lexer.EOF()
+		if int(state) >= len(t.States) {
+			// the default case of the switch of the C lex function
+			return false
+		}
+		s := &t.States[state]
+		if s.HasAccept {
+			result = true
+			lexer.ResultSymbol = s.Accept
+			lexer.MarkEnd()
+		}
+		var skip bool
+		if eof {
+			if !s.HasEOF {
+				return result
+			}
+			state, skip = s.EOFState, s.EOFSkip
+		} else {
+			ranges := t.Ranges[s.Start : s.Start+s.Count]
+			// the first range that ends at or after the lookahead
+			lo, hi := 0, len(ranges)
+			for lo < hi {
+				mid := int(uint(lo+hi) >> 1)
+				if ranges[mid].Hi < lookahead {
+					lo = mid + 1
+				} else {
+					hi = mid
+				}
+			}
+			if lo == len(ranges) || ranges[lo].Lo > lookahead {
+				return result
+			}
+			state, skip = ranges[lo].State, ranges[lo].Skip
+		}
+		lexer.Advance(skip)
+	}
+}
 
 // Scanner is the payload of an external scanner, with the functions scan,
 // serialize and deserialize of the member external_scanner of TSLanguage.
