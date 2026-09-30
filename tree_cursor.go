@@ -403,10 +403,17 @@ func (c *TreeCursor) GotoFirstChildForPoint(at Point) (int, bool) {
 	return int(index), index >= 0
 }
 
-// gotoSiblingInternal is ts_tree_cursor_goto_sibling_internal.
-func (c *TreeCursor) gotoSiblingInternal(
-	advance func(*cursorChildIterator) (treeCursorEntry, bool, bool),
-) treeCursorStep {
+// gotoSiblingInternal is ts_tree_cursor_goto_sibling_internal. C passes the
+// function that advances the iterator, and Go passes forward, which picks
+// next or previous. A call through a function value makes the iterator
+// escape to the heap, which allocates on each move of a query cursor.
+func (c *TreeCursor) gotoSiblingInternal(forward bool) treeCursorStep {
+	advance := func(it *cursorChildIterator) (treeCursorEntry, bool, bool) {
+		if forward {
+			return it.next()
+		}
+		return it.previous()
+	}
 	initialSize := len(c.stack)
 
 	for len(c.stack) > 1 {
@@ -447,7 +454,7 @@ func (c *TreeCursor) gotoSiblingInternal(
 
 // gotoNextSiblingInternal is ts_tree_cursor_goto_next_sibling_internal.
 func (c *TreeCursor) gotoNextSiblingInternal() treeCursorStep {
-	return c.gotoSiblingInternal((*cursorChildIterator).next)
+	return c.gotoSiblingInternal(true)
 }
 
 // GotoNextSibling moves the cursor to the next sibling of its node. It
@@ -473,7 +480,7 @@ func (c *TreeCursor) gotoPreviousSiblingInternal() treeCursorStep {
 	// restore it
 
 	// for that, save current position before traversing
-	step := c.gotoSiblingInternal((*cursorChildIterator).previous)
+	step := c.gotoSiblingInternal(false)
 	if step == treeCursorStepNone {
 		return step
 	}

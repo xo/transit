@@ -30,6 +30,22 @@ logger yet, so the port leaves them out. The generator logs with `log/slog`
 
 ## The runtime
 
+### Meet target 3 of D37
+
+A parse after one key allocates more on a longer statement (D73). On the
+postgres statement of D73, it allocates 200 times at 5 KB and 805 times at
+40 KB, and the time of C grows the same way. Most of the allocations are
+stack nodes. `stack.go` leaves out the free list of stack nodes of C, which
+keeps up to 50 freed nodes. Ken kept the target as it is, and phase 4 works
+on it with the real Go grammars.
+
+### Cut the memory of the generator for large grammars
+
+The generator takes 1 minute 58 seconds and 10.9 GB of memory for postgres,
+as the C backend does (D73). CI runs the PostgreSQL grammar on each push. A
+runner with less memory than that cannot generate it. Measure where the
+memory goes, and compare it with the upstream tool.
+
 ### Compare the trees at ABI 14
 
 `test/cgrammar` compares the Go trees with the C trees at ABI 15 only. Compare

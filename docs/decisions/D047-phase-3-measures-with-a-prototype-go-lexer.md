@@ -14,3 +14,5 @@ A Go lexer does not exist before the Go backend of phase 4, and a C lexer
 that the Go runtime calls through cgo gives numbers that do not show the
 speed of Go. The prototype is not kept. Phase 4 confirms the targets again on
 the real Go grammars.
+
+D73 records the measurements.

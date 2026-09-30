@@ -70,7 +70,8 @@ This is the plan, not an API. The names can change in phase 1.
    library. The background of a style applies only when rline asks for it,
    and rline chooses the color depth.
 6. A parse after one key and the highlight query on the result take less than
-   2 ms on a statement of 10 KB, as a target that phase 3 confirms (D37).
+   2 ms on a statement of 10 KB (D37). Phase 3 measured 1.15 ms on a SQL
+   statement of 10 KB, with the highlight query over the whole tree (D73).
 7. A compiled query and a query cursor can be kept and used again on each
    key. A `Query` is safe to share, and a `QueryCursor` belongs to one
    goroutine at a time (D52). [`API.md`](API.md) says how.

@@ -5,7 +5,7 @@ This document holds the plan for `github.com/xo/transit`. The decisions are in
 
 This plan was written on 2026-09-29, before any code existed (D3). Ken
 answered its open questions on that date, and later ones as they came. The
-decisions D1 to D72 record the answers and the other choices of Ken. A part
+decisions D1 to D74 record the answers and the other choices of Ken. A part
 of this plan that names a decision follows it. A new question
 goes at the end of this document until Ken answers it.
 
@@ -581,7 +581,8 @@ each Go scanner with random bytes.
 The benchmarks run in the test module, so that each one has a C baseline from
 the same machine. They measure a first parse, a parse after one key, the
 highlight query on the result, and the allocations of each. D37 holds the
-targets, and phase 3 confirms them.
+targets, and D73 records the measurements of phase 3: targets 1 and 2 hold,
+and target 3 does not.
 
 ### CI
 
@@ -921,9 +922,16 @@ record the answers, and D54 starts phase 1. The working C example of phase 1
 raised questions 53 to 55, and D55 to D57 record the answers. Phase 2 raised
 questions 56 to 58, and D59, D60 and D66 record the answers. Phase 3 raised
 questions 59 to 62, and D63, D64, D70 and D72 record the answers. The next
-question is question 63.
+question is question 64.
 
-No question is open.
+### 63. Does the Go backend write literal tables and a lexer as data?
+
+D31 leaves the form of the output of the Go backend to phase 4, and D73
+records the measurements of phase 3. D74 proposes literal tables, which need
+no work at run time and build postgres in 5 seconds, and the lexer as data,
+which was as fast as the lexer as code for json and 25 percent faster for
+postgres. Phase 4 checks the form on the real Go grammars. If you accept D74,
+its status becomes Decided.
 
 Raise a new question here rather than deciding one alone.
 

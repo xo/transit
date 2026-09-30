@@ -25,7 +25,9 @@ too, and so do the matches of the queries of those grammars. The ported
 runtime tests of upstream pass. `StatesAt` (D57, D70) gives the parse states
 at a cursor. The package `inject` finds the injections of a text and parses
 their layers (D27, D72), and its layers match those of upstream on the corpora
-of 22 grammars. The measurements of D47 are not done, so phase 3 goes on.
+of 22 grammars. D73 records the measurements of the prototype of D47, so the
+end conditions of phase 3 hold. Question 63 asks Ken to confirm the form of
+the Go output that D74 proposes for phase 4.
 
 [ts]: https://github.com/tree-sitter/tree-sitter
 
@@ -77,8 +79,8 @@ A bare number, such as D3, names a decision of this repository, in
 `docs/decisions/`. A decision of another repository names that repository,
 such as dbmeta D110. An open question has a number, and it is at the end of
 `docs/PLAN.md` until Ken answers it. The numbers do not repeat: questions 1
-to 62 are answered, no question is open, and the next question is question
-63.
+to 62 are answered, question 63 is open, and the next question is question
+64.
 
 ## Hard rules
 

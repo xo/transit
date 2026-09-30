@@ -13,3 +13,6 @@ targets, and that phase 3 confirms them against the C baseline:
 
 Each benchmark names the machine, the grammar and the input. A target changes
 by a decision if the measurement shows that it is wrong.
+
+D73 records the measurements of phase 3. Targets 1 and 2 hold, and target
+3 does not.

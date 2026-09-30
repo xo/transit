@@ -105,6 +105,26 @@ func TestCursorWalk(t *testing.T) {
 	}
 }
 
+// TestCursorMovesDoNotAllocate checks that a move to a sibling does not
+// allocate. A query cursor moves a tree cursor for each node, and an
+// allocation there grows with the size of the tree (D37).
+func TestCursorMovesDoNotAllocate(t *testing.T) {
+	l := testLanguage(15)
+	root := treeSample(l).RootNode()
+	c := root.Walk()
+	allocs := testing.AllocsPerRun(100, func() {
+		c.Reset(root)
+		c.GotoFirstChild()
+		for c.GotoNextSibling() {
+		}
+		for c.GotoPreviousSibling() {
+		}
+	})
+	if allocs != 0 {
+		t.Errorf("a walk over the siblings allocates %v times", allocs)
+	}
+}
+
 func TestCursorGotoDescendant(t *testing.T) {
 	l := testLanguage(15)
 	root := treeSample(l).RootNode()

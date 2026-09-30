@@ -28,7 +28,8 @@ the lexers of C grammars, through the test module, because the Go backend that
 writes Go grammars is not written yet. The ported runtime tests of upstream
 pass. `StatesAt` gives the parse states at a cursor (D57, D70). The package
 `inject` finds the injections of a text and parses their layers, as upstream
-does (D72). The measurements of D47 remain in phase 3.
+does (D72). The measurements of a prototype of the Go output are recorded in
+D73, and they end phase 3.
 [docs/PLAN.md](docs/PLAN.md) holds the plan, and the decisions record every
 answer that shapes it.
 

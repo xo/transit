@@ -91,3 +91,5 @@ An open question is not a decision. It goes at the end of
 | [D70](D070-statesat-stops-before-the-first-token-after-the-offset.md) | StatesAt stops before the first token that ends after the offset | Decided |
 | [D71](D071-inject-takes-utf-8-and-a-rust-oracle-tests-it.md) | The package inject takes UTF-8, and a Rust oracle tests it | Decided |
 | [D72](D072-the-api-of-inject-gives-every-layer-at-once.md) | The API of inject gives every layer at once | Decided |
+| [D73](D073-the-measurements-of-the-prototype.md) | The measurements of the prototype of phase 3 | Decided |
+| [D74](D074-the-go-backend-writes-literal-tables-and-a-lexer-as-data.md) | The Go backend writes literal tables and a lexer as data | Proposed |
