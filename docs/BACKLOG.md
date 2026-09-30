@@ -15,6 +15,7 @@ agent and the date, and deletes the claim when Ken commits the unit (D50, D61).
 
 | Unit | Agent | Date |
 | --- | --- | --- |
+| Phase 4, unit 1: the Go backend in `generate/backend/go`, `transit generate --backend go`, and the module `grammars/json` (D26, D74) | transit, agent 9 | 2026-09-30 |
 
 ## The generator
 

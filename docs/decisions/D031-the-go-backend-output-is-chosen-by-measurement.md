@@ -11,4 +11,4 @@ Ken decided on 2026-09-29, answering questions 4 and 24:
 2. A generated grammar package embeds the queries of its grammar, from
    `queries/*.scm`, so that the queries always match the grammar.
 
-D73 records the measurements of phase 3, and D74 proposes the form.
+D73 records the measurements of phase 3, and D74 sets the form.

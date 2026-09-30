@@ -5,7 +5,7 @@ This document holds the plan for `github.com/xo/transit`. The decisions are in
 
 This plan was written on 2026-09-29, before any code existed (D3). Ken
 answered its open questions on that date, and later ones as they came. The
-decisions D1 to D74 record the answers and the other choices of Ken. A part
+decisions D1 to D75 record the answers and the other choices of Ken. A part
 of this plan that names a decision follows it. A new question
 goes at the end of this document until Ken answers it.
 
@@ -692,8 +692,10 @@ every fixture grammar, and the measurements are recorded.
 
 ### Phase 4. The Go backend
 
-Starts when the gate holds (D9). Choose the form of the tables (D31), and
-write the Go backend. Generate the fixture grammars in Go, port their
+Starts when the gate holds (D9). The Go backend writes literal tables and a
+lexer as data (D31, D74). It starts before Ken accepts the target API, and
+the changes of the review go into the backend before the first grammar
+module is tagged (D75). Write the Go backend. Generate the fixture grammars in Go, port their
 scanners, and run every test of phase 3 on the Go grammars as well. The target
 API of phase 1 is the design of what the backend writes. Make and tag the
 first grammar module (D43).
@@ -921,17 +923,10 @@ Ken answered the questions of phase 0 on 2026-09-29, and D24 to D53
 record the answers, and D54 starts phase 1. The working C example of phase 1
 raised questions 53 to 55, and D55 to D57 record the answers. Phase 2 raised
 questions 56 to 58, and D59, D60 and D66 record the answers. Phase 3 raised
-questions 59 to 62, and D63, D64, D70 and D72 record the answers. The next
-question is question 64.
+questions 59 to 63, and D63, D64, D70, D72 and D74 record the answers. The
+next question is question 64.
 
-### 63. Does the Go backend write literal tables and a lexer as data?
-
-D31 leaves the form of the output of the Go backend to phase 4, and D73
-records the measurements of phase 3. D74 proposes literal tables, which need
-no work at run time and build postgres in 5 seconds, and the lexer as data,
-which was as fast as the lexer as code for json and 25 percent faster for
-postgres. Phase 4 checks the form on the real Go grammars. If you accept D74,
-its status becomes Decided.
+No question is open.
 
 Raise a new question here rather than deciding one alone.
 
