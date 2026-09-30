@@ -155,9 +155,10 @@ func (s *scanner) reset() {
 //
 // The test of the room for a heredoc counts 2 bytes for the 4 that it writes.
 // For a state that fills the buffer, such as one heredoc with a word of 1019
-// bytes, C writes 1 byte past the end of the buffer, and Go panics. A word of
-// more than 255 bytes gets its length cut to a byte, so deserialize reads a
-// shorter word.
+// bytes, C writes 1 byte past the end of the buffer. The Go function also
+// counts the room for the 4 bytes, and it writes no state there (D81). A
+// word of more than 255 bytes gets its length cut to a byte, so deserialize
+// reads a shorter word.
 func (s *scanner) serialize(buffer []byte) int {
 	size := 0
 
@@ -182,6 +183,13 @@ func (s *scanner) serialize(buffer []byte) int {
 	for i := range s.openHeredocs {
 		heredoc := &s.openHeredocs[i]
 		if size+2+len(heredoc.word) >= abi.SerializationBufferSize {
+			return 0
+		}
+		// The test above of upstream counts 2 bytes for the 4 bytes of the
+		// header of a heredoc, so a word of 1,019 bytes writes past the end
+		// of the buffer in C. The Go scanner writes no state instead, and
+		// the parse goes on (D81).
+		if size+4+len(heredoc.word) > abi.SerializationBufferSize {
 			return 0
 		}
 		buffer[size] = boolByte(heredoc.endWordIndentationAllowed)

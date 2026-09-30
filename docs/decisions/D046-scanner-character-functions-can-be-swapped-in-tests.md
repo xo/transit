@@ -13,3 +13,6 @@ The test module still measures each C function for every code point and lists
 each difference from the Go function (D39). Without this, a difference in one
 character function changes a whole tree on input that is not ASCII, and the
 tree tests cannot tell it from a fault.
+
+The package is `internal/wctype`. Its init in `test/cgrammar/wctype_test.go`
+sets the C locale for the tests of the test module.

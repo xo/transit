@@ -1,7 +1,7 @@
-// Package scanner is the external scanner that the grammars php and php_only
+// Package scan is the external scanner that the grammars php and php_only
 // share. It ports common/scanner.h of tree-sitter-php, which the file
 // src/scanner.c of each grammar includes.
-package scanner
+package scan
 
 import (
 	"encoding/binary"

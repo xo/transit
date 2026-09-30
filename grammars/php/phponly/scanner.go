@@ -1,6 +1,6 @@
 package phponly
 
-import "github.com/xo/transit/grammars/php/internal/scanner"
+import "github.com/xo/transit/grammars/php/internal/scan"
 
 // This file ports php_only/src/scanner.c of tree-sitter-php at v0.24.2, on
 // the branch upstream_test_fixture
@@ -12,6 +12,6 @@ import "github.com/xo/transit/grammars/php/internal/scanner"
 // Serialize, Deserialize and Scan of scanner.Scanner are the other functions
 // of the file. tree_sitter_php_only_external_scanner_destroy has no port,
 // because it only frees memory.
-func newScanner() *scanner.Scanner {
-	return scanner.New()
+func newScanner() *scan.Scanner {
+	return scan.New()
 }

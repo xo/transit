@@ -31,7 +31,9 @@ jobs:
     - name: Test module
       # the test module has its own go.mod, so ./... in the root misses it
       working-directory: test
-      run: go vet ./... && go test -race -count=1 ./...
+      # the comparisons with C of every grammar module take about 15 minutes
+      # under -race, more than the default timeout of 10 minutes (D87)
+      run: go vet ./... && go test -race -count=1 -timeout 60m ./...
     - name: Grammar modules
       # each grammar module has its own go.mod (D26, D79)
       run: for m in grammars/*/go.mod; do (cd "$(dirname "$m")" && go vet ./... && go test -race -count=1 ./...) || exit 1; done

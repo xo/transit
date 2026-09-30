@@ -15,7 +15,6 @@ agent and the date, and deletes the claim when Ken commits the unit (D50, D61).
 
 | Unit | Agent | Date |
 | --- | --- | --- |
-| Phase 4, unit 9: the upstream corpus failures and the CST cases (D79) | transit, agent 17 | 2026-09-30 |
 
 ## The generator
 
@@ -31,22 +30,39 @@ logger yet, so the port leaves them out. The generator logs with `log/slog`
 
 ## The runtime
 
-### Record the upstream corpus failures, and test the CST cases
+### Move the list of upstream failures into each module
 
-D79 says that `grammars/grammars.json` names the corpus cases that fail
-upstream, and that the corpus test of a grammar module tests the cases with
-`:cst`. Neither is done. Seven grammars of the set have failing cases, and
-none of them is a fixture grammar. The golden harness reads the failures in
-`test/cmd/golden/corpus.go`. `render_cst` is ported in
-`test/cgrammar/upstream_helpers_test.go` and can move to
-`internal/grammartest`.
+D88 says that a grammar package holds `testdata/failing.txt` with the names
+of its corpus cases that fail upstream, and that the golden harness writes
+it. Today the generator writes the names into `grammar_test.go` from
+`grammars/grammars.json`. Change the harness, the generator and
+`internal/grammartest`. No fixture grammar has a failing case, so no module
+gets the file yet.
+
+### Add QueryMatch.Remove
+
+D89 gives the Go API a form of `QueryMatch::remove` of the Rust binding.
+Add it to `query_binding.go` and to `docs/API.md`, and call it from the
+package `inject` and from the highlight test of `internal/grammartest` in
+place of their imitation. Run the two tests of `upstream_query_test.go` that
+skip for want of it, and delete item 3 of "Choose whether some upstream tests
+get a Go form".
 
 ### Compare the highlight test with the upstream tool
 
-The highlight test of a grammar module follows the rule of D79, which is not
-the rule of the upstream tool. Compare its results with `tree-sitter test` on
-the grammars of the set that have `test/highlight`, and record each
-difference as a decision.
+The highlight test of a grammar module follows the highlighter of upstream
+(D80, D84). `tree-sitter test` passes the files of `test/highlight` of 12
+grammars, and so does the port, in `test/cgrammar`: c, c_sharp, css, html,
+java, javascript, lua, php, python, ruby, toml and yaml. The test also passes
+in the modules c, cpp, html, java, javascript, php, python and ruby. The
+cache holds 48 more folders of `test/highlight`. Compare the port with the
+upstream tool on them, and record each difference.
+
+The port in `internal/grammartest` emulates `QueryMatch::remove` of the Rust
+binding, because the Go API has no form of it. It knows a removed match by
+its pattern and by the captures that it had. Two matches of one pattern
+with the same first captures, such as two branches of a quantifier, look
+like one match. The package `inject` does the same for its injections.
 
 ### Meet target 3 of D37
 

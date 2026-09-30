@@ -1,6 +1,6 @@
 # D80. The highlight test follows the upstream highlighter
 
-Status: Decided, amends D79.
+Status: Decided, amends D79, amended by D84.
 
 D79 point 4 gave the highlight test of a grammar module a rule of its own.
 The javascript module showed that the rule differs from upstream in three

@@ -21,10 +21,10 @@ func TestQueries(t *testing.T) {
 	grammartest.Queries(t, Language(), Queries)
 }
 
-// TestHighlight compares the assertions of each file of testdata/highlight
-// with the captures of queries/highlights.scm. The part of the test that
-// looks for each capture name in the package styles waits for phase 5,
-// because that package does not exist yet.
+// TestHighlight highlights each file of testdata/highlight as the
+// highlighter of upstream does, and checks the assertions in its comments.
+// The part of the test that looks for each capture name in the package
+// styles waits for phase 5, because that package does not exist yet.
 func TestHighlight(t *testing.T) {
 	t.Parallel()
 	grammartest.Highlight(t, Language(), Queries, "testdata/highlight")

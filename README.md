@@ -56,11 +56,27 @@ answer that shapes it.
 The Go backend writes a package for each grammar that Ken chooses. The set of
 185 grammars is in [docs/CANDIDATES.md](docs/CANDIDATES.md), and
 [docs/GRAMMAR.md](docs/GRAMMAR.md) says how a grammar is added. These are the
-packages:
+packages, one for each fixture grammar:
 
 | Package | Upstream repository | Tag |
 | --- | --- | --- |
+| `github.com/xo/transit/grammars/bash` | [tree-sitter/tree-sitter-bash](https://github.com/tree-sitter/tree-sitter-bash) | `v0.25.0` |
+| `github.com/xo/transit/grammars/c` | [tree-sitter/tree-sitter-c](https://github.com/tree-sitter/tree-sitter-c) | `v0.24.2` |
+| `github.com/xo/transit/grammars/cpp` | [tree-sitter/tree-sitter-cpp](https://github.com/tree-sitter/tree-sitter-cpp) | `v0.23.4` |
+| `github.com/xo/transit/grammars/embeddedtemplate` | [tree-sitter/tree-sitter-embedded-template](https://github.com/tree-sitter/tree-sitter-embedded-template) | `v0.25.0` |
+| `github.com/xo/transit/grammars/go` | [tree-sitter/tree-sitter-go](https://github.com/tree-sitter/tree-sitter-go) | `v0.25.0` |
+| `github.com/xo/transit/grammars/html` | [tree-sitter/tree-sitter-html](https://github.com/tree-sitter/tree-sitter-html) | `v0.23.2` |
+| `github.com/xo/transit/grammars/java` | [tree-sitter/tree-sitter-java](https://github.com/tree-sitter/tree-sitter-java) | `v0.23.5` |
+| `github.com/xo/transit/grammars/javascript` | [tree-sitter/tree-sitter-javascript](https://github.com/tree-sitter/tree-sitter-javascript) | `v0.25.0` |
+| `github.com/xo/transit/grammars/jsdoc` | [tree-sitter/tree-sitter-jsdoc](https://github.com/tree-sitter/tree-sitter-jsdoc) | `v0.23.2` |
 | `github.com/xo/transit/grammars/json` | [tree-sitter/tree-sitter-json](https://github.com/tree-sitter/tree-sitter-json) | `v0.24.8` |
+| `github.com/xo/transit/grammars/php/php` | [tree-sitter/tree-sitter-php](https://github.com/tree-sitter/tree-sitter-php) | `v0.24.2` |
+| `github.com/xo/transit/grammars/php/phponly` | [tree-sitter/tree-sitter-php](https://github.com/tree-sitter/tree-sitter-php) | `v0.24.2` |
+| `github.com/xo/transit/grammars/python` | [tree-sitter/tree-sitter-python](https://github.com/tree-sitter/tree-sitter-python) | `v0.23.6` |
+| `github.com/xo/transit/grammars/ruby` | [tree-sitter/tree-sitter-ruby](https://github.com/tree-sitter/tree-sitter-ruby) | `v0.23.1` |
+| `github.com/xo/transit/grammars/rust` | [tree-sitter/tree-sitter-rust](https://github.com/tree-sitter/tree-sitter-rust) | `v0.24.0` |
+| `github.com/xo/transit/grammars/typescript/tsx` | [tree-sitter/tree-sitter-typescript](https://github.com/tree-sitter/tree-sitter-typescript) | `v0.23.2` |
+| `github.com/xo/transit/grammars/typescript/typescript` | [tree-sitter/tree-sitter-typescript](https://github.com/tree-sitter/tree-sitter-typescript) | `v0.23.2` |
 
 Some grammars ship queries written for Neovim, which transit does not support
 now. [docs/NEOVIM.md](docs/NEOVIM.md) lists them.

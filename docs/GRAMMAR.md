@@ -108,7 +108,8 @@ becomes `csharp`, and `embedded_template` becomes `embeddedtemplate`. A Go
 package name has no underscore, as the `go-pedantry` skill says. The grammar
 `go` gets the package `golang`, because `go` is a keyword of Go (D77). Any
 other name that is not a Go package name stops the generator with an error.
-The folder of a package has the same name.
+The folder of a package has the same name, but the package `golang` of the
+grammar go lives in `grammars/go` (D86).
 
 The folder of a module has the name of the upstream repository without the
 `tree-sitter-` prefix and with each `-` removed. `tree-sitter-embedded-template`
@@ -138,10 +139,21 @@ A repository that holds one grammar, such as JSON, looks like this:
 
 A repository that holds more than one grammar has one folder for each grammar
 under the folder of the module, such as `grammars/typescript/typescript` and
-`grammars/typescript/tsx`. Its `tree-sitter.json` goes in the folder of the
-module, because the generator reads the nearest one, in the folder of the
-package or in a folder above it. Code that two scanners share, such as
-`common/scanner.h`, becomes a package under `internal/` of the module.
+`grammars/typescript/tsx`. The folder comes from the `path` of the entry of
+the grammar in `tree-sitter.json`, with each `_` and `-` removed, so
+`php_only` gives `phponly`, and it is also the name of the package (D90). `LICENSE` and `tree-sitter.json` are in the folder
+of the module. Each package holds its own copy of `queries/` and of
+`testdata/`, because each package embeds its own queries, and each copies
+only the query files that its entry in `tree-sitter.json` lists (D86). Each
+package holds the whole corpus, and a case runs in the package of the grammar
+that its `:language` names, or of the first grammar of `tree-sitter.json`
+(D83). Code that two scanners share, such as `common/scanner.h`, becomes the
+package `internal/scan` of the module (D85).
+
+When `tree-sitter.json` lists a query file of another grammar, such as
+`node_modules/tree-sitter-javascript/queries/highlights.scm`, the package
+copies it from the checkout of that grammar, at the tag that
+`grammars/grammars.json` records for it, into `queries/<grammar>/` (D84).
 
 Do not edit a file that `transit generate` writes, and do not edit a copied
 file. To change a generated file, change the generator. To change a copied
@@ -189,19 +201,36 @@ these rules add to them:
    const` table becomes a package variable that nothing writes.
 8. The C `Array(T)` of `tree_sitter/array.h` becomes a Go slice.
 9. `Deserialize` gets the bytes that `Serialize` wrote, or none. Port each
-   length test of the C function, so that a short buffer never makes Go
-   panic. A fuzz test calls `Deserialize` with random bytes.
+   length test of the C function. Where C reads past the end of the buffer,
+   the Go function stops at the end, a byte past the end reads as 0, and
+   bytes after the state are ignored. A C `assert` has no Go form. So no
+   buffer makes a Go scanner panic (D85). A fuzz test calls `Deserialize`
+   with random bytes.
 10. A C function of `<wctype.h>` or `<ctype.h>`, such as `iswspace`,
-    `iswalpha` or `towupper`, becomes the Go function of the package
-    `unicode` that does the same job, such as `unicode.IsSpace`,
-    `unicode.IsLetter` or `unicode.ToUpper` (D39). The C function runs in the
-    `C` locale, where it answers as for ASCII, so the two can differ for a
-    character that is not ASCII. The test module lists each difference.
+    `iswalpha` or `towupper`, becomes the function of the package
+    `internal/wctype` with the name of the C function, such as
+    `wctype.Iswspace` (D46). Released code answers as the package `unicode`
+    does (D39). The test module sets the package to the C locale, where it
+    answers as the C library does, so that the C scanner and the Go scanner
+    give the same tokens. `TestCharFuncsMatchC` measures each function for
+    every code point and lists how `unicode` differs from C. If a scanner
+    needs a function that the package lacks, add it there and to both files
+    `wctype` of `test/cgrammar`.
+11. A C `char` is signed, as on x86-64, where the golden files are made and
+    the scanners are compared with C. A byte above 0x7f that the C code
+    widens becomes a negative number (D85).
+12. A C header that the scanners of two grammars of one repository share,
+    such as `common/scanner.h`, becomes the package `internal/scan` of the
+    module (D85).
+13. A typed constant of a scanner needs no `String` method. An assignment of
+    C that nothing reads, and that a linter reports, is left out, with a
+    comment that says so (D85).
 
 A scanner is correct when two things are true. The corpus tests pass. And the
 test module (D12) shows that the C scanner and the Go scanner give the same
-tokens and the same serialized bytes for every corpus input, except where a
-character function differs as D39 lists.
+tokens and the same serialized bytes for every corpus input. The test file
+`test/cgrammar/gopackage_<package>_test.go` of the package registers it and
+calls `compareScanners`, which compares every call of the two scanners.
 
 ## Grammars that xo writes
 
@@ -232,18 +261,30 @@ Every grammar has the same tests, and `transit generate` writes them in
 `grammar_test.go`:
 
 1. The corpus test. It parses each case in `testdata/corpus/` and compares
-   the tree with the expected tree. The result of each case must be what
-   `tree-sitter test` reports for the same grammar at the same tag. If a case
-   fails upstream, it fails in transit the same way, and the test names it.
+   the tree with the expected tree, or the CST of a case with `:cst`. The
+   result of each case must be what `tree-sitter test` reports for the same
+   grammar at the same tag. The golden harness records the names of the
+   cases that fail upstream in `grammars/grammars.json`, and the generator
+   writes them into `grammar_test.go`, so the test expects them to fail and
+   names them (D79). Each package of a module with more than one grammar
+   holds the whole corpus. A case runs in the package of the grammar that
+   its `:language` names, or of the first grammar of `tree-sitter.json`, and
+   the other packages skip it (D83).
 2. The query test. Each file in `queries/` must compile with the transit query
    engine.
 3. The highlight test, if the grammar has `test/highlight/`. transit does not
    port the upstream highlighter (D7), so the test compares the captures of
-   `queries/highlights.scm` with the assertions in each file. It compares each
-   assertion with the innermost capture that holds its position. Each
-   capture name of `queries/highlights.scm` is also in the list of captures
-   of the package `styles`, and it reaches an entry of each bundled style
-   (D65). That part of the test waits for the package `styles` of phase 5.
+   the highlight queries with the assertions in each file, as the highlighter
+   of upstream finds them (D80). It reads each file that `tree-sitter.json`
+   lists under `highlights` and `injections`, in order. A file of another
+   grammar, `node_modules/tree-sitter-<g>/queries/<f>`, is read from
+   `queries/<g>/<f>` of the package (D84). When two patterns capture one
+   node, the last one counts. The test builds the injection layers with the
+   package `inject`, and checks each assertion against the deepest layer.
+   Each capture name of the highlight queries is also in the list of
+   captures of the package `styles`, and it reaches an entry of each bundled
+   style (D65). That part of the test waits for the package `styles` of
+   phase 5.
 4. The test of the node types and the test of the keywords. Each type of
    `node-types.json` and each keyword is a symbol of the language.
 5. The generator test, as below.

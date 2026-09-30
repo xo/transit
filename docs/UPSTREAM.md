@@ -155,11 +155,15 @@ The idiomatic Go:
 11. A C callback with a `void *payload` becomes a Go interface or a Go func.
 12. A macro becomes a function or a constant. A union becomes a struct, or an
     interface with one type for each case. A bit field becomes a field or a
-    typed flag. A `goto` becomes a loop or a labeled `break` or `continue`.
+    typed flag. A `goto` becomes a loop or a labeled `break` or `continue`. A
+    forward `goto` to a label whose code runs to the end of the function
+    becomes a method that holds the code after the label, and the `goto`
+    becomes a return of its call (D85).
 13. A `_delete` or `_free` function has no port, because the garbage
     collector frees the memory. The mapping table of the file names it as not
     needed.
-14. A C enum becomes a typed constant with a `String` method.
+14. A C enum becomes a typed constant with a `String` method. A typed
+    constant of a scanner needs none (D85).
 15. A sequence that the API returns is an `iter.Seq` or an `iter.Seq2` (D25).
 16. `ts_assert` becomes a call to `assert`. The C macro still evaluates its
     argument when assertions are off, so a Go port must keep any side effect

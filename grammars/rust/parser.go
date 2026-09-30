@@ -65,9 +65,11 @@ var language = sync.OnceValue(func() *transit.Language {
 	})
 })
 
-// Queries holds queries/*.scm of the grammar rust.
+// Queries holds queries/ of the grammar rust: its own queries, and in
+// queries/<grammar>/ the queries of another grammar that its tree-sitter.json
+// lists (D84).
 //
-//go:embed queries/*.scm
+//go:embed queries
 var Queries embed.FS
 
 // nodeTypes is node-types.json of the grammar.

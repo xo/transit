@@ -141,18 +141,30 @@ func TestGoPackageScannerDeserializeRuby(t *testing.T) {
 
 	// A state of four heredocs that fills the buffer: the test of room in
 	// serialize passes for the last heredoc, and C writes 1025 bytes, 1 past
-	// the end of the buffer of the runtime.
+	// the end of the buffer of the runtime. The Go scanner writes no state
+	// there (D81).
 	full := []byte{0, 4}
 	for _, word := range []int{255, 255, 255, 242} {
 		full = append(full, 0, 0, 0, byte(word))
 		full = append(full, bytes.Repeat([]byte{'A'}, word)...)
 	}
 	want, got := serialize(cScanner, full), serialize(goScanner, full)
-	if !bytes.Equal(want, got) {
-		t.Errorf("state %x: C serializes %x, Go %x", full, want, got)
-	}
 	if len(want) != abi.SerializationBufferSize+1 {
 		t.Errorf("C serializes %d bytes of a state that fills the buffer, want %d", len(want), abi.SerializationBufferSize+1)
+	}
+	if len(got) != 0 {
+		t.Errorf("Go serializes %d bytes of a state that does not fit, want 0 (D81)", len(got))
+	}
+
+	// A state 1 byte shorter fits, and the two write the same 1024 bytes.
+	fits := []byte{0, 4}
+	for _, word := range []int{255, 255, 255, 241} {
+		fits = append(fits, 0, 0, 0, byte(word))
+		fits = append(fits, bytes.Repeat([]byte{'A'}, word)...)
+	}
+	want, got = serialize(cScanner, fits), serialize(goScanner, fits)
+	if !bytes.Equal(want, got) || len(got) != abi.SerializationBufferSize {
+		t.Errorf("state %x: C serializes %d bytes, Go %d, want %d from both", fits, len(want), len(got), abi.SerializationBufferSize)
 	}
 
 	for range 20000 {

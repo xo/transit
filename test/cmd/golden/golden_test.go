@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"maps"
 	"os"
 	"path/filepath"
@@ -94,5 +95,42 @@ func TestReadCandidatesReadsTheWholeSet(t *testing.T) {
 		if c.repo == "gmr/tree-sitter-postgres" && c.name == "" {
 			t.Error("expected the grammars of gmr/tree-sitter-postgres to be named")
 		}
+	}
+}
+
+// TestCollectOutcomesFindsTheFailures makes sure that the harness records the
+// path of each failed test of the summary of tree-sitter test, with the names
+// of its groups, and no test with another outcome.
+func TestCollectOutcomesFindsTheFailures(t *testing.T) {
+	t.Parallel()
+	raw := []byte(`{"parse_results": [
+		{"name": "main", "children": [
+			{"name": "A", "outcome": "Passed", "parse_rate": null, "test_num": 0},
+			{"name": "B", "outcome": "Failed", "parse_rate": null, "test_num": 1}
+		]},
+		{"name": "sub", "children": [
+			{"name": "file", "children": [
+				{"name": "C", "outcome": "Skipped", "parse_rate": null, "test_num": 2},
+				{"name": "D / E", "outcome": "Failed", "parse_rate": null, "test_num": 3}
+			]}
+		]}
+	]}`)
+	var summary struct {
+		ParseResults []json.RawMessage `json:"parse_results"`
+	}
+	if err := json.Unmarshal(raw, &summary); err != nil {
+		t.Fatal(err)
+	}
+	var s testSummary
+	for _, r := range summary.ParseResults {
+		if err := collectOutcomes(r, "", &s); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if want := []string{"main/B", "sub/file/D / E"}; !slices.Equal(s.Failing, want) {
+		t.Errorf("expected %q, got: %q", want, s.Failing)
+	}
+	if len(s.Outcomes) != 4 {
+		t.Errorf("expected 4 outcomes, got: %q", s.Outcomes)
 	}
 }

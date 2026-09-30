@@ -21,6 +21,12 @@ type corpusResult struct {
 	// that failed, with the parser.c that the upstream tool writes.
 	Tests    int `json:"tests"`
 	Failures int `json:"failures"`
+	// Failing holds the name of each test that fails with the parser.c of
+	// the upstream tool, in the order of the run. A name is the path of the
+	// test in the corpus: the names of its groups and its own name, joined
+	// by "/", such as "expressions/Binary operators". The corpus test of a
+	// grammar package expects these tests to fail, and no other test (D79).
+	Failing []string `json:"failing,omitempty"`
 	// Transit is "same" when the parser.c that transit writes gives the same
 	// result, and "different" when it does not.
 	Transit string `json:"transit,omitempty"`
@@ -38,6 +44,9 @@ type testSummary struct {
 	Outcomes []string
 	Failures []string
 	Parses   [2]int
+	// Failing holds the path of each test whose outcome is Failed, as
+	// corpusResult.Failing records it.
+	Failing []string
 }
 
 // corpusGrammars runs the corpus of each recorded grammar that has one, with
@@ -212,7 +221,7 @@ func (h *harness) corpusRepo(ctx context.Context, rec *record, indices []int, tr
 	}
 	for i, dir := range runDirs {
 		up, tr := summaries[0][dir], summaries[1][dir]
-		r := &corpusResult{Tests: len(up.Outcomes), Failures: len(up.Failures), Transit: "different"}
+		r := &corpusResult{Tests: len(up.Outcomes), Failures: len(up.Failures), Failing: up.Failing, Transit: "different"}
 		if transitErr == nil && slices.Equal(up.Outcomes, tr.Outcomes) && slices.Equal(up.Failures, tr.Failures) && up.Parses == tr.Parses {
 			r.Transit = "same"
 		}
@@ -246,7 +255,7 @@ func (h *harness) runCorpus(ctx context.Context, dir, libDir string) (testSummar
 	}
 	var s testSummary
 	for _, r := range raw.ParseResults {
-		if err := collectOutcomes(r, "", &s.Outcomes); err != nil {
+		if err := collectOutcomes(r, "", &s); err != nil {
 			return testSummary{}, err
 		}
 	}
@@ -260,7 +269,8 @@ func (h *harness) runCorpus(ctx context.Context, dir, libDir string) (testSummar
 // collectOutcomes adds the name and the outcome of each test of one node of
 // the parse results, with the names of the groups above it, and recurses
 // into its children. A node without an outcome is a group, such as a file.
-func collectOutcomes(raw json.RawMessage, prefix string, out *[]string) error {
+// It also adds the path of each failed test to s.Failing.
+func collectOutcomes(raw json.RawMessage, prefix string, s *testSummary) error {
 	var n struct {
 		Name     string            `json:"name"`
 		Outcome  json.RawMessage   `json:"outcome"`
@@ -271,10 +281,13 @@ func collectOutcomes(raw json.RawMessage, prefix string, out *[]string) error {
 	}
 	name := prefix + "/" + n.Name
 	if len(n.Outcome) > 0 {
-		*out = append(*out, name+" "+string(n.Outcome))
+		s.Outcomes = append(s.Outcomes, name+" "+string(n.Outcome))
+		if string(n.Outcome) == `"Failed"` {
+			s.Failing = append(s.Failing, strings.TrimPrefix(name, "/"))
+		}
 	}
 	for _, c := range n.Children {
-		if err := collectOutcomes(c, name, out); err != nil {
+		if err := collectOutcomes(c, name, s); err != nil {
 			return err
 		}
 	}

@@ -15,10 +15,10 @@ import (
 )
 
 // This file ports crates/cli/src/query_testing.rs: the assertions in the
-// comments of a file of test/highlight. It leaves out
+// comments of a file of test/highlight. It leaves out CaptureInfo and
 // assert_expected_captures, because the highlight test of a grammar checks
-// an assertion against the innermost capture, as the highlighter of upstream
-// does, and not against the first one (grammartest.go).
+// an assertion against the highlights of the highlighter of upstream, as
+// test_highlight.go does (D80).
 //
 // to_utf8_point counts grapheme clusters upstream, and the standard library
 // of Go has no grapheme clusters, so the port counts code points. The two
@@ -83,15 +83,6 @@ func toUTF8Point(point transit.Point, source []byte) utf8Point {
 	}
 
 	return utf8Point{row: point.Row, column: utf8Column}
-}
-
-// captureInfo is a capture of a query: its name and its range.
-//
-// captureInfo is CaptureInfo.
-type captureInfo struct {
-	name  string
-	start utf8Point
-	end   utf8Point
 }
 
 // assertion is an assertion in a comment: the position that it points at,

@@ -1,6 +1,6 @@
 # D77. The rules of a generated grammar package
 
-Status: Decided.
+Status: Decided, amended by D82.
 
 Ken decided on 2026-09-30 these rules of the Go backend and of the package
 that it writes for a grammar (D26, D74):

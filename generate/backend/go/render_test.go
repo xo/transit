@@ -5,6 +5,8 @@ import (
 	"go/format"
 	"os"
 	"path/filepath"
+	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -172,14 +174,18 @@ func TestCharacter(t *testing.T) {
 }
 
 // TestTests makes sure that gofmt leaves each form of grammar_test.go as it
-// is, and that the corpus test and the highlight test are there only with
-// their folders.
+// is, that the corpus test and the highlight test are there only with their
+// folders, and that the corpus test names the cases that fail upstream.
 func TestTests(t *testing.T) {
 	t.Parallel()
 	for _, opts := range []Options{
 		{},
 		{Queries: true, Corpus: true},
 		{Queries: true, Corpus: true, Highlight: true},
+		{Corpus: true, CorpusFailures: []string{"main/A case", `sub/a "quoted" case`}},
+		{CorpusFailures: []string{"main/A case"}},
+		{Highlight: true, Others: []Other{{"tsx", "github.com/xo/transit/grammars/typescript/tsx"}, {"a", "github.com/xo/transit/grammars/typescript/a"}}},
+		{Others: []Other{{"tsx", "github.com/xo/transit/grammars/typescript/tsx"}}},
 	} {
 		text := Tests("json", opts)
 		formatted, err := format.Source([]byte(text))
@@ -191,6 +197,94 @@ func TestTests(t *testing.T) {
 		}
 		if got := strings.Contains(text, "func TestHighlight("); got != opts.Highlight {
 			t.Errorf("%+v: TestHighlight is there: %t", opts, got)
+		}
+		for _, name := range opts.CorpusFailures {
+			if got := strings.Contains(text, "\t\t"+strconv.Quote(name)+",\n"); got != opts.Corpus {
+				t.Errorf("%+v: the case %q is there: %t", opts, name, got)
+			}
+		}
+		for _, o := range opts.Others {
+			if got := strings.Contains(text, "grammartest.Grammar{Language: "+o.Package+".Language(), Queries: "+o.Package+".Queries}"); got != opts.Highlight {
+				t.Errorf("%+v: the grammar %s is there: %t", opts, o.Package, got)
+			}
+			if got := strings.Contains(text, strconv.Quote(o.ImportPath)); got != opts.Highlight {
+				t.Errorf("%+v: the import of %s is there: %t", opts, o.Package, got)
+			}
+		}
+	}
+}
+
+// TestReadGrammarOptions makes sure that the options of a package of a
+// module with two grammars name the other grammar when it has an
+// injection-regex, and that a module with one grammar has no other.
+func TestReadGrammarOptions(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	for name, text := range map[string]string{
+		"two/go.mod": "module example.com/two\n\ngo 1.27\n",
+		"two/tree-sitter.json": `{"grammars": [
+			{"name": "typescript", "path": "typescript", "injection-regex": "^(ts|typescript)$"},
+			{"name": "tsx", "path": "tsx", "injection-regex": "^tsx$"},
+			{"name": "flow", "path": "tsx", "injection-regex": "^flow$"},
+			{"name": "php_only", "path": "php_only", "injection-regex": "^php$"},
+			{"name": "missing", "path": "missing", "injection-regex": "^missing$"},
+			{"name": "no_regex", "path": "noregex"}]}`,
+		"two/typescript/grammar.json": `{"name": "typescript"}`,
+		"two/tsx/grammar.json":        `{"name": "tsx"}`,
+		"two/phponly/grammar.json":    `{"name": "php_only"}`,
+		"two/noregex/grammar.json":    `{"name": "no_regex"}`,
+		"one/tree-sitter.json":        `{"grammars": [{"name": "json", "path": ".", "injection-regex": "^json$"}]}`,
+	} {
+		p := filepath.Join(root, name)
+		if err := os.MkdirAll(filepath.Dir(p), 0o750); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(text), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	opts, rec, err := ReadGrammarOptions(filepath.Join(root, "two", "typescript"), "typescript")
+	if err != nil || rec != nil {
+		t.Fatalf("ReadGrammarOptions = %+v, %+v, %v", opts, rec, err)
+	}
+	if want := []Other{{"tsx", "example.com/two/tsx"}, {"phponly", "example.com/two/phponly"}}; !slices.Equal(opts.Others, want) {
+		t.Errorf("Others = %+v, want %+v", opts.Others, want)
+	}
+	opts, _, err = ReadGrammarOptions(filepath.Join(root, "one"), "json")
+	if err != nil || len(opts.Others) != 0 {
+		t.Errorf("ReadGrammarOptions of one grammar = %+v, %v", opts, err)
+	}
+}
+
+// TestGrammarFolder makes sure that the path of a grammar in
+// tree-sitter.json gives the folder of its package, as docs/GRAMMAR.md lays
+// it out.
+func TestGrammarFolder(t *testing.T) {
+	t.Parallel()
+	for p, want := range map[string]string{
+		"":                  ".",
+		".":                 ".",
+		"./":                ".",
+		"php_only":          "phponly",
+		"tsx":               "tsx",
+		"grammars/php_only": "phponly",
+		"embedded-template": "embeddedtemplate",
+	} {
+		if got := GrammarFolder(p); got != want {
+			t.Errorf("GrammarFolder(%q) = %q, want %q", p, got, want)
+		}
+	}
+}
+
+func TestModuleFolderName(t *testing.T) {
+	t.Parallel()
+	for repo, want := range map[string]string{
+		"https://github.com/tree-sitter/tree-sitter-json":              "json",
+		"https://github.com/tree-sitter/tree-sitter-embedded-template": "embeddedtemplate",
+		"https://github.com/DerekStride/tree-sitter-sql":               "sql",
+	} {
+		if got := ModuleFolderName(repo); got != want {
+			t.Errorf("ModuleFolderName(%q) = %q, want %q", repo, got, want)
 		}
 	}
 }
@@ -216,7 +310,7 @@ func TestPackageInDirectory(t *testing.T) {
 		}
 	}
 	opts, err := ReadOptions(dir)
-	if err != nil || opts != (Options{Queries: true, Corpus: true}) {
+	if err != nil || !reflect.DeepEqual(opts, Options{Queries: true, Corpus: true}) {
 		t.Fatalf("ReadOptions = %+v, %v", opts, err)
 	}
 	var diagnostics []generate.Diagnostic

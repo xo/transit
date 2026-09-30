@@ -167,6 +167,7 @@ these files:
 | `states_at.go` | `StatesAt`, the first API that upstream does not have (D57, D70). It ports no upstream file (D28) |
 | `node_type.go` | `NodeType`, the form of `node-types.json` that the `NodeTypes` function of a grammar package returns. It ports no upstream file (D28) |
 | `internal/abi/` | the tables of a grammar in the shape of `TSLanguage`, a port of `lib/src/parser.h` (D63), and `LexTable`, which runs a lex table that the Go backend writes as data (D74) |
+| `internal/wctype/` | the character functions of `<wctype.h>` and `<ctype.h>` that the Go scanners call, which the test module sets to the C locale (D39, D46) |
 | `internal/grammartest/` | the tests of a grammar package, which its `grammar_test.go` calls: the corpus, the queries, the highlight tests and the generator. `test.go` and `query_testing.go` port parts of `crates/cli/src/test.rs` and `query_testing.rs` |
 | `skills_test.go`, `docs_test.go` | the tests of the agent setup and the documents |
 | `upstream_test.go`, `docs/upstream/ledger.tsv` | the ledger of upstream commits and its test (D30) |
@@ -187,7 +188,7 @@ these files:
 | `generate/internal/regexsyntax/` | the port of the Rust crate `regex-syntax`, in the packages `ast`, `hir` and `unicodetables` (D59) |
 | `generate/testdata/` | the golden files of the 68 test grammars, which the harness writes |
 | `grammars/grammars.json` | the record of every grammar, with the hashes of its golden files (D40) |
-| `grammars/json/` | the module of the grammar package `json`, from `tree-sitter/tree-sitter-json`, which `docs/GRAMMAR.md` lays out |
+| `grammars/<module>/` | the grammar modules of the 17 fixture grammars, one for each upstream repository, which `docs/GRAMMAR.md` lays out and `README.md` lists. Each package holds its generated `parser.go` and, when the grammar has one, its ported `scanner.go` |
 | `tree-sitter/` | the upstream checkout, which git ignores |
 
 ## Before you stage
@@ -215,7 +216,7 @@ test -z "$(gofmt -l $(git ls-files '*.go'))"
 go vet ./...
 go test -race -count=1 ./...
 golangci-lint run ./...
-(cd test && go vet ./... && go test -race -count=1 ./... && golangci-lint run ./...)
+(cd test && go vet ./... && go test -race -count=1 -timeout 60m ./... && golangci-lint run ./...)
 for m in grammars/*/go.mod; do (cd "$(dirname "$m")" && go vet ./... && go test -race -count=1 ./... && golangci-lint run ./...) || exit 1; done
 ```
 

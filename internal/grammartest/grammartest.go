@@ -5,24 +5,25 @@
 // test module can import it. It uses no cgo, so a grammar module stays pure
 // Go (D1).
 //
-// test.go ports the parts of crates/cli/src/test.rs that read a corpus, and
-// query_testing.go ports crates/cli/src/query_testing.rs. This file ports no
-// upstream file.
+// test.go ports the parts of crates/cli/src/test.rs that read a corpus,
+// parse.go ports the output of a concrete syntax tree of
+// crates/cli/src/parse.rs, query_testing.go ports
+// crates/cli/src/query_testing.rs, test_highlight.go ports
+// crates/cli/src/test_highlight.rs, and highlight.go ports the highlighter
+// of crates/highlight/src/highlight.rs that the highlight test needs (D80).
+// This file ports no upstream file.
 package grammartest
 
 import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
 	"os"
 	"path"
-	"path/filepath"
 	"slices"
-	"strings"
 	"testing"
 
 	"github.com/xo/transit"
@@ -33,104 +34,107 @@ import (
 
 // Corpus parses each case of the corpus in dir, such as testdata/corpus,
 // and compares its tree with the expected tree, as `tree-sitter test` does.
-// Each file and each case is a subtest. A case with the attribute :cst is
-// skipped, because the output of a concrete syntax tree waits for the
-// subcommand test of D41.
+// Each file and each case is a subtest.
+//
+// failing holds the path of each case that fails upstream, as the field
+// failing of grammars/grammars.json records it (D79). A path is the names
+// of the groups of the case and its own name, joined by "/", such as
+// "expressions/Binary operators". The test expects each such case to fail,
+// and it names the case and its failure in its log. A case that fails and
+// is not in failing, and a case in failing that does not fail, fail the
+// test.
 //
 // A repository can hold more than one grammar, and its grammars share one
-// corpus, as tree-sitter-typescript does. Upstream runs a case with the
-// attribute :language(x) with the grammar x of the repository. A package
-// has only its own language, so a case for another grammar of the nearest
-// tree-sitter.json is skipped, and the package of that grammar runs it. A
-// case for a grammar that the repository does not hold fails with
-// "Language not found", as upstream does.
-func Corpus(t *testing.T, language *transit.Language, dir string) {
+// corpus, as tree-sitter-php does. Each package of the module holds the
+// whole corpus (D83). A case runs in the package of the grammar that its
+// attribute :language(x) names, or of the first grammar of the nearest
+// tree-sitter.json when it names none, as upstream runs it. The other
+// packages skip the case, and name the package that runs it. A case for a
+// grammar that the module does not hold fails with "Language not found",
+// as upstream does.
+func Corpus(t *testing.T, language *transit.Language, dir string, failing ...string) {
 	t.Helper()
 	entry, err := parseTests(dir)
 	if err != nil {
 		t.Fatalf("reading the corpus: %v", err)
 	}
-	others, err := otherGrammars(".", language.Name())
+	m, err := readModule(language.Name())
 	if err != nil {
-		t.Fatalf("reading tree-sitter.json: %v", err)
+		t.Fatal(err)
 	}
 	parser := transit.NewParser()
 	if err := parser.SetLanguage(language); err != nil {
 		t.Fatalf("setting the language: %v", err)
 	}
-	runTests(t, parser, language, others, entry)
+	r := &corpusRun{
+		parser:   parser,
+		language: language,
+		module:   m,
+		expected: map[string]int{},
+		failed:   map[string]int{},
+	}
+	for _, name := range failing {
+		r.expected[name]++
+	}
+	r.runTests(t, entry, "")
+	for _, name := range failing {
+		if r.failed[name] < r.expected[name] {
+			// a name that repeats is reported once
+			r.failed[name] = r.expected[name]
+			t.Errorf("the case %q does not fail, or the corpus does not hold it, and grammars/grammars.json records that it fails upstream", name)
+		}
+	}
 }
 
-// otherGrammars returns the names of the grammars of the nearest
-// tree-sitter.json, in dir or in a folder above it, but for the grammar
-// name. It returns none when no folder holds a tree-sitter.json.
-func otherGrammars(dir, name string) ([]string, error) {
-	dir, err := filepath.Abs(dir)
-	if err != nil {
-		return nil, fmt.Errorf("finding the folder %s: %w", dir, err)
-	}
-	for {
-		b, err := os.ReadFile(filepath.Join(dir, "tree-sitter.json"))
-		switch {
-		case errors.Is(err, os.ErrNotExist):
-			parent := filepath.Dir(dir)
-			if parent == dir {
-				return nil, nil
-			}
-			dir = parent
-			continue
-		case err != nil:
-			return nil, fmt.Errorf("reading tree-sitter.json: %w", err)
-		}
-		var cfg struct {
-			Grammars []struct {
-				Name string `json:"name"`
-			} `json:"grammars"`
-		}
-		if err := json.Unmarshal(b, &cfg); err != nil {
-			return nil, fmt.Errorf("parsing %s: %w", filepath.Join(dir, "tree-sitter.json"), err)
-		}
-		var names []string
-		for _, g := range cfg.Grammars {
-			if g.Name != name && !slices.Contains(names, g.Name) {
-				names = append(names, g.Name)
-			}
-		}
-		return names, nil
-	}
+// corpusRun holds the state of one run of Corpus.
+type corpusRun struct {
+	parser   *transit.Parser
+	language *transit.Language
+	// module is the tree-sitter.json of the module of the package.
+	module *module
+	// expected counts the cases of each path that fail upstream, and failed
+	// counts the cases of each path that failed in this run.
+	expected map[string]int
+	failed   map[string]int
 }
 
 // runTests runs the tests of a group, each as a subtest, and reports whether
 // the run goes on. A failed test with the attribute :fail-fast stops it.
+// prefix is the path of the group, which is empty for the root.
 //
 // runTests is run_tests, without the report and the update of a corpus
 // file.
-func runTests(t *testing.T, parser *transit.Parser, language *transit.Language, others []string, entry testEntry) bool {
+func (r *corpusRun) runTests(t *testing.T, entry testEntry, prefix string) bool {
 	t.Helper()
 	goOn := true
 	for _, child := range entry.children {
 		if !goOn {
 			break
 		}
+		name := child.name
+		if prefix != "" {
+			name = prefix + "/" + child.name
+		}
 		if child.isGroup {
 			if len(child.children) == 0 {
 				continue
 			}
 			t.Run(child.name, func(t *testing.T) {
-				goOn = runTests(t, parser, language, others, child)
+				goOn = r.runTests(t, child, name)
 			})
 			continue
 		}
 		t.Run(child.name, func(t *testing.T) {
-			goOn = runExample(t, parser, language, others, child)
+			goOn = r.runCase(t, child, name)
 		})
 	}
 	return goOn
 }
 
-// runExample runs one corpus test, and reports whether the run goes on.
-// others holds the names of the other grammars of the repository.
-func runExample(t *testing.T, parser *transit.Parser, language *transit.Language, others []string, e testEntry) bool {
+// runCase runs one corpus test with the path name, and reports whether the
+// run goes on. A failure that grammars/grammars.json records goes to the
+// log, and any other failure fails the test.
+func (r *corpusRun) runCase(t *testing.T, e testEntry, name string) bool {
 	t.Helper()
 	a := e.attributes
 	switch {
@@ -138,45 +142,82 @@ func runExample(t *testing.T, parser *transit.Parser, language *transit.Language
 		t.Skip("the test has the attribute :skip")
 	case !a.platform:
 		t.Skip("the test is for another platform")
-	case a.cst:
-		t.Skip("the output of a concrete syntax tree waits for the subcommand test of D41")
 	}
+	if owner := r.owner(a); owner != r.module.own {
+		t.Skipf("the package in the folder %s of the module runs the case (D83)", owner)
+	}
+	failure := r.runExample(e)
+	switch {
+	case failure == "":
+		return true
+	case r.failed[name] < r.expected[name]:
+		r.failed[name]++
+		t.Logf("the case fails, as it fails upstream (grammars/grammars.json): %s", failure)
+	default:
+		t.Error(failure)
+	}
+	return !a.failFast
+}
+
+// owner returns the folder of the package that runs a case: the package of
+// the grammar of its first :language, or of the first grammar of the module
+// when it names none. A case for a grammar that the module does not hold
+// runs in the package, and fails with "Language not found".
+func (r *corpusRun) owner(a testAttributes) string {
+	name := ""
+	if len(a.languages) > 0 {
+		name = a.languages[0]
+	}
+	if name == "" {
+		if len(r.module.entries) == 0 {
+			return r.module.own
+		}
+		return r.module.entries[0].folder()
+	}
+	if e, ok := r.module.entry(name); ok {
+		return e.folder()
+	}
+	return r.module.own
+}
+
+// runExample runs one corpus test, and returns the text of its failure, or
+// an empty text when it passes.
+func (r *corpusRun) runExample(e testEntry) string {
+	a := e.attributes
 	for _, name := range a.languages {
-		if name != "" && name != language.Name() && slices.Contains(others, name) {
-			t.Skipf("the case is for the grammar %s of the same repository, and the package of that grammar runs it", name)
+		// A package has one language. A grammar of the module in the folder
+		// of the package, such as flow of tree-sitter-typescript, is that
+		// language.
+		if entry, ok := r.module.entry(name); name != "" && name != r.language.Name() && (!ok || entry.folder() != r.module.own) {
+			return "Language not found: " + name
 		}
-		if name != "" && name != language.Name() {
-			t.Errorf("Language not found: %s", name)
-			return !a.failFast
-		}
-		tree, err := parser.Parse(context.Background(), e.input, nil)
+		tree, err := r.parser.Parse(context.Background(), e.input, nil)
 		if err != nil {
-			t.Errorf("parsing the input: %v", err)
-			return !a.failFast
+			return fmt.Sprintf("parsing the input: %v", err)
 		}
-		root := tree.RootNode()
 		if a.expectation == expectError {
-			if !root.HasError() {
-				t.Errorf("the tree has no error:\n  actual:   %s\n  expected: NO ERROR", renderTestOutput(root, true))
-				return !a.failFast
+			if !tree.RootNode().HasError() {
+				return fmt.Sprintf("the tree has no error:\n  actual:   %s\n  expected: NO ERROR", renderTestOutput(e.input, tree, a.cst, true))
 			}
 			continue
 		}
-		if actual := renderTestOutput(root, e.hasFields); actual != e.output {
-			t.Errorf("the trees differ:\n  actual:   %s\n  expected: %s", actual, e.output)
-			return !a.failFast
+		if actual := renderTestOutput(e.input, tree, a.cst, e.hasFields); actual != e.output {
+			return fmt.Sprintf("the trees differ:\n  actual:   %s\n  expected: %s", actual, e.output)
 		}
 	}
-	return true
+	return ""
 }
 
 // renderTestOutput returns a tree in the form of the output of a corpus
-// test: its s-expression, with the field names only when includeFields is
-// true.
+// test: the concrete syntax tree when cst is true, and else its
+// s-expression, with the field names only when includeFields is true.
 //
-// renderTestOutput is render_test_output, without the concrete syntax tree.
-func renderTestOutput(root transit.Node, includeFields bool) string {
-	out := root.String()
+// renderTestOutput is render_test_output.
+func renderTestOutput(input []byte, tree *transit.Tree, cst, includeFields bool) string {
+	if cst {
+		return RenderCST(input, tree)
+	}
+	out := tree.RootNode().String()
 	if includeFields {
 		return out
 	}
@@ -211,102 +252,6 @@ func Queries(t *testing.T, language *transit.Language, fsys fs.FS) {
 	if err != nil {
 		t.Fatal(err)
 	}
-}
-
-// Highlight runs queries/highlights.scm of fsys on each file of dir, such as
-// testdata/highlight, and checks the assertions in the comments of the
-// file. transit does not port the highlighter of upstream (D7), so the test
-// checks each assertion against the captures of the query: the innermost
-// capture that holds the position of the assertion, and of two captures of
-// one node, the first. A negative assertion passes when that capture has
-// another name. An assertion with no capture fails, as iterate_assertions of
-// crates/cli/src/test_highlight.rs fails it.
-func Highlight(t *testing.T, language *transit.Language, fsys fs.FS, dir string) {
-	t.Helper()
-	source, err := fs.ReadFile(fsys, "queries/highlights.scm")
-	if err != nil {
-		t.Fatalf("reading the highlight query: %v", err)
-	}
-	query, err := transit.NewQuery(language, string(source))
-	if err != nil {
-		t.Fatalf("compiling queries/highlights.scm: %v", err)
-	}
-	err = filepath.WalkDir(dir, func(name string, d fs.DirEntry, err error) error {
-		if err != nil || d.IsDir() {
-			return err
-		}
-		t.Run(filepath.Base(name), func(t *testing.T) {
-			src, err := os.ReadFile(name)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if _, err := testHighlight(language, query, src); err != nil {
-				t.Error(err)
-			}
-		})
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-// testHighlight checks the assertions of one file, and returns their
-// number.
-func testHighlight(language *transit.Language, query *transit.Query, src []byte) (int, error) {
-	parser := transit.NewParser()
-	assertions, err := parsePositionComments(parser, language, src)
-	if err != nil {
-		return 0, err
-	}
-	tree, err := parser.Parse(context.Background(), src, nil)
-	if err != nil {
-		return 0, fmt.Errorf("parsing the source: %w", err)
-	}
-	var infos []captureInfo
-	names := query.CaptureNames()
-	for m, i := range transit.NewQueryCursor().Captures(context.Background(), query, tree.RootNode(), src) {
-		capture := m.Captures[i]
-		infos = append(infos, captureInfo{
-			name:  names[capture.Index],
-			start: toUTF8Point(capture.Node.StartPoint(), src),
-			end:   toUTF8Point(capture.Node.EndPoint(), src),
-		})
-	}
-	return checkAssertions(infos, assertions)
-}
-
-// checkAssertions checks each assertion against the innermost capture that
-// holds it, and returns the number of assertions. Of two captures with the
-// same range, the first one counts, as in the highlighter of upstream.
-func checkAssertions(infos []captureInfo, assertions []assertion) (int, error) {
-	for _, a := range assertions {
-		end := utf8Point{row: a.position.row, column: a.position.column + a.length - 1}
-		best := -1
-		for k, p := range infos {
-			if a.position.compare(p.start) < 0 || end.compare(p.end) >= 0 {
-				continue
-			}
-			if best < 0 || p.start.compare(infos[best].start) > 0 ||
-				p.start == infos[best].start && p.end.compare(infos[best].end) < 0 {
-				best = k
-			}
-		}
-		expected := a.expectedCaptureName
-		if a.negative {
-			expected = "!" + expected
-		}
-		if best < 0 {
-			// a negative assertion fails too, as in iterate_assertions
-			return 0, fmt.Errorf("%w: row %d, column %d, expected highlight %q, actual highlights: none",
-				errAssertion, a.position.row, end.column, expected)
-		}
-		if (infos[best].name == a.expectedCaptureName) == a.negative {
-			return 0, fmt.Errorf("%w: row %d, column %d, expected highlight %q, actual highlight %q",
-				errAssertion, a.position.row, end.column, expected, infos[best].name)
-		}
-	}
-	return len(assertions), nil
 }
 
 // NodeTypes makes sure that each node type, and each type that it names,
@@ -355,21 +300,6 @@ func Keywords(t *testing.T, language *transit.Language, keywords []string) {
 	}
 }
 
-// record is an entry of grammars/grammars.json, with the fields that the
-// generator test reads.
-type record struct {
-	Name       string            `json:"name"`
-	Repository string            `json:"repository"`
-	Golden     map[string]golden `json:"golden"`
-}
-
-// golden is a golden file of a record.
-type golden struct {
-	ParserC   string `json:"parser_c"`
-	NodeTypes string `json:"node_types"`
-	Error     string `json:"error"`
-}
-
 // Generator runs the generator on grammar.json of the package in the
 // working folder, with the version of the nearest tree-sitter.json. It
 // makes sure of two facts:
@@ -395,10 +325,6 @@ func Generator(t *testing.T, language *transit.Language) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	opts, err := golang.ReadOptions(".")
-	if err != nil {
-		t.Fatal(err)
-	}
 	var diagnostics []generate.Diagnostic
 	inputGrammar, err := generate.ParseGrammar(grammarJSON, &diagnostics)
 	if err != nil {
@@ -406,6 +332,10 @@ func Generator(t *testing.T, language *transit.Language) {
 	}
 	name := inputGrammar.Pool.Resolve(inputGrammar.Name)
 	pkg, err := golang.PackageName(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	opts, rec, err := golang.ReadGrammarOptions(".", name)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -420,11 +350,14 @@ func Generator(t *testing.T, language *transit.Language) {
 		t.Fatal(err)
 	}
 
-	for _, f := range []struct{ name, want string }{
+	files := []struct{ name, want string }{
 		{"parser.go", backend.outputs[2]},
 		{"node-types.json", parser.NodeTypesJSON},
-		{"grammar_test.go", golang.Tests(pkg, opts)},
-	} {
+	}
+	if rec != nil {
+		files = append(files, struct{ name, want string }{"grammar_test.go", golang.Tests(pkg, opts)})
+	}
+	for _, f := range files {
 		got, err := os.ReadFile(f.name)
 		if err != nil {
 			t.Fatal(err)
@@ -434,8 +367,9 @@ func Generator(t *testing.T, language *transit.Language) {
 		}
 	}
 
-	rec, ok := findRecord(t, name)
-	if !ok {
+	if rec == nil {
+		t.Log("the package is not in a checkout of transit, so the test does not read grammars/grammars.json. " +
+			"It does not compare grammar_test.go, which names the corpus cases that fail upstream from that file")
 		return
 	}
 	for i, abi := range []string{"abi14", "abi15"} {
@@ -489,67 +423,4 @@ func (m *multiBackend) Render(in *generate.RenderInput) (string, error) {
 func sum(s string) string {
 	h := sha256.Sum256([]byte(s))
 	return hex.EncodeToString(h[:])
-}
-
-// findRecord returns the entry of grammars/grammars.json for the grammar
-// name, and false when the working folder is not in a checkout of transit.
-// When several entries have the name, the entry is the one whose repository
-// gives the name of the folder of the module, as docs/GRAMMAR.md says.
-func findRecord(t *testing.T, name string) (record, bool) {
-	t.Helper()
-	dir, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	var moduleDir, recordFile string
-	for {
-		if moduleDir == "" {
-			if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-				moduleDir = dir
-			}
-		}
-		if _, err := os.Stat(filepath.Join(dir, "grammars", "grammars.json")); err == nil {
-			recordFile = filepath.Join(dir, "grammars", "grammars.json")
-			break
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			t.Log("the package is not in a checkout of transit, so the test does not read grammars/grammars.json")
-			return record{}, false
-		}
-		dir = parent
-	}
-	b, err := os.ReadFile(recordFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var file struct {
-		Grammars []record `json:"grammars"`
-	}
-	if err := json.Unmarshal(b, &file); err != nil {
-		t.Fatal(err)
-	}
-	var found []record
-	for _, r := range file.Grammars {
-		if r.Name == name {
-			found = append(found, r)
-		}
-	}
-	if len(found) > 1 {
-		found = slices.DeleteFunc(found, func(r record) bool {
-			return moduleFolderName(r.Repository) != filepath.Base(moduleDir)
-		})
-	}
-	if len(found) != 1 {
-		t.Fatalf("grammars/grammars.json has %d entries for the grammar %s in the module folder %s", len(found), name, filepath.Base(moduleDir))
-	}
-	return found[0], true
-}
-
-// moduleFolderName returns the name of the folder of the module of a
-// repository: its name without the prefix tree-sitter- and with each "-"
-// removed, as docs/GRAMMAR.md says.
-func moduleFolderName(repository string) string {
-	name := strings.TrimPrefix(path.Base(repository), "tree-sitter-")
-	return strings.ReplaceAll(name, "-", "")
 }

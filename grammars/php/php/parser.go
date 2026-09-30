@@ -13,8 +13,8 @@ import (
 	"github.com/xo/transit/internal/abi"
 )
 
-// Language returns the language of the grammar php. Its external scanner is
-// the scanner that newScanner returns.
+// Language returns the language of the grammar php. Its external scanner is the
+// scanner that newScanner returns.
 func Language() *transit.Language {
 	return language()
 }
@@ -66,9 +66,11 @@ var language = sync.OnceValue(func() *transit.Language {
 	})
 })
 
-// Queries holds queries/*.scm of the grammar php.
+// Queries holds queries/ of the grammar php: its own queries, and in
+// queries/<grammar>/ the queries of another grammar that its tree-sitter.json
+// lists (D84).
 //
-//go:embed queries/*.scm
+//go:embed queries
 var Queries embed.FS
 
 // nodeTypes is node-types.json of the grammar.
@@ -92,7 +94,6 @@ func NodeTypes() []transit.NodeType {
 // token captures, and the reserved words. Each call returns a new slice.
 func Keywords() []string {
 	return []string{
-		"_argument_name_token1",
 		"abstract",
 		"and",
 		"array",
@@ -101,16 +102,6 @@ func Keywords() []string {
 		"bottom_type",
 		"break",
 		"case",
-		"cast_type_token10",
-		"cast_type_token11",
-		"cast_type_token2",
-		"cast_type_token3",
-		"cast_type_token4",
-		"cast_type_token5",
-		"cast_type_token6",
-		"cast_type_token7",
-		"cast_type_token8",
-		"cast_type_token9",
 		"catch",
 		"class",
 		"clone",
@@ -157,12 +148,6 @@ func Keywords() []string {
 		"object",
 		"or",
 		"parent",
-		"primitive_type_token1",
-		"primitive_type_token2",
-		"primitive_type_token3",
-		"primitive_type_token4",
-		"primitive_type_token5",
-		"primitive_type_token6",
 		"print",
 		"private",
 		"protected",

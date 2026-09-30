@@ -15,11 +15,13 @@ func init() {
 
 // TestGoPackageHighlight runs the highlight test of internal/grammartest on
 // a file of JSON with assertions in its comments, because the corpus of
-// tree-sitter-json has no test/highlight.
+// tree-sitter-json has no test/highlight. The key is a string, because the
+// last of the two patterns that capture it counts, as tree-sitter test of
+// the upstream tool says (D80).
 func TestGoPackageHighlight(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	src := "{\"key\": 12}\n//  ^ string.special.key\n//      ^ number\n//   ^ !number\n"
+	src := "{\"key\": 12}\n//  ^ string\n//  ^ !string.special.key\n//      ^ number\n//   ^ !number\n"
 	if err := os.WriteFile(filepath.Join(dir, "test.json"), []byte(src), 0o600); err != nil {
 		t.Fatal(err)
 	}

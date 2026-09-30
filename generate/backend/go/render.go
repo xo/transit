@@ -1663,19 +1663,26 @@ func (g *generator) addParserExport() {
 
 // addKeywords finds the keywords of the grammar: the tokens that the keyword
 // lex function accepts, and the tokens of each set of reserved words. It
-// ports nothing of upstream.
+// leaves out a token that is not visible, such as a hidden token that the
+// generator makes from a pattern inside a rule, because SymbolForName does
+// not find it (D82). It ports nothing of upstream.
 func (g *generator) addKeywords() {
 	set := map[string]bool{}
+	add := func(token generate.Symbol) {
+		if g.out.tables.SymbolMetadata[g.symbolValue(token)].Visible {
+			set[g.symbolName(token)] = true
+		}
+	}
 	if g.syntaxGrammar.HasWordToken {
 		for i := range g.keywordLexTable.States {
 			if state := &g.keywordLexTable.States[i]; state.HasAcceptAction {
-				set[g.symbolName(state.AcceptAction)] = true
+				add(state.AcceptAction)
 			}
 		}
 	}
 	for i := range g.reservedWordSets {
 		for token := range g.reservedWordSets[i].All() {
-			set[g.symbolName(token)] = true
+			add(token)
 		}
 	}
 	for name := range set {

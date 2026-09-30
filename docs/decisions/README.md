@@ -95,7 +95,17 @@ An open question is not a decision. It goes at the end of
 | [D74](D074-the-go-backend-writes-literal-tables-and-a-lexer-as-data.md) | The Go backend writes literal tables and a lexer as data | Decided |
 | [D75](D075-phase-4-starts-before-the-review-of-api-md.md) | Phase 4 starts before the review of API.md | Decided |
 | [D76](D076-nodetype-holds-node-types-json.md) | NodeType holds node-types.json | Decided |
-| [D77](D077-the-rules-of-a-generated-grammar-package.md) | The rules of a generated grammar package | Decided |
+| [D77](D077-the-rules-of-a-generated-grammar-package.md) | The rules of a generated grammar package | Decided, amended by D82 |
 | [D78](D078-a-large-character-set-of-surrogates-is-an-error.md) | A large character set of surrogates is an error | Decided |
-| [D79](D079-the-tests-of-a-grammar-module.md) | The tests of a grammar module | Decided, amended by D80 |
-| [D80](D080-the-highlight-test-follows-the-upstream-highlighter.md) | The highlight test follows the upstream highlighter | Decided, amends D79 |
+| [D79](D079-the-tests-of-a-grammar-module.md) | The tests of a grammar module | Decided, amended by D80, D83 and D88 |
+| [D80](D080-the-highlight-test-follows-the-upstream-highlighter.md) | The highlight test follows the upstream highlighter | Decided, amends D79, amended by D84 |
+| [D81](D081-the-ruby-scanner-checks-the-room-of-its-state.md) | The ruby scanner checks the room of its state | Decided |
+| [D82](D082-keywords-leaves-out-hidden-tokens.md) | Keywords leaves out hidden tokens | Decided, amends D77 |
+| [D83](D083-a-corpus-case-runs-in-the-package-of-its-grammar.md) | A corpus case runs in the package of its grammar | Decided, amends D79 |
+| [D84](D084-a-module-copies-the-queries-of-another-grammar-that-it-lists.md) | A module copies the queries of another grammar that it lists | Decided, amends D80 |
+| [D85](D085-the-rules-of-a-scanner-port.md) | The rules of a scanner port | Decided |
+| [D86](D086-the-layout-of-the-fixture-grammar-modules.md) | The layout of the fixture grammar modules | Decided |
+| [D87](D087-the-test-module-runs-with-a-timeout-of-an-hour.md) | The test module runs with a timeout of an hour | Decided |
+| [D88](D088-a-grammar-module-holds-its-list-of-upstream-failures.md) | A grammar module holds its list of upstream failures | Decided, amends D79 |
+| [D89](D089-querymatch-remove-has-a-go-form.md) | QueryMatch.Remove has a Go form | Decided |
+| [D90](D090-the-folder-of-a-package-comes-from-its-path.md) | The folder of a package comes from its path | Decided |

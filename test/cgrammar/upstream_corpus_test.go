@@ -17,6 +17,7 @@ import (
 	"github.com/xo/transit"
 	"github.com/xo/transit/generate"
 	"github.com/xo/transit/generate/backend/c"
+	"github.com/xo/transit/internal/grammartest"
 )
 
 // This file ports crates/cli/src/tests/corpus_test.rs of upstream (D35),
@@ -390,185 +391,15 @@ func urStripSexpFields(sexp string) string {
 // the output format expected by a corpus test.
 func urRenderTestOutput(input []byte, tree *transit.Tree, cst, includeFields bool) string {
 	if cst {
-		return urRenderCST(input, tree)
+		// render_cst of parse.rs is in the package grammartest, which the
+		// corpus test of a grammar package runs with it
+		return grammartest.RenderCST(input, tree)
 	}
 	out := tree.RootNode().String()
 	if includeFields {
 		return out
 	}
 	return urStripSexpFields(out)
-}
-
-// urIlog10 is checked_ilog10 with unwrap_or(0).
-func urIlog10(n int) int {
-	if n <= 0 {
-		return 0
-	}
-	return len(strconv.Itoa(n)) - 1
-}
-
-// urRenderCST is render_test_cst and render_cst of parse.rs, with no
-// colors and with the ranges of the nodes.
-func urRenderCST(sourceCode []byte, tree *transit.Tree) string {
-	var out strings.Builder
-	cursor := tree.Walk()
-	lossySourceCode := strings.ToValidUTF8(string(sourceCode), "�")
-	totalWidth := 0
-	row := 0
-	for line := range strings.Lines(lossySourceCode) {
-		line = strings.TrimSuffix(strings.TrimSuffix(line, "\n"), "\r")
-		totalWidth = max(totalWidth, urIlog10(row)+urIlog10(len(line))+1)
-		row++
-	}
-	if row == 0 {
-		totalWidth = 1
-	}
-	indentLevel := 1
-	didVisitChildren := false
-	inError := false
-	for {
-		if didVisitChildren {
-			switch {
-			case cursor.GotoNextSibling():
-				didVisitChildren = false
-			case cursor.GotoParent():
-				didVisitChildren = true
-				indentLevel--
-				if !cursor.Node().HasError() {
-					inError = false
-				}
-			default:
-				return strings.TrimSpace(out.String())
-			}
-		} else {
-			urCSTRenderNode(&out, cursor, sourceCode, totalWidth, indentLevel, inError)
-			if cursor.GotoFirstChild() {
-				didVisitChildren = false
-				indentLevel++
-				if cursor.Node().HasError() {
-					inError = true
-				}
-			} else {
-				didVisitChildren = true
-			}
-		}
-	}
-}
-
-// urCSTNodeText is CstNodeText: it escapes the invisible characters and
-// the delimiters.
-func urCSTNodeText(s string) string {
-	var out strings.Builder
-	for _, c := range s {
-		switch c {
-		case '\n':
-			out.WriteString(`\n`)
-		case '\r':
-			out.WriteString(`\r`)
-		case '\t':
-			out.WriteString(`\t`)
-		case 0:
-			out.WriteString(`\0`)
-		case '\\':
-			out.WriteString(`\\`)
-		case '\x0b':
-			out.WriteString(`\v`)
-		case '\x0c':
-			out.WriteString(`\f`)
-		case '`':
-			out.WriteString("\\`")
-		case '"':
-			out.WriteString(`\"`)
-		default:
-			out.WriteRune(c)
-		}
-	}
-	return out.String()
-}
-
-// urCSTNodeRange is CstNodeRange.
-func urCSTNodeRange(totalWidth int, r transit.Range) string {
-	remainingWidth := func(row, col int) int {
-		return max(totalWidth-urIlog10(row)-urIlog10(col), 1)
-	}
-	start, end := r.StartPoint, r.EndPoint
-	return fmt.Sprintf("%d:%d%s- %d:%d%s",
-		start.Row, start.Column, strings.Repeat(" ", remainingWidth(start.Row, start.Column)),
-		end.Row, end.Column, strings.Repeat(" ", remainingWidth(end.Row, end.Column)))
-}
-
-// urWriteNodeText is write_node_text.
-func urWriteNodeText(out *strings.Builder, cursor *transit.TreeCursor, isNamed bool, source string, totalWidth, indentLevel int) {
-	if !isNamed {
-		out.WriteString(`"` + urCSTNodeText(source) + `"`)
-		return
-	}
-	multiline := strings.Contains(source, "\n")
-	i := 0
-	for line := range strings.Lines(source) {
-		nodeRange := cursor.Node().Range()
-		// For each line of text, adjust the row by shifting it down `i` rows,
-		// and adjust the column by setting it to the length of *this* line.
-		nodeRange.StartPoint.Row += i
-		nodeRange.EndPoint.Row = nodeRange.StartPoint.Row
-		nodeRange.EndPoint.Column = len(line)
-		if i == 0 {
-			nodeRange.EndPoint.Column += nodeRange.StartPoint.Column
-		}
-		if multiline {
-			out.WriteString("\n")
-			out.WriteString(urCSTNodeRange(totalWidth, nodeRange))
-			for range indentLevel + 1 {
-				out.WriteString("  ")
-			}
-		} else {
-			out.WriteString(" ")
-		}
-		// CstLineFeed
-		parts := strings.Split(line, "\n")
-		out.WriteString("`" + urCSTNodeText(parts[0]))
-		for _, part := range parts[1:] {
-			out.WriteString(urCSTNodeText("\n") + urCSTNodeText(part))
-		}
-		out.WriteString("`")
-		i++
-	}
-}
-
-// urCSTRenderNode is cst_render_node.
-func urCSTRenderNode(out *strings.Builder, cursor *transit.TreeCursor, sourceCode []byte, totalWidth, indentLevel int, inError bool) {
-	node := cursor.Node()
-	isNamed := node.IsNamed()
-	out.WriteString(urCSTNodeRange(totalWidth, node.Range()))
-	out.WriteString(strings.Repeat("  ", indentLevel))
-	if inError && !node.HasError() {
-		out.WriteString(" ")
-	}
-	switch {
-	case isNamed:
-		if fieldName := cursor.FieldName(); fieldName != "" {
-			out.WriteString(fieldName + ": ")
-		}
-
-		if node.HasError() || node.IsError() {
-			out.WriteString("•")
-		}
-
-		out.WriteString(node.Kind())
-
-		if node.ChildCount() == 0 {
-			// Node text from a pattern or external scanner
-			text := strings.ToValidUTF8(string(sourceCode[node.StartByte():node.EndByte()]), "�")
-			urWriteNodeText(out, cursor, isNamed, text, totalWidth, indentLevel)
-		}
-	case node.IsMissing():
-		out.WriteString("MISSING: ")
-		out.WriteString(`"` + node.Kind() + `"`)
-	default:
-		// Terminal literals, like "fn"
-		urWriteNodeText(out, cursor, isNamed, node.Kind(), totalWidth, indentLevel)
-	}
-	out.WriteString("\n")
 }
 
 // urSetIncludedRanges is set_included_ranges of fuzz/corpus_test.rs.

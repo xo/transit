@@ -1142,6 +1142,9 @@
       "corpus": {
         "tests": 662,
         "failures": 1,
+        "failing": [
+          "string/multilineInterpolation2/multilineInterpolation2.txt"
+        ],
         "transit": "same"
       }
     },
@@ -2811,6 +2814,27 @@
       "corpus": {
         "tests": 116,
         "failures": 19,
+        "failing": [
+          "collections/collection@|@1",
+          "collections/collection@@1",
+          "collections/collection|@|1",
+          "collections/arithmetic series with variable",
+          "collections/index_collection multidimensional array",
+          "collections/index_collection array[1..3]",
+          "collections/index_collection array[1..]",
+          "collections/index_collection array[..1]",
+          "collections/indexing on arithmetic series (1..10)[0..3]",
+          "collections/indexing on string",
+          "collections/index_collection symbolic notation",
+          "control_structure/while {test} {body}",
+          "functions/C-style initialization of arguments using parenthesis",
+          "functions/Spaces in argument list with no commas",
+          "functions/Argument list with variable argument",
+          "weirdstuff/Chained duplications",
+          "weirdstuff/Assign duplication to local variable",
+          "weirdstuff/duplication as function call argument",
+          "weirdstuff/Math on duplications"
+        ],
         "transit": "same"
       }
     },
@@ -6363,6 +6387,16 @@
       "corpus": {
         "tests": 363,
         "failures": 8,
+        "failing": [
+          "extension_wikilink/Basic Wiki-link parsing.",
+          "extension_wikilink/Wiki-link to a file",
+          "extension_wikilink/Wiki-link to a heading in a note",
+          "extension_wikilink/Wiki-link with title",
+          "extension_wikilink/Wiki-link version of Example 556",
+          "spec/Example 324 - https://github.github.com/gfm/#example-324",
+          "spec/Example 638 - https://github.github.com/gfm/#example-638",
+          "tags/Tags are working"
+        ],
         "transit": "same"
       }
     },
@@ -8196,6 +8230,9 @@
       "corpus": {
         "tests": 10,
         "failures": 1,
+        "failing": [
+          "function_overrides/Overrides"
+        ],
         "transit": "same"
       }
     },
@@ -8571,6 +8608,9 @@
       "corpus": {
         "tests": 283,
         "failures": 1,
+        "failing": [
+          "variables/Double dollar edge cases"
+        ],
         "transit": "same"
       }
     },
@@ -8637,6 +8677,25 @@
       "corpus": {
         "tests": 75,
         "failures": 17,
+        "failing": [
+          "agda-stdlib/IO/Primitive/IO monad",
+          "agda-stdlib/Strict/module",
+          "declaration/abstract/Abstract",
+          "declaration/data/Simple",
+          "declaration/field/Field",
+          "declaration/field/Field (same line + block)",
+          "declaration/instance/Instance",
+          "declaration/mutual/Mutual",
+          "declaration/private/Private",
+          "declaration/record/Directives with declarations II",
+          "expression/do/Simple bind",
+          "expression/do/Pattern bind",
+          "expression/do/Non-binding statement",
+          "expression/do/Nested",
+          "expression/do/Let binding (Single line)",
+          "expression/let/Single line without body",
+          "expression/let/Single line without body (indent)"
+        ],
         "transit": "same"
       }
     },
@@ -8846,6 +8905,9 @@
       "corpus": {
         "tests": 168,
         "failures": 1,
+        "failing": [
+          "statements/Switch statements"
+        ],
         "transit": "same"
       }
     },

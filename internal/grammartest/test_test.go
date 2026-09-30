@@ -290,65 +290,117 @@ func TestToUTF8Point(t *testing.T) {
 	}
 }
 
-func TestCheckAssertions(t *testing.T) {
-	infos := []captureInfo{
-		{name: "string", start: utf8Point{0, 0}, end: utf8Point{0, 10}},
-		{name: "escape", start: utf8Point{0, 2}, end: utf8Point{0, 4}},
-		{name: "number", start: utf8Point{1, 0}, end: utf8Point{1, 3}},
+// TestIterateAssertions checks assertions against highlights in the order
+// of the text, as get_highlight_positions gives them: the text of an escape
+// inside a string, and a number.
+func TestIterateAssertions(t *testing.T) {
+	names := []string{"string", "escape", "number"}
+	highlights := []highlightPosition{
+		{start: utf8Point{0, 0}, end: utf8Point{0, 2}, highlight: 0},
+		{start: utf8Point{0, 2}, end: utf8Point{0, 4}, highlight: 1},
+		{start: utf8Point{0, 4}, end: utf8Point{0, 10}, highlight: 0},
+		{start: utf8Point{1, 0}, end: utf8Point{1, 3}, highlight: 2},
 	}
 	for _, c := range []struct {
 		name string
 		a    assertion
-		ok   bool
+		want string
 	}{
-		{"the innermost capture", assertion{position: utf8Point{0, 2}, length: 1, expectedCaptureName: "escape"}, true},
-		{"the outer capture", assertion{position: utf8Point{0, 6}, length: 1, expectedCaptureName: "string"}, true},
-		{"a wrong name", assertion{position: utf8Point{0, 6}, length: 1, expectedCaptureName: "number"}, false},
-		{"a negative assertion", assertion{position: utf8Point{1, 0}, length: 2, negative: true, expectedCaptureName: "string"}, true},
-		{"a negative assertion that fails", assertion{position: utf8Point{1, 0}, length: 1, negative: true, expectedCaptureName: "number"}, false},
-		{"no capture", assertion{position: utf8Point{2, 0}, length: 1, negative: true, expectedCaptureName: "x"}, false},
-		{"arrows past the end", assertion{position: utf8Point{1, 1}, length: 3, expectedCaptureName: "number"}, false},
+		{"the innermost highlight", assertion{position: utf8Point{0, 2}, length: 1, expectedCaptureName: "escape"}, ""},
+		{"the outer highlight", assertion{position: utf8Point{0, 6}, length: 1, expectedCaptureName: "string"}, ""},
+		{"a wrong name", assertion{position: utf8Point{0, 6}, length: 1, expectedCaptureName: "number"},
+			"Failure - row: 0, column: 6, expected highlight 'number', actual highlights: 'string'"},
+		{"a negative assertion", assertion{position: utf8Point{1, 0}, length: 2, negative: true, expectedCaptureName: "string"}, ""},
+		{"a negative assertion that fails", assertion{position: utf8Point{1, 0}, length: 1, negative: true, expectedCaptureName: "number"},
+			"Failure - row: 1, column: 0, expected highlight '!number', actual highlights: 'number'"},
+		{"no highlight", assertion{position: utf8Point{2, 0}, length: 1, negative: true, expectedCaptureName: "x"},
+			"Failure - row: 2, column: 0, expected highlight '!x', actual highlights: none."},
+		{"arrows over two highlights", assertion{position: utf8Point{0, 1}, length: 3, expectedCaptureName: "escape"}, ""},
 	} {
-		n, err := checkAssertions(infos, []assertion{c.a})
-		if ok := err == nil; ok != c.ok {
+		n, err := iterateAssertions([]assertion{c.a}, highlights, names)
+		switch {
+		case c.want == "" && err != nil:
 			t.Errorf("%s: got the error %v", c.name, err)
-		}
-		if err != nil && !errors.Is(err, errAssertion) {
+		case c.want == "" && n != 1:
+			t.Errorf("%s: counted %d assertions", c.name, n)
+		case c.want != "" && (err == nil || err.Error() != c.want):
+			t.Errorf("%s: got the error %v, want %s", c.name, err, c.want)
+		case c.want != "" && !errors.Is(err, errAssertion):
 			t.Errorf("%s: the error %v is not errAssertion", c.name, err)
 		}
-		if err == nil && n != 1 {
-			t.Errorf("%s: counted %d assertions", c.name, n)
-		}
 	}
 }
 
-func TestModuleFolderName(t *testing.T) {
-	for repo, want := range map[string]string{
-		"https://github.com/tree-sitter/tree-sitter-json":              "json",
-		"https://github.com/tree-sitter/tree-sitter-embedded-template": "embeddedtemplate",
-		"https://github.com/DerekStride/tree-sitter-sql":               "sql",
-	} {
-		if got := moduleFolderName(repo); got != want {
-			t.Errorf("moduleFolderName(%q) = %q, want %q", repo, got, want)
-		}
-	}
-}
-
-func TestOtherGrammars(t *testing.T) {
+// TestReadModule makes sure that the folder of a package in its module comes
+// from the working folder, or from the name of its language when no entry
+// of tree-sitter.json has the working folder, and that a case runs in the
+// package that D83 names.
+func TestReadModule(t *testing.T) {
 	dir := t.TempDir()
-	sub := filepath.Join(dir, "b", "c")
-	if err := os.MkdirAll(sub, 0o750); err != nil {
-		t.Fatal(err)
-	}
-	if got, err := otherGrammars(sub, "a"); err != nil || got != nil {
-		t.Errorf("with no tree-sitter.json, otherGrammars = %q, %v", got, err)
-	}
-	cfg := `{"grammars": [{"name": "a"}, {"name": "b"}, {"name": "c"}, {"name": "b"}]}`
+	cfg := `{"grammars": [{"name": "typescript", "path": "typescript"}, {"name": "tsx", "path": "tsx"}, {"name": "flow", "path": "tsx"}]}`
 	if err := os.WriteFile(filepath.Join(dir, "tree-sitter.json"), []byte(cfg), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	got, err := otherGrammars(sub, "a")
-	if err != nil || strings.Join(got, ",") != "b,c" {
-		t.Errorf("otherGrammars = %q, %v, want b,c", got, err)
+	for _, sub := range []string{"typescript", "tsx", "other"} {
+		if err := os.MkdirAll(filepath.Join(dir, sub), 0o750); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, c := range []struct{ wd, own string }{
+		{"typescript", "typescript"},
+		{"tsx", "tsx"},
+		{"other", "tsx"},
+		{".", "tsx"},
+	} {
+		t.Chdir(filepath.Join(dir, c.wd))
+		m, err := readModule("tsx")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if m.own != c.own || len(m.entries) != 3 {
+			t.Errorf("in %s: own %q with %d entries, want %q with 3", c.wd, m.own, len(m.entries), c.own)
+		}
+	}
+	t.Chdir(filepath.Join(dir, "tsx"))
+	m, err := readModule("tsx")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := &corpusRun{module: m}
+	for _, c := range []struct {
+		languages []string
+		owner     string
+	}{
+		{[]string{""}, "typescript"},
+		{[]string{"tsx"}, "tsx"},
+		{[]string{"flow"}, "tsx"},
+		{[]string{"typescript"}, "typescript"},
+		{[]string{"css"}, "tsx"},
+	} {
+		if got := r.owner(testAttributes{languages: c.languages}); got != c.owner {
+			t.Errorf("owner of %q = %q, want %q", c.languages, got, c.owner)
+		}
+	}
+	t.Chdir(t.TempDir())
+	if m, err := readModule("tsx"); err != nil || m.own != "." || len(m.entries) != 0 {
+		t.Errorf("with no tree-sitter.json, readModule = %+v, %v", m, err)
+	}
+}
+
+// TestPackageQueryPath makes sure that a query file of another grammar that
+// tree-sitter.json lists is in the folder of that grammar under queries/
+// (D84), and that any other path stays the same.
+func TestPackageQueryPath(t *testing.T) {
+	for p, want := range map[string]string{
+		"queries/highlights.scm": "queries/highlights.scm",
+		"./queries/locals.scm":   "queries/locals.scm",
+		"node_modules/tree-sitter-javascript/queries/highlights.scm": "queries/javascript/highlights.scm",
+		"node_modules/tree-sitter-c/queries/highlights.scm":          "queries/c/highlights.scm",
+		"node_modules/tree-sitter-c-sharp/queries/tags.scm":          "queries/c_sharp/tags.scm",
+		"node_modules/other/queries/highlights.scm":                  "node_modules/other/queries/highlights.scm",
+	} {
+		if got := packageQueryPath(p); got != want {
+			t.Errorf("packageQueryPath(%q) = %q, want %q", p, got, want)
+		}
 	}
 }
