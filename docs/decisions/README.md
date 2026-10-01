@@ -44,7 +44,7 @@ An open question is not a decision. It goes at the end of
 | [D23](D023-grammars-for-dbmeta-languages-join-the-set-now.md) | The grammars that exist for dbmeta's languages join the set now | Decided |
 | [D24](D024-the-port-and-the-generated-code-are-idiomatic-go.md) | The port and the generated code are idiomatic Go | Decided, amends D1, amended by D64 |
 | [D25](D025-the-go-api-follows-the-rust-binding-in-go-idioms.md) | The Go API follows the Rust binding, in Go idioms | Decided |
-| [D26](D026-the-packages-and-modules-of-transit.md) | The packages and modules of transit | Decided, amended by D48, D65 and D99 |
+| [D26](D026-the-packages-and-modules-of-transit.md) | The packages and modules of transit | Decided, amended by D48, D65, D99 and D107 |
 | [D27](D027-predicates-and-injections-are-ported.md) | Query predicates and injections are ported | Decided, amends D7 |
 | [D28](D028-transit-can-add-an-api-that-upstream-lacks.md) | transit can add an API that upstream does not have | Decided |
 | [D29](D029-the-subtree-form-is-chosen-by-a-benchmark.md) | The Go form of a subtree is chosen by a benchmark | Decided |
@@ -60,7 +60,7 @@ An open question is not a decision. It goes at the end of
 | [D39](D039-scanner-character-functions-use-go-unicode.md) | Scanner character functions use Go's unicode package | Decided, amended by D46 |
 | [D40](D040-golden-files-are-hashes.md) | Golden files are hashes, and the test grammars keep their files | Decided |
 | [D41](D041-cmd-transit-generates-tests-parses-and-queries.md) | cmd/transit generates, tests, parses and queries | Decided, amends D7 |
-| [D42](D042-xo-grammars-live-in-transit.md) | Grammars that xo writes live in transit | Decided, amended by D104 |
+| [D42](D042-xo-grammars-live-in-transit.md) | Grammars that xo writes live in transit | Decided, amended by D104 and D106 |
 | [D43](D043-modules-are-tagged-one-by-one.md) | Each module is tagged on its own | Decided, amended by D48, D65 and D99 |
 | [D44](D044-input-that-transit-cannot-trust.md) | Input that transit cannot trust | Decided |
 | [D45](D045-go-grammars-are-compared-with-c-at-unicode-16.md) | Go grammars are compared with C grammars at the Unicode version of upstream | Decided, amended by D60 |
@@ -119,8 +119,11 @@ An open question is not a decision. It goes at the end of
 | [D98](D098-the-styles-that-transit-bundles.md) | The styles that transit bundles | Decided, amends D65, amended by D100 |
 | [D99](D099-the-package-styles-is-a-module-of-its-own.md) | The package styles is a module of its own | Decided, amends D26, D43 and D65 |
 | [D100](D100-three-choices-for-the-hand-made-styles.md) | Three choices for the hand-made styles | Decided, amends D98 |
-| [D101](D101-the-usql-grammar-has-one-grammar-for-each-family-of-dialects.md) | The usql grammar has one grammar for each family of dialects | Decided, amends D13, amended by D105 |
+| [D101](D101-the-usql-grammar-has-one-grammar-for-each-family-of-dialects.md) | The usql grammar has one grammar for each family of dialects | Decided, amends D13, amended by D105 and D108 |
 | [D102](D102-the-shape-of-the-usql-grammar.md) | The shape of the usql grammar | Decided, amended by D105 |
 | [D103](D103-ken-accepts-the-target-api.md) | Ken accepts the target API | Decided |
 | [D104](D104-a-grammar-that-xo-writes-lives-in-grammars.md) | A grammar that xo writes lives in grammars | Decided, amends D42 |
-| [D105](D105-ken-accepts-the-usql-grammar.md) | Ken accepts the usql grammar | Decided, amends D101 and D102 |
+| [D105](D105-ken-accepts-the-usql-grammar.md) | Ken accepts the usql grammar | Decided, amends D101 and D102, amended by D108 |
+| [D106](D106-the-grammars-of-phase-5.md) | The grammars of phase 5 | Decided, amends D42, amended by D107 |
+| [D107](D107-a-grammar-module-takes-the-name-of-its-dialect.md) | A grammar module takes the name of its dialect | Decided, amends D26 and D106, amended by D108 |
+| [D108](D108-the-usql-grammar-is-one-language-that-takes-options.md) | The usql grammar is one language that takes options | Decided, amends D101, D105 and D107 |

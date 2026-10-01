@@ -1947,14 +1947,16 @@ func compareBool(a, b bool) int {
 
 // Backend is the Go backend. It writes parser.go.
 type Backend struct {
+	// Package is the name of the package, which PackageName gives for the
+	// folder of the package.
+	Package string
 	// Queries is true when the folder of the package holds a file
 	// queries/*.scm, which parser.go embeds.
 	Queries bool
 }
 
 // Render returns the Go code of parser.go of a grammar. It does not change
-// the RenderInput. The name of the package is the name of the grammar with
-// each "_" removed, as docs/GRAMMAR.md says.
+// the RenderInput.
 //
 // Render is render_c_code, for Go.
 func (b Backend) Render(in *generate.RenderInput) (string, error) {
@@ -1962,7 +1964,7 @@ func (b Backend) Render(in *generate.RenderInput) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return writeParser(out, b.Queries)
+	return writeParser(out, b.Package, b.Queries), nil
 }
 
 // Tables returns the tables that Render writes for a grammar, with the lex

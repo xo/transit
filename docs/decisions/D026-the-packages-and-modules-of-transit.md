@@ -1,6 +1,6 @@
 # D26. The packages and modules of transit
 
-Status: Decided, amended by D48, D65 and D99.
+Status: Decided, amended by D48, D65, D99 and D107.
 
 Ken decided on 2026-09-29, answering questions 5, 8, 39 and 40:
 

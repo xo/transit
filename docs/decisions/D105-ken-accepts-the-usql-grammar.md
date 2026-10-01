@@ -1,6 +1,6 @@
 # D105. Ken accepts the usql grammar
 
-Status: Decided, amends D101 and D102.
+Status: Decided, amends D101 and D102, amended by D108.
 
 Ken reviewed the usql grammar in `grammars/usql` on 2026-10-01 and accepted
 it as it is. The agent that wrote it named ten choices that D101 and D102 do

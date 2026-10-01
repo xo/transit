@@ -43,7 +43,8 @@ type speedGrammar struct {
 }
 
 // speedGrammars are the grammar packages of the speed benchmarks. python,
-// javascript and rust have an external scanner.
+// javascript and rust have an external scanner. A grammar package of the set
+// sql adds itself in a file of its own, such as speed_postgres_test.go.
 var speedGrammars = []speedGrammar{
 	{"json", jsongram.Language, jsongram.Queries, speedJSON},
 	{"c", cgram.Language, cgram.Queries, speedC},
@@ -137,9 +138,9 @@ func loadSpeedGrammar(tb testing.TB, name string, o2 bool) *Grammar {
 	if err := json.Unmarshal(b, &rec); err != nil {
 		tb.Fatal(err)
 	}
-	i := slices.IndexFunc(rec.Grammars, func(f fixture) bool { return f.Name == name && f.Set == "fixture" })
+	i := slices.IndexFunc(rec.Grammars, func(f fixture) bool { return f.Name == name && (f.Set == "fixture" || f.Set == "sql") })
 	if i < 0 {
-		tb.Fatalf("no fixture grammar %s in grammars/grammars.json", name)
+		tb.Fatalf("no grammar %s of the sets fixture and sql in grammars/grammars.json", name)
 	}
 	dir, _ := grammarDirs(cache, rec.Grammars[i])
 	so, err := build(context.Background(), dir, cache)

@@ -403,7 +403,8 @@ func writeFailingFiles(grammars string, rec *record) error {
 // ownCases returns the names of cases that the grammar package in dir runs
 // (D83, D93). In a module with more than one grammar, a case runs in the
 // package of the grammar that its :language names, or of the first grammar
-// of tree-sitter.json when it names none. The harness imports only the
+// of tree-sitter.json when it names none, or of the package itself when no
+// entry of tree-sitter.json has its folder. The harness imports only the
 // standard library (D58), so this reads the header of each case itself,
 // with the rule of internal/grammartest. A case that the corpus does not
 // hold, or whose :language names no grammar of the module, stays, because
@@ -440,6 +441,15 @@ func ownCases(grammars, dir string, names []string) ([]string, error) {
 		return strings.NewReplacer("_", "", "-", "").Replace(p)
 	}
 	own := filepath.Base(dir)
+	// A package of a grammar that tree-sitter.json does not list, such as
+	// plpgsql of tree-sitter-postgres, runs each case of its own corpus.
+	listed := false
+	for _, g := range cfg.Grammars {
+		listed = listed || folder(g.Path) == own
+	}
+	if !listed {
+		return names, nil
+	}
 	var out []string
 	for _, name := range names {
 		language, found, err := caseLanguage(filepath.Join(dir, "testdata", "corpus"), name)
@@ -514,7 +524,9 @@ func headerLanguage(content, title string) (string, bool) {
 // dir, as golang.FindRecord of the root module finds it: the entry with the
 // name of grammar.json. When several entries have the name, the entry is
 // the one whose repository gives the name of the folder of the module, the
-// nearest folder that holds a go.mod, as docs/GRAMMAR.md says.
+// nearest folder that holds a go.mod, as docs/GRAMMAR.md says. When several
+// entries give that name too, the entry is the one whose repository the
+// tree-sitter.json of the module names (D106).
 func packageEntry(grammars, dir string, rec *record) (*grammar, error) {
 	b, err := os.ReadFile(filepath.Join(dir, "grammar.json"))
 	if err != nil {
@@ -541,10 +553,56 @@ func packageEntry(grammars, dir string, rec *record) (*grammar, error) {
 			return moduleFolderName(g.Repository) != filepath.Base(moduleDir)
 		})
 	}
+	if len(found) > 1 {
+		repository, err := moduleRepository(moduleDir)
+		if err != nil {
+			return nil, err
+		}
+		found = slices.DeleteFunc(found, func(g *grammar) bool {
+			return !sameRepository(g.Repository, repository)
+		})
+	}
 	if len(found) != 1 {
 		return nil, fmt.Errorf("finding the entry of the grammar package %s: the record has %d entries for the grammar %s in the module folder %s", dir, len(found), head.Name, filepath.Base(moduleDir))
 	}
 	return found[0], nil
+}
+
+// moduleRepository returns the repository that the tree-sitter.json in the
+// folder of a module names in metadata.links.repository, or "" when the
+// folder has no tree-sitter.json or the file names no repository, as
+// golang.FindRecord of the root module reads it.
+func moduleRepository(moduleDir string) (string, error) {
+	p := filepath.Join(moduleDir, "tree-sitter.json")
+	b, err := os.ReadFile(p)
+	if errors.Is(err, fs.ErrNotExist) {
+		return "", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("reading %s: %w", p, err)
+	}
+	var cfg struct {
+		Metadata struct {
+			Links struct {
+				Repository string `json:"repository"`
+			} `json:"links"`
+		} `json:"metadata"`
+	}
+	if err := json.Unmarshal(b, &cfg); err != nil {
+		return "", fmt.Errorf("decoding %s: %w", p, err)
+	}
+	return cfg.Metadata.Links.Repository, nil
+}
+
+// sameRepository reports whether two URLs name the same repository, as
+// golang.FindRecord of the root module compares them. It ignores the case,
+// a prefix git+ and a suffix .git or /. An empty URL names no repository.
+func sameRepository(a, b string) bool {
+	clean := func(u string) string {
+		u = strings.ToLower(strings.TrimPrefix(u, "git+"))
+		return strings.TrimSuffix(strings.TrimSuffix(u, "/"), ".git")
+	}
+	return a != "" && b != "" && clean(a) == clean(b)
 }
 
 // moduleFolderName returns the name of the folder of the module of a

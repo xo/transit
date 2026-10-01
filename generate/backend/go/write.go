@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/format"
 	"go/token"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -72,24 +73,32 @@ func (n goNames) name(cID string) string {
 	return name
 }
 
-// PackageName returns the name of the Go package of a grammar: the name of
-// the grammar with each "_" removed, as docs/GRAMMAR.md says. The grammar go
-// gives the package golang, as D26 names the package of the Go backend
-// (D77). It returns an error when the result is not a name that a Go
-// package can have.
-func PackageName(grammarName string) (string, error) {
-	name := strings.ReplaceAll(grammarName, "_", "")
+// PackageName returns the name of the Go package of the grammar package in
+// the folder dir: the name of the folder in lowercase, as docs/GRAMMAR.md
+// says (D107). The folder sqlserver of the grammar TSQL gives the package
+// sqlserver. The folder go gives the package golang, as D26 names the
+// package of the Go backend (D77). In the Go module cache, the folder of a
+// module ends with "@" and the version, such as json@v0.1.0, and the name
+// ends before the "@". PackageName returns an error when the result is not
+// a name that a Go package can have.
+func PackageName(dir string) (string, error) {
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		return "", fmt.Errorf("finding the folder %s: %w", dir, err)
+	}
+	folder, _, _ := strings.Cut(filepath.Base(abs), "@")
+	name := strings.ToLower(folder)
 	if name == "go" {
 		return "golang", nil
 	}
 	if !token.IsIdentifier(name) {
-		return "", fmt.Errorf("naming the Go package of the grammar %q: %q %w", grammarName, name, errPackageName)
+		return "", fmt.Errorf("naming the Go package of the folder %s: %q %w", abs, name, errPackageName)
 	}
 	return name, nil
 }
 
-// errPackageName is the error of a grammar whose name gives no Go package
-// name, such as go, which is a keyword of Go.
+// errPackageName is the error of a folder whose name gives no Go package
+// name, such as func, which is a keyword of Go.
 var errPackageName = constError("is not a name of a Go package")
 
 // constError is an error that is a constant.
@@ -124,13 +133,10 @@ func (w *writer) printf(format string, args ...any) {
 	_, _ = fmt.Fprintf(w, format, args...)
 }
 
-// writeParser returns the text of parser.go for the output of a grammar.
-// queries is true when the package holds queries/*.scm.
-func writeParser(out *output, queries bool) (string, error) {
-	pkg, err := PackageName(out.name)
-	if err != nil {
-		return "", err
-	}
+// writeParser returns the text of parser.go of the package pkg for the
+// output of a grammar. queries is true when the package holds
+// queries/*.scm.
+func writeParser(out *output, pkg string, queries bool) string {
 	w := &writer{}
 	writeHeader(w, out, pkg, queries)
 	writeConstants(w, out)
@@ -148,7 +154,7 @@ func writeParser(out *output, queries bool) (string, error) {
 	if out.keywordLex != nil {
 		writeLexTable(w, "keywordLexTable", "lexKeywords", "the lex function of the keywords", out.keywordLex)
 	}
-	return strings.TrimRight(w.String(), "\n") + "\n", nil
+	return strings.TrimRight(w.String(), "\n") + "\n"
 }
 
 // writeHeader writes the comment of the file, the package clause, the

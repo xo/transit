@@ -95,7 +95,8 @@ func TestGenerateGoPackage(t *testing.T) {
 	t.Parallel()
 	src := filepath.Join("..", "..", "grammars", "json")
 	for _, arg := range []string{"", "grammar.json"} {
-		dir := t.TempDir()
+		// the folder gives the name of the package
+		dir := filepath.Join(t.TempDir(), "json")
 		for _, name := range []string{"grammar.json", "tree-sitter.json", "queries/highlights.scm", "testdata/corpus/main.txt"} {
 			b, err := os.ReadFile(filepath.Join(src, name))
 			if err != nil {

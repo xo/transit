@@ -36,7 +36,7 @@ jobs:
       run: go vet ./... && go test -race -count=1 -timeout 60m ./...
     - name: Grammar modules
       # each grammar module has its own go.mod (D26, D79)
-      run: for m in grammars/*/go.mod; do (cd "$(dirname "$m")" && go vet ./... && go test -race -count=1 ./...) || exit 1; done
+      run: for m in grammars/*/go.mod; do (cd "$(dirname "$m")" && go vet ./... && go test -race -count=1 -timeout 60m ./...) || exit 1; done
     - name: Styles module
       # the module styles has its own go.mod (D99)
       working-directory: styles

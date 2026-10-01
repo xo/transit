@@ -39,22 +39,45 @@ type goPackage struct {
 // added at the same time do not change the same lines.
 var goPackages []goPackage
 
+// goPackageSets are the sets of grammars/grammars.json that hold the
+// grammars of the grammar packages: the fixture grammars, the grammars that
+// xo writes (D42), the SQL grammars of phase 5 (D106, D107), and the
+// grammars of the languages of dbmeta (D21, D23).
+var goPackageSets = []string{"fixture", "xo", "tier3", "sql", "dbmeta"}
+
+// goPackageEntry returns the entry of grammars/grammars.json of the grammar
+// of a grammar package. When several entries of goPackageSets have the name
+// of the grammar, as the two grammars sql do, the entry is the one that
+// golang.FindRecord gives for the folder of the module.
+func goPackageEntry(t *testing.T, root, name string) fixture {
+	t.Helper()
+	var found []fixture
+	for _, f := range recorded(t, root, goPackageSets...) {
+		if f.Name == name {
+			found = append(found, f)
+		}
+	}
+	if len(found) > 1 {
+		rec, err := golang.FindRecord(filepath.Join(root, "grammars", golang.ModuleFolderName(found[0].Repository)), name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		found = slices.DeleteFunc(found, func(f fixture) bool { return rec == nil || f.Repository != rec.Repository })
+	}
+	if len(found) != 1 {
+		t.Fatalf("grammars/grammars.json has %d entries of the sets %v for the grammar %s", len(found), goPackageSets, name)
+	}
+	return found[0]
+}
+
 // loadGoPackage builds and loads the C grammar of a grammar package, with
 // the version of its tree-sitter.json, and reads the corpus of the grammar
-// and the error corpus of upstream. The grammar is a fixture grammar or a
-// grammar that xo writes (D42).
+// and the error corpus of upstream. goPackageEntry gives the entry of the
+// grammar.
 func loadGoPackage(t *testing.T, gp goPackage) (*Grammar, []Example) {
 	t.Helper()
 	root, cache := setup(t)
-	var f fixture
-	for _, candidate := range recorded(t, root, "fixture", "xo") {
-		if candidate.Name == gp.name {
-			f = candidate
-		}
-	}
-	if f.Name == "" {
-		t.Fatalf("no grammar %s of the fixtures or of xo in grammars/grammars.json", gp.name)
-	}
+	f := goPackageEntry(t, root, gp.name)
 	dir, corpusDir := grammarDirs(cache, f)
 	so, err := BuildGrammarVersion(context.Background(), dir, cache)
 	if errors.Is(err, ErrMissing) {
@@ -67,9 +90,13 @@ func loadGoPackage(t *testing.T, gp goPackage) (*Grammar, []Example) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	examples, err := ReadCorpus(corpusDir)
-	if err != nil {
-		t.Fatal(err)
+	// a grammar with no test/corpus, such as plsql, has only the error
+	// corpus, and a test of its own gives it other inputs
+	var examples []Example
+	if _, err := os.Stat(corpusDir); err == nil {
+		if examples, err = ReadCorpus(corpusDir); err != nil {
+			t.Fatal(err)
+		}
 	}
 	return g, append(examples, errorCorpus(t, root, f.Name)...)
 }
@@ -487,12 +514,7 @@ func TestGoPackageLexersMatchC(t *testing.T) {
 			t.Parallel()
 			g, examples := loadGoPackage(t, gp)
 			root, cache := setup(t)
-			var dir string
-			for _, f := range recorded(t, root, "fixture", "xo") {
-				if f.Name == gp.name {
-					dir, _ = grammarDirs(cache, f)
-				}
-			}
+			dir, _ := grammarDirs(cache, goPackageEntry(t, root, gp.name))
 			b := generateGo(t, dir)
 			compareLexers(t, g, tablesOf(gp.language()), b.counts, lexTexts(examples), -1)
 		})
@@ -513,9 +535,9 @@ type goBackend struct {
 	counts lexCounts
 }
 
-// Render keeps the tables and parser.go, and returns parser.go. A grammar
-// whose name is not the name of a Go package, such as go, gets no
-// parser.go.
+// Render keeps the tables and parser.go, and returns parser.go. The
+// package of parser.go is grammar, because the folder of a grammar in the
+// cache is not the folder of its package.
 func (b *goBackend) Render(in *generate.RenderInput) (string, error) {
 	b.counts = lexCounts{len(in.Tables.MainLexTable.States), len(in.Tables.KeywordLexTable.States)}
 	tables, err := golang.Tables(in)
@@ -523,10 +545,8 @@ func (b *goBackend) Render(in *generate.RenderInput) (string, error) {
 		return "", err
 	}
 	b.tables = tables
-	if _, nameErr := golang.PackageName(in.StrPool.Resolve(in.Name)); nameErr == nil {
-		if b.code, err = (golang.Backend{Queries: true}).Render(in); err != nil {
-			return "", err
-		}
+	if b.code, err = (golang.Backend{Package: "grammar", Queries: true}).Render(in); err != nil {
+		return "", err
 	}
 	return b.code, nil
 }
@@ -576,9 +596,7 @@ func TestGoBackendMatchesC(t *testing.T) {
 			if diffs := compareTables(want, got); len(diffs) > 0 {
 				t.Errorf("the tables differ: %v", diffs)
 			}
-			if b.code == "" {
-				t.Logf("the grammar %s has no Go package name, so the test does not format its parser.go", f.Name)
-			} else if formatted, err := format.Source([]byte(b.code)); err != nil || string(formatted) != b.code {
+			if formatted, err := format.Source([]byte(b.code)); err != nil || string(formatted) != b.code {
 				t.Errorf("gofmt changes parser.go, or it is not valid Go: %v", err)
 			}
 			compareLexers(t, g, got, b.counts, lexTexts(examples), 200000)

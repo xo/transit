@@ -28,8 +28,8 @@ func (b *testBackend) Render(in *generate.RenderInput) (string, error) {
 		return "", err
 	}
 	b.out = out
-	b.code, err = writeParser(out, true)
-	return b.code, err
+	b.code = writeParser(out, "grammar", true)
+	return b.code, nil
 }
 
 // TestRenderOnEveryTestGrammar runs the whole generator with the Go backend
@@ -140,22 +140,27 @@ func TestGoNames(t *testing.T) {
 }
 
 // TestPackageName checks the rule of docs/GRAMMAR.md for the name of a
-// package, and the error of a name that no Go package can have.
+// package, and the error of a folder whose name no Go package can have.
 func TestPackageName(t *testing.T) {
 	t.Parallel()
-	for grammar, want := range map[string]string{
-		"json":              "json",
-		"c_sharp":           "csharp",
-		"embedded_template": "embeddedtemplate",
-		"go":                "golang",
+	for dir, want := range map[string]string{
+		"grammars/json":                                   "json",
+		"grammars/csharp":                                 "csharp",
+		"grammars/embeddedtemplate":                       "embeddedtemplate",
+		"grammars/go":                                     "golang",
+		"grammars/sqlserver":                              "sqlserver",
+		"grammars/php/phponly":                            "phponly",
+		"grammars/usql/usqlpostgres/":                     "usqlpostgres",
+		"/mod/github.com/xo/transit/grammars/json@v0.1.0": "json",
+		"grammars/Upper":                                  "upper",
 	} {
-		if got, err := PackageName(grammar); err != nil || got != want {
-			t.Errorf("PackageName(%q) = %q, %v, want %q", grammar, got, err, want)
+		if got, err := PackageName(dir); err != nil || got != want {
+			t.Errorf("PackageName(%q) = %q, %v, want %q", dir, got, err, want)
 		}
 	}
-	for _, grammar := range []string{"func", "1c"} {
-		if _, err := PackageName(grammar); !errors.Is(err, errPackageName) {
-			t.Errorf("PackageName(%q) gives the error %v, want errPackageName", grammar, err)
+	for _, dir := range []string{"grammars/func", "Func", "1c", "embedded-template", "go-mod@v1.0.0"} {
+		if _, err := PackageName(dir); !errors.Is(err, errPackageName) {
+			t.Errorf("PackageName(%q) gives the error %v, want errPackageName", dir, err)
 		}
 	}
 }
@@ -273,6 +278,75 @@ func TestGrammarFolder(t *testing.T) {
 	}
 }
 
+// TestFindRecord finds the entries of grammar packages in a record. Two
+// entries give the module folder sql, and the tree-sitter.json of the
+// module names the repository of one of them (D106). A package outside a
+// checkout of transit has no record.
+func TestFindRecord(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	for name, text := range map[string]string{
+		"grammars/grammars.json": `{"grammars": [
+			{"name": "json", "repository": "https://github.com/tree-sitter/tree-sitter-json"},
+			{"name": "sql", "repository": "https://github.com/DerekStride/tree-sitter-sql"},
+			{"name": "sql", "repository": "https://github.com/m-novikov/tree-sitter-sql"}]}`,
+		"grammars/json/go.mod":          "module example.com/json\n",
+		"grammars/sql/go.mod":           "module example.com/sql\n",
+		"grammars/sql/tree-sitter.json": `{"metadata": {"links": {"repository": "git+https://github.com/derekstride/tree-sitter-sql.git"}}}`,
+		"grammars/nosql/go.mod":         "module example.com/nosql\n",
+		"grammars/other/sql/go.mod":     "module example.com/other\n",
+	} {
+		p := filepath.Join(root, name)
+		if err := os.MkdirAll(filepath.Dir(p), 0o750); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(text), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, c := range []struct {
+		dir, name, want string
+	}{
+		{"grammars/json", "json", "https://github.com/tree-sitter/tree-sitter-json"},
+		{"grammars/sql", "sql", "https://github.com/DerekStride/tree-sitter-sql"},
+	} {
+		rec, err := FindRecord(filepath.Join(root, c.dir), c.name)
+		if err != nil || rec == nil || rec.Repository != c.want {
+			t.Errorf("FindRecord(%s, %s) = %+v, %v, want the entry of %s", c.dir, c.name, rec, err, c.want)
+		}
+	}
+	// the folder of the module has no tree-sitter.json, so both entries stay
+	if rec, err := FindRecord(filepath.Join(root, "grammars", "other", "sql"), "sql"); err == nil {
+		t.Errorf("FindRecord of a module with no tree-sitter.json = %+v, want an error", rec)
+	}
+	if rec, err := FindRecord(filepath.Join(root, "grammars", "nosql"), "nosql"); err == nil {
+		t.Errorf("FindRecord of a grammar with no entry = %+v, want an error", rec)
+	}
+	if rec, err := FindRecord(t.TempDir(), "json"); rec != nil || err != nil {
+		t.Errorf("FindRecord outside a checkout = %+v, %v, want nil and no error", rec, err)
+	}
+}
+
+// TestSameRepository compares the forms of the URL of a repository.
+func TestSameRepository(t *testing.T) {
+	t.Parallel()
+	const repo = "https://github.com/DerekStride/tree-sitter-sql"
+	for u, want := range map[string]bool{
+		repo: true,
+		"git+https://github.com/derekstride/tree-sitter-sql.git": true,
+		"https://github.com/derekstride/tree-sitter-sql/":        true,
+		"https://github.com/m-novikov/tree-sitter-sql":           false,
+		"": false,
+	} {
+		if got := sameRepository(repo, u); got != want {
+			t.Errorf("sameRepository(%q, %q) = %t, want %t", repo, u, got, want)
+		}
+	}
+	if sameRepository("", "") {
+		t.Error("two empty URLs name the same repository")
+	}
+}
+
 func TestModuleFolderName(t *testing.T) {
 	t.Parallel()
 	for repo, want := range map[string]string{
@@ -292,7 +366,8 @@ func TestModuleFolderName(t *testing.T) {
 func TestPackageInDirectory(t *testing.T) {
 	t.Parallel()
 	src := filepath.Join("..", "..", "..", "grammars", "json")
-	dir := t.TempDir()
+	// the folder gives the name of the package
+	dir := filepath.Join(t.TempDir(), "json")
 	for _, name := range []string{"grammar.json", "tree-sitter.json", "queries/highlights.scm", "testdata/corpus/main.txt"} {
 		b, err := os.ReadFile(filepath.Join(src, name))
 		if err != nil {

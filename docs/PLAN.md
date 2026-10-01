@@ -5,7 +5,7 @@ This document holds the plan for `github.com/xo/transit`. The decisions are in
 
 This plan was written on 2026-09-29, before any code existed (D3). Ken
 answered its open questions on that date, and later ones as they came. The
-decisions D1 to D105 record the answers and the other choices of Ken. A part
+decisions D1 to D108 record the answers and the other choices of Ken. A part
 of this plan that names a decision follows it. A new question
 goes at the end of this document until Ken answers it.
 
@@ -707,8 +707,8 @@ and the speed targets hold on them (D37, D47).
 
 ### Phase 5. The grammars and the modules for rline and usql
 
-Generate the SQL grammars in Go. Write the usql grammar and the other grammars
-that `xo` needs (D13, D42). Write the other APIs that upstream does not have
+Generate the SQL grammars in Go. Write the usql grammar and the MySQL grammar
+(D13, D42, D106). The other grammars that `xo` needs come after phase 5. Write the other APIs that upstream does not have
 (D28), the example functions and the two sample programs (D53), and bring
 `RLINE.md` and `USQL.md` up to date with the code.
 
@@ -926,9 +926,21 @@ record the answers, and D54 starts phase 1. The working C example of phase 1
 raised questions 53 to 55, and D55 to D57 record the answers. Phase 2 raised
 questions 56 to 58, and D59, D60 and D66 record the answers. Phase 3 raised
 questions 59 to 63, and D63, D64, D70, D72 and D74 record the answers.
-Phase 4 raised questions 64 to 72, and D97 to D102 record the answers. The
-next question is question 73.
+Phase 4 raised questions 64 to 72, and D97 to D102 record the answers.
+Phase 5 raised questions 73 to 79, and D106 and D107 record the answers to
+all but questions 77 and 79. The next question is question 80.
 
-No question is open.
+77. Two grammars parse GoogleSQL, the language of the dialects `bigquery` and
+    `spanner`: `takegue/tree-sitter-sql-bigquery`, which has a scanner and 31
+    stars, and `kitagry/tree-sitter-bigquery`, which has 2 stars. Which one
+    gets the module `grammars/bigquery`, and does the other one get
+    `grammars/spanner` or no Go package? Ken skipped it on 2026-10-01.
+
+79. To complete in a SQL statement, usql runs `StatesAt` with the grammar of
+    the dialect on the text of the statement, with the same placeholders
+    that `inject.WithReplacer` gives the layer. `inject` does not give back
+    that text, so usql has to make the replacements again. Does transit add
+    an API for it, such as a function that gives the text of a layer after
+    its replacements, or a form of `StatesAt` that works on a layer?
 
 Raise a new question here rather than deciding one alone.

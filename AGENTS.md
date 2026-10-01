@@ -84,8 +84,8 @@ A bare number, such as D3, names a decision of this repository, in
 `docs/decisions/`. A decision of another repository names that repository,
 such as dbmeta D110. An open question has a number, and it is at the end of
 `docs/PLAN.md` until Ken answers it. The numbers do not repeat: questions 1
-to 72 are answered, no question is open, and the next question is question
-73.
+to 78 but 77 are answered, questions 77 and 79 are open, and the next question
+is question 80.
 
 ## Hard rules
 
@@ -198,6 +198,9 @@ these files:
 | `grammars/grammars.json` | the record of every grammar, with the hashes of its golden files (D40) |
 | `grammars/<module>/` | the grammar modules of the 17 fixture grammars, one for each upstream repository, which `docs/GRAMMAR.md` lays out and `README.md` lists. Each package holds its generated `parser.go` and, when the grammar has one, its ported `scanner.go` |
 | `grammars/usql/` | the module of the usql grammar, which xo writes (D13, D42, D104). One `common/define-grammar.js` and one `common/scanner.h` make a grammar for each family of SQL dialects (D101, D102). Each package, such as `usqlpostgres`, holds its `grammar.js`, its `src/scanner.c`, which sets the family, and its `scanner.go`. The package `internal/scan` ports `common/scanner.h`. `queries/` and `test/corpus/` of the module are the sources of the copies in each package |
+| `grammars/sql/`, `grammars/sqlserver/`, `grammars/oracle/`, `grammars/cql/` | the modules of the SQL grammars of `DerekStride/tree-sitter-sql`, `Crary-Systems/tree-sitter-tsql`, `andreasmaierde/tree-sitter-plsql` and `shotover/tree-sitter-cql` (D106). A module of the language of one dialect has the name of the dialect, and each package has the name of its folder (D107). `grammars/sql` holds the port of the scanner of its grammar in `scanner.go` |
+| `grammars/postgres/` | the module of `gmr/tree-sitter-postgres`, with the packages `postgres` and `plpgsql`, each with its own corpus and its ported `scanner.go`. `tree-sitter.json` of upstream lists only `postgres`, so the package `plpgsql` runs each case of its own corpus |
+| `grammars/neo4j/`, `grammars/surrealdb/`, `grammars/sparql/`, `grammars/graphql/`, `grammars/ydb/` | the modules of the grammars of the languages of dbmeta that are not SQL: `taekwombo/tree-sitter-cypher`, `surrealdb/surrealql-tree-sitter`, `GordianDziwis/tree-sitter-sparql`, `bkegley/tree-sitter-graphql` and `udovin/tree-sitter-yql` (D21, D23). A module of the language of one dialect has the name of the dialect (D107). `grammars/surrealdb` holds the port of the scanner of its grammar in `scanner.go`. `grammars/ydb` has no license file, because its repository has none (D20) |
 | `styles/` | the module `github.com/xo/transit/styles`, which has its own `go.mod` (D99). It holds the styles as JSON files: the styles of chroma in `chroma/`, the styles that a person makes in `themes/`, the license files in `licenses/`, and the list of capture names in `captures.txt` (D65) |
 | `tree-sitter/` | the upstream checkout, which git ignores |
 
@@ -227,7 +230,7 @@ go vet ./...
 go test -race -count=1 ./...
 golangci-lint run ./...
 (cd test && go vet ./... && go test -race -count=1 -timeout 60m ./... && golangci-lint run ./...)
-for m in grammars/*/go.mod; do (cd "$(dirname "$m")" && go vet ./... && go test -race -count=1 ./... && golangci-lint run ./...) || exit 1; done
+for m in grammars/*/go.mod; do (cd "$(dirname "$m")" && go vet ./... && go test -race -count=1 -timeout 60m ./... && golangci-lint run ./...) || exit 1; done
 (cd styles && go vet ./... && go test -race -count=1 ./... && golangci-lint run ./...)
 ```
 

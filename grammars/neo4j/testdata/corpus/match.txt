@@ -1,0 +1,33 @@
+================================================================================
+Match - simple
+================================================================================
+
+MATCH (n) RETURN n;
+
+--------------------------------------------------------------------------------
+
+(cypher
+  (statement
+    (query
+      (regular_query
+        (single_query
+          (single_part_query
+            (reading_clause
+              (match
+                (pattern
+                  (pattern_part
+                    (anonymous_pattern_part
+                      (pattern_element
+                        (node_pattern
+                          (variable
+                            (symbolic_name
+                              (unescaped_symbolic_name))))))))))
+            (return
+              (projection_body
+                (projection_items
+                  (projection_item
+                    (expression
+                      (atom
+                        (variable
+                          (symbolic_name
+                            (unescaped_symbolic_name)))))))))))))))

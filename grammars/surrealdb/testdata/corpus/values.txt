@@ -1,0 +1,2676 @@
+=====================
+arrays :: Empty array
+=====================
+
+[]
+
+---
+
+(SurrealQL
+  (Array))
+
+========================
+arrays :: Single element
+========================
+
+[1]
+
+---
+
+(SurrealQL
+  (Array
+    (Number
+      (Int))))
+
+===========================
+arrays :: Multiple elements
+===========================
+
+[1, 2, 3]
+
+---
+
+(SurrealQL
+  (Array
+    (Number
+      (Int))
+    (Number
+      (Int))
+    (Number
+      (Int))))
+
+========================
+arrays :: Trailing comma
+========================
+
+[1, 2, 3,]
+
+---
+
+(SurrealQL
+  (Array
+    (Number
+      (Int))
+    (Number
+      (Int))
+    (Number
+      (Int))))
+
+=======================
+arrays :: Nested arrays
+=======================
+
+[[1, 2], [3, 4]]
+
+---
+
+(SurrealQL
+  (Array
+    (Array
+      (Number
+        (Int))
+      (Number
+        (Int)))
+    (Array
+      (Number
+        (Int))
+      (Number
+        (Int)))))
+
+=====================
+arrays :: Mixed types
+=====================
+
+[1, "hello", true, null]
+
+---
+
+(SurrealQL
+  (Array
+    (Number
+      (Int))
+    (String)
+    (Bool)
+    (None)))
+
+===========================
+casting :: Simple type cast
+===========================
+
+<string> test
+
+---
+
+(SurrealQL
+  (TypeCast
+    (TypeName)
+    (Ident)))
+
+==========================
+casting :: Union type cast
+==========================
+
+<string|number> test
+
+---
+
+(SurrealQL
+  (TypeCast
+    (UnionType
+      (TypeName)
+      (Pipe)
+      (TypeName))
+    (Ident)))
+
+===================================
+casting :: Literal string type cast
+===================================
+
+<"test"> test
+
+---
+
+(SurrealQL
+  (TypeCast
+    (LiteralType
+      (String))
+    (Ident)))
+
+==================================
+casting :: Literal union type cast
+==================================
+
+<"test"|number> test
+
+---
+
+(SurrealQL
+  (TypeCast
+    (UnionType
+      (LiteralType
+        (String))
+      (Pipe)
+      (TypeName))
+    (Ident)))
+
+===============================
+casting :: Literal string union
+===============================
+
+<"a"|"b"> test
+
+---
+
+(SurrealQL
+  (TypeCast
+    (UnionType
+      (LiteralType
+        (String))
+      (Pipe)
+      (LiteralType
+        (String)))
+    (Ident)))
+
+==================================
+casting :: Array literal type cast
+==================================
+
+<["test"]> test
+
+---
+
+(SurrealQL
+  (TypeCast
+    (LiteralType
+      (ArrayType
+        (LiteralType
+          (String))))
+    (Ident)))
+
+========================================
+casting :: Array union literal type cast
+========================================
+
+<["test"|number]> test
+
+---
+
+(SurrealQL
+  (TypeCast
+    (LiteralType
+      (ArrayType
+        (UnionType
+          (LiteralType
+            (String))
+          (Pipe)
+          (TypeName))))
+    (Ident)))
+
+===========================
+casting :: Object type cast
+===========================
+
+<{ "a": string }> test
+
+---
+
+(SurrealQL
+  (TypeCast
+    (LiteralType
+      (ObjectType
+        (BraceOpen)
+        (ObjectTypeContent
+          (ObjectTypeProperty
+            (ObjectKey
+              (String))
+            (Colon)
+            (TypeName)))
+        (BraceClose)))
+    (Ident)))
+
+=================================
+casting :: Object union type cast
+=================================
+
+<{ "a": "test"|number }> test
+
+---
+
+(SurrealQL
+  (TypeCast
+    (LiteralType
+      (ObjectType
+        (BraceOpen)
+        (ObjectTypeContent
+          (ObjectTypeProperty
+            (ObjectKey
+              (String))
+            (Colon)
+            (UnionType
+              (LiteralType
+                (String))
+              (Pipe)
+              (TypeName))))
+        (BraceClose)))
+    (Ident)))
+
+===================================
+casting :: Complex nested type cast
+===================================
+
+<{ "a": "test"|[number] }|number> test
+
+---
+
+(SurrealQL
+  (TypeCast
+    (UnionType
+      (LiteralType
+        (ObjectType
+          (BraceOpen)
+          (ObjectTypeContent
+            (ObjectTypeProperty
+              (ObjectKey
+                (String))
+              (Colon)
+              (UnionType
+                (LiteralType
+                  (String))
+                (Pipe)
+                (LiteralType
+                  (ArrayType
+                    (TypeName))))))
+          (BraceClose)))
+      (Pipe)
+      (TypeName))
+    (Ident)))
+
+==================================
+casting :: Parameterized type cast
+==================================
+
+<record<hello>> test
+
+---
+
+(SurrealQL
+  (TypeCast
+    (ParameterizedType
+      (TypeName)
+      (TypeName))
+    (Ident)))
+
+================================
+casting :: Sized array type cast
+================================
+
+<array<float, 3>> [1f, 2f, 3f]
+
+---
+
+(SurrealQL
+  (TypeCast
+    (ParameterizedType
+      (TypeName)
+      (TypeName)
+      (Number
+        (Int)))
+    (Array
+      (Number
+        (Float))
+      (Number
+        (Float))
+      (Number
+        (Float)))))
+
+==================================================
+casting :: Sized array type cast with a zero bound
+==================================================
+
+<array<float, 0>> []
+
+---
+
+(SurrealQL
+  (TypeCast
+    (ParameterizedType
+      (TypeName)
+      (TypeName)
+      (Number
+        (Int)))
+    (Array)))
+
+=========================================
+casting :: Complex union object type cast
+=========================================
+
+<{ "a": string } | { "b": [record<hello>] | "test" }> test
+
+---
+
+(SurrealQL
+  (TypeCast
+    (UnionType
+      (LiteralType
+        (ObjectType
+          (BraceOpen)
+          (ObjectTypeContent
+            (ObjectTypeProperty
+              (ObjectKey
+                (String))
+              (Colon)
+              (TypeName)))
+          (BraceClose)))
+      (Pipe)
+      (LiteralType
+        (ObjectType
+          (BraceOpen)
+          (ObjectTypeContent
+            (ObjectTypeProperty
+              (ObjectKey
+                (String))
+              (Colon)
+              (UnionType
+                (LiteralType
+                  (ArrayType
+                    (ParameterizedType
+                      (TypeName)
+                      (TypeName))))
+                (Pipe)
+                (LiteralType
+                  (String)))))
+          (BraceClose))))
+    (Ident)))
+
+=========================
+closures :: Empty closure
+=========================
+
+|| { 1 }
+
+---
+
+(SurrealQL
+  (Closure
+    (Pipe)
+    (Pipe)
+    (Block
+      (BraceOpen)
+      (Number
+        (Int))
+      (BraceClose))))
+
+==============================
+closures :: Closure with param
+==============================
+
+|$a| { $a }
+
+---
+
+(SurrealQL
+  (Closure
+    (Pipe)
+    (ParamDefinition
+      (VariableName))
+    (Pipe)
+    (Block
+      (BraceOpen)
+      (VariableName)
+      (BraceClose))))
+
+=======================================
+closures :: Closure with expression body
+=======================================
+
+|$pile| $pile != 'Complete'
+
+---
+
+(SurrealQL
+  (Closure
+    (Pipe)
+    (ParamDefinition
+      (VariableName))
+    (Pipe)
+    (BinaryExpression
+      (VariableName)
+      (Operator)
+      (String))))
+
+==========================================
+closures :: Closure with bare value body
+==========================================
+
+|$v| $v
+
+---
+
+(SurrealQL
+  (Closure
+    (Pipe)
+    (ParamDefinition
+      (VariableName))
+    (Pipe)
+    (VariableName)))
+
+====================================
+closures :: Closure with typed param
+====================================
+
+|$a: number| { $a + 1 }
+
+---
+
+(SurrealQL
+  (Closure
+    (Pipe)
+    (ParamDefinition
+      (VariableName)
+      (Colon)
+      (Type
+        (TypeName)))
+    (Pipe)
+    (Block
+      (BraceOpen)
+      (BinaryExpression
+        (VariableName)
+        (Operator)
+        (Number
+          (Int)))
+      (BraceClose))))
+
+===================================================
+closures :: Closure with bracketed union param type
+===================================================
+
+|$x: <int | float>| $x
+
+---
+
+(SurrealQL
+  (Closure
+    (Pipe)
+    (ParamDefinition
+      (VariableName)
+      (Colon)
+      (Type
+        (UnionType
+          (TypeName)
+          (Pipe)
+          (TypeName))))
+    (Pipe)
+    (VariableName)))
+
+===============================================
+closures :: Closure with a bracketed param type
+===============================================
+
+|$x: <int>| $x
+
+---
+
+(SurrealQL
+  (Closure
+    (Pipe)
+    (ParamDefinition
+      (VariableName)
+      (Colon)
+      (Type
+        (TypeName)))
+    (Pipe)
+    (VariableName)))
+
+========================================
+closures :: Closure with multiple params
+========================================
+
+|$a, $b| { $a + $b }
+
+---
+
+(SurrealQL
+  (Closure
+    (Pipe)
+    (ParamDefinition
+      (VariableName))
+    (ParamDefinition
+      (VariableName))
+    (Pipe)
+    (Block
+      (BraceOpen)
+      (BinaryExpression
+        (VariableName)
+        (Operator)
+        (VariableName))
+      (BraceClose))))
+
+====================================
+closures :: Closure with return type
+====================================
+
+|$a: number| -> number { $a + 1 }
+
+---
+
+(SurrealQL
+  (Closure
+    (Pipe)
+    (ParamDefinition
+      (VariableName)
+      (Colon)
+      (Type
+        (TypeName)))
+    (Pipe)
+    (LookupRight)
+    (TypeName)
+    (Block
+      (BraceOpen)
+      (BinaryExpression
+        (VariableName)
+        (Operator)
+        (Number
+          (Int)))
+      (BraceClose))))
+
+==================================
+durations :: Single duration parts
+==================================
+
+1ns;
+1us;
+1ms;
+1s;
+1m;
+1h;
+1d;
+1w;
+1y
+
+---
+
+(SurrealQL
+  (Duration
+    (DurationPart))
+  (Duration
+    (DurationPart))
+  (Duration
+    (DurationPart))
+  (Duration
+    (DurationPart))
+  (Duration
+    (DurationPart))
+  (Duration
+    (DurationPart))
+  (Duration
+    (DurationPart))
+  (Duration
+    (DurationPart))
+  (Duration
+    (DurationPart)))
+
+================================
+durations :: Multi-part duration
+================================
+
+1s 1m 1 h
+
+---
+
+(SurrealQL
+  (Duration
+    (DurationPart)
+    (DurationPart)
+    (DurationPart)))
+
+=============================
+durations :: Complex duration
+=============================
+
+1d2h30m
+
+---
+
+(SurrealQL
+  (Duration
+    (DurationPart)
+    (DurationPart)
+    (DurationPart)))
+
+=====================================
+format-strings :: Basic format string
+=====================================
+
+$"hello {name}"
+
+---
+
+(SurrealQL
+  (FormatString
+    (Interpolation
+      (BraceOpen)
+      (Ident)
+      (BraceClose))))
+
+===============================================
+format-strings :: Format string with expression
+===============================================
+
+$"result is {1 + 2 + 3}"
+
+---
+
+(SurrealQL
+  (FormatString
+    (Interpolation
+      (BraceOpen)
+      (BinaryExpression
+        (BinaryExpression
+          (Number
+            (Int))
+          (Operator)
+          (Number
+            (Int)))
+        (Operator)
+        (Number
+          (Int)))
+      (BraceClose))))
+
+================================================
+format-strings :: Escaped quote in format string
+================================================
+
+$"some \" quote {1 + 2 + 3} and \{ some } brackets"
+
+---
+
+(SurrealQL
+  (FormatString
+    (Interpolation
+      (BraceOpen)
+      (BinaryExpression
+        (BinaryExpression
+          (Number
+            (Int))
+          (Operator)
+          (Number
+            (Int)))
+        (Operator)
+        (Number
+          (Int)))
+      (BraceClose))))
+
+=======================================
+format-strings :: Nested format strings
+=======================================
+
+$'nested {$"string {22}"}'
+
+---
+
+(SurrealQL
+  (FormatString
+    (Interpolation
+      (BraceOpen)
+      (FormatString
+        (Interpolation
+          (BraceOpen)
+          (Number
+            (Int))
+          (BraceClose)))
+      (BraceClose))))
+
+=============================================
+format-strings :: Single quoted format string
+=============================================
+
+$'hello {name}'
+
+---
+
+(SurrealQL
+  (FormatString
+    (Interpolation
+      (BraceOpen)
+      (Ident)
+      (BraceClose))))
+
+=================================
+geometries :: Point with decimals
+=================================
+
+(10dec, 20dec)
+
+---
+
+(SurrealQL
+  (Point
+    (Number
+      (Decimal))
+    (Number
+      (Decimal))))
+
+=================================
+geometries :: Point with integers
+=================================
+
+(10, 20)
+
+---
+
+(SurrealQL
+  (Point
+    (Number
+      (Int))
+    (Number
+      (Int))))
+
+===============================
+geometries :: Point with floats
+===============================
+
+(1.5, 2.5)
+
+---
+
+(SurrealQL
+  (Point
+    (Number
+      (Float))
+    (Number
+      (Float))))
+
+===========================
+idioms :: Dot notation path
+===========================
+
+$variable.ident.ident
+
+---
+
+(SurrealQL
+  (Path
+    (VariableName)
+    (Subscript
+      (Ident))
+    (Subscript
+      (Ident))))
+
+====================================
+idioms :: Optional terminal path part
+====================================
+
+a.?
+
+---
+
+(SurrealQL
+  (Path
+    (Ident)
+    (Subscript
+      (Optional))))
+
+=================================
+idioms :: Optional nested field
+=================================
+
+person.spouse.?.name
+
+---
+
+(SurrealQL
+  (Path
+    (Ident)
+    (Subscript
+      (Ident))
+    (Subscript
+      (Optional))
+    (Subscript
+      (Ident))))
+
+======================================
+idioms :: Optional method chaining
+======================================
+
+$value.?.trim()
+
+---
+
+(SurrealQL
+  (Path
+    (VariableName)
+    (Subscript
+      (Optional))
+    (Subscript
+      (IdiomFunction
+        (FunctionName)
+        (ArgumentList)))))
+
+===============================
+idioms :: Wildcard on record ID
+===============================
+
+record:id.*
+
+---
+
+(SurrealQL
+  (Path
+    (RecordId
+      (RecordTbIdent)
+      (Colon)
+      (RecordIdIdent))
+    (Subscript
+      (Any))))
+
+===============================
+idioms :: Wildcard filter [*]
+===============================
+
+tags[*]
+
+---
+
+(SurrealQL
+  (Path
+    (Ident)
+    (Filter
+      (Any))))
+
+===============================
+idioms :: Last-element filter [$]
+===============================
+
+tags[$]
+
+---
+
+(SurrealQL
+  (Path
+    (Ident)
+    (Filter
+      (Last))))
+
+=====================================
+idioms :: Lookup arrow right with any
+=====================================
+
+ident->?
+
+---
+
+(SurrealQL
+  (Path
+    (Ident)
+    (Lookup
+      (LookupRight)
+      (Any))))
+
+============================
+idioms :: Lookup arrow right
+============================
+
+ident->ident
+
+---
+
+(SurrealQL
+  (Path
+    (Ident)
+    (Lookup
+      (LookupRight)
+      (Ident))))
+
+==========================
+idioms :: Multiple lookups
+==========================
+
+ident->ident<-ident<->ident
+
+---
+
+(SurrealQL
+  (Path
+    (Ident)
+    (Lookup
+      (LookupRight)
+      (Ident))
+    (Lookup
+      (LookupLeft)
+      (Ident))
+    (Lookup
+      (LookupBoth)
+      (Ident))))
+
+==========================
+idioms :: Record ID lookup
+==========================
+
+record:id->ident
+
+---
+
+(SurrealQL
+  (Path
+    (RecordId
+      (RecordTbIdent)
+      (Colon)
+      (RecordIdIdent))
+    (Lookup
+      (LookupRight)
+      (Ident))))
+
+=================================
+idioms :: SELECT with lookup path
+=================================
+
+SELECT ->ident FROM ident
+
+---
+
+(SurrealQL
+  (SelectStatement
+    (Keyword)
+    (Fields
+      (Predicate
+        (Path
+          (Lookup
+            (LookupRight)
+            (Ident)))))
+    (Keyword)
+    (Ident)))
+
+===============================
+idioms :: Method call on number
+===============================
+
+123.to_string()
+
+---
+
+(SurrealQL
+  (Path
+    (Number
+      (Int))
+    (Subscript
+      (IdiomFunction
+        (FunctionName)
+        (ArgumentList)))))
+
+==================================
+idioms :: Filter with variable key
+==================================
+
+{}[$variable]
+
+---
+
+(SurrealQL
+  (Path
+    (Object
+      (BraceOpen)
+      (BraceClose))
+    (Filter
+      (VariableName))))
+
+===============================
+idioms :: Filter with ident key
+===============================
+
+{}[ident]
+
+---
+
+(SurrealQL
+  (Path
+    (Object
+      (BraceOpen)
+      (BraceClose))
+    (Filter
+      (Ident))))
+
+================================
+idioms :: Filter with string key
+================================
+
+{}["string"]
+
+---
+
+(SurrealQL
+  (Path
+    (Object
+      (BraceOpen)
+      (BraceClose))
+    (Filter
+      (String))))
+
+==========================
+idioms :: Record ID filter
+==========================
+
+record:id[ident]
+
+---
+
+(SurrealQL
+  (Path
+    (RecordId
+      (RecordTbIdent)
+      (Colon)
+      (RecordIdIdent))
+    (Filter
+      (Ident))))
+
+============================
+idioms :: Array index access
+============================
+
+[][0]
+
+---
+
+(SurrealQL
+  (Path
+    (Array)
+    (Filter
+      (Number
+        (Int)))))
+
+===============================
+idioms :: Array variable access
+===============================
+
+[][$variable]
+
+---
+
+(SurrealQL
+  (Path
+    (Array)
+    (Filter
+      (VariableName))))
+
+============================
+idioms :: Array WHERE filter
+============================
+
+[][WHERE ident = 123]
+
+---
+
+(SurrealQL
+  (Path
+    (Array)
+    (Filter
+      (WhereClause
+        (Keyword)
+        (BinaryExpression
+          (Ident)
+          (Operator)
+          (Number
+            (Int)))))))
+
+====================================
+idioms :: Array question mark filter
+====================================
+
+[][? ident = 123]
+
+---
+
+(SurrealQL
+  (Path
+    (Array)
+    (Filter
+      (WhereClause
+        (BinaryExpression
+          (Ident)
+          (Operator)
+          (Number
+            (Int)))))))
+
+===========================
+idioms :: Recurse unbounded
+===========================
+
+person:tobie.{..}->knows->person
+
+---
+
+(SurrealQL
+  (Path
+    (RecordId
+      (RecordTbIdent)
+      (Colon)
+      (RecordIdIdent))
+    (Subscript
+      (Recurse
+        (BraceOpen)
+        (RecurseRange
+          (RangeOp))
+        (BraceClose)))
+    (Lookup
+      (LookupRight)
+      (Ident))
+    (Lookup
+      (LookupRight)
+      (Ident))))
+
+======================================
+idioms :: Recurse with path expression
+======================================
+
+person:tobie.{..}(->knows->person).name
+
+---
+
+(SurrealQL
+  (Path
+    (RecordId
+      (RecordTbIdent)
+      (Colon)
+      (RecordIdIdent))
+    (Subscript
+      (Recurse
+        (BraceOpen)
+        (RecurseRange
+          (RangeOp))
+        (BraceClose)
+        (Lookup
+          (LookupRight)
+          (Ident))
+        (Lookup
+          (LookupRight)
+          (Ident))))
+    (Subscript
+      (Ident))))
+
+==================================
+idioms :: Recurse with destructure
+==================================
+
+person:tobie.{..}.{ id, name, knows: ->knows->person.@ }
+
+---
+
+(SurrealQL
+  (Path
+    (RecordId
+      (RecordTbIdent)
+      (Colon)
+      (RecordIdIdent))
+    (Subscript
+      (Recurse
+        (BraceOpen)
+        (RecurseRange
+          (RangeOp))
+        (BraceClose)))
+    (Subscript
+      (Destructure
+        (BraceOpen)
+        (Ident)
+        (Ident)
+        (Ident)
+        (Colon)
+        (Lookup
+          (LookupRight)
+          (Ident))
+        (Lookup
+          (LookupRight)
+          (Ident))
+        (Subscript
+          (At))
+        (BraceClose)))))
+
+==================================
+idioms :: Recurse with fixed depth
+==================================
+
+a:b.{1}
+
+---
+
+(SurrealQL
+  (Path
+    (RecordId
+      (RecordTbIdent)
+      (Colon)
+      (RecordIdIdent))
+    (Subscript
+      (Recurse
+        (BraceOpen)
+        (RecurseRange
+          (Int))
+        (BraceClose)))))
+
+===============================================
+idioms :: Recurse with collect and inclusive
+===============================================
+
+RETURN a:1.{..+collect+inclusive}(->edge->a[?bool]);
+
+---
+
+(SurrealQL
+  (ReturnStatement
+    (Keyword)
+    (Path
+      (RecordId
+        (RecordTbIdent)
+        (Colon)
+        (RecordIdIdent))
+      (Subscript
+        (Recurse
+          (BraceOpen)
+          (RecurseRange
+            (RangeOp))
+          (RecurseOptions
+            (FunctionName)
+            (FunctionName))
+          (BraceClose)
+          (Lookup
+            (LookupRight)
+            (Ident))
+          (Lookup
+            (LookupRight)
+            (Ident))
+          (Filter
+            (WhereClause
+              (Ident))))))))
+
+================================
+idioms :: Recurse with min range
+================================
+
+a:b.{1..}
+
+---
+
+(SurrealQL
+  (Path
+    (RecordId
+      (RecordTbIdent)
+      (Colon)
+      (RecordIdIdent))
+    (Subscript
+      (Recurse
+        (BraceOpen)
+        (RecurseRange
+          (Int)
+          (RangeOp))
+        (BraceClose)))))
+
+=================================
+idioms :: Recurse with full range
+=================================
+
+a:b.{1..2}
+
+---
+
+(SurrealQL
+  (Path
+    (RecordId
+      (RecordTbIdent)
+      (Colon)
+      (RecordIdIdent))
+    (Subscript
+      (Recurse
+        (BraceOpen)
+        (RecurseRange
+          (Int)
+          (RangeOp)
+          (Int))
+        (BraceClose)))))
+
+================================
+idioms :: Recurse with max range
+================================
+
+a:b.{..2}
+
+---
+
+(SurrealQL
+  (Path
+    (RecordId
+      (RecordTbIdent)
+      (Colon)
+      (RecordIdIdent))
+    (Subscript
+      (Recurse
+        (BraceOpen)
+        (RecurseRange
+          (RangeOp)
+          (Int))
+        (BraceClose)))))
+
+=====================================
+idioms :: At reference with subscript
+=====================================
+
+@.name
+
+---
+
+(SurrealQL
+  (Path
+    (At)
+    (Subscript
+      (Ident))))
+
+=================================
+idioms :: At reference with ident
+=================================
+
+@name
+
+---
+
+(SurrealQL
+  (Path
+    (At)
+    (Ident)))
+
+========================
+literals :: Boolean true
+========================
+
+true;
+true
+
+---
+
+(SurrealQL
+  (Bool)
+  (Bool))
+
+=========================
+literals :: Boolean false
+=========================
+
+false;
+false
+
+---
+
+(SurrealQL
+  (Bool)
+  (Bool))
+
+================
+literals :: Null
+================
+
+null;
+null
+
+---
+
+(SurrealQL
+  (None)
+  (None))
+
+================
+literals :: None
+================
+
+none;
+none
+
+---
+
+(SurrealQL
+  (None)
+  (None))
+
+==========================
+literals :: Mixed literals
+==========================
+
+true;
+false;
+null;
+none
+
+---
+
+(SurrealQL
+  (Bool)
+  (Bool)
+  (None)
+  (None))
+
+==================
+numbers :: Integer
+==================
+
+0;
+42;
+123456
+
+---
+
+(SurrealQL
+  (Number
+    (Int))
+  (Number
+    (Int))
+  (Number
+    (Int)))
+
+================
+numbers :: Float
+================
+
+0.0;
+2.5;
+3.14
+
+---
+
+(SurrealQL
+  (Number
+    (Float))
+  (Number
+    (Float))
+  (Number
+    (Float)))
+
+==============================
+numbers :: Float with exponent
+==============================
+
+2e4;
+2.2e4;
+1e+10;
+5E-3
+
+---
+
+(SurrealQL
+  (Number
+    (Float))
+  (Number
+    (Float))
+  (Number
+    (Float))
+  (Number
+    (Float)))
+
+==============================
+numbers :: Float with f suffix
+==============================
+
+2e4f;
+3.14f
+
+---
+
+(SurrealQL
+  (Number
+    (Float))
+  (Number
+    (Float)))
+
+=====================================
+numbers :: Float with bare f suffix
+=====================================
+
+LET $n = 1f;
+
+---
+
+(SurrealQL
+  (LetStatement
+    (Keyword)
+    (ParamDefinition
+      (VariableName))
+    (Number
+      (Float))))
+
+===============================
+numbers :: Float special values
+===============================
+
+Infinity;
+NaN
+
+---
+
+(SurrealQL
+  (Number
+    (Float))
+  (Number
+    (Float)))
+
+==================
+numbers :: Decimal
+==================
+
+4dec;
+100dec
+
+---
+
+(SurrealQL
+  (Number
+    (Decimal))
+  (Number
+    (Decimal)))
+
+================================
+numbers :: Decimal with fraction
+================================
+
+102023.1dec
+
+---
+
+(SurrealQL
+  (Number
+    (Decimal)))
+
+================================
+numbers :: Decimal with exponent
+================================
+
+9.7e-7dec
+
+---
+
+(SurrealQL
+  (Number
+    (Decimal)))
+
+===============================================
+numbers :: Negative decimal in an argument list
+===============================================
+
+math::ceil(-102023.1dec)
+
+---
+
+(SurrealQL
+  (FunctionCall
+    (FunctionName)
+    (ArgumentList
+      (Number
+        (Decimal)))))
+
+===========================
+numbers :: Negative numbers
+===========================
+
+-1;
+-3.14
+
+---
+
+(SurrealQL
+  (Number
+    (Int))
+  (Number
+    (Float)))
+
+=================================
+numbers :: Positive explicit sign
+=================================
+
++1;
++3.14
+
+---
+
+(SurrealQL
+  (Number
+    (Int))
+  (Number
+    (Float)))
+
+========================
+objects :: Simple object
+========================
+
+{a: 10}
+
+---
+
+(SurrealQL
+  (Object
+    (BraceOpen)
+    (ObjectContent
+      (ObjectProperty
+        (ObjectKey
+          (KeyName))
+        (Colon)
+        (Number
+          (Int))))
+    (BraceClose)))
+
+==================================
+objects :: Object with string keys
+==================================
+
+{"stringkey": 1, 'single': 2}
+
+---
+
+(SurrealQL
+  (Object
+    (BraceOpen)
+    (ObjectContent
+      (ObjectProperty
+        (ObjectKey
+          (String))
+        (Colon)
+        (Number
+          (Int)))
+      (ObjectProperty
+        (ObjectKey
+          (String))
+        (Colon)
+        (Number
+          (Int))))
+    (BraceClose)))
+
+=======================
+objects :: Empty object
+=======================
+
+{}
+
+---
+
+(SurrealQL
+  (Object
+    (BraceOpen)
+    (BraceClose)))
+
+==================================
+objects :: Empty object with space
+==================================
+
+{ }
+
+---
+
+(SurrealQL
+  (Object
+    (BraceOpen)
+    (BraceClose)))
+
+==========================
+objects :: Block vs Object
+==========================
+
+{block}
+
+---
+
+(SurrealQL
+  (Block
+    (BraceOpen)
+    (Ident)
+    (BraceClose)))
+
+===================================
+objects :: Object followed by value
+===================================
+
+{a: 10};
+123
+
+---
+
+(SurrealQL
+  (Object
+    (BraceOpen)
+    (ObjectContent
+      (ObjectProperty
+        (ObjectKey
+          (KeyName))
+        (Colon)
+        (Number
+          (Int))))
+    (BraceClose))
+  (Number
+    (Int)))
+
+=========================
+objects :: Nested objects
+=========================
+
+{a: {b: 1}}
+
+---
+
+(SurrealQL
+  (Object
+    (BraceOpen)
+    (ObjectContent
+      (ObjectProperty
+        (ObjectKey
+          (KeyName))
+        (Colon)
+        (Object
+          (BraceOpen)
+          (ObjectContent
+            (ObjectProperty
+              (ObjectKey
+                (KeyName))
+              (Colon)
+              (Number
+                (Int))))
+          (BraceClose))))
+    (BraceClose)))
+
+=========================
+ranges :: Exclusive range
+=========================
+
+1>..2
+
+---
+
+(SurrealQL
+  (Range
+    (Number
+      (Int))
+    (RangeOp)
+    (Number
+      (Int))))
+
+==========================
+ranges :: Right-open range
+==========================
+
+-3..
+
+---
+
+(SurrealQL
+  (Range
+    (Number
+      (Int))
+    (RangeOp)))
+
+===================================
+ranges :: Left-open inclusive range
+===================================
+
+..='a'
+
+---
+
+(SurrealQL
+  (Range
+    (RangeOp)
+    (String)))
+
+======================
+ranges :: Simple range
+======================
+
+1..5
+
+---
+
+(SurrealQL
+  (Range
+    (Number
+      (Int))
+    (RangeOp)
+    (Number
+      (Int))))
+
+==============================
+record-ids :: Simple record ID
+==============================
+
+test:123
+
+---
+
+(SurrealQL
+  (RecordId
+    (RecordTbIdent)
+    (Colon)
+    (RecordIdIdent)))
+
+========================================
+record-ids :: Record ID with ident value
+========================================
+
+test:abc
+
+---
+
+(SurrealQL
+  (RecordId
+    (RecordTbIdent)
+    (Colon)
+    (RecordIdIdent)))
+
+===================================================
+record-ids :: Number followed by ident in record ID
+===================================================
+
+test:123ident
+
+---
+
+(SurrealQL
+  (RecordId
+    (RecordTbIdent)
+    (Colon)
+    (RecordIdIdent)))
+
+=====================================
+record-ids :: Record ID function call
+=====================================
+
+stuff:ulid()
+
+---
+
+(SurrealQL
+  (FunctionCall
+    (RecordId
+      (RecordTbIdent)
+      (Colon)
+      (RecordIdIdent))
+    (ArgumentList)))
+
+==============================================
+record-ids :: Record ID with tick-quoted table
+==============================================
+
+`my table`:abc
+
+---
+
+(SurrealQL
+  (RecordId
+    (RecordTbIdent)
+    (Colon)
+    (RecordIdIdent)))
+
+==============================================
+record-ids :: Record ID with tick-quoted value
+==============================================
+
+test:`my id`
+
+---
+
+(SurrealQL
+  (RecordId
+    (RecordTbIdent)
+    (Colon)
+    (RecordIdIdent)))
+
+=========================================
+record-ids :: Record ID with object value
+=========================================
+
+test:{a: 1}
+
+---
+
+(SurrealQL
+  (RecordId
+    (RecordTbIdent)
+    (Colon)
+    (Object
+      (BraceOpen)
+      (ObjectContent
+        (ObjectProperty
+          (ObjectKey
+            (KeyName))
+          (Colon)
+          (Number
+            (Int))))
+      (BraceClose))))
+
+========================================
+record-ids :: Record ID with array value
+========================================
+
+test:[1, 2]
+
+---
+
+(SurrealQL
+  (RecordId
+    (RecordTbIdent)
+    (Colon)
+    (Array
+      (Number
+        (Int))
+      (Number
+        (Int)))))
+
+==================================================
+record-ids :: Record ID with prefixed string value
+==================================================
+
+test:u"my-uuid-here"
+
+---
+
+(SurrealQL
+  (RecordId
+    (RecordTbIdent)
+    (Colon)
+    (RecordIdString
+      (String))))
+
+====================================
+record-ids :: Mock in value position
+====================================
+
+RETURN |test:1..4|
+
+---
+
+(SurrealQL
+  (ReturnStatement
+    (Keyword)
+    (RangeRecordId
+      (Pipe)
+      (RecordId
+        (RecordTbIdent)
+        (Colon)
+        (RecordIdRange
+          (RecordIdIdent)
+          (RangeOp)
+          (RecordIdIdent)))
+      (Pipe))))
+
+===========================================
+record-ids :: Count mock as a CREATE target
+===========================================
+
+-- A CREATE target, which parsed before this branch as well: `RangeRecordId`
+-- was already reachable from CREATE's target list. Kept as a regression pin.
+-- `CREATE |t:10|` makes ten records with random ids, where the range form
+-- `CREATE |u:1..4|` makes u:1, u:2, u:3.
+CREATE |t:10|
+
+---
+
+(SurrealQL
+  (Comment)
+  (Comment)
+  (Comment)
+  (Comment)
+  (CreateStatement
+    (Keyword)
+    (RangeRecordId
+      (Pipe)
+      (RecordId
+        (RecordTbIdent)
+        (Colon)
+        (RecordIdIdent))
+      (Pipe))))
+
+==========================================
+record-ids :: Count mock in value position
+==========================================
+
+-- The count form in a value position, which is what reachability from
+-- `_computedValue` bought. At master this is `(ERROR (Pipe))` around a bare
+-- `RecordId`. The engine answers a list of ten random-id records.
+RETURN |t:10|
+
+---
+
+(SurrealQL
+  (Comment)
+  (Comment)
+  (Comment)
+  (ReturnStatement
+    (Keyword)
+    (RangeRecordId
+      (Pipe)
+      (RecordId
+        (RecordTbIdent)
+        (Colon)
+        (RecordIdIdent))
+      (Pipe))))
+
+=====================================
+record-ids :: Count mock bound by LET
+=====================================
+
+LET $x = |t:10|
+
+---
+
+(SurrealQL
+  (LetStatement
+    (Keyword)
+    (ParamDefinition
+      (VariableName))
+    (RangeRecordId
+      (Pipe)
+      (RecordId
+        (RecordTbIdent)
+        (Colon)
+        (RecordIdIdent))
+      (Pipe))))
+
+====================
+regex :: Basic regex
+====================
+
+/hello/
+
+---
+
+(SurrealQL
+  (Regex))
+
+=========================
+regex :: Regex with flags
+=========================
+
+/test/gi
+
+---
+
+(SurrealQL
+  (Regex))
+
+===================================
+regex :: Regex with character class
+===================================
+
+/[a-z]+/
+
+---
+
+(SurrealQL
+  (Regex))
+
+==========================
+regex :: Regex with escape
+==========================
+
+/foo\.bar/
+
+---
+
+(SurrealQL
+  (Regex))
+
+======================================
+sets :: Set with single trailing comma
+======================================
+
+{1,}
+
+---
+
+(SurrealQL
+  (Set
+    (BraceOpen)
+    (Number
+      (Int))
+    (BraceClose)))
+
+===========================
+sets :: Set with lone comma
+===========================
+
+{,}
+
+---
+
+(SurrealQL
+  (Set
+    (BraceOpen)
+    (BraceClose)))
+
+=============================
+sets :: Set with two elements
+=============================
+
+{1, 2}
+
+---
+
+(SurrealQL
+  (Set
+    (BraceOpen)
+    (Number
+      (Int))
+    (Number
+      (Int))
+    (BraceClose)))
+
+===============================
+sets :: Set with three elements
+===============================
+
+{1, 2, 3}
+
+---
+
+(SurrealQL
+  (Set
+    (BraceOpen)
+    (Number
+      (Int))
+    (Number
+      (Int))
+    (Number
+      (Int))
+    (BraceClose)))
+
+===============================
+strings :: Double quoted string
+===============================
+
+"hello world"
+
+---
+
+(SurrealQL
+  (String))
+
+===============================
+strings :: Single quoted string
+===============================
+
+'hello world'
+
+---
+
+(SurrealQL
+  (String))
+
+================================
+strings :: Escaped double quotes
+================================
+
+"A string with \"double\" quotes"
+
+---
+
+(SurrealQL
+  (String))
+
+================================
+strings :: Escaped single quotes
+================================
+
+'A string with \'single\' quotes'
+
+---
+
+(SurrealQL
+  (String))
+
+=======================
+strings :: Mixed quotes
+=======================
+
+"A string with 'single' quotes";
+'A string with "double" quotes'
+
+---
+
+(SurrealQL
+  (String)
+  (String))
+
+===========================
+strings :: Multiline string
+===========================
+
+'A string with new \
+line'
+
+---
+
+(SurrealQL
+  (String))
+
+========================
+strings :: Empty strings
+========================
+
+"";
+''
+
+---
+
+(SurrealQL
+  (String)
+  (String))
+
+===========================
+strings :: Prefixed strings
+===========================
+
+r"raw string";
+u"uuid";
+d"2024-01-01T00:00:00Z";
+b"base64data";
+s"plain string"
+
+---
+
+(SurrealQL
+  (String)
+  (String)
+  (String)
+  (String)
+  (String))
+
+================================
+constants :: Bare math constants
+================================
+
+math::PI;
+math::E;
+math::NEG_INFINITY;
+math::TAU
+
+---
+
+(SurrealQL
+  (Constant)
+  (Constant)
+  (Constant)
+  (Constant))
+
+==========================================
+constants :: time::EPOCH and duration::MAX
+==========================================
+
+time::EPOCH;
+duration::MAX
+
+---
+
+(SurrealQL
+  (Constant)
+  (Constant))
+
+==============================================
+constants :: A constant as a function argument
+==============================================
+
+math::floor(math::PI)
+
+---
+
+(SurrealQL
+  (FunctionCall
+    (FunctionName)
+    (ArgumentList
+      (Constant))))
+
+============================
+functions :: not() is a call
+============================
+
+not(false)
+
+---
+
+(SurrealQL
+  (FunctionCall
+    (FunctionName)
+    (ArgumentList
+      (Bool))))
+
+=========================================
+functions :: IS NOT is still one operator
+=========================================
+
+a IS NOT b
+
+---
+
+(SurrealQL
+  (BinaryExpression
+    (Ident)
+    (Operator)
+    (Ident)))
+
+=====================================
+types :: A cast takes the whole range
+=====================================
+
+RETURN <array> 1..5
+
+---
+
+(SurrealQL
+  (ReturnStatement
+    (Keyword)
+    (TypeCast
+      (TypeName)
+      (Range
+        (Number
+          (Int))
+        (RangeOp)
+        (Number
+          (Int))))))
+
+==============================================
+types :: A binary operator is outside the cast
+==============================================
+
+RETURN <string> 1 + 2
+
+---
+
+(SurrealQL
+  (ReturnStatement
+    (Keyword)
+    (BinaryExpression
+      (TypeCast
+        (TypeName)
+        (Number
+          (Int)))
+      (Operator)
+      (Number
+        (Int)))))
+
+====================================
+types :: A cast takes the whole path
+====================================
+
+RETURN <string> $x.y
+
+---
+
+(SurrealQL
+  (ReturnStatement
+    (Keyword)
+    (TypeCast
+      (TypeName)
+      (Path
+        (VariableName)
+        (Subscript
+          (Ident))))))
+
+=======================================
+types :: A cast takes a prefix operator
+=======================================
+
+RETURN <string> -$x
+
+---
+
+(SurrealQL
+  (ReturnStatement
+    (Keyword)
+    (TypeCast
+      (TypeName)
+      (PrefixExpression
+        (Operator)
+        (VariableName)))))
+
+
+==============================
+values :: An empty destructure
+==============================
+
+SELECT owner.{} AS anonymous FROM organization
+
+---
+
+(SurrealQL
+  (SelectStatement
+    (Keyword)
+    (Fields
+      (Predicate
+        (Path
+          (Ident)
+          (Subscript
+            (Destructure
+              (BraceOpen)
+              (BraceClose))))
+        (Keyword)
+        (Ident)))
+    (Keyword)
+    (Ident)))
+
+=================================================
+values :: An empty destructure continues the path
+=================================================
+
+SELECT owner.{}.username AS n FROM organization
+
+---
+
+(SurrealQL
+  (SelectStatement
+    (Keyword)
+    (Fields
+      (Predicate
+        (Path
+          (Ident)
+          (Subscript
+            (Destructure
+              (BraceOpen)
+              (BraceClose)))
+          (Subscript
+            (Ident)))
+        (Keyword)
+        (Ident)))
+    (Keyword)
+    (Ident)))
+
+=================================================
+values :: A parenthesised closure called in place
+=================================================
+
+RETURN (|$x| $x + 1)(41)
+
+---
+
+(SurrealQL
+  (ReturnStatement
+    (Keyword)
+    (FunctionCall
+      (SubQuery
+        (Closure
+          (Pipe)
+          (ParamDefinition
+            (VariableName))
+          (Pipe)
+          (BinaryExpression
+            (VariableName)
+            (Operator)
+            (Number
+              (Int)))))
+      (ArgumentList
+        (Number
+          (Int))))))
+
+==============================================
+values :: A parenthesised path called in place
+==============================================
+
+($obj.fnc)()
+
+---
+
+(SurrealQL
+  (FunctionCall
+    (SubQuery
+      (Path
+        (VariableName)
+        (Subscript
+          (Ident))))
+    (ArgumentList)))
+
+======================================
+values :: Extend-if-missing assignment
+======================================
+
+UPSERT person:test SET sport +?= 'football'
+
+---
+
+(SurrealQL
+  (UpsertStatement
+    (Keyword)
+    (RecordId
+      (RecordTbIdent)
+      (Colon)
+      (RecordIdIdent))
+    (SetClause
+      (Keyword)
+      (FieldAssignment
+        (Ident)
+        (Operator)
+        (String)))))
+
+=====================================================
+values :: count is a field name when it is not called
+=====================================================
+
+SELECT count FROM probe:c
+
+---
+
+(SurrealQL
+  (SelectStatement
+    (Keyword)
+    (Fields
+      (Predicate
+        (Ident)))
+    (Keyword)
+    (RecordId
+      (RecordTbIdent)
+      (Colon)
+      (RecordIdIdent))))
+
+==================================
+values :: count as an ORDER BY key
+==================================
+
+SELECT region, count() AS count FROM sale GROUP BY region ORDER BY count DESC
+
+---
+
+(SurrealQL
+  (SelectStatement
+    (Keyword)
+    (Fields
+      (Predicate
+        (Ident))
+      (Predicate
+        (FunctionCall
+          (FunctionName)
+          (ArgumentList))
+        (Keyword)
+        (Ident)))
+    (Keyword)
+    (Ident)
+    (GroupClause
+      (Keyword)
+      (Keyword)
+      (Idiom
+        (Ident)))
+    (OrderClause
+      (Keyword)
+      (Keyword)
+      (Order
+        (Idiom
+          (Ident))
+        (Keyword)))))
+
+=====================================================
+values :: Non-reserved clause keywords as field names
+=====================================================
+
+SELECT * FROM t WHERE order = 1 AND key = 2 AND start = 3 AND limit = 4 AND group = 5
+
+---
+
+(SurrealQL
+  (SelectStatement
+    (Keyword)
+    (Fields
+      (Any))
+    (Keyword)
+    (Ident)
+    (WhereClause
+      (Keyword)
+      (BinaryExpression
+        (BinaryExpression
+          (BinaryExpression
+            (BinaryExpression
+              (BinaryExpression
+                (Ident)
+                (Operator)
+                (Number
+                  (Int)))
+              (Operator)
+              (BinaryExpression
+                (Ident)
+                (Operator)
+                (Number
+                  (Int))))
+            (Operator)
+            (BinaryExpression
+              (Ident)
+              (Operator)
+              (Number
+                (Int))))
+          (Operator)
+          (BinaryExpression
+            (Ident)
+            (Operator)
+            (Number
+              (Int))))
+        (Operator)
+        (BinaryExpression
+          (Ident)
+          (Operator)
+          (Number
+            (Int)))))))
+
+==============================================
+values :: type is a field name inside a filter
+==============================================
+
+SELECT tags[WHERE type = 'library'][0].value FROM documentation:test
+
+---
+
+(SurrealQL
+  (SelectStatement
+    (Keyword)
+    (Fields
+      (Predicate
+        (Path
+          (Ident)
+          (Filter
+            (WhereClause
+              (Keyword)
+              (BinaryExpression
+                (Ident)
+                (Operator)
+                (String))))
+          (Filter
+            (Number
+              (Int)))
+          (Subscript
+            (Ident)))))
+    (Keyword)
+    (RecordId
+      (RecordTbIdent)
+      (Colon)
+      (RecordIdIdent))))
+

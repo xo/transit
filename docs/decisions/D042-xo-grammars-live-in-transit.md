@@ -1,6 +1,6 @@
 # D42. Grammars that xo writes live in transit
 
-Status: Decided, amended by D104.
+Status: Decided, amended by D104 and D106.
 
 Ken decided on 2026-09-29, answering questions 22 and 43, that transit holds
 the grammars that `xo` writes: the usql grammar (D13), MySQL, and the SQL-like

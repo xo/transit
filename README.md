@@ -105,6 +105,33 @@ packages, one for each fixture grammar:
 | `github.com/xo/transit/grammars/typescript/tsx` | [tree-sitter/tree-sitter-typescript](https://github.com/tree-sitter/tree-sitter-typescript) | `v0.23.2` |
 | `github.com/xo/transit/grammars/typescript/typescript` | [tree-sitter/tree-sitter-typescript](https://github.com/tree-sitter/tree-sitter-typescript) | `v0.23.2` |
 
+These packages hold SQL grammars of the set for usql (D106). A module that
+holds the language of one dialect has the name of the dialect, so the
+package name can differ from the grammar name (D107):
+
+| Package | Grammar | Upstream repository | Tag |
+| --- | --- | --- | --- |
+| `github.com/xo/transit/grammars/sql` | `sql` | [DerekStride/tree-sitter-sql](https://github.com/DerekStride/tree-sitter-sql) | `v0.3.11` |
+| `github.com/xo/transit/grammars/postgres/postgres` | `postgres` | [gmr/tree-sitter-postgres](https://github.com/gmr/tree-sitter-postgres) | `v1.2.4` |
+| `github.com/xo/transit/grammars/postgres/plpgsql` | `plpgsql` | [gmr/tree-sitter-postgres](https://github.com/gmr/tree-sitter-postgres) | `v1.2.4` |
+| `github.com/xo/transit/grammars/sqlserver` | `TSQL` | [Crary-Systems/tree-sitter-tsql](https://github.com/Crary-Systems/tree-sitter-tsql) | `0.0.1` |
+| `github.com/xo/transit/grammars/oracle` | `plsql` | [andreasmaierde/tree-sitter-plsql](https://github.com/andreasmaierde/tree-sitter-plsql) | the branch `main` at `28aebef` |
+| `github.com/xo/transit/grammars/cql` | `cql` | [shotover/tree-sitter-cql](https://github.com/shotover/tree-sitter-cql) | `v0.2.0` |
+
+These packages hold the grammars of the languages of dbmeta that are not SQL
+(D21, D23). A module that holds the language of one dialect has the name of
+the dialect, so the package name can differ from the grammar name (D107).
+`udovin/tree-sitter-yql` has no license file, so `grammars/ydb` has none
+(D20):
+
+| Package | Grammar | Upstream repository | Tag |
+| --- | --- | --- | --- |
+| `github.com/xo/transit/grammars/neo4j` | `cypher` | [taekwombo/tree-sitter-cypher](https://github.com/taekwombo/tree-sitter-cypher) | `M23-legacy` |
+| `github.com/xo/transit/grammars/surrealdb` | `surrealql` | [surrealdb/surrealql-tree-sitter](https://github.com/surrealdb/surrealql-tree-sitter) | the branch `master` at `329dcec` |
+| `github.com/xo/transit/grammars/sparql` | `sparql` | [GordianDziwis/tree-sitter-sparql](https://github.com/GordianDziwis/tree-sitter-sparql) | `0.1.0` |
+| `github.com/xo/transit/grammars/graphql` | `graphql` | [bkegley/tree-sitter-graphql](https://github.com/bkegley/tree-sitter-graphql) | the branch `master` at `5e66e96` |
+| `github.com/xo/transit/grammars/ydb` | `yql` | [udovin/tree-sitter-yql](https://github.com/udovin/tree-sitter-yql) | the branch `main` at `7e8d3e1` |
+
 xo writes some grammars in this repository (D42, D104). The module
 `github.com/xo/transit/grammars/usql` holds the grammar of the input of
 usql: SQL statements, meta commands such as `\d` and variables such as

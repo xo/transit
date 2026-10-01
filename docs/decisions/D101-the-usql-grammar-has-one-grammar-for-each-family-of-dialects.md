@@ -1,6 +1,6 @@
 # D101. The usql grammar has one grammar for each family of dialects
 
-Status: Decided, amends D13, amended by D105.
+Status: Decided, amends D13, amended by D105 and D108.
 
 D13 says that a usql grammar parses the meta commands and the variables of
 the input of usql, and hands each SQL statement to a SQL grammar through an

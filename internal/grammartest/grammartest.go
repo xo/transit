@@ -55,7 +55,9 @@ import (
 // tree-sitter.json when it names none, as upstream runs it. The other
 // packages skip the case, and name the package that runs it. A case for a
 // grammar that the module does not hold fails with "Language not found",
-// as upstream does.
+// as upstream does. A package of a grammar that tree-sitter.json does not
+// list, such as plpgsql of tree-sitter-postgres, holds the corpus of its own
+// folder, and it runs each case that names no grammar.
 func Corpus(t *testing.T, language *transit.Language, dir string, failing ...string) {
 	t.Helper()
 	entry, err := parseTests(dir)
@@ -172,14 +174,18 @@ func (r *corpusRun) runCase(t *testing.T, e testEntry, name string) bool {
 // owner returns the folder of the package that runs a case: the package of
 // the grammar of its first :language, or of the first grammar of the module
 // when it names none. A case for a grammar that the module does not hold
-// runs in the package, and fails with "Language not found".
+// runs in the package, and fails with "Language not found". A case that
+// names no grammar runs in the package when no entry of tree-sitter.json
+// has the folder of the package, such as plpgsql of tree-sitter-postgres.
+// Upstream runs the corpus of such a grammar in its own folder, where the
+// grammar of the folder is the only language.
 func (r *corpusRun) owner(a testAttributes) string {
 	name := ""
 	if len(a.languages) > 0 {
 		name = a.languages[0]
 	}
 	if name == "" {
-		if len(r.module.entries) == 0 {
+		if len(r.module.entries) == 0 || !r.module.hasFolder(r.module.own) {
 			return r.module.own
 		}
 		return r.module.entries[0].folder()
@@ -344,7 +350,7 @@ func Generator(t *testing.T, language *transit.Language) {
 		t.Fatal(err)
 	}
 	name := inputGrammar.Pool.Resolve(inputGrammar.Name)
-	pkg, err := golang.PackageName(name)
+	pkg, err := golang.PackageName(".")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -360,7 +366,7 @@ func Generator(t *testing.T, language *transit.Language) {
 	backend := &multiBackend{targets: []target{
 		{abi: 14, backend: c.Backend{}},
 		{abi: 15, backend: c.Backend{}},
-		{abi: language.ABIVersion(), backend: golang.Backend{Queries: opts.Queries}},
+		{abi: language.ABIVersion(), backend: golang.Backend{Package: pkg, Queries: opts.Queries}},
 	}}
 	parser, err := generate.ParserForGrammarWithOpts(inputGrammar, generate.LanguageVersion, version, generate.OptLevelMergeStates, backend, &diagnostics)
 	if err != nil {

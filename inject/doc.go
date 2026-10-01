@@ -10,4 +10,8 @@
 // API: NewConfig compiles the injection query of a language, and
 // Config.Layers gives every layer of a text at once. The text is UTF-8
 // (D71).
+//
+// The examples of Layers and WithReplacer are in the grammar package
+// github.com/xo/transit/grammars/html, because they need the grammars of
+// HTML and JavaScript.
 package inject

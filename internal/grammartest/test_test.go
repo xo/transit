@@ -381,6 +381,16 @@ func TestReadModule(t *testing.T) {
 			t.Errorf("owner of %q = %q, want %q", c.languages, got, c.owner)
 		}
 	}
+	// A package whose folder no entry has runs each case that names no
+	// grammar.
+	t.Chdir(filepath.Join(dir, "other"))
+	if m, err = readModule("other"); err != nil {
+		t.Fatal(err)
+	}
+	r = &corpusRun{module: m}
+	if got := r.owner(testAttributes{languages: []string{""}}); got != "other" {
+		t.Errorf("in a folder that no entry has, the owner of a case = %q, want %q", got, "other")
+	}
 	t.Chdir(t.TempDir())
 	if m, err := readModule("tsx"); err != nil || m.own != "." || len(m.entries) != 0 {
 		t.Errorf("with no tree-sitter.json, readModule = %+v, %v", m, err)

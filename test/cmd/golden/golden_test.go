@@ -146,7 +146,8 @@ const phpCorpus = "===\nA\n===\n<?php 1;\n---\n(program)\n\n===\nB\n:language(ph
 // (D88): the failures in the order of the record, one on each line, and no
 // file for a package whose entry has no failure. The entry of a package is
 // the entry with its name, and of the repository of its module when two
-// entries have the name. In a module with two grammars, each package gets
+// entries have the name, and of the repository that tree-sitter.json names
+// when two of those give the folder of the module. In a module with two grammars, each package gets
 // only the cases that it runs (D93).
 func TestWriteFailingFiles(t *testing.T) {
 	t.Parallel()
@@ -161,6 +162,7 @@ func TestWriteFailingFiles(t *testing.T) {
 		"typescript/tsx/" + failing:            "stale\n",
 		"sql/go.mod":                           "module example.com/sql\n",
 		"sql/grammar.json":                     `{"name": "sql"}`,
+		"sql/tree-sitter.json":                 `{"metadata": {"links": {"repository": "git+https://github.com/B/tree-sitter-sql.git"}}}`,
 		"php/go.mod":                           "module example.com/php\n",
 		"php/tree-sitter.json":                 `{"grammars": [{"name": "php", "path": "php"}, {"name": "php_only", "path": "php_only"}]}`,
 		"php/php/grammar.json":                 `{"name": "php"}`,
@@ -182,6 +184,7 @@ func TestWriteFailingFiles(t *testing.T) {
 		{Name: "tsx", Repository: "https://github.com/tree-sitter/tree-sitter-typescript", Path: "tsx", Corpus: &corpusResult{}},
 		{Name: "sql", Repository: "https://github.com/a/tree-sitter-sql-a", Corpus: &corpusResult{Failing: []string{"wrong"}}},
 		{Name: "sql", Repository: "https://github.com/b/tree-sitter-sql", Corpus: &corpusResult{Failing: []string{"right"}}},
+		{Name: "sql", Repository: "https://github.com/c/tree-sitter-sql", Corpus: &corpusResult{Failing: []string{"other"}}},
 		{Name: "php", Repository: "https://github.com/tree-sitter/tree-sitter-php", Path: "php", Corpus: &corpusResult{Failing: []string{"main/A", "main/B"}}},
 		{Name: "php_only", Repository: "https://github.com/tree-sitter/tree-sitter-php", Path: "php_only", Corpus: &corpusResult{Failing: []string{"main/A", "main/B"}}},
 	}}

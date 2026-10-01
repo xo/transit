@@ -101,8 +101,8 @@ func GrammarFolder(p string) string {
 // entry of the nearest tree-sitter.json, in dir or in a folder above it,
 // but for the folder of dir, where an entry has an injection-regex (D80).
 // The folder of tree-sitter.json is the folder of the module, and its go.mod
-// gives the module path. The grammar.json of each other package gives its
-// name. A folder that holds no grammar.json yet is left out.
+// gives the module path, and the folder of each other package gives the
+// name of the package. A folder that holds no grammar.json yet is left out.
 func readOthers(dir string) ([]Other, error) {
 	pkgDir, err := filepath.Abs(dir)
 	if err != nil {
@@ -147,20 +147,10 @@ func readOthers(dir string) ([]Other, error) {
 			continue
 		}
 		seen = append(seen, folder)
-		grammarJSON, err := os.ReadFile(filepath.Join(moduleDir, folder, "grammar.json"))
-		if errors.Is(err, fs.ErrNotExist) {
+		if !isFile(filepath.Join(moduleDir, folder, "grammar.json")) {
 			continue
 		}
-		if err != nil {
-			return nil, fmt.Errorf("reading the grammar of the folder %s: %w", folder, err)
-		}
-		var grammar struct {
-			Name string `json:"name"`
-		}
-		if err := json.Unmarshal(grammarJSON, &grammar); err != nil {
-			return nil, fmt.Errorf("reading the grammar of the folder %s: %w", folder, err)
-		}
-		pkg, err := PackageName(grammar.Name)
+		pkg, err := PackageName(filepath.Join(moduleDir, folder))
 		if err != nil {
 			return nil, err
 		}
@@ -216,8 +206,7 @@ func Package(dir string, abiVersion int, optimizations generate.OptLevel, diagno
 	if err != nil {
 		return nil, err
 	}
-	name := inputGrammar.Pool.Resolve(inputGrammar.Name)
-	pkg, err := PackageName(name)
+	pkg, err := PackageName(dir)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +214,7 @@ func Package(dir string, abiVersion int, optimizations generate.OptLevel, diagno
 	if err != nil {
 		return nil, err
 	}
-	parser, err := generate.ParserForGrammarWithOpts(inputGrammar, abiVersion, semanticVersion, optimizations, Backend{Queries: opts.Queries}, diagnostics)
+	parser, err := generate.ParserForGrammarWithOpts(inputGrammar, abiVersion, semanticVersion, optimizations, Backend{Package: pkg, Queries: opts.Queries}, diagnostics)
 	if err != nil {
 		return nil, err
 	}
@@ -380,7 +369,9 @@ type CorpusResult struct {
 // case for a package outside a checkout of transit. When several entries
 // have the name, the entry is the one whose repository gives the name of the
 // folder of the module, the nearest folder that holds a go.mod, as
-// docs/GRAMMAR.md says.
+// docs/GRAMMAR.md says. When several entries give that name too, as the two
+// repositories tree-sitter-sql do, the entry is the one whose repository
+// the tree-sitter.json of the module names (D106).
 func FindRecord(dir, name string) (*Record, error) {
 	dir, err := filepath.Abs(dir)
 	if err != nil {
@@ -422,10 +413,57 @@ func FindRecord(dir, name string) (*Record, error) {
 			return ModuleFolderName(r.Repository) != filepath.Base(moduleDir)
 		})
 	}
+	if len(found) > 1 {
+		repository, err := moduleRepository(moduleDir)
+		if err != nil {
+			return nil, err
+		}
+		found = slices.DeleteFunc(found, func(r Record) bool {
+			return !sameRepository(r.Repository, repository)
+		})
+	}
 	if len(found) != 1 {
 		return nil, fmt.Errorf("%s has %d entries for the grammar %s in the module folder %s", recordFile, len(found), name, filepath.Base(moduleDir))
 	}
 	return &found[0], nil
+}
+
+// moduleRepository returns the repository that the tree-sitter.json in the
+// folder of a module names in metadata.links.repository, or "" when the
+// folder has no tree-sitter.json or the file names no repository.
+func moduleRepository(moduleDir string) (string, error) {
+	p := filepath.Join(moduleDir, "tree-sitter.json")
+	b, err := os.ReadFile(p)
+	if errors.Is(err, fs.ErrNotExist) {
+		return "", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("reading %s: %w", p, err)
+	}
+	var cfg struct {
+		Metadata struct {
+			Links struct {
+				Repository string `json:"repository"`
+			} `json:"links"`
+		} `json:"metadata"`
+	}
+	if err := json.Unmarshal(b, &cfg); err != nil {
+		return "", fmt.Errorf("decoding %s: %w", p, err)
+	}
+	return cfg.Metadata.Links.Repository, nil
+}
+
+// sameRepository reports whether two URLs name the same repository. It
+// ignores the case, a prefix git+ and a suffix .git or /, so that
+// git+https://github.com/derekstride/tree-sitter-sql.git names
+// https://github.com/DerekStride/tree-sitter-sql. An empty URL names no
+// repository.
+func sameRepository(a, b string) bool {
+	clean := func(u string) string {
+		u = strings.ToLower(strings.TrimPrefix(u, "git+"))
+		return strings.TrimSuffix(strings.TrimSuffix(u, "/"), ".git")
+	}
+	return a != "" && b != "" && clean(a) == clean(b)
 }
 
 // ModuleFolderName returns the name of the folder of the module of a

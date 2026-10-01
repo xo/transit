@@ -104,18 +104,30 @@ of D9. Ken decides whether another grammar replaces it (D51).
 
 ## Names
 
-A package has the name of the grammar with each `_` removed. `c_sharp`
-becomes `csharp`, and `embedded_template` becomes `embeddedtemplate`. A Go
-package name has no underscore, as the `go-pedantry` skill says. The grammar
-`go` gets the package `golang`, because `go` is a keyword of Go (D77). Any
-other name that is not a Go package name stops the generator with an error.
-The folder of a package has the same name, but the package `golang` of the
-grammar go lives in `grammars/go` (D86).
+A package has the name of its folder, in lowercase (D107). The package of a
+grammar at the root of its module has the name of the module folder. The
+folder `go` gives the package `golang`, because `go` is a keyword of Go
+(D77, D86). A folder whose name is not a Go package name stops the generator
+with an error. A Go package name has no underscore, as the `go-pedantry`
+skill says. The name of the grammar does not change. `Language.Name` gives
+it, and the queries and the injections use it. The grammar `TSQL` lives in
+`grammars/sqlserver`, so its package is `sqlserver`, and `Language.Name`
+gives `TSQL`.
 
-The folder of a module has the name of the upstream repository without the
-`tree-sitter-` prefix and with each `-` removed. `tree-sitter-embedded-template`
-becomes `embeddedtemplate`. If two grammars or two repositories get the same
-name, ask Ken.
+If the language of a grammar is the language of one dialect of dbmeta, the
+folder of its module has the name of the dialect. The table of D107 lists
+them. `Crary-Systems/tree-sitter-tsql` lives in `grammars/sqlserver`, and
+`andreasmaierde/tree-sitter-plsql` in `grammars/oracle`. The folder of any other module has the name of the
+upstream repository without the `tree-sitter-` prefix and with each `-`
+removed. `tree-sitter-embedded-template` becomes `embeddedtemplate`. If two
+grammars or two repositories get the same name, ask Ken.
+
+The two repositories `tree-sitter-sql` give the same folder and the same
+grammar name, `sql`. `DerekStride/tree-sitter-sql` gets `grammars/sql`, and
+`m-novikov/tree-sitter-sql` gets no Go package (D106). Two entries of
+`grammars/grammars.json` can give one module folder. Then the tests and the
+golden harness take the entry of the repository that `tree-sitter.json` of
+the module names under `metadata.links.repository`.
 
 ## The layout of a grammar
 
@@ -134,6 +146,7 @@ A repository that holds one grammar, such as JSON, looks like this:
 | `grammars/json/node-types.json` | the node types, which `parser.go` embeds | `transit generate` |
 | `grammars/json/grammar_test.go` | the tests of "Tests" below, which call the package `internal/grammartest` | `transit generate` |
 | `grammars/json/scanner.go` | the external scanner, if the grammar has one | a person, as a port |
+| `grammars/json/example_test.go` | the example functions that pkg.go.dev shows (D53), if the package has them | a person |
 | `grammars/json/queries/*.scm` | `queries/*.scm` of the upstream repository | copied |
 | `grammars/json/testdata/corpus/` | `test/corpus/` of the upstream repository | copied |
 | `grammars/json/testdata/highlight/` | `test/highlight/`, if it exists | copied |
@@ -151,6 +164,13 @@ package holds the whole corpus, and a case runs in the package of the grammar
 that its `:language` names, or of the first grammar of `tree-sitter.json`
 (D83). Code that two scanners share, such as `common/scanner.h`, becomes the
 package `internal/scan` of the module (D85).
+
+A grammar of a repository can have its own `test/corpus` in its own folder,
+as each grammar of `tree-sitter-postgres` has. Then its package holds that
+corpus only. `tree-sitter.json` of `tree-sitter-postgres` lists `postgres`
+and not `plpgsql`. Upstream runs the corpus of `plpgsql` in its own folder,
+so the package of a grammar that `tree-sitter.json` does not list runs each
+case of its corpus that names no grammar.
 
 When `tree-sitter.json` lists a query file of another grammar, such as
 `node_modules/tree-sitter-javascript/queries/highlights.scm`, the package
