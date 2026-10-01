@@ -383,7 +383,7 @@ These languages of dbmeta have no grammar that was found: SQL++, InfluxQL,
 KSQL, PartiQL, ES|QL, PPL, DQL, WOQL, the Lucene syntax and the query string
 of PostgREST. Most of the SQL dialects have only the generic grammar, and
 MySQL, the most used of them, has no grammar of its own. transit writes these
-grammars, in `grammars/xo/` (D42).
+grammars, in `grammars/` (D42, D104).
 
 ## Not in the set yet
 

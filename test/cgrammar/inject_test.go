@@ -21,7 +21,8 @@ import (
 // parses as the root layer. Each one has queries/injections.scm, and
 // together they use combined injections, include-children and a language
 // that a capture names. nix, bitbake and zig also have injections, but their
-// repositories hold no corpus.
+// repositories hold no corpus. usql_postgres is the usql grammar of the
+// family postgres, which xo writes (D42, D101).
 //
 // doxygen and re2c set injection.parent, and they are not roots. As a root,
 // each one injects itself: injection.parent names the root language (D72),
@@ -31,6 +32,7 @@ var injectRoots = []string{
 	"html", "javascript", "rust", "cpp", "haskell", "julia", "markdown",
 	"markdown_inline", "svelte", "elixir", "heex", "twig", "kdl", "postgres",
 	"plpgsql", "perl", "lua", "luau", "http", "gleam", "swift", "blade",
+	"usql_postgres",
 }
 
 // injectedNames matches the language names that an injection query sets

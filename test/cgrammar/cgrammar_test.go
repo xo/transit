@@ -67,6 +67,13 @@ func setup(t *testing.T) (string, string) {
 // fixtures returns the fixture grammars of grammars/grammars.json.
 func fixtures(t *testing.T, root string) []fixture {
 	t.Helper()
+	return recorded(t, root, "fixture")
+}
+
+// recorded returns the available grammars of grammars/grammars.json that
+// are in one of the sets.
+func recorded(t *testing.T, root string, sets ...string) []fixture {
+	t.Helper()
 	b, err := os.ReadFile(filepath.Join(root, "grammars", "grammars.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -79,24 +86,27 @@ func fixtures(t *testing.T, root string) []fixture {
 	}
 	var out []fixture
 	for _, g := range rec.Grammars {
-		if g.Set == "fixture" && g.Status == "available" {
+		if slices.Contains(sets, g.Set) && g.Status == "available" {
 			out = append(out, g)
 		}
 	}
 	return out
 }
 
-// grammarDirs returns the folder of a fixture grammar in the cache of the
-// golden harness, and the folder of its corpus.
+// grammarDirs returns the folder of a grammar in the cache of the golden
+// harness, and the folder of its corpus: test/corpus in the folder of the
+// grammar, or in the nearest folder above it. A grammar that xo writes finds
+// the corpus of its module this way.
 func grammarDirs(cache string, f fixture) (string, string) {
 	repo := strings.TrimPrefix(f.Repository, "https://github.com/")
 	checkout := filepath.Join(cache, "grammars", filepath.FromSlash(repo))
 	dir := filepath.Join(checkout, f.Path)
-	corpus := filepath.Join(dir, "test", "corpus")
-	if _, err := os.Stat(corpus); err != nil {
-		corpus = filepath.Join(checkout, "test", "corpus")
+	for p := dir; ; p = filepath.Dir(p) {
+		corpus := filepath.Join(p, "test", "corpus")
+		if _, err := os.Stat(corpus); err == nil || p == checkout || p == filepath.Dir(p) {
+			return dir, corpus
+		}
 	}
-	return dir, corpus
 }
 
 // loadFixture builds and loads a fixture grammar, and reads its corpus. It

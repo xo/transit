@@ -34,7 +34,8 @@ change transit from usql.
 5. The Go API follows the Rust binding, in Go idioms (D25). An offset, a row
    and a column are an `int`, and each counts bytes.
 6. transit writes the usql grammar, MySQL, and the SQL-like grammars that do
-   not exist, in `grammars/xo/` (D42).
+   not exist, in `grammars/` (D42, D104). The usql grammar is the module
+   `github.com/xo/transit/grammars/usql`.
 7. Each grammar repository is a Go module of its own, so usql downloads only
    the grammars that it imports (D26). Each grammar package embeds its
    queries (D31).
@@ -112,7 +113,7 @@ The grammars are weak. `DerekStride/tree-sitter-sql` is the one generic SQL
 grammar, and most dialects have only it. `gmr/tree-sitter-postgres` follows
 the PostgreSQL source. MySQL has no grammar of its own. SQL++, InfluxQL,
 KSQL, PartiQL, ES|QL and PPL have no grammar at all. transit writes the
-missing grammars, and the usql grammar, in `grammars/xo/` (D42).
+missing grammars, and the usql grammar, in `grammars/` (D42, D104).
 
 ## What usql must not do
 

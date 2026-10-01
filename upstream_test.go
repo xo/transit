@@ -368,7 +368,10 @@ func TestTheGoldenFilesNameTheBaseCommit(t *testing.T) {
 		switch {
 		case seen[key]:
 			t.Errorf("grammars/grammars.json holds %s twice", key)
-		case !commit.MatchString(g.Commit):
+		case g.Repository == "https://github.com/xo/transit" && g.Commit != "":
+			// a grammar that xo writes is in this repository (D42)
+			t.Errorf("%s: a grammar of this repository names the commit %q", g.Name, g.Commit)
+		case g.Repository != "https://github.com/xo/transit" && !commit.MatchString(g.Commit):
 			t.Errorf("%s: %q is not a full commit hash (D51)", g.Name, g.Commit)
 		case g.Status != "available" && g.Status != "unavailable":
 			t.Errorf("%s: the status %q is not available or unavailable (D51)", g.Name, g.Status)

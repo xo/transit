@@ -106,6 +106,20 @@ packages, one for each fixture grammar:
 | `github.com/xo/transit/grammars/typescript/tsx` | [tree-sitter/tree-sitter-typescript](https://github.com/tree-sitter/tree-sitter-typescript) | `v0.23.2` |
 | `github.com/xo/transit/grammars/typescript/typescript` | [tree-sitter/tree-sitter-typescript](https://github.com/tree-sitter/tree-sitter-typescript) | `v0.23.2` |
 
+xo writes some grammars in this repository (D42, D104). The module
+`github.com/xo/transit/grammars/usql` holds the grammar of the input of
+usql: SQL statements, meta commands such as `\d` and variables such as
+`:name` (D13). It has one package for each family of SQL dialects (D101):
+
+| Package | Family |
+| --- | --- |
+| `github.com/xo/transit/grammars/usql/usqlpostgres` | dollar quotes and block comments, for PostgreSQL and the dialects like it |
+| `github.com/xo/transit/grammars/usql/usqlmysql` | block comments, `#` comments and backticks, for MySQL and the dialects like it |
+| `github.com/xo/transit/grammars/usql/usqlsqlite` | block comments and backticks, for SQLite and the dialects like it |
+| `github.com/xo/transit/grammars/usql/usqlstandard` | block comments only, for SQL Server, Oracle, ClickHouse, Trino, DuckDB and the others |
+| `github.com/xo/transit/grammars/usql/usqlcql` | dollar quotes, block comments and `//` comments, for CQL |
+| `github.com/xo/transit/grammars/usql/usqlplain` | none of these, for the dialects that set no option |
+
 Some grammars ship queries written for Neovim, which transit does not support
 now. [docs/NEOVIM.md](docs/NEOVIM.md) lists them.
 

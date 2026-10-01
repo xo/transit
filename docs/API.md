@@ -562,6 +562,9 @@ returns. `node_type.go` holds them. Their names follow `NodeInfoJSON`,
 and `Kind` is the key `type`, as `Node.Kind` is the type of a node. D76
 records them.
 
+The fourth one is `inject.WithReplacer`, which replaces the text of nodes
+before a layer is parsed (D101). "The package inject" below gives it.
+
 ## The package inject
 
 The package `inject` finds the injections of a text and parses each layer
@@ -594,7 +597,19 @@ type Layer struct {
 // Layers parses src with c, finds every injection, and parses the layer of
 // each. lookup gives the configuration of an injected language name.
 func (c *Config) Layers(ctx context.Context, p *transit.Parser, src []byte,
-	lookup func(name string) (*Config, bool)) ([]Layer, error)
+	lookup func(name string) (*Config, bool), opts ...Option) ([]Layer, error)
+
+// Option changes what Layers does. It is an API that upstream does not have.
+type Option func(*options)
+
+// Replacer gives the text that takes the place of the node n of a parent
+// layer in the text of the injected layer of the language name, and true,
+// or false for a node whose text stays. The text has the length of the node.
+type Replacer func(name string, n transit.Node, src []byte) ([]byte, bool)
+
+// WithReplacer makes Layers ask r about the nodes of the parent layer inside
+// the ranges of an injected layer, before it parses that layer.
+func WithReplacer(r Replacer) Option
 ```
 
 `inject` takes UTF-8 only, and a Rust oracle in the test module compares its
@@ -617,6 +632,48 @@ for _, l := range slices.Backward(layers) {
 
 `holds` is code of usql that reports whether one of the ranges holds the
 offset.
+
+`WithReplacer` is an API that upstream does not have (D28). `replace.go`
+holds it, and the options of `Layers`. A variable of the input of usql, such
+as `:id`, is an error in a SQL grammar. So usql replaces each variable with a
+placeholder of the same length before the SQL layer is parsed, and every
+offset of the layer stays the offset of the input (D101). Layers walks the
+nodes of the parent tree inside the ranges of the layer, from the root down,
+and asks the replacer about each one. The replacer does not see the children
+of a node that it replaces. The root layer has no parent, so its text stays.
+The queries match the text of `src`, and only the parse of the layer reads
+the new text. A text whose length is not the length of its node is an error
+of `Layers`.
+
+The test module shows it with the grammar `usqlpostgres` and the SQL grammar
+of DerekStride. `select * from :tbl where id = :id` gives a SQL layer with an
+error, and with this replacer the layer has no error:
+
+```go
+func placeholder(_ string, n transit.Node, src []byte) ([]byte, bool) {
+	if n.Kind() != "variable" {
+		return nil, false
+	}
+	name, _ := n.ChildByFieldName("name")
+	text := src[n.StartByte():n.EndByte()]
+	id := "_" + string(src[name.StartByte():name.EndByte()])
+	switch {
+	case bytes.HasPrefix(text, []byte(":{?")): // TRUE, then spaces
+		return append([]byte("TRUE"), bytes.Repeat([]byte(" "), len(text)-4)...), true
+	case bytes.HasPrefix(text, []byte(":'")): // a string
+		return []byte("'" + id + "'"), true
+	case bytes.HasPrefix(text, []byte(`:"`)): // a quoted identifier
+		return []byte(`"` + id + `"`), true
+	}
+	return []byte(id), true // an identifier
+}
+
+layers, err := usqlConfig.Layers(ctx, parser, src, lookup, inject.WithReplacer(placeholder))
+```
+
+psql gives `TRUE` or `FALSE` for `:{?name}`, so its placeholder is `TRUE`
+with spaces after it. The name of a variable needs at least one character,
+so each placeholder fits.
 
 ## A generated grammar package
 

@@ -60,7 +60,7 @@ An open question is not a decision. It goes at the end of
 | [D39](D039-scanner-character-functions-use-go-unicode.md) | Scanner character functions use Go's unicode package | Decided, amended by D46 |
 | [D40](D040-golden-files-are-hashes.md) | Golden files are hashes, and the test grammars keep their files | Decided |
 | [D41](D041-cmd-transit-generates-tests-parses-and-queries.md) | cmd/transit generates, tests, parses and queries | Decided, amends D7 |
-| [D42](D042-xo-grammars-live-in-transit.md) | Grammars that xo writes live in transit | Decided |
+| [D42](D042-xo-grammars-live-in-transit.md) | Grammars that xo writes live in transit | Decided, amended by D104 |
 | [D43](D043-modules-are-tagged-one-by-one.md) | Each module is tagged on its own | Decided, amended by D48, D65 and D99 |
 | [D44](D044-input-that-transit-cannot-trust.md) | Input that transit cannot trust | Decided |
 | [D45](D045-go-grammars-are-compared-with-c-at-unicode-16.md) | Go grammars are compared with C grammars at the Unicode version of upstream | Decided, amended by D60 |
@@ -119,6 +119,8 @@ An open question is not a decision. It goes at the end of
 | [D98](D098-the-styles-that-transit-bundles.md) | The styles that transit bundles | Decided, amends D65, amended by D100 |
 | [D99](D099-the-package-styles-is-a-module-of-its-own.md) | The package styles is a module of its own | Decided, amends D26, D43 and D65 |
 | [D100](D100-three-choices-for-the-hand-made-styles.md) | Three choices for the hand-made styles | Decided, amends D98 |
-| [D101](D101-the-usql-grammar-has-one-grammar-for-each-family-of-dialects.md) | The usql grammar has one grammar for each family of dialects | Decided, amends D13 |
-| [D102](D102-the-shape-of-the-usql-grammar.md) | The shape of the usql grammar | Decided |
+| [D101](D101-the-usql-grammar-has-one-grammar-for-each-family-of-dialects.md) | The usql grammar has one grammar for each family of dialects | Decided, amends D13, amended by D105 |
+| [D102](D102-the-shape-of-the-usql-grammar.md) | The shape of the usql grammar | Decided, amended by D105 |
 | [D103](D103-ken-accepts-the-target-api.md) | Ken accepts the target API | Decided |
+| [D104](D104-a-grammar-that-xo-writes-lives-in-grammars.md) | A grammar that xo writes lives in grammars | Decided, amends D42 |
+| [D105](D105-ken-accepts-the-usql-grammar.md) | Ken accepts the usql grammar | Decided, amends D101 and D102 |

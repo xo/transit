@@ -1,6 +1,6 @@
 # D102. The shape of the usql grammar
 
-Status: Decided.
+Status: Decided, amended by D105.
 
 Gemini and DeepSeek agreed on these points of the shape of the usql grammar
 (D101). Ken accepted them on 2026-10-01, answering question 72.

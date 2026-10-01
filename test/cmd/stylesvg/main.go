@@ -49,6 +49,8 @@ import (
 	"github.com/xo/transit/grammars/rust"
 	"github.com/xo/transit/grammars/typescript/tsx"
 	"github.com/xo/transit/grammars/typescript/typescript"
+	"github.com/xo/transit/grammars/usql/usqlmysql"
+	"github.com/xo/transit/grammars/usql/usqlpostgres"
 	"github.com/xo/transit/internal/grammartest"
 	"github.com/xo/transit/styles"
 )
@@ -85,6 +87,8 @@ var grammars = []grammar{
 	{"rust", "rust", rust.Language, rust.Queries},
 	{"typescript", "typescript/typescript", typescript.Language, typescript.Queries},
 	{"tsx", "typescript/tsx", tsx.Language, tsx.Queries},
+	{"usqlpostgres", "usql/usqlpostgres", usqlpostgres.Language, usqlpostgres.Queries},
+	{"usqlmysql", "usql/usqlmysql", usqlmysql.Language, usqlmysql.Queries},
 }
 
 func main() {

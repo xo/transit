@@ -197,6 +197,7 @@ these files:
 | `generate/testdata/` | the golden files of the 68 test grammars, which the harness writes |
 | `grammars/grammars.json` | the record of every grammar, with the hashes of its golden files (D40) |
 | `grammars/<module>/` | the grammar modules of the 17 fixture grammars, one for each upstream repository, which `docs/GRAMMAR.md` lays out and `README.md` lists. Each package holds its generated `parser.go` and, when the grammar has one, its ported `scanner.go` |
+| `grammars/usql/` | the module of the usql grammar, which xo writes (D13, D42, D104). One `common/define-grammar.js` and one `common/scanner.h` make a grammar for each family of SQL dialects (D101, D102). Each package, such as `usqlpostgres`, holds its `grammar.js`, its `src/scanner.c`, which sets the family, and its `scanner.go`. The package `internal/scan` ports `common/scanner.h`. `queries/` and `test/corpus/` of the module are the sources of the copies in each package |
 | `styles/` | the module `github.com/xo/transit/styles`, which has its own `go.mod` (D99). It holds the styles as JSON files: the styles of chroma in `chroma/`, the styles that a person makes in `themes/`, the license files in `licenses/`, and the list of capture names in `captures.txt` (D65) |
 | `tree-sitter/` | the upstream checkout, which git ignores |
 

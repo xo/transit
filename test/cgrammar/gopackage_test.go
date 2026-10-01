@@ -41,18 +41,19 @@ var goPackages []goPackage
 
 // loadGoPackage builds and loads the C grammar of a grammar package, with
 // the version of its tree-sitter.json, and reads the corpus of the grammar
-// and the error corpus of upstream.
+// and the error corpus of upstream. The grammar is a fixture grammar or a
+// grammar that xo writes (D42).
 func loadGoPackage(t *testing.T, gp goPackage) (*Grammar, []Example) {
 	t.Helper()
 	root, cache := setup(t)
 	var f fixture
-	for _, candidate := range fixtures(t, root) {
+	for _, candidate := range recorded(t, root, "fixture", "xo") {
 		if candidate.Name == gp.name {
 			f = candidate
 		}
 	}
 	if f.Name == "" {
-		t.Fatalf("no fixture grammar %s in grammars/grammars.json", gp.name)
+		t.Fatalf("no grammar %s of the fixtures or of xo in grammars/grammars.json", gp.name)
 	}
 	dir, corpusDir := grammarDirs(cache, f)
 	so, err := BuildGrammarVersion(context.Background(), dir, cache)
@@ -487,7 +488,7 @@ func TestGoPackageLexersMatchC(t *testing.T) {
 			g, examples := loadGoPackage(t, gp)
 			root, cache := setup(t)
 			var dir string
-			for _, f := range fixtures(t, root) {
+			for _, f := range recorded(t, root, "fixture", "xo") {
 				if f.Name == gp.name {
 					dir, _ = grammarDirs(cache, f)
 				}

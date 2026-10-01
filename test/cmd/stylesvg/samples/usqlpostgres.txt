@@ -1,0 +1,28 @@
+-- Connect, set variables and run a report.
+\c postgres://user@localhost/shop
+\set limit 10
+\set table orders
+\timing on
+
+/* the top customers */
+select c.name, sum(o.total)::numeric(10,2) as spent
+  from :"table" o
+  join customers c on c.id = o.customer_id
+ where o.created_at > now() - interval '30 days'
+   and c.region = :'region'
+ group by c.name
+ order by spent desc
+ limit :limit \gx
+
+create function touch() returns trigger as $$
+begin new.updated_at := now(); return new; end;
+$$ language plpgsql;
+
+\if :{?region}
+  \echo -n 'region:' :region
+\else
+  \warn "no region set"
+\endif
+\dt+ public.ord* \\ select 1;
+\o | gzip > `date +%F`.out
+\pset border 2

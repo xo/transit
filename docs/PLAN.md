@@ -5,7 +5,7 @@ This document holds the plan for `github.com/xo/transit`. The decisions are in
 
 This plan was written on 2026-09-29, before any code existed (D3). Ken
 answered its open questions on that date, and later ones as they came. The
-decisions D1 to D103 record the answers and the other choices of Ken. A part
+decisions D1 to D105 record the answers and the other choices of Ken. A part
 of this plan that names a decision follows it. A new question
 goes at the end of this document until Ken answers it.
 
@@ -128,7 +128,7 @@ transit also holds these parts, which are not ports:
 2. The test module in `test/`, which uses cgo (D12).
 3. The grammars that the Go backend generates, each with its external scanner
    ported to Go.
-4. The grammars that `xo` writes, in `grammars/xo/` (D42).
+4. The grammars that `xo` writes, in `grammars/` (D42, D104).
 5. The package `styles`, which holds the styles of transit as embedded JSON
    files, and the command that converts the styles of chroma (D65).
 6. The APIs that upstream does not have, one decision each (D28).
@@ -154,7 +154,7 @@ D26 names each package:
 | `cmd/transit` | `main` | the command |
 | `styles` | `styles` | the styles, as embedded JSON files, in a module of its own. It imports only the standard library (D65, D99) |
 | `grammars/<repository>` | one for each grammar | one module for each grammar repository |
-| `grammars/xo/<name>` | the grammar | a grammar that `xo` writes (D42) |
+| `grammars/<name>` | the grammar | a grammar that `xo` writes, such as `usql` (D42, D104) |
 | `test` | | the test module, which uses cgo (D12) |
 
 rline imports the root package and no grammar (D11). usql imports the root
@@ -458,7 +458,7 @@ queries of the grammar set.
 
 The input of usql holds backslash commands and variables, which are not SQL.
 A usql grammar parses them and hands each SQL statement to a SQL grammar
-through an injection (D13). transit holds it, in `grammars/xo/`, with the
+through an injection (D13). transit holds it, in `grammars/usql`, with the
 other grammars that `xo` writes: MySQL, and the SQL-like languages that have
 no grammar (D42). Each is a normal tree-sitter grammar, with `grammar.js` and,
 if it needs one, `src/scanner.c`, so the golden files and every test apply to

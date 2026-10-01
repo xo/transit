@@ -167,11 +167,8 @@ func (h *harness) corpusRepo(ctx context.Context, rec *record, indices []int, tr
 			continue
 		}
 		accepted = append(accepted, i)
-		switch {
-		case isDir(filepath.Join(cached, g.Path, "test", "corpus")):
-			runDirs[i] = g.Path
-		case isDir(filepath.Join(cached, "test", "corpus")):
-			runDirs[i] = "."
+		if dir, ok := corpusFolder(cached, g.Path); ok {
+			runDirs[i] = dir
 		}
 	}
 	results := map[int]*corpusResult{}
@@ -232,6 +229,21 @@ func (h *harness) corpusRepo(ctx context.Context, rec *record, indices []int, tr
 		results[i] = r
 	}
 	return results, nil
+}
+
+// corpusFolder returns the folder in which a grammar at the path p of a
+// checkout runs its corpus: the nearest folder, from p up to the root of
+// the checkout, that holds test/corpus. A grammar that xo writes finds the
+// corpus of its module this way.
+func corpusFolder(checkout, p string) (string, bool) {
+	for p = filepath.Clean(p); ; p = filepath.Dir(p) {
+		if isDir(filepath.Join(checkout, p, "test", "corpus")) {
+			return p, true
+		}
+		if p == "." || p == string(filepath.Separator) {
+			return "", false
+		}
+	}
 }
 
 // runCorpus runs tree-sitter test of the upstream tool in a folder, with its
@@ -340,7 +352,7 @@ func (h *harness) writeFailing() error {
 }
 
 // writeFailingFiles writes testdata/failing.txt of each grammar package
-// under the folder grammars: each folder grammars/<module> or
+// under the folder grammars: each folder grammars/<module>,
 // grammars/<module>/<grammar> that holds a grammar.json. The file holds the
 // names of the corpus tests of the entry of the grammar that fail upstream,
 // in the order of the record, each on a line of its own that ends with a

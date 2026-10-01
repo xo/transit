@@ -7,7 +7,8 @@
 // parser.c and node-types.json at ABI 15, at ABI 14, and at ABI 15 with the
 // merge of parse states off, in generate/testdata (D19, D40). For each real
 // grammar, it keeps the SHA-256 of parser.c and node-types.json at ABI 14 and
-// ABI 15 in grammars/grammars.json (D40). It runs the tool twice for each file
+// ABI 15 in grammars/grammars.json (D40). The set xo makes the grammars that
+// xo writes in grammars/<name> (D42, D104). It runs the tool twice for each file
 // and fails when the two runs differ. It reports which paths of render.rs each
 // parser.c reaches. At the end of each run, it writes testdata/failing.txt of
 // each grammar package under grammars/ from the record (D88).
@@ -43,7 +44,7 @@ func main() {
 // mainCode runs the harness and returns the exit code, so that the deferred
 // calls run before the program exits.
 func mainCode() int {
-	set := flag.String("set", "tests,fixtures", "the grammars to run, from tests, fixtures, candidates and corpus, separated by commas")
+	set := flag.String("set", "tests,fixtures", "the grammars to run, from tests, fixtures, candidates, xo and corpus, separated by commas")
 	only := flag.String("only", "", "run only the grammars with these names, separated by commas")
 	jobs := flag.Int("j", max(1, runtime.NumCPU()/4), "the number of grammars to generate at once")
 	flag.Parse()
@@ -110,12 +111,16 @@ func run(ctx context.Context, w io.Writer, sets []string, only map[string]bool, 
 			if err := h.candidateGrammars(ctx, &report); err != nil {
 				return err
 			}
+		case "xo":
+			if err := h.xoGrammars(ctx, &report); err != nil {
+				return err
+			}
 		case "corpus":
 			if err := h.corpusGrammars(ctx); err != nil {
 				return err
 			}
 		default:
-			return fmt.Errorf("naming the set %q, which is not tests, fixtures, candidates or corpus", s)
+			return fmt.Errorf("naming the set %q, which is not tests, fixtures, candidates, xo or corpus", s)
 		}
 	}
 	return h.writeFailing()

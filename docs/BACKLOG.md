@@ -15,8 +15,6 @@ agent and the date, and deletes the claim when Ken commits the unit (D50, D61).
 
 | Unit | Agent | Date |
 | --- | --- | --- |
-| Phase 5, unit 17: the usql grammar in `grammars/xo/usql` (D13, D42, D101, D102) | transit, agent 25 | 2026-10-01 |
-| Phase 5, unit 18: the option of `inject` that replaces each variable with a placeholder (D101) | transit, agent 25 | 2026-10-01 |
 
 ## The generator
 
@@ -106,6 +104,21 @@ the test module. The tests of `lexer.go` compare `decodeUTF8` with the
 maximal subpart of the Unicode standard, which ICU follows, and they test the
 UTF-16 decoders case by case. Add the comparison with `U8_NEXT` and
 `U16_NEXT` of C when the test module can call the decoders of the runtime.
+
+## The usql grammar
+
+### Close the gaps of the usql grammar
+
+The agent that wrote the usql grammar (D101, D102, D105) found these gaps on
+2026-10-01:
+
+1. A quoted variable that is not well formed, such as `:'a b'`, becomes one
+   string token that holds the colon.
+2. A backtick with no end is an `ERROR` node, not one token up to the end of
+   the input, as point 4 of D102 says for a string.
+3. The grammar does not join CQL's `BEGIN BATCH ... APPLY BATCH` into one
+   statement.
+4. The grammar packages have no highlight tests in `testdata/highlight`.
 
 ## The setup of the repository
 

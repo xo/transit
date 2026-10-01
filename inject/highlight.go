@@ -134,24 +134,32 @@ func (c *Config) Language() *transit.Language {
 // As upstream does, injection.parent gives the name of the root language at
 // every depth, and there is no limit on the depth (hard rule 6).
 //
+// The options are an API that upstream does not have (D28). WithReplacer
+// replaces the text of nodes before a layer is parsed.
+//
 // Layers runs HighlightIterLayer::new for the root layer, and the injection
 // part of the Iterator of HighlightIter for each layer, as Highlighter::highlight
 // does when its events are read to the end.
-func (c *Config) Layers(ctx context.Context, p *transit.Parser, src []byte, lookup func(name string) (*Config, bool)) ([]Layer, error) {
+func (c *Config) Layers(ctx context.Context, p *transit.Parser, src []byte, lookup func(name string) (*Config, bool), opts ...Option) ([]Layer, error) {
 	defer func() {
 		// Clearing the ranges gives the parser its default range, which it
 		// always takes.
 		_ = p.SetIncludedRanges(nil)
 	}()
 
+	var o options
+	for _, opt := range opts {
+		opt(&o)
+	}
 	b := &builder{
 		p:              p,
 		src:            src,
 		lookup:         lookup,
+		replacer:       o.replacer,
 		capturesCursor: transit.NewQueryCursor(),
 		matchesCursor:  transit.NewQueryCursor(),
 	}
-	layers, err := b.newLayer(ctx, "", false, c, c.languageName, 0, []transit.Range{{
+	layers, err := b.newLayer(ctx, "", false, c, c.languageName, 0, nil, []transit.Range{{
 		StartByte:  0,
 		StartPoint: transit.Point{Row: 0, Column: 0},
 		EndByte:    math.MaxUint32,
@@ -187,6 +195,8 @@ type builder struct {
 	p      *transit.Parser
 	src    []byte
 	lookup func(name string) (*Config, bool)
+	// replacer is the replacer of WithReplacer, or nil.
+	replacer Replacer
 
 	// capturesCursor runs the injection query of each layer in turn.
 	// matchesCursor runs the query of the combined injections inside
@@ -201,6 +211,7 @@ type queuedLayer struct {
 	config *Config
 	name   string
 	depth  int
+	parent *transit.Tree
 	ranges []transit.Range
 }
 
@@ -216,7 +227,9 @@ type combinedInjection struct {
 
 // newLayer parses a layer of config over ranges, and the layers of its
 // combined injections, and returns them in that order. parentName is the
-// name that injection.parent gives, when hasParentName is true.
+// name that injection.parent gives, when hasParentName is true. parent is
+// the tree of the layer that holds the new layer, or nil for the root
+// layer.
 //
 // In the event that the new layer contains "combined injections"
 // (injections where multiple disjoint ranges are parsed as one syntax tree),
@@ -230,6 +243,7 @@ func (b *builder) newLayer(
 	config *Config,
 	name string,
 	depth int,
+	parent *transit.Tree,
 	ranges []transit.Range,
 ) ([]Layer, error) {
 	result := make([]Layer, 0, 1)
@@ -239,7 +253,11 @@ func (b *builder) newLayer(
 			if err := b.p.SetLanguage(config.language); err != nil {
 				return nil, fmt.Errorf("parsing the layer of %s: %w", config.languageName, err)
 			}
-			tree, err := b.p.Parse(ctx, b.src, nil)
+			text, err := b.replaced(name, parent, ranges)
+			if err != nil {
+				return nil, err
+			}
+			tree, err := b.p.Parse(ctx, text, nil)
 			if err != nil {
 				return nil, fmt.Errorf("parsing the layer of %s: %w", config.languageName, err)
 			}
@@ -271,7 +289,7 @@ func (b *builder) newLayer(
 					}
 					injectionRanges := intersectRanges(ranges, entry.contentNodes, entry.includeChildren)
 					if len(injectionRanges) != 0 {
-						queue = append(queue, queuedLayer{nextConfig, entry.languageName, depth + 1, injectionRanges})
+						queue = append(queue, queuedLayer{nextConfig, entry.languageName, depth + 1, tree, injectionRanges})
 					}
 				}
 			}
@@ -291,7 +309,7 @@ func (b *builder) newLayer(
 
 		next := queue[0]
 		queue = queue[1:]
-		config, name, depth, ranges = next.config, next.name, next.depth, next.ranges
+		config, name, depth, parent, ranges = next.config, next.name, next.depth, next.parent, next.ranges
 	}
 	return result, nil
 }
@@ -330,7 +348,7 @@ func (b *builder) injections(ctx context.Context, parentName string, layer Layer
 		if len(ranges) == 0 {
 			continue
 		}
-		layers, err := b.newLayer(ctx, parentName, true, nextConfig, inj.languageName, layer.Depth+1, ranges)
+		layers, err := b.newLayer(ctx, parentName, true, nextConfig, inj.languageName, layer.Depth+1, layer.Tree, ranges)
 		if err != nil {
 			return nil, err
 		}

@@ -1,0 +1,14 @@
+# Load the sales of a month.
+\c mysql://root@localhost/shop
+\set month 2026-09
+
+select `id`, `name`, total * 1.1 as gross -- with tax
+  from sales
+ where month = :'month'
+   and note <> 'it\'s late';
+
+/* a batch of updates */
+update sales set flagged = 1 where total > :limit;
+\g (format=csv) sales.csv
+\echo `whoami` ran the load
+\d sales

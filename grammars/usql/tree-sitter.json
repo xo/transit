@@ -1,0 +1,60 @@
+{
+  "grammars": [
+    {
+      "name": "usql_postgres",
+      "camelcase": "UsqlPostgres",
+      "scope": "source.usql.postgres",
+      "path": "usqlpostgres",
+      "highlights": "queries/highlights.scm",
+      "injections": "queries/injections.scm"
+    },
+    {
+      "name": "usql_mysql",
+      "camelcase": "UsqlMySQL",
+      "scope": "source.usql.mysql",
+      "path": "usqlmysql",
+      "highlights": "queries/highlights.scm",
+      "injections": "queries/injections.scm"
+    },
+    {
+      "name": "usql_sqlite",
+      "camelcase": "UsqlSQLite",
+      "scope": "source.usql.sqlite",
+      "path": "usqlsqlite",
+      "highlights": "queries/highlights.scm",
+      "injections": "queries/injections.scm"
+    },
+    {
+      "name": "usql_standard",
+      "camelcase": "UsqlStandard",
+      "scope": "source.usql.standard",
+      "path": "usqlstandard",
+      "highlights": "queries/highlights.scm",
+      "injections": "queries/injections.scm"
+    },
+    {
+      "name": "usql_cql",
+      "camelcase": "UsqlCQL",
+      "scope": "source.usql.cql",
+      "path": "usqlcql",
+      "highlights": "queries/highlights.scm",
+      "injections": "queries/injections.scm"
+    },
+    {
+      "name": "usql_plain",
+      "camelcase": "UsqlPlain",
+      "scope": "source.usql.plain",
+      "path": "usqlplain",
+      "highlights": "queries/highlights.scm",
+      "injections": "queries/injections.scm"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "Grammars for the input of usql, one for each family of SQL dialects",
+    "links": {
+      "repository": "https://github.com/xo/transit"
+    }
+  }
+}

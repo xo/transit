@@ -34,8 +34,8 @@ A grammar comes from one of two places:
    at a release tag. transit does not change such a grammar. If it has a
    fault, Ken decides whether to report it. An agent does not post to the
    repository of another project (hard rule 11 in `AGENTS.md`).
-2. `xo` writes it, in `grammars/xo/<name>`, because no grammar exists that
-   usql can use (D42). The usql grammar (D13), MySQL and the SQL-like
+2. `xo` writes it, in `grammars/<name>`, because no grammar exists that
+   usql can use (D42, D104). The usql grammar (D13), MySQL and the SQL-like
    languages without a grammar are of this kind. "Grammars that xo writes"
    below holds their rules.
 
@@ -64,7 +64,7 @@ grammar under `grammars`, with these fields:
 | `repository` | the URL of the upstream repository |
 | `tag` | the release tag, such as `v0.24.8` |
 | `branch` | the branch, when upstream names a branch in place of a tag |
-| `commit` | the full hash of the commit that the harness fetched (D51) |
+| `commit` | the full hash of the commit that the harness fetched (D51), or empty for a grammar that xo writes, which is in this repository |
 | `path` | the folder of the grammar in the repository, or `.` |
 | `license` | the license that `tree-sitter.json` names, such as `MIT` |
 | `scanner` | `true` if the grammar has `src/scanner.c` |
@@ -244,9 +244,11 @@ Each one follows these rules, in addition to the rest of this document:
 1. It is a normal tree-sitter grammar: a `grammar.js`, and a `src/scanner.c`
    if it needs one. The upstream tool makes its `grammar.json`, and the golden
    harness makes its golden files, as for any grammar.
-2. It lives in `grammars/xo/<name>`, with a `tree-sitter.json` that gives its
-   version. It has an entry in `grammars/grammars.json` like any other, with
-   the repository `github.com/xo/transit` and the path of its folder.
+2. It lives in `grammars/<name>`, beside the modules of other repositories,
+   with a `tree-sitter.json` that gives its version (D104). Its name is not
+   the name of another module. It has an entry in `grammars/grammars.json`
+   like any other, with the repository `github.com/xo/transit` and the path
+   of its folder.
 3. It has a corpus in `test/corpus/` and a `queries/highlights.scm`, written
    with the grammar.
 4. Its Go scanner is a port of its own `scanner.c`, under the rules of "The
@@ -258,6 +260,44 @@ Each one follows these rules, in addition to the rest of this document:
 
 A change to such a grammar is a change to transit. It follows "Before you
 stage" in `AGENTS.md`, and its golden files are made again.
+
+The folder `grammars/<name>` is the module of the grammar, and it is laid
+out as the checkout of a grammar repository and as a grammar module at once.
+`grammars/usql` holds six grammars, one for each family of dialects
+(D101), as `tree-sitter-typescript` holds two:
+
+| Path | What it holds | Who writes it |
+| --- | --- | --- |
+| `go.mod`, `LICENSE`, `tree-sitter.json` | the module, the license of transit, and the grammars with their versions | a person |
+| `common/define-grammar.js` | the rules, which take the name of the family | a person |
+| `common/scanner.h` | the external scanner, which takes the flags of the family | a person |
+| `queries/`, `test/corpus/` | the queries and the corpus of every grammar | a person |
+| `usql<family>/grammar.js` | the grammar of the family, which calls `common/define-grammar.js` | a person |
+| `usql<family>/src/scanner.c` | the scanner of the family, which includes `common/scanner.h` and sets the flags of the family | a person |
+| `usql<family>/grammar.json` | the grammar that the upstream tool makes from `grammar.js` | the golden harness |
+| `usql<family>/parser.go`, `node-types.json`, `grammar_test.go` | the files of the grammar package | `transit generate` |
+| `usql<family>/queries/`, `usql<family>/testdata/corpus/` | copies of `queries/` and `test/corpus/` of the module | copied |
+| `usql<family>/scanner.go` | the port of `src/scanner.c` | a person |
+| `internal/scan/` | the port of `common/scanner.h` | a person |
+
+The set `xo` of the golden harness copies each module that xo writes into
+the cache, as part of the checkout of the repository `xo/transit`. It finds
+such a module by the `grammar.js` of its packages, which no module of
+another repository holds (D104). The cache is where the other sets and the
+test module find a grammar. The upstream tool makes the `grammar.json` of
+each grammar from its `grammar.js`, and the harness writes it into the
+folder of the package. The entry of the grammar has no tag and no commit.
+After a change to a grammar, run the harness on it, then generate its
+packages again:
+
+```bash
+cd test && go run ./cmd/golden -set xo,corpus -only usql,xo/transit
+```
+
+Each corpus case of a module with more than one grammar names its grammar
+with `:language`. After a case with `:language`, `tree-sitter test` of
+upstream runs a case that names none with the grammar whose name sorts
+first, and not with the first grammar of `tree-sitter.json`.
 
 ## Tests
 

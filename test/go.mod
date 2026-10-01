@@ -19,6 +19,7 @@ require (
 	github.com/xo/transit/grammars/ruby v0.0.0-00010101000000-000000000000
 	github.com/xo/transit/grammars/rust v0.0.0-00010101000000-000000000000
 	github.com/xo/transit/grammars/typescript v0.0.0-00010101000000-000000000000
+	github.com/xo/transit/grammars/usql v0.0.0-00010101000000-000000000000
 	github.com/xo/transit/styles v0.0.0-00010101000000-000000000000
 )
 
@@ -53,5 +54,7 @@ replace github.com/xo/transit/grammars/ruby => ../grammars/ruby
 replace github.com/xo/transit/grammars/rust => ../grammars/rust
 
 replace github.com/xo/transit/grammars/typescript => ../grammars/typescript
+
+replace github.com/xo/transit/grammars/usql => ../grammars/usql
 
 replace github.com/xo/transit/styles => ../styles

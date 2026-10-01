@@ -36,6 +36,11 @@ func grammarFolders(ctx context.Context, root, cache string) ([]string, error) {
 	}
 	commits := map[string]string{}
 	for _, g := range rec.Grammars {
+		// the grammars of transit itself are in grammars/ of the repository,
+		// which measure reads
+		if g.Repository == "https://github.com/xo/transit" {
+			continue
+		}
 		dir := filepath.Join(cache, cacheName(g.Repository))
 		if c, ok := commits[dir]; ok && c != g.Commit {
 			return nil, fmt.Errorf("grammars/grammars.json names %s at two commits, %s and %s", g.Repository, c, g.Commit)
