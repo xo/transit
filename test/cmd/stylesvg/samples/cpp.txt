@@ -1,0 +1,25 @@
+#include <string>
+#include <vector>
+
+namespace geo {
+
+// A named shape.
+template <typename T>
+class Shape {
+public:
+	explicit Shape(std::string name) : name_(std::move(name)) {}
+	virtual ~Shape() = default;
+	virtual T area() const = 0;
+	const std::string &name() const noexcept { return name_; }
+
+private:
+	std::string name_;
+};
+
+auto total(const std::vector<Shape<double> *> &v) -> double {
+	double sum = 0.0;
+	for (auto *s : v) sum += s->area();
+	return sum;
+}
+
+} // namespace geo

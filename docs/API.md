@@ -7,8 +7,8 @@ working C example of phase 1 (D10), in `_samples/example/`, which uses the
 upstream runtime at the base commit and a real grammar.
 
 The API follows the Rust binding, in idiomatic Go (D24, D25). A lookup that can
-find no node returns the node and a `bool` (D56). Ken accepts this document
-before phase 1 ends, and until then it is a proposal. The choices that the
+find no node returns the node and a `bool` (D56). Ken accepted this document
+on 2026-10-01, which ended phase 1 (D103). A change to it is a decision first. The choices that the
 example raised are decided: `#lua-match?` (D55, which waits for the tier 1
 grammars, D69), the form of a lookup (D56)
 and `StatesAt` (D57). The API of the package `inject` is decided too (D72),

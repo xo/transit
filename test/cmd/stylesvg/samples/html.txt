@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Shapes &amp; colors</title>
+  <style>body { color: #333; }</style>
+</head>
+<body>
+  <!-- the main list -->
+  <ul id="shapes" class="list">
+    <li data-sides="3">Triangle</li>
+    <li data-sides="4" hidden>Square</li>
+  </ul>
+  <script>document.title = "ready";</script>
+</body>
+</html>

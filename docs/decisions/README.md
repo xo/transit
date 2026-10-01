@@ -121,3 +121,4 @@ An open question is not a decision. It goes at the end of
 | [D100](D100-three-choices-for-the-hand-made-styles.md) | Three choices for the hand-made styles | Decided, amends D98 |
 | [D101](D101-the-usql-grammar-has-one-grammar-for-each-family-of-dialects.md) | The usql grammar has one grammar for each family of dialects | Decided, amends D13 |
 | [D102](D102-the-shape-of-the-usql-grammar.md) | The shape of the usql grammar | Decided |
+| [D103](D103-ken-accepts-the-target-api.md) | Ken accepts the target API | Decided |

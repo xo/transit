@@ -1,0 +1,22 @@
+import type { Readable } from "node:stream";
+
+// A shape with an area.
+export interface Shape {
+  readonly name: string;
+  area(): number;
+}
+
+enum Kind { Circle = "circle", Square = "square" }
+
+export class Circle implements Shape {
+  readonly name = Kind.Circle;
+  constructor(private radius: number = 1) {}
+  area(): number {
+    return Math.PI * this.radius ** 2;
+  }
+}
+
+export function total<T extends Shape>(shapes: T[], strict?: boolean): number {
+  if (strict && shapes.length === 0) throw new Error(`empty: ${shapes}`);
+  return shapes.reduce((sum, s) => sum + s.area(), 0);
+}

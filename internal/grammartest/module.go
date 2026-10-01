@@ -55,6 +55,12 @@ func readModule(name string) (*module, error) {
 	if err != nil {
 		return nil, fmt.Errorf("finding the working folder: %w", err)
 	}
+	return readModuleIn(wd, name)
+}
+
+// readModuleIn is readModule with the folder wd in place of the working
+// folder.
+func readModuleIn(wd, name string) (*module, error) {
 	m := &module{own: golang.GrammarFolder(name)}
 	for dir := wd; ; {
 		file := filepath.Join(dir, "tree-sitter.json")

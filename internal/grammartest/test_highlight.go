@@ -367,6 +367,11 @@ func newLoader(own Grammar, others []Grammar) (*loader, error) {
 	if err != nil {
 		return nil, err
 	}
+	return newLoaderFor(m, own, others)
+}
+
+// newLoaderFor is newLoader with the module m.
+func newLoaderFor(m *module, own Grammar, others []Grammar) (*loader, error) {
 	l := &loader{parser: transit.NewParser(), configs: map[*inject.Config]*highlightConfiguration{}}
 	byFolder := map[string]Grammar{m.own: own}
 	for _, g := range others {
@@ -381,6 +386,7 @@ func newLoader(own Grammar, others []Grammar) (*loader, error) {
 		}
 		lg := &loaderGrammar{language: g.Language, queries: g.Queries, entry: e, configs: l.configs}
 		if e.InjectionRegex != "" {
+			var err error
 			if lg.injectionRegex, err = regexp.Compile(e.InjectionRegex); err != nil {
 				return nil, fmt.Errorf("compiling the injection-regex of %s: %w", e.Name, err)
 			}

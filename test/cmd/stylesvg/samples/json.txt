@@ -1,0 +1,11 @@
+{
+  "name": "shapes",
+  "version": "1.2.0",
+  "private": true,
+  "sides": [3, 4, 5.5, -1e3],
+  "owner": null,
+  "scripts": {
+    "test": "go test ./...",
+    "escape": "a \"quoted\" word\n"
+  }
+}

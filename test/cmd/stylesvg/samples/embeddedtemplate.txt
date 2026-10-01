@@ -1,0 +1,9 @@
+<ul>
+<%# A list of the users %>
+<% users.each do |user| %>
+  <li class="user"><%= user.name %></li>
+<% end %>
+</ul>
+<%- if admin -%>
+  <a href="/admin">Admin</a>
+<%- end -%>

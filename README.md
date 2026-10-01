@@ -43,23 +43,24 @@ the Go toolchain and nothing else.
 
 The generator and its C backend are ported. They write the golden `parser.c`
 and `node-types.json` of all 185 grammars of the set byte for byte, and on
-2026-09-29 the gate of D9 holds: 151 grammars count, which ends phase 2. Phase
-1 ends when Ken accepts the target API in [docs/API.md](docs/API.md) (D54).
-Phase 3 has ported the runtime: the parser, the tree, the node, the tree
-cursor, and the query engine with the predicates of the Rust binding. The Go
-runtime gives the same trees and the same query matches as the C runtime for
-every corpus input of every fixture grammar. It parses with the tables and the
-lexers of C grammars, through the test module. The ported runtime tests of
-upstream pass. `StatesAt` gives the parse states at a cursor (D57, D70). The
-package `inject` finds the injections of a text and parses their layers, as
-upstream does (D72). The measurements of a prototype of the Go output are
-recorded in D73, and they end phase 3. In phase 4, the Go backend writes a
-grammar package with literal tables and a lexer as data (D74). The 17 fixture
-grammars are Go packages in 15 modules under `grammars/`, with their scanners
-ported to Go. Every test of phase 3 passes on them, and the speed targets of
-D37 hold on them. Phase 4 ends when Ken accepts `docs/API.md` and tags the
-first grammar module. [docs/PLAN.md](docs/PLAN.md) holds the plan, and the
-decisions record every answer that shapes it.
+2026-09-29 the gate of D9 holds: 151 grammars count, which ends phase 2. Ken
+accepted the target API in [docs/API.md](docs/API.md) on 2026-10-01, which
+ended phase 1 (D103). Phase 3 has ported the runtime: the parser, the tree,
+the node, the tree cursor, and the query engine with the predicates of the
+Rust binding. The Go runtime gives the same trees and the same query matches
+as the C runtime for every corpus input of every fixture grammar. It parses
+with the tables and the lexers of C grammars, through the test module. The
+ported runtime tests of upstream pass. `StatesAt` gives the parse states at a
+cursor (D57, D70). The package `inject` finds the injections of a text and
+parses their layers, as upstream does (D72). The measurements of a prototype
+of the Go output are recorded in D73, and they end phase 3. In phase 4, the Go
+backend writes a grammar package with literal tables and a lexer as data
+(D74). The 17 fixture grammars are Go packages in 15 modules under
+`grammars/`, with their scanners ported to Go. Every test of phase 3 passes on
+them, and the speed targets of D37 hold on them. Phase 4 ends when Ken tags
+the first grammar module, after the usql grammar is finished.
+[docs/PLAN.md](docs/PLAN.md) holds the plan, and the decisions record every
+answer that shapes it.
 
 ## Documents
 

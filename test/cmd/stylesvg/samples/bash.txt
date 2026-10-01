@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Count the lines of each file.
+set -euo pipefail
+
+count() {
+  local file="$1"
+  wc -l < "$file"
+}
+
+for f in "${@:-.}"/*.go; do
+  if [[ -f $f ]]; then
+    printf '%s: %d\n' "$f" "$(count "$f")"
+  fi
+done
+export TOTAL=42

@@ -1,0 +1,24 @@
+# Measure shapes.
+require "json"
+
+module Geo
+  class Circle
+    attr_reader :radius
+    PI = 3.14159
+
+    def initialize(radius = 1.0)
+      @radius = radius
+    end
+
+    def area
+      PI * @radius**2
+    end
+  end
+
+  def self.total(*shapes, strict: false)
+    raise ArgumentError, "no shapes" if strict && shapes.empty?
+    shapes.sum(&:area)
+  end
+end
+
+puts "total: #{Geo.total(Geo::Circle.new(2))}", nil, true

@@ -1,0 +1,23 @@
+"""Measure shapes."""
+from dataclasses import dataclass
+import math
+
+
+@dataclass(frozen=True)
+class Circle:
+    radius: float = 1.0
+
+    def area(self) -> float:
+        return math.pi * self.radius ** 2
+
+
+def total(*shapes: Circle, strict: bool = False) -> float:
+    # Sum the areas.
+    if strict and not shapes:
+        raise ValueError(f"no shapes: {len(shapes)}")
+    return sum(s.area() for s in shapes)
+
+
+match total(Circle(2), Circle(0.5)):
+    case float(x) if x > 10:
+        print("big", x, None, True)

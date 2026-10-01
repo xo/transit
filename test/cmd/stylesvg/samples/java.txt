@@ -1,0 +1,24 @@
+package geo;
+
+import java.util.List;
+
+/** A shape with an area. */
+public abstract class Shape implements Comparable<Shape> {
+    private static final int SIDES = 0;
+    protected final String name;
+
+    protected Shape(String name) {
+        this.name = name;
+    }
+
+    public abstract double area();
+
+    @Override
+    public int compareTo(Shape other) {
+        return Double.compare(area(), other.area());
+    }
+
+    public static double total(List<? extends Shape> shapes) {
+        return shapes.stream().mapToDouble(Shape::area).sum();
+    }
+}

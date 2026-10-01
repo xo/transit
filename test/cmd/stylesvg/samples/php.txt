@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<h1><?= htmlspecialchars($title) ?></h1>
+<?php
+declare(strict_types=1);
+
+namespace App\Geo;
+
+/** A shape with an area. */
+final class Circle implements Shape
+{
+    public const PI = 3.14159;
+
+    public function __construct(private float $radius) {}
+
+    public function area(): float
+    {
+        return self::PI * $this->radius ** 2;
+    }
+}
+
+$shapes = [new Circle(1.5), new Circle(2)];
+echo "total: " . array_sum(array_map(fn($s) => $s->area(), $shapes)), "\n";

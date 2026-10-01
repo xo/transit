@@ -1,0 +1,9 @@
+/**
+ * Loads the shapes of a file, as {@link Shape} values.
+ *
+ * @param {string} path The path of the file.
+ * @param {Object} [options] The options.
+ * @param {boolean} options.strict Fail on an empty file.
+ * @returns {Promise<Shape[]>} The shapes.
+ * @throws {Error} When the file is empty.
+ */

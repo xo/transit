@@ -13,8 +13,9 @@ Before you change anything, read three things:
 Do not decide an open question on your own. Add it to the end of
 `docs/PLAN.md`, and ask Ken.
 
-Phase 1 of the plan is open until Ken accepts `docs/API.md` (D54). Phase 2
-ended on 2026-09-29, and phase 3, the runtime, goes on. Code follows the plan
+Ken accepted `docs/API.md` on 2026-10-01, and that ended phase 1 (D103).
+Phases 2 and 3 are done. Phase 4 ends when Ken tags the first grammar
+module. Code follows the plan
 and the decisions.
 
 ## The upstream checkout

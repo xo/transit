@@ -1,0 +1,24 @@
+use std::fmt;
+
+/// A circle with a radius.
+#[derive(Debug, Clone, Copy)]
+pub struct Circle {
+    radius: f64,
+}
+
+impl Circle {
+    pub const fn new(radius: f64) -> Self {
+        Self { radius }
+    }
+}
+
+impl fmt::Display for Circle {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "circle({})", self.radius)
+    }
+}
+
+pub fn total<'a>(shapes: impl Iterator<Item = &'a Circle>) -> f64 {
+    // Sum the areas.
+    shapes.map(|c| std::f64::consts::PI * c.radius.powi(2)).sum()
+}

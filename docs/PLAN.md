@@ -5,7 +5,7 @@ This document holds the plan for `github.com/xo/transit`. The decisions are in
 
 This plan was written on 2026-09-29, before any code existed (D3). Ken
 answered its open questions on that date, and later ones as they came. The
-decisions D1 to D102 record the answers and the other choices of Ken. A part
+decisions D1 to D103 record the answers and the other choices of Ken. A part
 of this plan that names a decision follows it. A new question
 goes at the end of this document until Ken answers it.
 
@@ -329,17 +329,18 @@ D10 makes the target API of a generated Go parser part of the first work. It
 comes from a working C example, which uses the upstream C runtime and a real
 grammar that the upstream tool generates.
 
-Ken's sample, `_samples/sample.c`, is the start. It parses a SQL statement
-with `tree_sitter_sql`, runs a highlight query, and prints each capture. The
-reviews found these gaps in it:
+Ken's first sample was the start. It parsed a SQL statement
+with `tree_sitter_sql`, ran a highlight query, and printed each capture. Ken
+removed it on 2026-10-01, after the working example in `_samples/example/`
+replaced it. The reviews found these gaps in it:
 
-1. It calls `malloc` and `free` without `#include <stdlib.h>`.
-2. Its query names the nodes `keyword`, `string`, `number` and
+1. It called `malloc` and `free` without `#include <stdlib.h>`.
+2. Its query named the nodes `keyword`, `string`, `number` and
    `identifier`. A real grammar can name them otherwise. For example,
    `DerekStride/tree-sitter-sql` is expected to name its keywords
    `keyword_select` and so on. This is not measured yet. The example must use
    the `highlights.scm` of the grammar.
-3. It covers highlighting only. It does not cover completion.
+3. It covered highlighting only. It did not cover completion.
 
 The working example adds these parts, so that it covers what rline and usql
 need:

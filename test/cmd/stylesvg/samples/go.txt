@@ -1,0 +1,26 @@
+// Package shapes measures shapes.
+package shapes
+
+import (
+	"fmt"
+	"math"
+)
+
+// Circle is a circle with a radius.
+type Circle struct {
+	Radius float64 `json:"radius"`
+}
+
+// Area returns the area of c.
+func (c Circle) Area() float64 {
+	return math.Pi * c.Radius * c.Radius
+}
+
+func Describe(shapes ...interface{ Area() float64 }) string {
+	var total float64
+	for i, s := range shapes {
+		total += s.Area()
+		_ = i
+	}
+	return fmt.Sprintf("total: %.2f, ok=%t", total, true)
+}
