@@ -66,8 +66,8 @@ This is the plan, not an API. The names can change in phase 1.
    highlight query with the language (D31).
 5. The package `github.com/xo/transit/styles` holds styles that are keyed on
    capture names, so that rline and usql draw the same code in the same
-   colors (D65). It is in the root module and imports only the standard
-   library. The background of a style applies only when rline asks for it,
+   colors (D65). It is a module of its own, and it imports only the
+   standard library (D99). The background of a style applies only when rline asks for it,
    and rline chooses the color depth.
 6. A parse after one key and the highlight query on the result take less than
    2 ms on a statement of 10 KB (D37). Phase 3 measured 1.15 ms on a SQL

@@ -1,7 +1,8 @@
 # The target API
 
 This document holds the target Go API of transit: what the runtime package
-exports, and what a generated grammar package exports. It comes from the
+exports, what a generated grammar package exports, and what the module
+`styles` exports. It comes from the
 working C example of phase 1 (D10), in `_samples/example/`, which uses the
 upstream runtime at the base commit and a real grammar.
 
@@ -679,13 +680,102 @@ returns a value that implements the scanner of the tables, so `Language`
 wires `Scan`, `Serialize` and `Deserialize`. The runtime gives `Scan` the
 valid external tokens of each state from the tables.
 
+## The module styles
+
+The package `github.com/xo/transit/styles` holds the styles of transit (D65).
+A style gives a color and a font to each capture name of a highlight query.
+The package is a module of its own, in `styles/` (D99). It imports only the
+standard library, and it does not require the root module. It exports:
+
+```go
+package styles
+
+// Style is a style: an entry for each capture name, and the default entry.
+type Style struct {
+	Name     string           // such as "monokai"
+	Source   string           // where the colors come from, and the license
+	Default  Entry            // the entry of text that no capture names
+	Captures map[string]Entry // the entry of each capture name
+}
+
+// Get returns the bundled style of a name. Names returns the names of the
+// bundled styles, sorted.
+func Get(name string) (*Style, bool)
+func Names() []string
+
+// Parse reads a style file of the consumer, in the form of the bundled ones.
+func Parse(data []byte) (*Style, error)
+
+// Lookup tries the whole capture name, then each shorter prefix by dots,
+// then the default entry without its background. Background returns the
+// background of the default entry, which is the background of the style.
+func (s *Style) Lookup(capture string) Entry
+func (s *Style) Background() Color
+
+// Entry is a whole entry: a field that it leaves out does not come from
+// another entry.
+type Entry struct {
+	Fg, Bg                  Color
+	Bold, Italic, Underline bool
+}
+
+func ParseEntry(s string) (Entry, error)
+func (e Entry) String() string
+
+// Color keeps the kind that the file writes.
+type Color struct {
+	Kind  ColorKind // ColorNone, ColorANSI, Color256 or ColorRGB
+	Value uint32    // 0 to 15, 0 to 255, or 0xrrggbb
+}
+
+func (c Color) IsSet() bool
+func (c Color) String() string
+func (c Color) RGB() (r, g, b uint8)
+func (c Color) To256() Color
+func (c Color) To16() Color
+
+type Error string
+const ErrSyntax Error = "invalid style"
+```
+
+A style is one JSON file with the keys `name`, `source`, `default` and
+`captures`, and `//go:embed` holds the files. `styles/chroma/` holds the 74
+styles of chroma `v2.27.0`, which the command `test/cmd/chromastyles`
+converts. `styles/themes/` holds the styles that a person makes by hand. A
+value is a style string. Its words are `bold`, `italic`, `underline`, their
+`no` forms, a color, and `bg:` before the background color. A color is
+`#rgb` or `#rrggbb`, a name of chroma for one of the 16 ANSI colors, such as
+`#ansired`, or `#ansi` and the number of one of the 256 colors, such as
+`#ansi208`.
+
+The package does not look at the terminal. `RGB` gives an ANSI color and one
+of the 256 colors in the default palette of xterm. `To256` reduces an RGB
+color to the nearest of the colors 16 to 255, and `To16` reduces a color to
+the nearest ANSI color. A line editor keeps the background of the terminal,
+so `Lookup` gives no background for text that no capture names. An entry of
+a capture has a background only when the style sets one for it, such as for
+an error.
+
+rline draws a capture of the highlight query like this:
+
+```go
+style, _ := styles.Get("monokai")
+e := style.Lookup(capture.Name)
+fg := e.Fg.To256() // for a terminal of 256 colors
+```
+
+`styles/captures.txt` lists the capture names of the highlight queries of
+the grammar set. The test `TestCaptures` makes sure that each name reaches an
+entry of each bundled style through its prefixes, without the default entry.
+
 ## What rline and usql call
 
 rline highlights with `Parse`, `Edit`, `NewQuery` once, and `Captures` with a
 byte range for the rows that it shows. For a language with injections, it
 takes the layers from `inject` and runs its highlight query on each tree.
-usql takes the layers of its input from `inject`. On the layer at the cursor,
-it completes with `DescendantForByteRange`, `Parent`, `FieldNameForChild`,
-`StatesAt` and `LookaheadIterator`. It decides what kind of name goes at the
-cursor from the symbols that come back and from its own queries (D6).
+It takes the entry of each capture from `styles`. usql takes the layers of
+its input from `inject`. On the layer at the cursor, it completes with
+`DescendantForByteRange`, `Parent`, `FieldNameForChild`, `StatesAt` and
+`LookaheadIterator`. It decides what kind of name goes at the cursor from
+the symbols that come back and from its own queries (D6).
 `RLINE.md` and `USQL.md` hold the details.

@@ -15,6 +15,8 @@ agent and the date, and deletes the claim when Ken commits the unit (D50, D61).
 
 | Unit | Agent | Date |
 | --- | --- | --- |
+| Phase 5, unit 17: the usql grammar in `grammars/xo/usql` (D13, D42, D101, D102) | transit, agent 25 | 2026-10-01 |
+| Phase 5, unit 18: the option of `inject` that replaces each variable with a placeholder (D101) | transit, agent 25 | 2026-10-01 |
 
 ## The generator
 

@@ -31,7 +31,7 @@ An open question is not a decision. It goes at the end of
 | [D10](D010-the-target-go-api-comes-from-a-working-c-example.md) | The target Go API comes from a working C example | Decided |
 | [D11](D011-rline-imports-the-transit-runtime.md) | rline imports the transit runtime | Decided |
 | [D12](D012-the-runtime-is-ported-beside-the-generator.md) | The runtime is ported beside the generator, and a cgo test module tests it | Decided |
-| [D13](D013-usql-input-is-parsed-by-a-usql-grammar-that-embeds-sql.md) | usql input is parsed by a usql grammar that embeds SQL | Decided |
+| [D13](D013-usql-input-is-parsed-by-a-usql-grammar-that-embeds-sql.md) | usql input is parsed by a usql grammar that embeds SQL | Decided, amended by D101 |
 | [D14](D014-chroma-is-used-only-for-its-styles.md) | chroma is used only for its styles | Decided, amended by D32 and D65 |
 | [D15](D015-no-go-package-is-added-without-ken.md) | No Go package is added without Ken | Decided, amended by D32 and D65 |
 | [D16](D016-the-grammar-set-covers-the-c-template-and-the-runtime.md) | The grammar set covers the C template and the runtime, and prefers upstream grammars | Decided |
@@ -44,7 +44,7 @@ An open question is not a decision. It goes at the end of
 | [D23](D023-grammars-for-dbmeta-languages-join-the-set-now.md) | The grammars that exist for dbmeta's languages join the set now | Decided |
 | [D24](D024-the-port-and-the-generated-code-are-idiomatic-go.md) | The port and the generated code are idiomatic Go | Decided, amends D1, amended by D64 |
 | [D25](D025-the-go-api-follows-the-rust-binding-in-go-idioms.md) | The Go API follows the Rust binding, in Go idioms | Decided |
-| [D26](D026-the-packages-and-modules-of-transit.md) | The packages and modules of transit | Decided, amended by D48 and D65 |
+| [D26](D026-the-packages-and-modules-of-transit.md) | The packages and modules of transit | Decided, amended by D48, D65 and D99 |
 | [D27](D027-predicates-and-injections-are-ported.md) | Query predicates and injections are ported | Decided, amends D7 |
 | [D28](D028-transit-can-add-an-api-that-upstream-lacks.md) | transit can add an API that upstream does not have | Decided |
 | [D29](D029-the-subtree-form-is-chosen-by-a-benchmark.md) | The Go form of a subtree is chosen by a benchmark | Decided |
@@ -61,7 +61,7 @@ An open question is not a decision. It goes at the end of
 | [D40](D040-golden-files-are-hashes.md) | Golden files are hashes, and the test grammars keep their files | Decided |
 | [D41](D041-cmd-transit-generates-tests-parses-and-queries.md) | cmd/transit generates, tests, parses and queries | Decided, amends D7 |
 | [D42](D042-xo-grammars-live-in-transit.md) | Grammars that xo writes live in transit | Decided |
-| [D43](D043-modules-are-tagged-one-by-one.md) | Each module is tagged on its own | Decided, amended by D48 and D65 |
+| [D43](D043-modules-are-tagged-one-by-one.md) | Each module is tagged on its own | Decided, amended by D48, D65 and D99 |
 | [D44](D044-input-that-transit-cannot-trust.md) | Input that transit cannot trust | Decided |
 | [D45](D045-go-grammars-are-compared-with-c-at-unicode-16.md) | Go grammars are compared with C grammars at the Unicode version of upstream | Decided, amended by D60 |
 | [D46](D046-scanner-character-functions-can-be-swapped-in-tests.md) | Scanner character functions can be swapped in tests | Decided, amends D39 |
@@ -83,7 +83,7 @@ An open question is not a decision. It goes at the end of
 | [D62](D062-a-subtree-is-a-pointer-from-a-chunk.md) | A subtree is a pointer to a node from a chunk | Decided, amended by D64 |
 | [D63](D063-a-language-is-built-from-internal-tables.md) | A language is built from tables of an internal type | Decided |
 | [D64](D064-a-go-subtree-keeps-the-count-and-the-inline-flag.md) | A Go subtree keeps the reference count and the inline flag of C | Decided, amends D24 and D62 |
-| [D65](D065-transit-publishes-its-own-styles.md) | transit publishes its own styles as embedded JSON files | Decided, supersedes D32 and D48, amends D14, D15, D26, D43 and D49 |
+| [D65](D065-transit-publishes-its-own-styles.md) | transit publishes its own styles as embedded JSON files | Decided, supersedes D32 and D48, amends D14, D15, D26, D43 and D49, amended by D98 and D99 |
 | [D66](D066-a-json-error-keeps-the-text-of-go.md) | An error of grammar.json keeps the text of Go | Decided |
 | [D67](D067-the-generator-logs-with-slog.md) | The generator logs with log/slog | Decided |
 | [D68](D068-node-equal-is-ts-node-eq.md) | Node.Equal is ts_node_eq, and == also compares the position | Decided |
@@ -116,3 +116,8 @@ An open question is not a decision. It goes at the end of
 | [D95](D095-the-tests-of-phase-4-run-on-each-grammar-package.md) | The tests of phase 4 run on each grammar package | Decided |
 | [D96](D096-a-scanner-keeps-its-slices-in-deserialize.md) | A scanner keeps its slices in Deserialize | Decided, amends D85 |
 | [D97](D097-target-3-counts-the-chunks-of-new-nodes.md) | Target 3 counts the chunks of new nodes | Decided, amends D37 and D91 |
+| [D98](D098-the-styles-that-transit-bundles.md) | The styles that transit bundles | Decided, amends D65, amended by D100 |
+| [D99](D099-the-package-styles-is-a-module-of-its-own.md) | The package styles is a module of its own | Decided, amends D26, D43 and D65 |
+| [D100](D100-three-choices-for-the-hand-made-styles.md) | Three choices for the hand-made styles | Decided, amends D98 |
+| [D101](D101-the-usql-grammar-has-one-grammar-for-each-family-of-dialects.md) | The usql grammar has one grammar for each family of dialects | Decided, amends D13 |
+| [D102](D102-the-shape-of-the-usql-grammar.md) | The shape of the usql grammar | Decided |

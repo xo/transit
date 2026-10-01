@@ -295,8 +295,8 @@ Every grammar has the same tests, and `transit generate` writes them in
    package `inject`, and checks each assertion against the deepest layer.
    Each capture name of the highlight queries is also in the list of
    captures of the package `styles`, and it reaches an entry of each bundled
-   style (D65). That part of the test waits for the package `styles` of
-   phase 5.
+   style (D65). The package `styles` exists, and that part of the test is
+   not written yet.
 4. The test of the node types and the test of the keywords. Each type of
    `node-types.json` and each keyword is a symbol of the language.
 5. The generator test, as below.

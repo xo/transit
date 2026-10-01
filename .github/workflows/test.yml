@@ -37,6 +37,10 @@ jobs:
     - name: Grammar modules
       # each grammar module has its own go.mod (D26, D79)
       run: for m in grammars/*/go.mod; do (cd "$(dirname "$m")" && go vet ./... && go test -race -count=1 ./...) || exit 1; done
+    - name: Styles module
+      # the module styles has its own go.mod (D99)
+      working-directory: styles
+      run: go vet ./... && go test -race -count=1 ./...
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -58,3 +62,6 @@ jobs:
       run: golangci-lint run ./...
     - name: Lint the grammar modules
       run: for m in grammars/*/go.mod; do (cd "$(dirname "$m")" && golangci-lint run ./...) || exit 1; done
+    - name: Lint the styles module
+      working-directory: styles
+      run: golangci-lint run ./...

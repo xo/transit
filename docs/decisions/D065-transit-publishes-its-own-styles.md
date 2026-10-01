@@ -1,6 +1,6 @@
 # D65. transit publishes its own styles as embedded JSON files
 
-Status: Decided, supersedes D32 and D48, amends D14, D15, D26, D43 and D49.
+Status: Decided, supersedes D32 and D48, amends D14, D15, D26, D43 and D49, amended by D98 and D99.
 
 Ken decided on 2026-09-29 that transit does not use chroma. transit publishes
 its own styles as embedded JSON files, and a small parser reads them. At

@@ -83,8 +83,8 @@ A bare number, such as D3, names a decision of this repository, in
 `docs/decisions/`. A decision of another repository names that repository,
 such as dbmeta D110. An open question has a number, and it is at the end of
 `docs/PLAN.md` until Ken answers it. The numbers do not repeat: questions 1
-to 64 are answered, no question is open, and the next question is question
-65.
+to 72 are answered, no question is open, and the next question is question
+73.
 
 ## Hard rules
 
@@ -111,7 +111,12 @@ to 64 are answered, no question is open, and the next question is question
    copied from upstream, and for the Unicode tables in
    `generate/internal/regexsyntax/unicodetables`, which `test/cmd/regextables`
    writes, and for the license files that it copies from `regex-syntax` (D59,
-   D60). To change a table, run that command again.
+   D60). To change a table, run that command again. The same rule holds for
+   the styles in `styles/chroma/`, the list `styles/captures.txt` and the
+   license `styles/licenses/chroma/COPYING`, which `test/cmd/chromastyles`
+   writes, and for the license `styles/licenses/pygments/LICENSE`, which is
+   copied from Pygments (D65). To change a style of chroma, run that command
+   again.
 8. Do not add a Go package from outside this repository without Ken's
    approval, and that includes a package that only a test imports (D15). No
    such package is approved today (D65).
@@ -180,7 +185,7 @@ these files:
 | `_samples/sample.c` | Ken's first sample of a C program that uses a grammar, the start of the working C example (D10) |
 | `_samples/example/` | the working C example and its build script (D10). The Go sample programs of D53 come in phase 5, in `_example/` |
 | `_samples/subtree/` | the benchmark of the Go form of a subtree (D29, D62) |
-| `test/` | the test module, with its own `go.mod` (D12). `test/cmd/golden` is the golden harness (D58), `test/cmd/regextables` writes the Unicode tables of the port of `regex-syntax` (D60), and `test/cgrammar` loads a C grammar into the Go runtime, compares the Go trees and the matches of queries with those of the C runtime, measures `StatesAt`, compares the layers of `inject` with those of the Rust oracle, compares the tables, the lexers and the trees of the Go backend and of the grammar packages with those of the C grammars in `gopackage_test.go`, runs the other tests of phase 3 on the grammar packages too through `languages_test.go`, and holds the ported tests of `crates/cli/src/tests` of upstream in `upstream_*_test.go` (D35). `test/injectoracle` is the Rust oracle of `inject` (D71). Its `build.rs` copies `highlight.rs` of the checkout and records each layer that upstream builds, and cargo builds it offline into the cache |
+| `test/` | the test module, with its own `go.mod` (D12). `test/cmd/golden` is the golden harness (D58), `test/cmd/regextables` writes the Unicode tables of the port of `regex-syntax` (D60), `test/cmd/chromastyles` measures the capture names of the highlight queries and converts the styles of chroma into `styles/` (D65), and `test/cgrammar` loads a C grammar into the Go runtime, compares the Go trees and the matches of queries with those of the C runtime, measures `StatesAt`, compares the layers of `inject` with those of the Rust oracle, compares the tables, the lexers and the trees of the Go backend and of the grammar packages with those of the C grammars in `gopackage_test.go`, runs the other tests of phase 3 on the grammar packages too through `languages_test.go`, and holds the ported tests of `crates/cli/src/tests` of upstream in `upstream_*_test.go` (D35). `test/injectoracle` is the Rust oracle of `inject` (D71). Its `build.rs` copies `highlight.rs` of the checkout and records each layer that upstream builds, and cargo builds it offline into the cache |
 | `gen.sh` | the script that writes the `replace` block of each `go.mod`, with `-m` (D49) |
 | `cmd/transit/` | the command `transit`, with the subcommand `generate` (D41) |
 | `generate/` | the generator (D7). One Go file ports one Rust file of `crates/generate` (D24) |
@@ -192,6 +197,7 @@ these files:
 | `generate/testdata/` | the golden files of the 68 test grammars, which the harness writes |
 | `grammars/grammars.json` | the record of every grammar, with the hashes of its golden files (D40) |
 | `grammars/<module>/` | the grammar modules of the 17 fixture grammars, one for each upstream repository, which `docs/GRAMMAR.md` lays out and `README.md` lists. Each package holds its generated `parser.go` and, when the grammar has one, its ported `scanner.go` |
+| `styles/` | the module `github.com/xo/transit/styles`, which has its own `go.mod` (D99). It holds the styles as JSON files: the styles of chroma in `chroma/`, the styles that a person makes in `themes/`, the license files in `licenses/`, and the list of capture names in `captures.txt` (D65) |
 | `tree-sitter/` | the upstream checkout, which git ignores |
 
 ## Before you stage
@@ -221,12 +227,13 @@ go test -race -count=1 ./...
 golangci-lint run ./...
 (cd test && go vet ./... && go test -race -count=1 -timeout 60m ./... && golangci-lint run ./...)
 for m in grammars/*/go.mod; do (cd "$(dirname "$m")" && go vet ./... && go test -race -count=1 ./... && golangci-lint run ./...) || exit 1; done
+(cd styles && go vet ./... && go test -race -count=1 ./... && golangci-lint run ./...)
 ```
 
-The test module in `test/` and each grammar module under `grammars/` have
-their own `go.mod`, so `./...` in the root does not reach them. The last two
-commands run the same commands in those modules. Its
-package `test/cgrammar` builds the C runtime and the fixture grammars from the
+The test module in `test/`, each grammar module under `grammars/` and the
+module in `styles/` have their own `go.mod`, so `./...` in the root does not
+reach them. The last three commands run the same commands in those modules.
+The package `test/cgrammar` of the test module builds the C runtime and the fixture grammars from the
 checkout of upstream and the cache of the golden harness, and it skips its
 tests when they are missing. The tests of `inject` also build the Rust oracle
 with `cargo build --offline`, and they skip when cargo is missing.

@@ -5,7 +5,7 @@ This document holds the plan for `github.com/xo/transit`. The decisions are in
 
 This plan was written on 2026-09-29, before any code existed (D3). Ken
 answered its open questions on that date, and later ones as they came. The
-decisions D1 to D97 record the answers and the other choices of Ken. A part
+decisions D1 to D102 record the answers and the other choices of Ken. A part
 of this plan that names a decision follows it. A new question
 goes at the end of this document until Ken answers it.
 
@@ -152,7 +152,7 @@ D26 names each package:
 | `generate/backend/go` | `golang` | the Go backend |
 | `inject` | `inject` | the injections |
 | `cmd/transit` | `main` | the command |
-| `styles` | `styles` | the styles, as embedded JSON files. It imports only the standard library (D65) |
+| `styles` | `styles` | the styles, as embedded JSON files, in a module of its own. It imports only the standard library (D65, D99) |
 | `grammars/<repository>` | one for each grammar | one module for each grammar repository |
 | `grammars/xo/<name>` | the grammar | a grammar that `xo` writes (D42) |
 | `test` | | the test module, which uses cgo (D12) |
@@ -447,9 +447,10 @@ capture name, such as `keyword` or `string.special`, and a lookup falls back
 to each shorter prefix of the name. rline and usql then draw the same code in
 the same colors.
 
-A command of the test module converts the styles of chroma from a checkout,
-without an import of chroma, and a person tunes a few of them by hand. The
-styles key on a list of capture names that is measured from the highlight
+The command `test/cmd/chromastyles` of the test module converts the styles of
+chroma from the Go module cache, without an import of chroma, and a person
+makes a few styles by hand. The styles key on a list of capture names,
+`styles/captures.txt`, that the same command measures from the highlight
 queries of the grammar set.
 
 ### The usql grammar and the other xo grammars
@@ -706,9 +707,9 @@ and the speed targets hold on them (D37, D47).
 ### Phase 5. The grammars and the modules for rline and usql
 
 Generate the SQL grammars in Go. Write the usql grammar and the other grammars
-that `xo` needs (D13, D42). Write the package `styles` (D65), the other APIs
-that upstream does not have (D28), the example functions and the two sample
-programs (D53), and bring `RLINE.md` and `USQL.md` up to date with the code.
+that `xo` needs (D13, D42). Write the other APIs that upstream does not have
+(D28), the example functions and the two sample programs (D53), and bring
+`RLINE.md` and `USQL.md` up to date with the code.
 
 The phase ends when the usql grammar and the SQL grammars pass every test in
 Go, and the two sample programs run.
@@ -924,8 +925,8 @@ record the answers, and D54 starts phase 1. The working C example of phase 1
 raised questions 53 to 55, and D55 to D57 record the answers. Phase 2 raised
 questions 56 to 58, and D59, D60 and D66 record the answers. Phase 3 raised
 questions 59 to 63, and D63, D64, D70, D72 and D74 record the answers.
-Phase 4 raised question 64, and D97 records the answer. The next question is
-question 65.
+Phase 4 raised questions 64 to 72, and D97 to D102 record the answers. The
+next question is question 73.
 
 No question is open.
 

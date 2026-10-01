@@ -1,6 +1,6 @@
 # D13. usql input is parsed by a usql grammar that embeds SQL
 
-Status: Decided.
+Status: Decided, amended by D101.
 
 The input of usql is not only SQL. It holds backslash commands, such as `\d`
 and `\g`, and variables, such as `:name`. A SQL grammar does not parse them.

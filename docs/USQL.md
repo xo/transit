@@ -40,7 +40,7 @@ change transit from usql.
    queries (D31).
 8. The package `github.com/xo/transit/styles` holds styles that are keyed on
    capture names, so that usql and rline draw the same code in the same
-   colors (D65).
+   colors (D65). It is a module of its own (D99).
 
 ## What usql will replace
 
