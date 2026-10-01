@@ -57,10 +57,9 @@ of the Go output are recorded in D73, and they end phase 3. In phase 4, the Go
 backend writes a grammar package with literal tables and a lexer as data
 (D74). The 17 fixture grammars are Go packages in 15 modules under
 `grammars/`, with their scanners ported to Go. Every test of phase 3 passes on
-them, and the speed targets of D37 hold on them. Phase 4 ends when Ken tags
-the first grammar module, after the usql grammar is finished.
-[docs/PLAN.md](docs/PLAN.md) holds the plan, and the decisions record every
-answer that shapes it.
+them, and the speed targets of D37 hold on them. Ken tagged `v0.1.0` of every
+module on 2026-10-01, which ended phase 4. [docs/PLAN.md](docs/PLAN.md) holds
+the plan, and the decisions record every answer that shapes it.
 
 ## Documents
 

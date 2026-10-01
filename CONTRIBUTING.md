@@ -14,9 +14,8 @@ Do not decide an open question on your own. Add it to the end of
 `docs/PLAN.md`, and ask Ken.
 
 Ken accepted `docs/API.md` on 2026-10-01, and that ended phase 1 (D103).
-Phases 2 and 3 are done. Phase 4 ends when Ken tags the first grammar
-module. Code follows the plan
-and the decisions.
+Phases 2 to 4 are done, and every module has the tag `v0.1.0`. Code follows
+the plan and the decisions.
 
 ## The upstream checkout
 
@@ -66,3 +65,17 @@ person. The root `.gitignore` ignores it.
 
 Run the commands under "Before you stage" in [`AGENTS.md`](AGENTS.md). Then
 stage the change for review. Ken commits.
+
+## Releases
+
+Ken makes each release. Each module has tags of its own (D43, D99). To
+release every module at a version such as `v0.2.0`:
+
+1. Run `./gen.sh -r v0.2.0`. Each `go.mod` then requires that version of each
+   module of the repository that it requires. The replace blocks stay, so a
+   build in the repository still uses the folders.
+2. Run the commands under "Before you stage" in `AGENTS.md`, and commit.
+3. Tag the commit `v0.2.0` for the root module, and `<folder>/v0.2.0` for
+   each other module except `test`, such as `grammars/json/v0.2.0` and
+   `styles/v0.2.0`.
+4. Push the commit and the tags.

@@ -1,7 +1,9 @@
 #!/bin/sh
 # gen.sh writes the files of the repository that a script makes.
 #
-#   ./gen.sh -m    write the replace block of each go.mod (D49)
+#   ./gen.sh -m            write the replace block of each go.mod (D49)
+#   ./gen.sh -r VERSION    make each go.mod require VERSION of each module of
+#                          the repository that it requires, for a release
 #
 # A module of this repository that requires another module of this
 # repository gets a replace directive that points at the folder of that
@@ -12,7 +14,7 @@ set -eu
 root=$(cd "$(dirname "$0")" && pwd)
 
 usage() {
-  echo "usage: $0 -m" >&2
+  echo "usage: $0 -m | -r VERSION" >&2
   exit 2
 }
 
@@ -68,8 +70,25 @@ replaceBlocks() {
   done
 }
 
-[ $# -eq 1 ] || usage
-case $1 in
-  -m) replaceBlocks ;;
+# requireVersion makes each go.mod require the version $1 of each module of
+# the repository that it requires. The replace blocks stay, so a build in the
+# repository still uses the folders.
+requireVersion() {
+  list=$(modules)
+  echo "$list" | while read -r dir path; do
+    req=$(requires "$dir/go.mod")
+    echo "$list" | while read -r otherDir otherPath; do
+      if [ "$otherPath" != "$path" ] && echo "$req" | grep -qx "$otherPath"; then
+        (cd "$dir" && go mod edit -require="$otherPath@$1")
+      fi
+    done
+  done
+}
+
+case $# in
+  1) [ "$1" = -m ] || usage
+     replaceBlocks ;;
+  2) [ "$1" = -r ] || usage
+     requireVersion "$2" ;;
   *) usage ;;
 esac

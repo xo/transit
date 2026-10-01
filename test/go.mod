@@ -3,24 +3,24 @@ module github.com/xo/transit/test
 go 1.27.1
 
 require (
-	github.com/xo/transit v0.0.0-00010101000000-000000000000
-	github.com/xo/transit/grammars/bash v0.0.0-00010101000000-000000000000
-	github.com/xo/transit/grammars/c v0.0.0-00010101000000-000000000000
-	github.com/xo/transit/grammars/cpp v0.0.0-00010101000000-000000000000
-	github.com/xo/transit/grammars/embeddedtemplate v0.0.0-00010101000000-000000000000
-	github.com/xo/transit/grammars/go v0.0.0-00010101000000-000000000000
-	github.com/xo/transit/grammars/html v0.0.0-00010101000000-000000000000
-	github.com/xo/transit/grammars/java v0.0.0-00010101000000-000000000000
-	github.com/xo/transit/grammars/javascript v0.0.0-00010101000000-000000000000
-	github.com/xo/transit/grammars/jsdoc v0.0.0-00010101000000-000000000000
-	github.com/xo/transit/grammars/json v0.0.0-00010101000000-000000000000
-	github.com/xo/transit/grammars/php v0.0.0-00010101000000-000000000000
-	github.com/xo/transit/grammars/python v0.0.0-00010101000000-000000000000
-	github.com/xo/transit/grammars/ruby v0.0.0-00010101000000-000000000000
-	github.com/xo/transit/grammars/rust v0.0.0-00010101000000-000000000000
-	github.com/xo/transit/grammars/typescript v0.0.0-00010101000000-000000000000
-	github.com/xo/transit/grammars/usql v0.0.0-00010101000000-000000000000
-	github.com/xo/transit/styles v0.0.0-00010101000000-000000000000
+	github.com/xo/transit v0.1.0
+	github.com/xo/transit/grammars/bash v0.1.0
+	github.com/xo/transit/grammars/c v0.1.0
+	github.com/xo/transit/grammars/cpp v0.1.0
+	github.com/xo/transit/grammars/embeddedtemplate v0.1.0
+	github.com/xo/transit/grammars/go v0.1.0
+	github.com/xo/transit/grammars/html v0.1.0
+	github.com/xo/transit/grammars/java v0.1.0
+	github.com/xo/transit/grammars/javascript v0.1.0
+	github.com/xo/transit/grammars/jsdoc v0.1.0
+	github.com/xo/transit/grammars/json v0.1.0
+	github.com/xo/transit/grammars/php v0.1.0
+	github.com/xo/transit/grammars/python v0.1.0
+	github.com/xo/transit/grammars/ruby v0.1.0
+	github.com/xo/transit/grammars/rust v0.1.0
+	github.com/xo/transit/grammars/typescript v0.1.0
+	github.com/xo/transit/grammars/usql v0.1.0
+	github.com/xo/transit/styles v0.1.0
 )
 
 replace github.com/xo/transit => ..

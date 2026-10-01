@@ -30,9 +30,9 @@ prototype of D47, so the end conditions of phase 3 hold. In phase 4, the Go
 backend writes literal tables and a lexer as data (D74). The 17 fixture
 grammars are Go packages in 15 modules under `grammars/`, with their scanners
 ported to Go, and every test of phase 3 passes on them. The speed targets of
-D37 hold on them, with target 3 as D97 states it. Phase 4 ends when Ken tags
-the first grammar module (D43), and he holds the tag until the usql grammar is
-finished (D103).
+D37 hold on them, with target 3 as D97 states it. Ken tagged `v0.1.0` of the
+root module and of each module of the repository on 2026-10-01, and that ended
+phase 4 (D43).
 
 [ts]: https://github.com/tree-sitter/tree-sitter
 
