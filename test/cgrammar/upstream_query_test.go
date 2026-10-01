@@ -3510,8 +3510,6 @@ func TestQueryCapturesOrderedByBothStartAndEndPositions(t *testing.T) {
 }
 
 func TestQueryCapturesWithMatchesRemoved(t *testing.T) {
-	t.Skip("the Go API has no form of QueryMatch::remove")
-
 	language := uqLanguage(t, "javascript")
 	query := uqNewQuery(t, language, `
             (binary_expression
@@ -3533,7 +3531,7 @@ func TestQueryCapturesWithMatchesRemoved(t *testing.T) {
 		capture := m.Captures[i]
 		text := capture.Node.Text([]byte(source))
 		if text == "a" {
-			// The Rust test calls m.remove() here.
+			m.Remove()
 			continue
 		}
 		capturedStrings = append(capturedStrings, text)
@@ -3545,8 +3543,6 @@ func TestQueryCapturesWithMatchesRemoved(t *testing.T) {
 }
 
 func TestQueryCapturesWithMatchesRemovedBeforeTheyFinish(t *testing.T) {
-	t.Skip("the Go API has no form of QueryMatch::remove")
-
 	language := uqLanguage(t, "javascript")
 	// When Tree-sitter detects that a pattern is guaranteed to match,
 	// it will start to eagerly return the captures that it has found,
@@ -3572,7 +3568,7 @@ func TestQueryCapturesWithMatchesRemovedBeforeTheyFinish(t *testing.T) {
 		capture := m.Captures[i]
 		text := capture.Node.Text([]byte(source))
 		if text == "as" {
-			// The Rust test calls m.remove() here.
+			m.Remove()
 			continue
 		}
 		capturedStrings = append(capturedStrings, text)

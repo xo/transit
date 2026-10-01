@@ -30,24 +30,6 @@ logger yet, so the port leaves them out. The generator logs with `log/slog`
 
 ## The runtime
 
-### Move the list of upstream failures into each module
-
-D88 says that a grammar package holds `testdata/failing.txt` with the names
-of its corpus cases that fail upstream, and that the golden harness writes
-it. Today the generator writes the names into `grammar_test.go` from
-`grammars/grammars.json`. Change the harness, the generator and
-`internal/grammartest`. No fixture grammar has a failing case, so no module
-gets the file yet.
-
-### Add QueryMatch.Remove
-
-D89 gives the Go API a form of `QueryMatch::remove` of the Rust binding.
-Add it to `query_binding.go` and to `docs/API.md`, and call it from the
-package `inject` and from the highlight test of `internal/grammartest` in
-place of their imitation. Run the two tests of `upstream_query_test.go` that
-skip for want of it, and delete item 3 of "Choose whether some upstream tests
-get a Go form".
-
 ### Compare the highlight test with the upstream tool
 
 The highlight test of a grammar module follows the highlighter of upstream
@@ -57,21 +39,6 @@ java, javascript, lua, php, python, ruby, toml and yaml. The test also passes
 in the modules c, cpp, html, java, javascript, php, python and ruby. The
 cache holds 48 more folders of `test/highlight`. Compare the port with the
 upstream tool on them, and record each difference.
-
-The port in `internal/grammartest` emulates `QueryMatch::remove` of the Rust
-binding, because the Go API has no form of it. It knows a removed match by
-its pattern and by the captures that it had. Two matches of one pattern
-with the same first captures, such as two branches of a quantifier, look
-like one match. The package `inject` does the same for its injections.
-
-### Meet target 3 of D37
-
-A parse after one key allocates more on a longer statement (D73). On the
-postgres statement of D73, it allocates 200 times at 5 KB and 805 times at
-40 KB, and the time of C grows the same way. Most of the allocations are
-stack nodes. `stack.go` leaves out the free list of stack nodes of C, which
-keeps up to 50 freed nodes. Ken kept the target as it is, and phase 4 works
-on it with the real Go grammars.
 
 ### Cut the memory of the generator for large grammars
 
@@ -98,12 +65,7 @@ Go API does not have, so they skip or are not ported:
 2. `test_edit_point` and `test_edit_range` of `node_test.rs` test
    `ts_point_edit` and `ts_range_edit`. `docs/API.md` says that these become
    methods if a consumer needs them.
-3. `QueryMatch::remove` calls `ts_query_cursor_remove_match`, and
-   `TestQueryCapturesWithMatchesRemoved` and
-   `TestQueryCapturesWithMatchesRemovedBeforeTheyFinish` of `query_test.rs`
-   test it. `docs/API.md` uses that function only inside `Captures`. The two
-   tests skip.
-4. `Query::deep_clone` calls `ts_query_copy`, and `TestQueryDeepClone` tests
+3. `Query::deep_clone` calls `ts_query_copy`, and `TestQueryDeepClone` tests
    it. `docs/API.md` gives `ts_query_copy` no Go form (D24). The test skips.
 
 Ken chooses in the review of `docs/API.md` whether to keep this. If a part

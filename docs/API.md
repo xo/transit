@@ -10,7 +10,8 @@ find no node returns the node and a `bool` (D56). Ken accepts this document
 before phase 1 ends, and until then it is a proposal. The choices that the
 example raised are decided: `#lua-match?` (D55, which waits for the tier 1
 grammars, D69), the form of a lookup (D56)
-and `StatesAt` (D57). The API of the package `inject` is decided too (D72).
+and `StatesAt` (D57). The API of the package `inject` is decided too (D72),
+and so is the form of `QueryMatch::remove` (D89).
 
 ## The working C example
 
@@ -219,9 +220,11 @@ const (
 )
 
 // Tree is a syntax tree. It is safe for reads from many goroutines. Edit
-// changes it, so call Copy first to keep a version.
+// changes it, so call Copy first to keep a version. Close is optional. After
+// Close, the program must not use the tree or its nodes (D91).
 type Tree struct{ /* unexported */ }
 
+func (t *Tree) Close()
 func (t *Tree) RootNode() Node
 func (t *Tree) RootNodeWithOffset(offset int, at Point) Node
 func (t *Tree) Language() *Language
@@ -415,7 +418,12 @@ func (c *QueryCursor) Captures(ctx context.Context, q *Query, n Node, src []byte
 type QueryMatch struct {
 	PatternIndex int
 	Captures     []QueryCapture
+	// unexported: the cursor and the id of the match
 }
+
+// Remove removes the match from its cursor, so that the sequence gives no
+// more captures of it. It is QueryMatch::remove of the Rust binding (D89).
+func (m QueryMatch) Remove()
 
 // QueryCapture is one captured node. Index is its place in CaptureNames.
 type QueryCapture struct {
@@ -455,7 +463,12 @@ callback stops does in C, and the next parse goes on from it.
 
 `Parse` returns the error of its context when the context ends, wrapped with
 `%w`. `Captures` gives each match with the index of the capture in the match,
-in the order of the text, which is the order that highlighting needs.
+in the order of the text, which is the order that highlighting needs. The
+highlighter of upstream removes the match of an injection with
+`QueryMatch::remove` while it reads the captures. The package `inject` calls
+`Remove` in the same place (D89). `Remove` is valid only while the sequence
+that gave the match runs, because the next run of the cursor gives the same
+ids to other matches.
 
 ## From C to Go
 
@@ -469,7 +482,7 @@ The example calls these C functions. Each row names the Go form.
 | `ts_tree_root_node` | `(*Tree).RootNode` |
 | `ts_tree_edit` | `(*Tree).Edit` |
 | `ts_tree_get_changed_ranges` | `(*Tree).ChangedRanges`, which returns a slice |
-| `ts_tree_delete` | nothing |
+| `ts_tree_delete` | `(*Tree).Close`, which is optional. The garbage collector frees a tree that is not closed (D91) |
 | `ts_node_string` | `Node.String` |
 | `ts_node_type`, `ts_node_grammar_symbol` | `Node.Kind`, `Node.GrammarID` |
 | `ts_node_start_byte`, `ts_node_end_byte`, `ts_node_start_point` | `Node.StartByte`, `Node.EndByte`, `Node.StartPoint`, as `int` |
@@ -488,7 +501,8 @@ The example calls these C functions. Each row names the Go form.
 | `ts_query_capture_name_for_id` | `q.CaptureNames()[i]` |
 | `ts_query_predicates_for_pattern`, `ts_query_string_value_for_id` | evaluated inside `Matches` and `Captures` (D27). `GeneralPredicates` gives the rest |
 | `ts_query_cursor_new`, `ts_query_cursor_delete` | `NewQueryCursor` |
-| `ts_query_cursor_exec`, `ts_query_cursor_next_capture`, `ts_query_cursor_remove_match` | `(*QueryCursor).Captures`, which removes a match whose predicates fail |
+| `ts_query_cursor_exec`, `ts_query_cursor_next_capture` | `(*QueryCursor).Captures` |
+| `ts_query_cursor_remove_match` | `QueryMatch.Remove`. `Captures` also calls it for a match whose predicates fail |
 | `ts_query_cursor_set_byte_range` | `(*QueryCursor).SetByteRange` |
 | `ts_language_next_state`, `ts_language_symbol_type` | `(*Language).NextState`, `SymbolType` |
 | `ts_lookahead_iterator_new`, `_next`, `_current_symbol_name` | `(*Language).LookaheadIterator`, `Names` |
@@ -496,8 +510,9 @@ The example calls these C functions. Each row names the Go form.
 
 These upstream functions have no Go form:
 
-1. The functions that free memory or count references: each `_delete`,
-   `ts_language_copy`, `ts_query_copy` and `ts_set_allocator` (D24).
+1. The functions that free memory or count references: each `_delete` other
+   than `ts_tree_delete`, `ts_language_copy`, `ts_query_copy` and
+   `ts_set_allocator` (D24, D91).
 2. The WebAssembly functions: `ts_language_is_wasm`, `ts_parser_set_wasm_store`,
    `ts_parser_take_wasm_store` and each `ts_wasm_store_` function (D1).
 3. `ts_node_is_null`, because a lookup returns a `bool` with the node.
@@ -627,7 +642,9 @@ const (
 	// ...
 )
 
-// Queries holds queries/*.scm of the grammar.
+// Queries holds queries/ of the grammar: its own queries, and in
+// queries/<grammar>/ the queries of another grammar that its
+// tree-sitter.json lists (D84).
 var Queries embed.FS
 
 // Keywords returns the names of the keywords of the grammar: the symbols

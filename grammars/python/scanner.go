@@ -2,6 +2,7 @@ package python
 
 import (
 	"math"
+	"slices"
 
 	"github.com/xo/transit/internal/abi"
 )
@@ -417,9 +418,14 @@ func (s *scanner) Serialize(buffer []byte) int {
 // the number of delimiters and the delimiters even when the buffer ends
 // before them, and so it reads memory past the end of the state. The Go
 // function reads a byte past the end of the buffer as 0.
+//
+// The C function frees the arrays of the delimiters and the indents, and it
+// allocates them again. The Go function keeps the memory of the slices and
+// sets their length to 0, so that a parse does not allocate them for each
+// token of the scanner.
 func (s *scanner) Deserialize(buffer []byte) {
-	s.delimiters = nil
-	s.indents = nil
+	s.delimiters = s.delimiters[:0]
+	s.indents = s.indents[:0]
 	s.indents = append(s.indents, 0)
 
 	if len(buffer) > 0 {
@@ -431,7 +437,7 @@ func (s *scanner) Deserialize(buffer []byte) {
 		delimiterCount := int(byteAt(buffer, size))
 		size++
 		if delimiterCount > 0 {
-			s.delimiters = make([]delimiter, delimiterCount)
+			s.delimiters = slices.Grow(s.delimiters, delimiterCount)[:delimiterCount]
 			for i := range delimiterCount {
 				s.delimiters[i].flags = byteAt(buffer, size+i)
 			}

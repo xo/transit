@@ -179,7 +179,9 @@ func queryRuns(n uint32) []QueryRun {
 // with their predicates removed, with the C runtime and with the Go
 // runtime, and compares the patterns. Then it runs each query on the first
 // inputs of the corpus with the settings of queryRuns, and compares each
-// match, each capture and the match limit.
+// match, each capture and the match limit. The Go runtime runs with each
+// language of fixtureLanguages: the C tables and the grammar package. The C
+// runtime runs once for both.
 func TestFixtureQueriesMatchC(t *testing.T) {
 	t.Parallel()
 	root, cache := setup(t)
@@ -189,41 +191,53 @@ func TestFixtureQueriesMatchC(t *testing.T) {
 			g, examples := loadFixture(t, cache, f)
 			examples = examples[:min(len(examples), 60)]
 			queries := fixtureQueries(t, cache, f)
-			p := transit.NewParser()
-			if err := p.SetLanguage(g.Language); err != nil {
-				t.Fatal(err)
-			}
-			trees := make([]*transit.Tree, len(examples))
+			languages := fixtureLanguages(t, g)
 			sessions := make([]*CSession, len(examples))
 			for i, e := range examples {
-				tree, err := goParse(p, e.Input)
-				if err != nil {
-					t.Fatal(err)
-				}
-				trees[i] = tree
+				var err error
 				if sessions[i], err = g.NewCSession(e.Input); err != nil {
 					t.Fatal(err)
 				}
 				defer sessions[i].Close()
 			}
-			failures, runs := 0, 0
+			// trees holds the Go tree of each input, for each language.
+			trees := make([][]*transit.Tree, len(languages))
+			for li, l := range languages {
+				p := transit.NewParser()
+				if err := p.SetLanguage(l.language); err != nil {
+					t.Fatal(err)
+				}
+				for _, e := range examples {
+					tree, err := goParse(p, e.Input)
+					if err != nil {
+						t.Fatalf("%s: %v", l.source, err)
+					}
+					trees[li] = append(trees[li], tree)
+				}
+			}
+			failures := make([]int, len(languages))
+			runs := 0
 			for qi, source := range queries {
 				cq, want, err := g.NewCQuery(source)
 				if err != nil {
 					t.Fatal(err)
 				}
-				gq, got := NewGoQuery(g.Language, source)
 				if cq != nil {
 					want = cq.Describe()
 					defer cq.Close()
 				}
-				if gq != nil {
-					got = DescribeGoQuery(gq, source)
-				}
-				if got != want {
-					failures++
-					t.Errorf("query %d compiles differently:\n  C:  %.500s\n  Go: %.500s", qi, want, got)
-					continue
+				gqs := make([]*transit.Query, len(languages))
+				for li, l := range languages {
+					gq, got := NewGoQuery(l.language, source)
+					if gq != nil {
+						got = DescribeGoQuery(gq, source)
+					}
+					if got != want {
+						failures[li]++
+						t.Errorf("%s: query %d compiles differently:\n  C:  %.500s\n  Go: %.500s", l.source, qi, want, got)
+						continue
+					}
+					gqs[li] = gq
 				}
 				if cq == nil {
 					continue
@@ -232,16 +246,23 @@ func TestFixtureQueriesMatchC(t *testing.T) {
 					for _, run := range queryRuns(uint32(len(e.Input))) {
 						runs++
 						want := cq.Run(sessions[ei], run)
-						if got := RunGoQuery(gq, trees[ei], e.Input, run); got != want {
-							failures++
-							if failures <= 3 {
-								t.Errorf("query %d on %s with %+v differs:\nquery: %.200s\nC:\n%.2000s\nGo:\n%.2000s", qi, e.Name, run, source, want, got)
+						for li, l := range languages {
+							if gqs[li] == nil {
+								continue
+							}
+							if got := RunGoQuery(gqs[li], trees[li][ei], e.Input, run); got != want {
+								failures[li]++
+								if failures[li] <= 3 {
+									t.Errorf("%s: query %d on %s with %+v differs:\nquery: %.200s\nC:\n%.2000s\nGo:\n%.2000s", l.source, qi, e.Name, run, source, want, got)
+								}
 							}
 						}
 					}
 				}
 			}
-			t.Logf("%d queries, %d runs, %d differ", len(queries), runs, failures)
+			for li, l := range languages {
+				t.Logf("%s: %d queries, %d runs, %d differ", l.source, len(queries), runs, failures[li])
+			}
 		})
 	}
 }

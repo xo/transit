@@ -15,13 +15,21 @@ import (
 // current_symbol, so test_lookahead_iterator_exhaustion checks the same
 // states through Symbols and Names.
 
-// fixtureGrammar builds and loads the fixture grammar with a name.
+// fixtureGrammar builds and loads the fixture grammar with a name. When the
+// test runs on the grammar packages (onGoPackages), the Language of the
+// grammar is the grammar package, and the C functions of the grammar still
+// use the C grammar.
 func fixtureGrammar(t *testing.T, name string) *Grammar {
 	t.Helper()
 	root, cache := setup(t)
 	for _, f := range fixtures(t, root) {
 		if f.Name == name {
 			g, _ := loadFixture(t, cache, f)
+			if onGoPackages(t) {
+				goGrammar := *g
+				goGrammar.Language = goPackageLanguage(t, name)
+				return &goGrammar
+			}
 			return g
 		}
 	}

@@ -8,7 +8,9 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"slices"
+	"sync"
 	"testing"
 	"unicode/utf8"
 	"unsafe"
@@ -185,7 +187,7 @@ type lexLog struct {
 
 // reset moves the lexer to pos, for a new token.
 func (l *lexLog) reset(pos int) {
-	l.pos, l.log = pos, nil
+	l.pos, l.log = pos, l.log[:0]
 	l.ResultSymbol = 0
 	l.decode()
 }
@@ -237,34 +239,140 @@ func (l *lexLog) EOF() bool {
 // Logf implements abi.LexerFuncs.
 func (l *lexLog) Logf(string, ...any) {}
 
-// lexCall runs a lex function in a state from a position, and returns what
-// it found and its calls.
-func lexCall(l *lexLog, fn abi.LexFunc, pos int, state uint16) string {
-	l.reset(pos)
-	found := fn(&l.Lexer, state)
-	return fmt.Sprint(found, l.ResultSymbol, l.log)
+// lexText is a text of the comparison of two lexers, with the lookahead and
+// the size that lexLog decodes at each offset of the text and at its end.
+type lexText struct {
+	index     int
+	text      []byte
+	lookahead []int32
+	size      []uint32
+}
+
+// newLexText decodes a text at each offset. The index names the text in a
+// difference.
+func newLexText(index int, text []byte) *lexText {
+	lt := &lexText{
+		index:     index,
+		text:      text,
+		lookahead: make([]int32, len(text)+1),
+		size:      make([]uint32, len(text)+1),
+	}
+	l := &lexLog{text: text}
+	for pos := range lt.lookahead {
+		l.pos = pos
+		l.decode()
+		lt.lookahead[pos], lt.size[pos] = l.Lookahead, uint32(l.size)
+	}
+	return lt
+}
+
+// lexStates runs a lex function in each state below states, from the offset
+// pos of a text, and returns the results in out, in the form of
+// Grammar.LexStates.
+type lexStates func(text *lexText, pos, states int, out []int32) []int32
+
+// cLexStates returns the lexStates of the main lex function of a C grammar,
+// or of its keyword lex function, which lexes in C.
+func cLexStates(g *Grammar, keyword bool) lexStates {
+	return func(text *lexText, pos, states int, out []int32) []int32 {
+		return g.LexStates(keyword, states, text.lookahead, text.size, pos, out)
+	}
+}
+
+// goLexStates returns the lexStates of a lex function of the Go runtime,
+// which lexes with a lexLog.
+func goLexStates(fn abi.LexFunc) lexStates {
+	return func(text *lexText, pos, states int, out []int32) []int32 {
+		l := &lexLog{text: text.text}
+		l.Funcs = l
+		out = out[:0]
+		for state := range states {
+			l.reset(pos)
+			found := int32(0)
+			if fn(&l.Lexer, uint16(state)) {
+				found = 1
+			}
+			out = append(out, found, int32(l.ResultSymbol), int32(len(l.log)))
+			for _, v := range l.log {
+				out = append(out, int32(v))
+			}
+		}
+		return out
+	}
+}
+
+// formatLex writes the result of one state of a lexStates: whether the lex
+// function found a token, the result symbol and the calls of the lexer.
+func formatLex(r []int32) string {
+	log := make([]int, 0, len(r)-3)
+	for _, v := range r[3:] {
+		log = append(log, int(v))
+	}
+	return fmt.Sprint(r[0] != 0, r[1], log)
 }
 
 // compareLexFuncs runs two lex functions in each state from each position
 // of each text, and returns the number of runs and the first difference. It
-// stops after limit runs.
-func compareLexFuncs(want, got abi.LexFunc, states int, texts [][]byte, limit int) (int, string) {
-	runs := 0
-	for ti, text := range texts {
-		l := &lexLog{text: text}
-		l.Funcs = l
-		for pos := 0; pos <= len(text); pos++ {
-			for state := range states {
-				if runs == limit {
-					return runs, ""
-				}
-				runs++
-				w := lexCall(l, want, pos, uint16(state))
-				g := lexCall(l, got, pos, uint16(state))
-				if w != g {
-					return runs, fmt.Sprintf("text %d at %d in state %d: C %s, Go %s", ti, pos, state, w, g)
-				}
+// stops after limit runs. With no limit, a limit below 0, it compares the
+// texts at the same time, and the first difference is the difference of the
+// first text that has one.
+func compareLexFuncs(want, got lexStates, states int, texts [][]byte, limit int) (int, string) {
+	if limit < 0 {
+		runs := make([]int, len(texts))
+		diffs := make([]string, len(texts))
+		sem := make(chan struct{}, runtime.GOMAXPROCS(0))
+		var wg sync.WaitGroup
+		for ti, text := range texts {
+			wg.Go(func() {
+				sem <- struct{}{}
+				defer func() { <-sem }()
+				runs[ti], diffs[ti] = compareLexText(want, got, states, newLexText(ti, text), -1)
+			})
+		}
+		wg.Wait()
+		total := 0
+		for ti := range texts {
+			total += runs[ti]
+			if diffs[ti] != "" {
+				return total, diffs[ti]
 			}
+		}
+		return total, ""
+	}
+	total := 0
+	for ti, text := range texts {
+		runs, d := compareLexText(want, got, states, newLexText(ti, text), limit-total)
+		total += runs
+		if d != "" || total == limit {
+			return total, d
+		}
+	}
+	return total, ""
+}
+
+// compareLexText runs two lex functions in each state from each position of
+// a text, and returns the number of runs and the first difference. It stops
+// after limit runs, and a limit below 0 is no limit.
+func compareLexText(want, got lexStates, states int, text *lexText, limit int) (int, string) {
+	var wantOut, gotOut []int32
+	runs := 0
+	for pos := 0; pos <= len(text.text); pos++ {
+		if runs == limit {
+			return runs, ""
+		}
+		wantOut = want(text, pos, states, wantOut)
+		gotOut = got(text, pos, states, gotOut)
+		w, g := wantOut, gotOut
+		for state := range states {
+			if runs == limit {
+				return runs, ""
+			}
+			runs++
+			wn, gn := 3+int(w[2]), 3+int(g[2])
+			if !slices.Equal(w[:wn], g[:gn]) {
+				return runs, fmt.Sprintf("text %d at %d in state %d: C %s, Go %s", text.index, pos, state, formatLex(w[:wn]), formatLex(g[:gn]))
+			}
+			w, g = w[wn:], g[gn:]
 		}
 	}
 	return runs, ""
@@ -281,30 +389,88 @@ func lexTexts(examples []Example) [][]byte {
 }
 
 // compareLexers runs the main lex function and the keyword lex function of
-// two tables in each of their states and in one more state that the tables
-// do not have, from each position of each text. It stops each comparison
-// after limit runs.
-func compareLexers(t *testing.T, want, got *abi.Language, counts lexCounts, texts [][]byte, limit int) {
+// a C grammar, in C, and of the tables got, in each of their states and in
+// one more state that the tables do not have, from each position of each
+// text. It stops each comparison after limit runs.
+func compareLexers(t *testing.T, g *Grammar, got *abi.Language, counts lexCounts, texts [][]byte, limit int) {
 	t.Helper()
+	want := tablesOf(g.Language)
 	for _, fn := range []struct {
-		name      string
-		want, got abi.LexFunc
-		states    int
+		name       string
+		want       lexStates
+		wantExists bool
+		got        abi.LexFunc
+		states     int
 	}{
-		{"main", want.LexFn, got.LexFn, counts.main + 1},
-		{"keyword", want.KeywordLexFn, got.KeywordLexFn, counts.keyword + 1},
+		{"main", cLexStates(g, false), want.LexFn != nil, got.LexFn, counts.main + 1},
+		{"keyword", cLexStates(g, true), want.KeywordLexFn != nil, got.KeywordLexFn, counts.keyword + 1},
 	} {
-		if fn.want == nil || fn.got == nil {
-			if (fn.want == nil) != (fn.got == nil) {
+		if !fn.wantExists || fn.got == nil {
+			if fn.wantExists != (fn.got != nil) {
 				t.Errorf("%s: only one of the grammars has the lex function", fn.name)
 			}
 			continue
 		}
-		runs, d := compareLexFuncs(fn.want, fn.got, fn.states, texts, limit)
+		runs, d := compareLexFuncs(fn.want, goLexStates(fn.got), fn.states, texts, limit)
 		if d != "" {
 			t.Errorf("%s: %s", fn.name, d)
 		}
 		t.Logf("%s: %d runs", fn.name, runs)
+	}
+}
+
+// TestCompareLexFuncs checks compareLexFuncs on two lex functions that
+// differ in the state 1 of the texts 1 and 2, with a limit and with no
+// limit.
+func TestCompareLexFuncs(t *testing.T) {
+	t.Parallel()
+	want := goLexStates(func(*abi.Lexer, uint16) bool { return true })
+	got := goLexStates(func(lexer *abi.Lexer, state uint16) bool {
+		return state != 1 || lexer.Lookahead != 'b'
+	})
+	texts := [][]byte{[]byte("aa"), []byte("ab"), []byte("b")}
+	for _, c := range []struct {
+		limit int
+		runs  int
+		diff  string
+	}{
+		{-1, 10, "text 1 at 1 in state 1: C true 0 [], Go false 0 []"},
+		{10, 10, "text 1 at 1 in state 1: C true 0 [], Go false 0 []"},
+		{9, 9, ""},
+		{3, 3, ""},
+	} {
+		runs, d := compareLexFuncs(want, got, 2, texts, c.limit)
+		if runs != c.runs || d != c.diff {
+			t.Errorf("with the limit %d, compareLexFuncs gives %d runs and %q, want %d and %q", c.limit, runs, d, c.runs, c.diff)
+		}
+	}
+}
+
+// TestLexStatesMatchesBridge compares the lexer in C of Grammar.LexStates
+// with a lexLog, which the C lex function calls through the bridge of
+// lexer.go. Each C lex function of javascript runs both ways, in the states
+// below 300, from the first positions of the texts of lexTexts.
+func TestLexStatesMatchesBridge(t *testing.T) {
+	t.Parallel()
+	root, cache := setup(t)
+	for _, f := range fixtures(t, root) {
+		if f.Name != "javascript" {
+			continue
+		}
+		g, examples := loadFixture(t, cache, f)
+		tables := tablesOf(g.Language)
+		texts := lexTexts(examples[:min(len(examples), 20)])
+		for _, keyword := range []bool{false, true} {
+			fn := tables.LexFn
+			if keyword {
+				fn = tables.KeywordLexFn
+			}
+			runs, d := compareLexFuncs(cLexStates(g, keyword), goLexStates(fn), 300, texts, 30000)
+			if d != "" {
+				t.Errorf("keyword %v: %s", keyword, d)
+			}
+			t.Logf("keyword %v: %d runs", keyword, runs)
+		}
 	}
 }
 
@@ -327,7 +493,7 @@ func TestGoPackageLexersMatchC(t *testing.T) {
 				}
 			}
 			b := generateGo(t, dir)
-			compareLexers(t, tablesOf(g.Language), tablesOf(gp.language()), b.counts, lexTexts(examples), -1)
+			compareLexers(t, g, tablesOf(gp.language()), b.counts, lexTexts(examples), -1)
 		})
 	}
 }
@@ -414,7 +580,7 @@ func TestGoBackendMatchesC(t *testing.T) {
 			} else if formatted, err := format.Source([]byte(b.code)); err != nil || string(formatted) != b.code {
 				t.Errorf("gofmt changes parser.go, or it is not valid Go: %v", err)
 			}
-			compareLexers(t, want, got, b.counts, lexTexts(examples), 200000)
+			compareLexers(t, g, got, b.counts, lexTexts(examples), 200000)
 
 			language := transit.NewLanguage(got)
 			p := transit.NewParser()
@@ -490,7 +656,7 @@ func TestGoBackendMatchesCOnTestGrammars(t *testing.T) {
 			if diffs := compareTables(want, b.tables); len(diffs) > 0 {
 				t.Errorf("the tables differ: %v", diffs)
 			}
-			compareLexers(t, want, b.tables, b.counts, texts, 200000)
+			compareLexers(t, g, b.tables, b.counts, texts, 200000)
 		})
 	}
 }

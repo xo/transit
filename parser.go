@@ -143,6 +143,11 @@ type Parser struct {
 	includedRangeDifferenceIndex uint32
 	canceledBalancing            bool
 	hasError                     bool
+
+	// stringInput is the input of Parse. C keeps the TSStringInput of
+	// ts_parser_parse_string on the stack. The Go parser keeps it, so that
+	// Parse does not allocate an Input for each parse.
+	stringInput stringInput
 }
 
 // errorStatus is ErrorStatus.
@@ -188,14 +193,16 @@ func (c errorComparison) String() string {
 }
 
 // stringInput is TSStringInput, the input of a parse of a byte slice.
-type stringInput []byte
+type stringInput struct {
+	text []byte
+}
 
 // ReadAt is ts_string_input_read.
-func (s stringInput) ReadAt(offset int, _ Point) []byte {
-	if offset >= len(s) {
+func (s *stringInput) ReadAt(offset int, _ Point) []byte {
+	if offset >= len(s.text) {
 		return nil
 	}
-	return s[offset:]
+	return s.text[offset:]
 }
 
 // logging reports whether the parser logs. It is the condition of the
@@ -741,7 +748,7 @@ func (p *Parser) lex(
 
 		if foundExternalToken {
 			mutResult := result
-			mutResult.ptr.externalScannerState.init(p.lexer.debugBuffer[:externalScannerStateLen])
+			mutResult.ptr.externalScannerState.init(&p.treePool, p.lexer.debugBuffer[:externalScannerStateLen])
 			mutResult.ptr.hasExternalScannerStateChange = externalScannerStateChanged
 		}
 	}
@@ -2103,7 +2110,7 @@ func NewParser() *Parser {
 	p := &Parser{}
 	p.lexer.init()
 	p.reduceActions = make(reduceActionSet, 0, 4)
-	p.treePool = newSubtreePool()
+	p.treePool = newSubtreePool(32)
 	p.stack = newStack(&p.treePool)
 	p.finishedTree = subtree{}
 	p.reusableNode = newReusableNode()
@@ -2378,5 +2385,6 @@ func (p *Parser) ParseInput(ctx context.Context, in Input, enc Encoding, old *Tr
 //
 // Parse is ts_parser_parse_string.
 func (p *Parser) Parse(ctx context.Context, src []byte, old *Tree) (*Tree, error) {
-	return p.ParseInput(ctx, stringInput(src), EncodingUTF8, old)
+	p.stringInput = stringInput{text: src}
+	return p.ParseInput(ctx, &p.stringInput, EncodingUTF8, old)
 }

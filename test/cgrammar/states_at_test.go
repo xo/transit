@@ -44,14 +44,16 @@ func accepts(language *transit.Language, states []transit.StateID, symbol transi
 }
 
 // TestFixtureStatesAtAcceptNextToken checks StatesAt on the corpus of each
-// fixture grammar. For each input with no error, and for the start of each
-// leaf, one of the states that StatesAt gives must have an action for the
-// symbol of the leaf. When StatesAt gives one state, an offset inside the
-// leaf must give the same state. With two stack versions, each version
-// lexes with its own lex mode, and one of them can find a shorter token that
-// ends inside the leaf. With the tree of the input as the old tree, StatesAt must give
-// some of the same states. The parser can then reuse a node where it split
-// into two stack versions without the old tree, so it can give fewer.
+// fixture grammar, with each language of fixtureLanguages. For each input
+// with no error, and for the start of each leaf, one of the states that
+// StatesAt gives must have an action for the symbol of the leaf. When
+// StatesAt gives one state, an offset inside the leaf must give the same
+// state. With two stack versions, each version lexes with its own lex mode,
+// and one of them can find a shorter token that ends inside the leaf. With
+// the tree of the input as the old tree, StatesAt must give some of the
+// same states. The parser can then reuse a node where it split into two
+// stack versions without the old tree, so it can give fewer. The grammar
+// package must give the states that the C tables give.
 func TestFixtureStatesAtAcceptNextToken(t *testing.T) {
 	t.Parallel()
 	root, cache := setup(t)
@@ -59,60 +61,80 @@ func TestFixtureStatesAtAcceptNextToken(t *testing.T) {
 		t.Run(f.Name, func(t *testing.T) {
 			t.Parallel()
 			g, examples := loadFixture(t, cache, f)
-			p := transit.NewParser()
-			if err := p.SetLanguage(g.Language); err != nil {
-				t.Fatal(err)
-			}
-			checked, missed, differ := 0, 0, 0
-			for _, e := range examples[:min(len(examples), 40)] {
-				tree, err := goParse(p, e.Input)
-				if err != nil {
+			languages := fixtureLanguages(t, g)
+			parsers := make([]*transit.Parser, len(languages))
+			for li, l := range languages {
+				parsers[li] = transit.NewParser()
+				if err := parsers[li].SetLanguage(l.language); err != nil {
 					t.Fatal(err)
 				}
-				if tree.RootNode().HasError() {
+			}
+			checked, missed, differ, other := 0, 0, 0, 0
+			for _, e := range examples[:min(len(examples), 40)] {
+				trees := make([]*transit.Tree, len(languages))
+				for li := range languages {
+					tree, err := goParse(parsers[li], e.Input)
+					if err != nil {
+						t.Fatal(err)
+					}
+					trees[li] = tree
+				}
+				if trees[0].RootNode().HasError() {
 					continue
 				}
-				ls := leaves(tree.RootNode(), g.TokenCount())
+				ls := leaves(trees[0].RootNode(), g.TokenCount())
 				for _, leaf := range ls[:min(len(ls), 60)] {
-					states, err := p.StatesAt(context.Background(), e.Input, leaf.StartByte(), nil)
-					if err != nil {
-						t.Fatal(err)
-					}
-					checked++
-					if !accepts(g.Language, states, leaf.GrammarID()) {
-						missed++
-						if missed <= 3 {
-							t.Errorf("%s: no state of %v at byte %d accepts %q", e.Name, states, leaf.StartByte(), leaf.GrammarKind())
-						}
-					}
-					reused, err := p.StatesAt(context.Background(), e.Input, leaf.StartByte(), tree)
-					if err != nil {
-						t.Fatal(err)
-					}
-					if !accepts(g.Language, reused, leaf.GrammarID()) {
-						missed++
-						if missed <= 3 {
-							t.Errorf("%s: with the old tree, no state of %v at byte %d accepts %q", e.Name, reused, leaf.StartByte(), leaf.GrammarKind())
-						}
-					}
-					if !slices.Equal(reused, states) {
-						differ++
-					}
-					if len(reused) == 0 || slices.ContainsFunc(reused, func(s transit.StateID) bool { return !slices.Contains(states, s) }) {
-						t.Errorf("%s: at byte %d, the states are %v with the old tree and %v without it", e.Name, leaf.StartByte(), reused, states)
-					}
-					if len(states) == 1 && leaf.EndByte()-leaf.StartByte() > 1 {
-						inside, err := p.StatesAt(context.Background(), e.Input, leaf.StartByte()+1, nil)
+					var first, firstReused []transit.StateID
+					for li, l := range languages {
+						p := parsers[li]
+						states, err := p.StatesAt(context.Background(), e.Input, leaf.StartByte(), nil)
 						if err != nil {
 							t.Fatal(err)
 						}
-						if !slices.Equal(inside, states) {
-							t.Errorf("%s: at byte %d, inside %q, the states are %v, want %v", e.Name, leaf.StartByte()+1, leaf.GrammarKind(), inside, states)
+						checked++
+						if !accepts(l.language, states, leaf.GrammarID()) {
+							missed++
+							if missed <= 3 {
+								t.Errorf("%s: %s: no state of %v at byte %d accepts %q", l.source, e.Name, states, leaf.StartByte(), leaf.GrammarKind())
+							}
+						}
+						reused, err := p.StatesAt(context.Background(), e.Input, leaf.StartByte(), trees[li])
+						if err != nil {
+							t.Fatal(err)
+						}
+						if !accepts(l.language, reused, leaf.GrammarID()) {
+							missed++
+							if missed <= 3 {
+								t.Errorf("%s: %s: with the old tree, no state of %v at byte %d accepts %q", l.source, e.Name, reused, leaf.StartByte(), leaf.GrammarKind())
+							}
+						}
+						if !slices.Equal(reused, states) {
+							differ++
+						}
+						if len(reused) == 0 || slices.ContainsFunc(reused, func(s transit.StateID) bool { return !slices.Contains(states, s) }) {
+							t.Errorf("%s: %s: at byte %d, the states are %v with the old tree and %v without it", l.source, e.Name, leaf.StartByte(), reused, states)
+						}
+						if len(states) == 1 && leaf.EndByte()-leaf.StartByte() > 1 {
+							inside, err := p.StatesAt(context.Background(), e.Input, leaf.StartByte()+1, nil)
+							if err != nil {
+								t.Fatal(err)
+							}
+							if !slices.Equal(inside, states) {
+								t.Errorf("%s: %s: at byte %d, inside %q, the states are %v, want %v", l.source, e.Name, leaf.StartByte()+1, leaf.GrammarKind(), inside, states)
+							}
+						}
+						if li == 0 {
+							first, firstReused = states, reused
+						} else if !slices.Equal(states, first) || !slices.Equal(reused, firstReused) {
+							other++
+							if other <= 3 {
+								t.Errorf("%s: %s: at byte %d, the states are %v and %v with the old tree, and the C tables give %v and %v", l.source, e.Name, leaf.StartByte(), states, reused, first, firstReused)
+							}
 						}
 					}
 				}
 			}
-			t.Logf("%d offsets, %d missed, %d with other states from the old tree", checked, missed, differ)
+			t.Logf("%d offsets, %d missed, %d with other states from the old tree, %d with other states from the grammar package", checked, missed, differ, other)
 		})
 	}
 }

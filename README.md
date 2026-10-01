@@ -1,3 +1,28 @@
+<div align="center">
+  <a href="#status" title="Status">Status</a> |
+  <a href="#documents" title="Documents">Documents</a> |
+  <a href="#grammars" title="Grammars">Grammars</a> |
+  <a href="#differences-from-upstream" title="Differences from upstream">Differences from upstream</a> |
+  <a href="https://pkg.go.dev/github.com/xo/transit" title="Go Reference">Reference</a> |
+  <a href="#license" title="License">License</a>
+</div>
+
+<br/>
+
+[![Unit Tests][transit-ci-status]][transit-ci]
+[![Go Reference][goref-transit-status]][goref-transit]
+[![Releases][release-status]][releases]
+[![Discord Discussion][discord-status]][discord]
+
+[transit-ci]: https://github.com/xo/transit/actions/workflows/test.yml "Test CI"
+[transit-ci-status]: https://github.com/xo/transit/actions/workflows/test.yml/badge.svg "Test CI"
+[goref-transit]: https://pkg.go.dev/github.com/xo/transit "Go Reference"
+[goref-transit-status]: https://pkg.go.dev/badge/github.com/xo/transit.svg "Go Reference"
+[release-status]: https://img.shields.io/github/v/release/xo/transit?display_name=tag "Latest Release"
+[releases]: https://github.com/xo/transit/releases "Releases"
+[discord]: https://discord.gg/WDWAgXwJqN "Discord Discussion"
+[discord-status]: https://img.shields.io/discord/829150509658013727.svg?label=Discord&logo=Discord&colorB=7289da&style=flat-square "Discord Discussion"
+
 # transit
 
 `transit` is a pure Go port of [tree-sitter][ts]. tree-sitter is a parser
@@ -18,21 +43,23 @@ the Go toolchain and nothing else.
 
 The generator and its C backend are ported. They write the golden `parser.c`
 and `node-types.json` of all 185 grammars of the set byte for byte, and on
-2026-09-29 the gate of D9 holds: 151 grammars count, which ends phase 2.
-Phase 1 ends when Ken accepts the target API in [docs/API.md](docs/API.md)
-(D54). Phase 3 has ported the runtime: the parser, the tree, the node, the
-tree cursor, and the query engine with the predicates of the Rust binding. The
-Go runtime gives the same trees and the same query matches as the C runtime
-for every corpus input of every fixture grammar. It parses with the tables and
-the lexers of C grammars, through the test module. The ported runtime tests
-of upstream pass. `StatesAt` gives the parse states at a cursor (D57, D70). The package
-`inject` finds the injections of a text and parses their layers, as upstream
-does (D72). The measurements of a prototype of the Go output are recorded in
-D73, and they end phase 3. In phase 4, the Go backend writes a grammar
-package, and `json` is the first one. Its tables, its lexer and its trees are
-the ones of the C grammar.
-[docs/PLAN.md](docs/PLAN.md) holds the plan, and the decisions record every
-answer that shapes it.
+2026-09-29 the gate of D9 holds: 151 grammars count, which ends phase 2. Phase
+1 ends when Ken accepts the target API in [docs/API.md](docs/API.md) (D54).
+Phase 3 has ported the runtime: the parser, the tree, the node, the tree
+cursor, and the query engine with the predicates of the Rust binding. The Go
+runtime gives the same trees and the same query matches as the C runtime for
+every corpus input of every fixture grammar. It parses with the tables and the
+lexers of C grammars, through the test module. The ported runtime tests of
+upstream pass. `StatesAt` gives the parse states at a cursor (D57, D70). The
+package `inject` finds the injections of a text and parses their layers, as
+upstream does (D72). The measurements of a prototype of the Go output are
+recorded in D73, and they end phase 3. In phase 4, the Go backend writes a
+grammar package with literal tables and a lexer as data (D74). The 17 fixture
+grammars are Go packages in 15 modules under `grammars/`, with their scanners
+ported to Go. Every test of phase 3 passes on them, and the speed targets of
+D37 hold on them. Phase 4 ends when Ken accepts `docs/API.md` and tags the
+first grammar module. [docs/PLAN.md](docs/PLAN.md) holds the plan, and the
+decisions record every answer that shapes it.
 
 ## Documents
 
@@ -103,6 +130,18 @@ will list each one with its decision.
 transit is under the MIT license. See [LICENSE](LICENSE). Upstream
 tree-sitter is under the MIT license too, and `LICENSE` keeps its copyright
 line. Each grammar keeps the license of its own repository.
+
+<div align="center">
+  <a href="https://github.com/xo/usql" title="A command line client for many databases">usql</a> |
+  <a href="https://github.com/xo/dburl" title="Database connection URLs">dburl</a> |
+  <a href="https://github.com/xo/dbmeta" title="Database metadata">dbmeta</a> |
+  <a href="https://github.com/xo/dbimp" title="Database drivers in pure Go">dbimp</a> |
+  <a href="https://github.com/xo/cql" title="A database/sql driver for Cassandra">cql</a> |
+  <a href="https://github.com/xo/dbtpl" title="Go code generated from a database">dbtpl</a> |
+  <a href="https://github.com/xo/tblfmt" title="Tables of database results">tblfmt</a> |
+  <a href="https://github.com/xo/rline" title="The line editor of usql">rline</a> |
+  <a href="https://github.com/xo/transit" title="tree-sitter in pure Go, this project">transit</a>
+</div>
 
 [ts]: https://github.com/tree-sitter/tree-sitter
 [rline]: https://github.com/xo/rline

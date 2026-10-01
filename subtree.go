@@ -17,17 +17,18 @@ import (
 //
 // A subtree is a pointer to a node, and the node holds a slice of its
 // children. A parser takes the nodes and the slices from chunks (D62). The
-// garbage collector frees a node, so these parts have no Go form: the free
-// list of SubtreePool, ts_subtree_pool_delete, ts_subtree_pool_free,
-// ts_external_scanner_state_delete, ts_subtree_alloc_size and the
-// conversions ts_subtree_from_mut and ts_subtree_to_mut_unsafe. Subtree and
+// garbage collector frees the memory, so these parts have no Go form:
+// ts_subtree_pool_delete, ts_subtree_alloc_size and the conversions
+// ts_subtree_from_mut and ts_subtree_to_mut_unsafe. Subtree and
 // MutableSubtree have the one Go form subtree, because Go has no const.
 //
 // The reference count stays, because upstream reads it to decide what to
 // do. ts_subtree_make_mut changes a node in place only when one tree holds
 // it, and ts_subtree_compress and the balancing of the parser stop at a node
-// that two trees hold. So retain and release keep the count as C keeps it,
-// and a count of 0 frees nothing (D64).
+// that two trees hold. So retain and release keep the count as C keeps it
+// (D64). When the count of a leaf reaches 0, release gives the node to the
+// free list of the pool, as C does, and the next leaf of the pool takes it
+// (D91). The garbage collector frees any other node whose count reaches 0.
 //
 // C stores a small leaf inline, in the Subtree value itself. A Go node has
 // no inline form (D62), but the inline form of C changes what a leaf keeps:
@@ -62,7 +63,9 @@ const tsTreeStateNone = StateID(math.MaxUint16)
 // restored using its `deserialize` function.
 //
 // C stores a short state inline and a long state on the heap. Go keeps a
-// slice for both, and its length is the member length.
+// slice for both, and its length is the member length. The parser takes the
+// slice from the chunks of its subtreePool, so that a short state does not
+// allocate, as in C.
 type externalScannerState struct {
 	buf []byte
 }
@@ -140,24 +143,31 @@ type subtree struct {
 // subtreeArray is SubtreeArray and MutableSubtreeArray.
 type subtreeArray []subtree
 
-// subtreePool is SubtreePool. treeStack is tree_stack. The Go pool has no
-// free_trees, and it gives out the nodes and the slices of children from
-// chunks (D62).
+// subtreePool is SubtreePool. freeTrees is free_trees, and treeStack is
+// tree_stack. The Go pool also gives out the nodes, the slices of children
+// and the states of the external scanner from chunks (D62). A node of
+// freeTrees is a slot of a chunk, and free clears it, so that it keeps no
+// other memory alive.
 type subtreePool struct {
+	freeTrees subtreeArray
 	treeStack subtreeArray
 
 	nodes        []subtreeHeapData
 	children     []subtree
+	states       []byte
 	nodeChunk    int
 	childrenSize int
+	statesSize   int
 }
 
 // The sizes of a chunk of a subtreePool. The first chunk is small, because
 // an edit makes a pool of its own for a few nodes, and each next chunk is
-// twice as large, up to the size of the benchmark of D62.
+// twice as large, up to the size of the benchmark of D62. A chunk of states
+// holds stateChunkScale bytes for each node of a chunk of nodes.
 const (
 	minSubtreeChunk = 16
 	maxSubtreeChunk = 512
+	stateChunkScale = 16
 )
 
 // symbol is ts_subtree_symbol.
@@ -315,9 +325,17 @@ func (s subtree) isEOF() bool {
 	return s.symbol() == builtinSymEnd
 }
 
-// init is ts_external_scanner_state_init. It keeps a copy of data.
-func (e *externalScannerState) init(data []byte) {
-	e.buf = slices.Clone(data)
+// init is ts_external_scanner_state_init. It keeps a copy of data, in a
+// slice from pool.
+func (e *externalScannerState) init(pool *subtreePool, data []byte) {
+	e.buf = pool.allocateState(len(data))
+	copy(e.buf, data)
+}
+
+// delete is ts_external_scanner_state_delete. The garbage collector frees
+// the bytes.
+func (e *externalScannerState) delete() {
+	e.buf = nil
 }
 
 // copy is ts_external_scanner_state_copy.
@@ -336,12 +354,13 @@ func (e *externalScannerState) eq(buffer []byte) bool {
 }
 
 // copy is ts_subtree_array_copy. It returns a copy of the array and retains
-// each subtree.
-func (a subtreeArray) copy() subtreeArray {
+// each subtree. C allocates the copy with malloc, and Go takes it from the
+// chunks of pool.
+func (a subtreeArray) copy(pool *subtreePool) subtreeArray {
 	if cap(a) == 0 {
 		return a
 	}
-	dest := make(subtreeArray, len(a), cap(a))
+	dest := pool.allocateChildren(cap(a))[:len(a)]
 	copy(dest, a)
 	for _, s := range dest {
 		s.retain()
@@ -383,15 +402,39 @@ func (a subtreeArray) reverse() {
 	slices.Reverse(a)
 }
 
-// newSubtreePool is ts_subtree_pool_new. The capacity of C sizes the free
-// list, which the Go pool does not have.
-func newSubtreePool() subtreePool {
-	return subtreePool{}
+// newSubtreePool is ts_subtree_pool_new. A pool whose capacity is 0 keeps no
+// free node.
+func newSubtreePool(capacity int) subtreePool {
+	return subtreePool{freeTrees: make(subtreeArray, 0, capacity)}
 }
 
-// allocate is ts_subtree_pool_allocate. It returns a node from the chunk of
-// the pool, with a count of 0.
+// allocate is ts_subtree_pool_allocate. It returns a node of the free list,
+// or else a new node from the chunk of the pool. The node holds only zero
+// values.
 func (p *subtreePool) allocate() *subtreeHeapData {
+	if n := len(p.freeTrees); n > 0 {
+		tree := p.freeTrees[n-1]
+		p.freeTrees = p.freeTrees[:n-1]
+		return tree.ptr
+	}
+	return p.allocateNode()
+}
+
+// free is ts_subtree_pool_free. It gives the node, whose count is 0, to the
+// free list, when the list has room. C frees any other node, and the Go
+// function leaves it to the garbage collector. It clears the node, so that
+// a node of the list keeps no other memory alive.
+func (p *subtreePool) free(tree *subtreeHeapData) {
+	if cap(p.freeTrees) > 0 && len(p.freeTrees)+1 <= tsMaxTreePoolSize {
+		tree.heapFields = heapFields{}
+		p.freeTrees = append(p.freeTrees, subtree{tree})
+	}
+}
+
+// allocateNode returns a new node from the chunk of the pool, with a count of
+// 0. It is the Go form of the ts_malloc of a node, which does not take a node
+// of the free list.
+func (p *subtreePool) allocateNode() *subtreeHeapData {
 	if len(p.nodes) == 0 {
 		p.nodeChunk = nextSubtreeChunk(p.nodeChunk)
 		p.nodes = make([]subtreeHeapData, p.nodeChunk)
@@ -413,6 +456,18 @@ func (p *subtreePool) allocateChildren(n int) subtreeArray {
 	return children
 }
 
+// allocateState returns a slice of n bytes from the chunk of the pool, for
+// the state of an external scanner, whose capacity is n.
+func (p *subtreePool) allocateState(n int) []byte {
+	if n > len(p.states) {
+		p.statesSize = nextSubtreeChunk(p.statesSize)
+		p.states = make([]byte, max(stateChunkScale*p.statesSize, n))
+	}
+	state := p.states[:n:n]
+	p.states = p.states[n:]
+	return state
+}
+
 // nextSubtreeChunk returns the size of the chunk after a chunk of the size
 // last, which is 0 for the first chunk.
 func nextSubtreeChunk(last int) int {
@@ -430,13 +485,18 @@ func canInline(padding, size length, lookaheadBytes uint32) bool {
 		lookaheadBytes < 16
 }
 
-// tsMaxInlineTreeLength is TS_MAX_INLINE_TREE_LENGTH. TS_MAX_TREE_POOL_SIZE
-// sizes the free list, which the Go pool does not have.
-const tsMaxInlineTreeLength = math.MaxUint8
+const (
+	// tsMaxInlineTreeLength is TS_MAX_INLINE_TREE_LENGTH.
+	tsMaxInlineTreeLength = math.MaxUint8
+	// tsMaxTreePoolSize is TS_MAX_TREE_POOL_SIZE, the most nodes that the free
+	// list of a pool holds.
+	tsMaxTreePoolSize = 32
+)
 
 // newLeaf is ts_subtree_new_leaf. A leaf that C stores inline keeps only
 // what SubtreeInlineData keeps: the size has the column size.bytes, and
-// dependsOnColumn is false.
+// dependsOnColumn is false. C allocates nothing for an inline leaf, and Go
+// takes a node from the pool for both kinds of leaf.
 func newLeaf(
 	pool *subtreePool, symbol Symbol, padding, size length,
 	lookaheadBytes uint32, parseState StateID,
@@ -520,11 +580,11 @@ func newError(
 }
 
 // clone is ts_subtree_clone. The C function allocates with malloc, and the
-// Go function takes the node and the children from pool.
+// Go function takes the node and the children from the chunks of pool.
 //
 // Clone a subtree.
 func (s subtree) clone(pool *subtreePool) subtree {
-	result := pool.allocate()
+	result := pool.allocateNode()
 	result.heapFields = s.ptr.heapFields
 	if len(s.ptr.children) > 0 {
 		result.children = pool.allocateChildren(len(s.ptr.children))
@@ -540,7 +600,8 @@ func (s subtree) clone(pool *subtreePool) subtree {
 }
 
 // makeMut is ts_subtree_make_mut. C returns a copy of an inline subtree,
-// because it is a value, so Go copies an inline node.
+// because it is a value, so Go copies an inline node. C needs no memory for
+// the copy, and Go takes a node from the pool as newLeaf does.
 //
 // Get mutable version of a subtree.
 //
@@ -773,7 +834,7 @@ func newNode(
 	metadata := language.symbolMetadata(symbol)
 	fragile := symbol == builtinSymError || symbol == builtinSymErrorRepeat
 
-	data := pool.allocate()
+	data := pool.allocateNode()
 	data.refCount.Store(1)
 	data.heapFields = heapFields{
 		symbol:                        symbol,
@@ -845,9 +906,10 @@ func (s subtree) retain() {
 	assert(s.ptr.refCount.Load() != 0)
 }
 
-// release is ts_subtree_release. When the count of a node reaches 0, C frees
-// it and releases its children. Go releases its children, and the garbage
-// collector frees the memory.
+// release is ts_subtree_release. When the count of a node reaches 0, it
+// releases the children of the node. C then frees the node together with
+// the array of its children, and Go leaves them to the garbage collector. A
+// leaf whose count reaches 0 goes to the free list of pool, as in C.
 func (s subtree) release(pool *subtreePool) {
 	if s.ptr.isInline {
 		return
@@ -862,14 +924,21 @@ func (s subtree) release(pool *subtreePool) {
 	for len(pool.treeStack) > 0 {
 		tree := pool.treeStack[len(pool.treeStack)-1]
 		pool.treeStack = pool.treeStack[:len(pool.treeStack)-1]
-		for _, child := range tree.ptr.children {
-			if child.ptr.isInline {
-				continue
+		if len(tree.ptr.children) > 0 {
+			for _, child := range tree.ptr.children {
+				if child.ptr.isInline {
+					continue
+				}
+				assert(child.ptr.refCount.Load() > 0)
+				if child.ptr.refCount.Add(^uint32(0)) == 0 {
+					pool.treeStack = append(pool.treeStack, child)
+				}
 			}
-			assert(child.ptr.refCount.Load() > 0)
-			if child.ptr.refCount.Add(^uint32(0)) == 0 {
-				pool.treeStack = append(pool.treeStack, child)
+		} else {
+			if tree.ptr.hasExternalTokens {
+				tree.ptr.externalScannerState.delete()
 			}
+			pool.free(tree.ptr)
 		}
 	}
 }

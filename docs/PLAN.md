@@ -5,7 +5,7 @@ This document holds the plan for `github.com/xo/transit`. The decisions are in
 
 This plan was written on 2026-09-29, before any code existed (D3). Ken
 answered its open questions on that date, and later ones as they came. The
-decisions D1 to D90 record the answers and the other choices of Ken. A part
+decisions D1 to D97 record the answers and the other choices of Ken. A part
 of this plan that names a decision follows it. A new question
 goes at the end of this document until Ken answers it.
 
@@ -923,10 +923,10 @@ Ken answered the questions of phase 0 on 2026-09-29, and D24 to D53
 record the answers, and D54 starts phase 1. The working C example of phase 1
 raised questions 53 to 55, and D55 to D57 record the answers. Phase 2 raised
 questions 56 to 58, and D59, D60 and D66 record the answers. Phase 3 raised
-questions 59 to 63, and D63, D64, D70, D72 and D74 record the answers. The
-next question is question 64.
+questions 59 to 63, and D63, D64, D70, D72 and D74 record the answers.
+Phase 4 raised question 64, and D97 records the answer. The next question is
+question 65.
 
 No question is open.
 
 Raise a new question here rather than deciding one alone.
-

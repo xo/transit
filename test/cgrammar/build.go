@@ -80,6 +80,23 @@ func hashFiles(files ...string) (string, error) {
 	return hex.EncodeToString(h.Sum(nil))[:16], nil
 }
 
+// buildMode is a build of the C runtime and the C grammars: the folder of
+// the cache that holds it, and the flags of the C compiler that set its
+// optimization.
+type buildMode struct {
+	folder string
+	flags  []string
+}
+
+var (
+	// testBuild is the build of the tests that compare trees, with debug
+	// information.
+	testBuild = buildMode{folder: "cgrammar", flags: []string{"-O1", "-g"}}
+	// o2Build is the build of the benchmarks, with -O2, as upstream builds a
+	// grammar (D92).
+	o2Build = buildMode{folder: "cgrammar-O2", flags: []string{"-O2"}}
+)
+
 // cc runs the C compiler in dir.
 func cc(ctx context.Context, dir string, args ...string) error {
 	cmd := exec.CommandContext(ctx, "cc", args...)
@@ -94,6 +111,17 @@ func cc(ctx context.Context, dir string, args ...string) error {
 // checkout of upstream in the root of the repository, in the cache, and
 // returns its path. A library of the same sources in the cache is used again.
 func BuildRuntime(ctx context.Context, root, cache string) (string, error) {
+	return buildRuntime(ctx, root, cache, testBuild)
+}
+
+// BuildRuntimeO2 is BuildRuntime for the benchmarks. It compiles with -O2,
+// in a folder of the cache of its own (D92).
+func BuildRuntimeO2(ctx context.Context, root, cache string) (string, error) {
+	return buildRuntime(ctx, root, cache, o2Build)
+}
+
+// buildRuntime is BuildRuntime with the build mode.
+func buildRuntime(ctx context.Context, root, cache string, mode buildMode) (string, error) {
 	src := filepath.Join(root, "tree-sitter", "lib", "src")
 	if _, err := os.Stat(filepath.Join(src, "lib.c")); err != nil {
 		return "", fmt.Errorf("finding the checkout of upstream: %w", ErrMissing)
@@ -114,7 +142,7 @@ func BuildRuntime(ctx context.Context, root, cache string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	out := filepath.Join(cache, "cgrammar", "runtime-"+key+".so")
+	out := filepath.Join(cache, mode.folder, "runtime-"+key+".so")
 	defer lockBuild(out)()
 	if _, err := os.Stat(out); err == nil {
 		return out, nil
@@ -123,9 +151,11 @@ func BuildRuntime(ctx context.Context, root, cache string) (string, error) {
 		return "", fmt.Errorf("making the folder of the runtime: %w", err)
 	}
 	tmp := out + ".tmp"
-	if err := cc(ctx, src, "-shared", "-fPIC", "-O1", "-g",
+	args := append([]string{"-shared", "-fPIC"}, mode.flags...)
+	args = append(args,
 		"-I", filepath.Join(root, "tree-sitter", "lib", "include"), "-I", src,
-		"lib.c", "-o", tmp); err != nil {
+		"lib.c", "-o", tmp)
+	if err := cc(ctx, src, args...); err != nil {
 		return "", err
 	}
 	return out, os.Rename(tmp, out)
@@ -138,7 +168,7 @@ func BuildRuntime(ctx context.Context, root, cache string) (string, error) {
 // of the grammar. The version of the grammar is 0.0.0. A library of the same
 // inputs in the cache is used again.
 func BuildGrammar(ctx context.Context, dir, cache string) (string, error) {
-	return buildGrammar(ctx, dir, cache, nil)
+	return buildGrammar(ctx, dir, cache, nil, testBuild)
 }
 
 // BuildGrammarVersion is BuildGrammar with the version of the nearest
@@ -146,6 +176,17 @@ func BuildGrammar(ctx context.Context, dir, cache string) (string, error) {
 // tables of the library are then the tables of the Go package of the
 // grammar, with its metadata too.
 func BuildGrammarVersion(ctx context.Context, dir, cache string) (string, error) {
+	return buildGrammarVersion(ctx, dir, cache, testBuild)
+}
+
+// BuildGrammarVersionO2 is BuildGrammarVersion for the benchmarks. It
+// compiles with -O2, in a folder of the cache of its own (D92).
+func BuildGrammarVersionO2(ctx context.Context, dir, cache string) (string, error) {
+	return buildGrammarVersion(ctx, dir, cache, o2Build)
+}
+
+// buildGrammarVersion is BuildGrammarVersion with the build mode.
+func buildGrammarVersion(ctx context.Context, dir, cache string, mode buildMode) (string, error) {
 	version, err := generate.ReadGrammarVersion(dir)
 	if err != nil {
 		return "", fmt.Errorf("reading the version of the grammar in %s: %w", dir, err)
@@ -153,11 +194,12 @@ func BuildGrammarVersion(ctx context.Context, dir, cache string) (string, error)
 	if version == nil {
 		version = &generate.SemanticVersion{}
 	}
-	return buildGrammar(ctx, dir, cache, version)
+	return buildGrammar(ctx, dir, cache, version, mode)
 }
 
-// buildGrammar is BuildGrammar with a version, or nil for none.
-func buildGrammar(ctx context.Context, dir, cache string, version *generate.SemanticVersion) (string, error) {
+// buildGrammar is BuildGrammar with a version, or nil for none, and the
+// build mode.
+func buildGrammar(ctx context.Context, dir, cache string, version *generate.SemanticVersion, mode buildMode) (string, error) {
 	src := filepath.Join(dir, "src")
 	grammarJSON := filepath.Join(src, "grammar.json")
 	if _, err := os.Stat(grammarJSON); err != nil {
@@ -175,7 +217,7 @@ func buildGrammar(ctx context.Context, dir, cache string, version *generate.Sema
 	if version != nil {
 		name += fmt.Sprintf("-v%d.%d.%d", version.Major, version.Minor, version.Patch)
 	}
-	build := filepath.Join(cache, "cgrammar", name)
+	build := filepath.Join(cache, mode.folder, name)
 	out := filepath.Join(build, "grammar.so")
 	defer lockBuild(out)()
 	if _, err := os.Stat(out); err == nil {
@@ -186,7 +228,7 @@ func buildGrammar(ctx context.Context, dir, cache string, version *generate.Sema
 	if err != nil {
 		return "", fmt.Errorf("reading %s: %w", grammarJSON, err)
 	}
-	if err := buildLibrary(ctx, b, version, build, src, scanners, out); err != nil {
+	if err := buildLibrary(ctx, b, version, build, src, scanners, out, mode); err != nil {
 		return "", fmt.Errorf("building the grammar in %s: %w", dir, err)
 	}
 	return out, nil
@@ -220,13 +262,13 @@ func BuildGrammarJSON(ctx context.Context, grammarJSON []byte, scannerDir, cache
 		return "", "", err
 	}
 	_, _ = h.Write([]byte(key))
-	build := filepath.Join(cache, "cgrammar", "json-"+head.Name+"-"+hex.EncodeToString(h.Sum(nil))[:16])
+	build := filepath.Join(cache, testBuild.folder, "json-"+head.Name+"-"+hex.EncodeToString(h.Sum(nil))[:16])
 	out := filepath.Join(build, "grammar.so")
 	defer lockBuild(out)()
 	if _, err := os.Stat(out); err == nil {
 		return out, head.Name, nil
 	}
-	if err := buildLibrary(ctx, grammarJSON, &generate.SemanticVersion{}, build, scannerDir, scanners, out); err != nil {
+	if err := buildLibrary(ctx, grammarJSON, &generate.SemanticVersion{}, build, scannerDir, scanners, out, testBuild); err != nil {
 		return "", "", fmt.Errorf("building the grammar %s: %w", head.Name, err)
 	}
 	return out, head.Name, nil
@@ -234,9 +276,9 @@ func BuildGrammarJSON(ctx context.Context, grammarJSON []byte, scannerDir, cache
 
 // buildLibrary generates parser.c from a grammar.json at ABI 15 with the
 // generator of transit, in the folder build, and compiles it to out with the
-// headers of generate/templates and the scanners. src is the folder that the
-// scanners include from, or "".
-func buildLibrary(ctx context.Context, grammarJSON []byte, version *generate.SemanticVersion, build, src string, scanners []string, out string) error {
+// headers of generate/templates and the scanners, with the flags of mode.
+// src is the folder that the scanners include from, or "".
+func buildLibrary(ctx context.Context, grammarJSON []byte, version *generate.SemanticVersion, build, src string, scanners []string, out string, mode buildMode) error {
 	var diagnostics []generate.Diagnostic
 	_, code, err := generate.ParserForGrammar(grammarJSON, version, generate.OptLevelMergeStates, c.Backend{}, &diagnostics)
 	if err != nil {
@@ -260,7 +302,8 @@ func buildLibrary(ctx context.Context, grammarJSON []byte, version *generate.Sem
 	}
 	// The headers of the build folder come first, so that the scanner gets
 	// the headers of the same version as parser.c.
-	args := []string{"-shared", "-fPIC", "-O1", "-g", "-I", build}
+	args := append([]string{"-shared", "-fPIC"}, mode.flags...)
+	args = append(args, "-I", build)
 	if src != "" {
 		args = append(args, "-I", src)
 	}

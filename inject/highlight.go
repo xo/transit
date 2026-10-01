@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"math"
 	"slices"
-	"strconv"
-	"strings"
 	"unicode/utf8"
 
 	"github.com/xo/transit"
@@ -307,23 +305,17 @@ func (b *builder) newLayer(
 func (b *builder) injections(ctx context.Context, parentName string, layer Layer) ([]Layer, error) {
 	var added []Layer
 	config := layer.Config
-	// Upstream removes the match of an injection capture with
-	// QueryMatch::remove, so that none of its other captures come again. The
-	// Go API has no form of it, so seen holds the matches that came.
-	seen := make(map[string]bool)
 	for m := range b.capturesCursor.Captures(ctx, config.query, layer.Tree.RootNode(), b.src) {
 		// If this capture represents an injection, then process the
 		// injection.
 		if m.PatternIndex >= config.localsPatternIndex {
 			continue
 		}
-		key := matchKey(m)
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
-
 		inj := injectionForMatch(config, parentName, true, config.query, m, b.src)
+
+		// Explicitly remove this match so that none of its other captures will
+		// remain in the stream of captures.
+		m.Remove()
 
 		// If a language is found with the given name, then add a new
 		// language layer to the document.
@@ -348,17 +340,6 @@ func (b *builder) injections(ctx context.Context, parentName string, layer Layer
 		return nil, fmt.Errorf("finding the injections of %s: %w", config.languageName, err)
 	}
 	return added, nil
-}
-
-// matchKey returns a key that tells one match from another: its pattern and
-// the kind and the range of each capture.
-func matchKey(m transit.QueryMatch) string {
-	var sb strings.Builder
-	sb.WriteString(strconv.Itoa(m.PatternIndex))
-	for _, c := range m.Captures {
-		fmt.Fprintf(&sb, ";%d:%d:%d-%d", c.Index, c.Node.KindID(), c.Node.StartByte(), c.Node.EndByte())
-	}
-	return sb.String()
 }
 
 // intersectRanges computes the ranges that should be included when parsing

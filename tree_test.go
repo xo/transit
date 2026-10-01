@@ -23,7 +23,7 @@ func treeSample(l *Language) *Tree {
 
 // treeSampleWith returns treeSample with other symbols for "b" and "z".
 func treeSampleWith(l *Language, b, z Symbol) *Tree {
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	rep := newNode(&pool, testSymRepeat, subtreeArray{
 		leaf(&pool, l, testSymIdentifier, 0, 1),
 		leaf(&pool, l, testSymIdentifier, 1, 1),
@@ -124,6 +124,36 @@ func TestTreeCopy(t *testing.T) {
 	}
 }
 
+func TestTreeClose(t *testing.T) {
+	l := testLanguage(15)
+	tree := treeSample(l)
+	copied := tree.Copy()
+	root := tree.root.ptr
+
+	// Close releases the root, and the copy keeps the nodes
+	tree.Close()
+	if got := root.refCount.Load(); got != 1 {
+		t.Errorf("the count of the root after Close of one of two trees is %d, want 1", got)
+	}
+	if tree.root.ptr != nil {
+		t.Error("the closed tree still holds the root")
+	}
+	if got := copied.RootNode().String(); got != treeSampleString {
+		t.Errorf("the copy after Close of the tree is %s", got)
+	}
+
+	// Close of the last tree takes the counts to 0
+	child := root.children[0].ptr
+	copied.Close()
+	if root.refCount.Load() != 0 || child.refCount.Load() != 0 {
+		t.Errorf("the counts after Close of the last tree are %d and %d, want 0", root.refCount.Load(), child.refCount.Load())
+	}
+
+	// Close of a nil tree does nothing
+	var none *Tree
+	none.Close()
+}
+
 func TestTreeEdit(t *testing.T) {
 	l := testLanguage(15)
 	tree := treeSample(l)
@@ -167,7 +197,7 @@ func TestTreeEdit(t *testing.T) {
 
 func TestTreeIncludedRanges(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	ranges := []textRange{
 		{point{0, 0}, point{0, 4}, 0, 4},
 		{point{1, 0}, point{1, 4}, 10, 14},

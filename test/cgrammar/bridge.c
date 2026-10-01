@@ -51,6 +51,91 @@ bool bridge_call_lex(bool (*fn)(TSLexer *, TSStateId), BridgeLexer *lexer, TSSta
   return fn(&lexer->lexer, state);
 }
 
+// LogLexer is the TSLexer of bridge_lex_states. It reads a text that Go
+// decoded, and it writes each call of the lexer to an array.
+typedef struct {
+  TSLexer lexer;
+  const int32_t *lookahead;
+  const uint32_t *size;
+  uint32_t length;
+  uint32_t pos;
+  int32_t *out;
+  uint32_t cap;
+  uint32_t len;
+} LogLexer;
+
+static void log_write(LogLexer *self, int32_t value) {
+  if (self->len < self->cap) {
+    self->out[self->len] = value;
+  }
+  self->len++;
+}
+
+static void log_advance(TSLexer *lexer, bool skip) {
+  LogLexer *self = (LogLexer *)lexer;
+  log_write(self, skip ? 2 : 1);
+  self->pos += self->size[self->pos];
+  self->lexer.lookahead = self->lookahead[self->pos];
+}
+
+static void log_mark_end(TSLexer *lexer) {
+  LogLexer *self = (LogLexer *)lexer;
+  log_write(self, -1 - (int32_t)self->pos);
+}
+
+static uint32_t log_get_column(TSLexer *lexer) {
+  (void)lexer;
+  return 0;
+}
+
+static bool log_is_at_included_range_start(const TSLexer *lexer) {
+  (void)lexer;
+  return false;
+}
+
+static bool log_eof(const TSLexer *lexer) {
+  const LogLexer *self = (const LogLexer *)lexer;
+  return self->pos >= self->length;
+}
+
+static void log_log(const TSLexer *lexer, const char *format, ...) {
+  (void)lexer;
+  (void)format;
+}
+
+int64_t bridge_lex_states(bool (*fn)(TSLexer *, TSStateId), uint32_t states, const int32_t *lookahead, const uint32_t *size, uint32_t length, uint32_t pos, int32_t *out, uint32_t cap) {
+  LogLexer self = {
+    .lexer = {
+      .advance = log_advance,
+      .mark_end = log_mark_end,
+      .get_column = log_get_column,
+      .is_at_included_range_start = log_is_at_included_range_start,
+      .eof = log_eof,
+      .log = log_log,
+    },
+    .lookahead = lookahead,
+    .size = size,
+    .length = length,
+    .out = out,
+    .cap = cap,
+  };
+  for (uint32_t state = 0; state < states; state++) {
+    self.pos = pos;
+    self.lexer.lookahead = lookahead[pos];
+    self.lexer.result_symbol = 0;
+    uint32_t head = self.len;
+    self.len += 3;
+    bool found = fn(&self.lexer, (TSStateId)state);
+    if (self.len > cap) {
+      return -1;
+    }
+    out[head] = found;
+    out[head + 1] = self.lexer.result_symbol;
+    out[head + 2] = (int32_t)(self.len - head - 3);
+  }
+  return self.len;
+}
+
 void *bridge_call_create(void *(*fn)(void)) {
   return fn();
 }
@@ -89,7 +174,7 @@ const TSLanguage *bridge_call_language(void *fn) {
 
 // The functions of the C runtime. The runtime is a library of its own, so
 // the package declares their types here, with CNode for TSNode.
-static struct {
+typedef struct {
   void *(*parser_new)(void);
   void (*parser_delete)(void *);
   bool (*parser_set_language)(void *, const TSLanguage *);
@@ -116,12 +201,17 @@ static struct {
   uint16_t (*node_next_parse_state)(CNode);
   const char *(*node_field_name_for_child)(CNode, uint32_t);
   uint32_t (*node_descendant_count)(CNode);
-} rt;
+} Runtime;
+
+// rt is the runtime of the tests, and rt_o2 is the runtime of the
+// benchmarks, which is built with -O2 (D92).
+static Runtime rt, rt_o2;
 
 #define RT_LOAD(member, name) \
-  if (!(*(void **)&rt.member = dlsym(handle, name))) return name;
+  if (!(*(void **)&r->member = dlsym(handle, name))) return name;
 
-const char *rt_load(void *handle) {
+// runtime_load finds the functions of the C runtime in a library, for r.
+static const char *runtime_load(Runtime *r, void *handle) {
   RT_LOAD(parser_new, "ts_parser_new")
   RT_LOAD(parser_delete, "ts_parser_delete")
   RT_LOAD(parser_set_language, "ts_parser_set_language")
@@ -150,6 +240,19 @@ const char *rt_load(void *handle) {
   RT_LOAD(node_descendant_count, "ts_node_descendant_count")
   return NULL;
 }
+
+const char *rt_load(void *handle) { return runtime_load(&rt, handle); }
+const char *rt_o2_load(void *handle) { return runtime_load(&rt_o2, handle); }
+
+// runtime returns rt_o2 when o2 is true, and rt otherwise.
+static Runtime *runtime(bool o2) { return o2 ? &rt_o2 : &rt; }
+
+void *sp_parser_new(bool o2) { return runtime(o2)->parser_new(); }
+void sp_parser_delete(bool o2, void *parser) { runtime(o2)->parser_delete(parser); }
+bool sp_parser_set_language(bool o2, void *parser, const TSLanguage *language) { return runtime(o2)->parser_set_language(parser, language); }
+void *sp_parser_parse_string(bool o2, void *parser, const void *old_tree, const char *string, uint32_t length) { return runtime(o2)->parser_parse_string(parser, old_tree, string, length); }
+void sp_tree_delete(bool o2, void *tree) { runtime(o2)->tree_delete(tree); }
+void sp_tree_edit(bool o2, void *tree, const CInputEdit *edit) { runtime(o2)->tree_edit(tree, edit); }
 
 void *rt_parser_new(void) { return rt.parser_new(); }
 void rt_parser_delete(void *parser) { rt.parser_delete(parser); }

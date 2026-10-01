@@ -112,6 +112,11 @@ type QueryPredicate struct {
 type QueryMatch struct {
 	PatternIndex int
 	Captures     []QueryCapture
+
+	// cursor is the cursor that found the match, and id is the id of the
+	// match in it. Remove uses them.
+	cursor *queryCursor
+	id     uint32
 }
 
 // QueryCapture is one captured node. Index is its place in CaptureNames.
@@ -867,7 +872,21 @@ func (c *QueryCursor) newMatch(m queryMatch) QueryMatch {
 	for _, capture := range m.captures {
 		c.captures = append(c.captures, QueryCapture{Node: capture.node, Index: int(capture.index)})
 	}
-	return QueryMatch{PatternIndex: int(m.patternIndex), Captures: c.captures}
+	return QueryMatch{PatternIndex: int(m.patternIndex), Captures: c.captures, cursor: c.ptr, id: m.id}
+}
+
+// Remove removes the match from the cursor that found it, so that the
+// sequence that gave the match gives no more captures of it. Call it only
+// while that sequence runs. The next run of the cursor gives the same ids to
+// other matches, so a call after that can remove one of them. Remove does
+// nothing for a zero QueryMatch, which no cursor gave (D94).
+//
+// Remove is remove of QueryMatch in the Rust binding.
+func (m QueryMatch) Remove() {
+	if m.cursor == nil {
+		return
+	}
+	m.cursor.removeMatch(m.id)
 }
 
 // nodesForCaptureIndex is QueryMatch::nodes_for_capture_index.

@@ -88,6 +88,7 @@ The field `corpus` has these fields:
 | --- | --- |
 | `tests` | the number of corpus tests that `tree-sitter test` runs with the `parser.c` of the upstream tool |
 | `failures` | the number of those tests that fail |
+| `failing` | the name of each test that fails, in the order of the run, such as `expressions/Binary operators`. The name joins the names of the groups of the test and its own name with `/` |
 | `transit` | `same` when the `parser.c` of transit gives the same result, and `different` when it does not |
 
 `TestTheGoldenFilesNameTheBaseCommit`, in `upstream_test.go`, makes sure of the
@@ -136,6 +137,7 @@ A repository that holds one grammar, such as JSON, looks like this:
 | `grammars/json/queries/*.scm` | `queries/*.scm` of the upstream repository | copied |
 | `grammars/json/testdata/corpus/` | `test/corpus/` of the upstream repository | copied |
 | `grammars/json/testdata/highlight/` | `test/highlight/`, if it exists | copied |
+| `grammars/json/testdata/failing.txt` | the names of the corpus cases that fail upstream, if a case fails, as "Tests" below says | the golden harness |
 
 A repository that holds more than one grammar has one folder for each grammar
 under the folder of the module, such as `grammars/typescript/typescript` and
@@ -225,6 +227,8 @@ these rules add to them:
 13. A typed constant of a scanner needs no `String` method. An assignment of
     C that nothing reads, and that a linter reports, is left out, with a
     comment that says so (D85).
+14. Where the `deserialize` of C frees an array and allocates it again, the
+    Go port keeps its slice and sets its length to 0 (D96).
 
 A scanner is correct when two things are true. The corpus tests pass. And the
 test module (D12) shows that the C scanner and the Go scanner give the same
@@ -262,14 +266,22 @@ Every grammar has the same tests, and `transit generate` writes them in
 
 1. The corpus test. It parses each case in `testdata/corpus/` and compares
    the tree with the expected tree, or the CST of a case with `:cst`. The
-   result of each case must be what `tree-sitter test` reports for the same
-   grammar at the same tag. The golden harness records the names of the
-   cases that fail upstream in `grammars/grammars.json`, and the generator
-   writes them into `grammar_test.go`, so the test expects them to fail and
-   names them (D79). Each package of a module with more than one grammar
-   holds the whole corpus. A case runs in the package of the grammar that
-   its `:language` names, or of the first grammar of `tree-sitter.json`, and
-   the other packages skip it (D83).
+   result of each case must be what `tree-sitter test` reports for the
+   same grammar at the same tag. The golden harness records the names of
+   the cases that fail upstream in the field `failing` of
+   `grammars/grammars.json` (D79). At the end of each run, it writes them
+   into `testdata/failing.txt` of each grammar package under `grammars/`,
+   so the test expects them to fail and names them (D88). The file holds
+   one name on each line, in the order of the record, and each line ends
+   with a newline. A name that the record holds twice is on two lines. In
+   a module with more than one grammar, the file of a package holds only
+   the cases that the package runs (D93). The file has no blank line and
+   no comment. If no case of the package fails upstream, the file does not
+   exist. `grammar_test.go` holds no list of cases, so it is the same in
+   every checkout and in the Go module cache. Each package of a module
+   with more than one grammar holds the whole corpus. A case runs in the
+   package of the grammar that its `:language` names, or of the first
+   grammar of `tree-sitter.json`, and the other packages skip it (D83).
 2. The query test. Each file in `queries/` must compile with the transit query
    engine.
 3. The highlight test, if the grammar has `test/highlight/`. transit does not
@@ -313,9 +325,12 @@ D40 holds this.
 The same run of the generator writes the files of the Go package again, and
 the test makes sure that they are the files of the package. If they differ,
 generate the package again. The test finds `grammars/grammars.json` in a
-folder above the package, and it skips the hashes when the package is not in
-a checkout of transit. It skips the whole test with `go test -short`, because
-the generator takes minutes for a large grammar.
+folder above the package. In a checkout of transit, it also makes sure that
+`testdata/failing.txt` is the file that the golden harness writes from the
+record (D88). If the file differs, run the golden harness again. The test
+skips the hashes and `failing.txt` when the package is not in a checkout of
+transit. It skips the whole test with `go test -short`, because the
+generator takes minutes for a large grammar.
 
 ## Steps to add a grammar to the set
 
@@ -386,6 +401,10 @@ that Ken chose.
    ```bash
    go run ./cmd/transit generate --backend go grammars/<name>
    ```
+
+   If the entry of the grammar in `grammars/grammars.json` names corpus
+   cases that fail upstream, run the golden harness once more. It writes
+   `testdata/failing.txt` of the new package, as "Tests" below says.
 
 5. If the grammar has `src/scanner.c`, port it to `scanner.go`, as "The
    external scanner" says.

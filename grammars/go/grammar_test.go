@@ -9,7 +9,8 @@ import (
 )
 
 // TestCorpus parses each case of testdata/corpus, and compares its tree with
-// the expected tree, as tree-sitter test does.
+// the expected tree, as tree-sitter test does. It expects the cases of
+// testdata/failing.txt to fail, because they fail upstream.
 func TestCorpus(t *testing.T) {
 	t.Parallel()
 	grammartest.Corpus(t, Language(), "testdata/corpus")
@@ -34,7 +35,8 @@ func TestKeywords(t *testing.T) {
 }
 
 // TestGenerator generates the package again, and compares the files with
-// the files of the package and the hashes of grammars/grammars.json.
+// the files of the package, and with the hashes and the corpus cases that
+// fail upstream of grammars/grammars.json.
 func TestGenerator(t *testing.T) {
 	t.Parallel()
 	grammartest.Generator(t, Language())

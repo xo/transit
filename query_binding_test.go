@@ -154,9 +154,53 @@ func TestQueryBindingCaptures(t *testing.T) {
 	}
 }
 
+func TestQueryBindingRemove(t *testing.T) {
+	// Pattern 0 matches a + b, with the captures l=a and r=b. Pattern 1
+	// matches each identifier.
+	q := queryBindingNew(t, `(_ left: (identifier) @l right: (identifier) @r) (identifier) @id`)
+	tree := treeSample(q.ptr.language)
+	captures := func(remove func(QueryMatch, QueryCapture) bool) []string {
+		var got []string
+		for m, i := range NewQueryCursor().Captures(context.Background(), q, tree.RootNode(), queryBindingText) {
+			c := m.Captures[i]
+			if remove(m, c) {
+				m.Remove()
+				continue
+			}
+			got = append(got, fmt.Sprintf("%d %s=%s", m.PatternIndex, q.CaptureNames()[c.Index], c.Node.Text(queryBindingText)))
+		}
+		return got
+	}
+	all := captures(func(QueryMatch, QueryCapture) bool { return false })
+	want := []string{"1 id=x", "1 id=y", "0 l=a", "1 id=a", "0 r=b", "1 id=b", "1 id=c", "1 id=z"}
+	if !slices.Equal(all, want) {
+		t.Fatalf("Captures = %q, want %q", all, want)
+	}
+	// a removal while Captures runs takes out the rest of that match, and
+	// no other match
+	got := captures(func(m QueryMatch, c QueryCapture) bool {
+		return m.PatternIndex == 0 && c.Node.Text(queryBindingText) == "a"
+	})
+	want = []string{"1 id=x", "1 id=y", "1 id=a", "1 id=b", "1 id=c", "1 id=z"}
+	if !slices.Equal(got, want) {
+		t.Errorf("Captures with a removal = %q, want %q", got, want)
+	}
+
+	// a match that Matches gives is finished, so its removal changes no
+	// other match
+	n := 0
+	for m := range NewQueryCursor().Matches(context.Background(), q, tree.RootNode(), queryBindingText) {
+		m.Remove()
+		n++
+	}
+	if n != 7 {
+		t.Errorf("Matches with a removal of each match gave %d matches, want 7", n)
+	}
+}
+
 func TestQueryBindingCancel(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	tree := newTree(repetition(&pool, l, 300), l, nil)
 	src := []byte(strings.Repeat("x", 300))
 	q := queryBindingNew(t, `(identifier) @id`)
@@ -413,4 +457,11 @@ func TestQueryBindingHelpers(t *testing.T) {
 	if !isAlphanumeric('é') || !isAlphanumeric('7') || isAlphanumeric('-') {
 		t.Error("isAlphanumeric is wrong")
 	}
+}
+
+// TestQueryBindingRemoveZero checks that Remove on a zero QueryMatch does
+// nothing (D94).
+func TestQueryBindingRemoveZero(t *testing.T) {
+	var m QueryMatch
+	m.Remove()
 }

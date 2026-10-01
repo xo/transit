@@ -91,6 +91,42 @@ func lexFunc(fn *[0]byte) abi.LexFunc {
 	}
 }
 
+// LexStates runs the main lex function of the grammar, or its keyword lex
+// function when keyword is true, in each state below states, from the
+// offset pos of a text. The lexer is in C, so the lex function does not call
+// Go, and a comparison of lex functions runs fast with the race detector.
+// lookahead and size hold the character and its size in bytes at each
+// offset of the text, and 0 and 0 after the text, at the offset
+// len(lookahead)-1. LexStates writes into out, which it grows as it needs,
+// and returns it. For each state, out holds 1 or 0 for whether the lex
+// function found a token, the result symbol, the number of the calls of the
+// lexer and each call: 1 for Advance, 2 for Advance with skip, and -1-p for
+// MarkEnd at the offset p. It returns nil when the grammar has no such lex
+// function.
+func (g *Grammar) LexStates(keyword bool, states int, lookahead []int32, size []uint32, pos int, out []int32) []int32 {
+	fn := g.lang.lex_fn
+	if keyword {
+		fn = g.lang.keyword_lex_fn
+	}
+	if fn == nil || len(lookahead) == 0 || len(lookahead) != len(size) || pos < 0 || pos >= len(lookahead) {
+		return nil
+	}
+	out = out[:cap(out)]
+	if len(out) < 3*states+64 {
+		out = make([]int32, 3*states+1024)
+	}
+	for {
+		n := C.bridge_lex_states(fn, C.uint32_t(states),
+			(*C.int32_t)(unsafe.Pointer(&lookahead[0])), (*C.uint32_t)(unsafe.Pointer(&size[0])),
+			C.uint32_t(len(lookahead)-1), C.uint32_t(pos),
+			(*C.int32_t)(unsafe.Pointer(&out[0])), C.uint32_t(len(out)))
+		if n >= 0 {
+			return out[:n]
+		}
+		out = make([]int32, 2*len(out))
+	}
+}
+
 // scanner is an external scanner of C, the payload that its create function
 // returns.
 type scanner struct {

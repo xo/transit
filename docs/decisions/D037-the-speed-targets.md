@@ -1,6 +1,6 @@
 # D37. The speed targets are proposed, and phase 3 confirms them
 
-Status: Decided, amended by D47.
+Status: Decided, amended by D47, D91 and D97.
 
 Ken decided on 2026-09-29, answering question 17, that these are the speed
 targets, and that phase 3 confirms them against the C baseline:

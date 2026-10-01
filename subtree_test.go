@@ -33,7 +33,7 @@ func expression(pool *subtreePool, l *Language) subtree {
 
 func TestNewLeafInline(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 
 	// a small leaf is inline, and its size has the column of its bytes
 	s := newLeaf(&pool, testSymIdentifier, ln(2), length{4, point{0, 9}}, 3, 7, false, true, true, l)
@@ -90,7 +90,7 @@ func TestNewLeafInline(t *testing.T) {
 
 func TestNewErrorAndMissingLeaf(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	e := newError(&pool, 'x', ln(1), ln(2), 5, 3, l)
 	if !e.isError() || !e.fragileLeft() || !e.fragileRight() || !e.isFragile() || e.ptr.lookaheadChar != 'x' {
 		t.Errorf("the error leaf has the fields %+v", e.ptr.heapFields)
@@ -109,7 +109,7 @@ func TestNewErrorAndMissingLeaf(t *testing.T) {
 
 func TestNewNodeSummarizesItsChildren(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	n := expression(&pool, l)
 	if got := n.childCount(); got != 3 {
 		t.Fatalf("childCount() = %d, want 3", got)
@@ -141,7 +141,7 @@ func TestNewNodeSummarizesItsChildren(t *testing.T) {
 
 func TestErrorNodeCosts(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	e := newErrorNode(&pool, subtreeArray{
 		leaf(&pool, l, testSymIdentifier, 0, 3),
 		leaf(&pool, l, testSymPlus, 0, 1),
@@ -180,7 +180,7 @@ func TestErrorNodeCosts(t *testing.T) {
 
 func TestRetainAndRelease(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	child := newLeaf(&pool, testSymIdentifier, ln(0), ln(300), 1, 0, false, false, false, l)
 	n := newNode(&pool, testSymExpression, subtreeArray{child}, 0, l)
 	if child.ptr.refCount.Load() != 1 || n.ptr.refCount.Load() != 1 {
@@ -208,7 +208,7 @@ func TestRetainAndRelease(t *testing.T) {
 
 func TestReleaseAssertsACount(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	n := expression(&pool, l)
 	n.release(&pool)
 	defer func() {
@@ -221,7 +221,7 @@ func TestReleaseAssertsACount(t *testing.T) {
 
 func TestMakeMut(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	n := expression(&pool, l)
 	if got := n.makeMut(&pool); got != n {
 		t.Error("makeMut of a subtree with one owner made a copy")
@@ -258,7 +258,7 @@ func TestMakeMut(t *testing.T) {
 
 	// the copy of a leaf with external tokens has its own state
 	ext := newLeaf(&pool, testSymIdentifier, ln(0), ln(1), 1, 0, true, false, false, l)
-	ext.ptr.externalScannerState.init([]byte{1, 2, 3})
+	ext.ptr.externalScannerState.init(&pool, []byte{1, 2, 3})
 	ext.retain()
 	extCopy := ext.makeMut(&pool)
 	extCopy.ptr.externalScannerState.buf[0] = 9
@@ -298,7 +298,7 @@ func shape(s subtree) string {
 
 func TestCompress(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	tree := repetition(&pool, l, 5)
 	if got := tree.repeatDepth(); got != 3 {
 		t.Errorf("the depth of the chain is %d, want 3", got)
@@ -330,7 +330,7 @@ func TestCompress(t *testing.T) {
 
 func TestCompare(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	a := expression(&pool, l)
 	b := expression(&pool, l)
 	if got := compare(a, b, &pool); got != 0 {
@@ -358,7 +358,7 @@ func TestCompare(t *testing.T) {
 
 func TestEdit(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	// "a + b"
 	tree := expression(&pool, l)
 	tree.retain()
@@ -408,7 +408,7 @@ func TestEdit(t *testing.T) {
 
 func TestEditOfAnInlineLeaf(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	s := leaf(&pool, l, testSymIdentifier, 1, 2)
 	// an insertion that keeps the leaf small keeps it inline
 	small := s.edit(InputEdit{StartByte: 2, OldEndByte: 2, NewEndByte: 3, StartPoint: Point{0, 2}, OldEndPoint: Point{0, 2}, NewEndPoint: Point{0, 3}}, &pool)
@@ -427,7 +427,7 @@ func TestEditOfAnInlineLeaf(t *testing.T) {
 
 func TestLastExternalToken(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	if got := expression(&pool, l).lastExternalToken(); got.ptr != nil {
 		t.Error("a tree with no external tokens has a last external token")
 	}
@@ -445,11 +445,11 @@ func TestLastExternalToken(t *testing.T) {
 
 func TestExternalScannerState(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	a := newLeaf(&pool, testSymPlus, ln(0), ln(1), 1, 0, true, false, false, l)
 	b := newLeaf(&pool, testSymPlus, ln(0), ln(1), 1, 0, true, false, false, l)
 	data := []byte("state")
-	a.ptr.externalScannerState.init(data)
+	a.ptr.externalScannerState.init(&pool, data)
 	data[0] = 'X'
 	if got := string(a.getExternalScannerState().data()); got != "state" {
 		t.Errorf("the state is %q, want a copy of the data", got)
@@ -457,7 +457,7 @@ func TestExternalScannerState(t *testing.T) {
 	if a.externalScannerStateEq(b) {
 		t.Error("a state and an empty state are equal")
 	}
-	b.ptr.externalScannerState.init([]byte("state"))
+	b.ptr.externalScannerState.init(&pool, []byte("state"))
 	if !a.externalScannerStateEq(b) {
 		t.Error("two equal states are not equal")
 	}
@@ -471,25 +471,25 @@ func TestExternalScannerState(t *testing.T) {
 
 func TestSubtreeArray(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	extra := newLeaf(&pool, testSymPlus, ln(0), ln(300), 1, 0, false, false, false, l)
 	extra.setExtra(true)
 	a := newLeaf(&pool, testSymIdentifier, ln(0), ln(300), 1, 0, false, false, false, l)
 	b := newLeaf(&pool, testSymIdentifier, ln(0), ln(301), 1, 0, false, false, false, l)
 	array := subtreeArray{a, extra, b, extra}
 
-	copied := array.copy()
+	copied := array.copy(&pool)
 	if !slices.Equal(copied, array) || a.ptr.refCount.Load() != 2 || extra.ptr.refCount.Load() != 3 {
 		t.Errorf("copy gave %v with the counts %d and %d", copied, a.ptr.refCount.Load(), extra.ptr.refCount.Load())
 	}
-	if subtreeArray(nil).copy() != nil {
+	if subtreeArray(nil).copy(&pool) != nil {
 		t.Error("the copy of an empty array is not empty")
 	}
 	copied.clear(&pool)
 	if len(copied) != 0 || a.ptr.refCount.Load() != 1 {
 		t.Errorf("clear left %d subtrees and the count %d", len(copied), a.ptr.refCount.Load())
 	}
-	copied = array.copy()
+	copied = array.copy(&pool)
 	copied.delete(&pool)
 	if copied != nil || a.ptr.refCount.Load() != 1 {
 		t.Error("delete did not release the subtrees")
@@ -508,7 +508,7 @@ func TestSubtreeArray(t *testing.T) {
 }
 
 func TestSubtreePoolChunks(t *testing.T) {
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	first := pool.allocate()
 	if len(pool.nodes) != minSubtreeChunk-1 {
 		t.Errorf("the first chunk holds %d nodes, want %d", len(pool.nodes)+1, minSubtreeChunk)
@@ -531,9 +531,79 @@ func TestSubtreePoolChunks(t *testing.T) {
 	}
 }
 
+func TestSubtreePoolFreeList(t *testing.T) {
+	l := testLanguage(15)
+	pool := newSubtreePool(tsMaxTreePoolSize)
+	// big returns a leaf that is not inline, because it has external tokens.
+	big := func() subtree {
+		return newLeaf(&pool, testSymIdentifier, ln(1), ln(1), 1, 7, true, false, false, l)
+	}
+
+	// a leaf whose count reaches 0 goes to the free list, cleared, and the
+	// next leaf takes it
+	s := big()
+	s.ptr.externalScannerState.init(&pool, []byte("state"))
+	ptr := s.ptr
+	s.release(&pool)
+	if len(pool.freeTrees) != 1 || pool.freeTrees[0].ptr != ptr {
+		t.Fatalf("the free list holds %d nodes after a release", len(pool.freeTrees))
+	}
+	if !reflect.DeepEqual(ptr.heapFields, heapFields{}) {
+		t.Errorf("a node of the free list holds %+v", ptr.heapFields)
+	}
+	if next := big(); next.ptr != ptr || len(pool.freeTrees) != 0 || next.ptr.refCount.Load() != 1 {
+		t.Error("the next leaf does not take the node of the free list")
+	}
+
+	// the children of a node go to the free list, and the node does not, as
+	// C frees it with its children
+	node := newNode(&pool, testSymRepeat, subtreeArray{big(), big()}, 0, l)
+	node.release(&pool)
+	if len(pool.freeTrees) != 2 || slices.ContainsFunc(pool.freeTrees, func(f subtree) bool { return f.ptr == node.ptr }) {
+		t.Errorf("the free list holds %d nodes after the release of a node of two leaves", len(pool.freeTrees))
+	}
+
+	// a node that a tree still holds does not go to the free list
+	shared := big()
+	shared.retain()
+	n := len(pool.freeTrees)
+	shared.release(&pool)
+	if len(pool.freeTrees) != n {
+		t.Errorf("a node with a count went to the free list")
+	}
+
+	// the free list holds at most TS_MAX_TREE_POOL_SIZE nodes
+	leaves := make(subtreeArray, 2*tsMaxTreePoolSize)
+	for i := range leaves {
+		leaves[i] = big()
+	}
+	for _, leaf := range leaves {
+		leaf.release(&pool)
+	}
+	if len(pool.freeTrees) != tsMaxTreePoolSize {
+		t.Errorf("the free list holds %d nodes, want %d", len(pool.freeTrees), tsMaxTreePoolSize)
+	}
+
+	// a pool whose capacity is 0 keeps no free node
+	empty := newSubtreePool(0)
+	newLeaf(&empty, testSymIdentifier, ln(1), ln(1), 1, 7, true, false, false, l).release(&empty)
+	if len(empty.freeTrees) != 0 {
+		t.Error("a pool whose capacity is 0 kept a free node")
+	}
+
+	// a clone and a new node take a new node of the chunk, and not a node of
+	// the free list, as C does
+	n = len(pool.freeTrees)
+	big().clone(&pool)
+	newNode(&pool, testSymRepeat, subtreeArray{}, 0, l)
+	if len(pool.freeTrees) != n-1 {
+		t.Errorf("the free list holds %d nodes, want %d", len(pool.freeTrees), n-1)
+	}
+}
+
 func TestSubtreeString(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	n := expression(&pool, l)
 	if got, want := n.string(0, false, l, false), "(expression left: (identifier) (alias_name) right: (identifier))"; got != want {
 		t.Errorf("string() = %s, want %s", got, want)
@@ -592,7 +662,7 @@ func TestWriteCharToString(t *testing.T) {
 
 func TestPrintDotGraph(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	n := newNode(&pool, testSymExpression, subtreeArray{
 		leaf(&pool, l, testSymIdentifier, 0, 1),
 		newError(&pool, 'q', ln(0), ln(1), 1, 0, l),
@@ -621,7 +691,7 @@ func TestPrintDotGraph(t *testing.T) {
 
 func TestIsRepetition(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	if !repetition(&pool, l, 3).isRepetition() {
 		t.Error("a hidden node of a repetition is not a repetition")
 	}
@@ -636,7 +706,7 @@ func TestIsRepetition(t *testing.T) {
 
 func TestSetSymbol(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	s := leaf(&pool, l, testSymIdentifier, 0, 1)
 	s.setSymbol(testSymPlus, l)
 	if s.symbol() != testSymPlus || s.named() || !s.visible() {

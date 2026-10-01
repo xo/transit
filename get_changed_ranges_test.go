@@ -119,7 +119,7 @@ func TestRangesEdit(t *testing.T) {
 // rangesTree returns a tree of the test language for "a + b", with sizes
 // of its three leaves.
 func rangesTree(l *Language, sizes [3]uint32, included []textRange) *Tree {
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	root := newNode(&pool, testSymExpression, subtreeArray{
 		leaf(&pool, l, testSymIdentifier, 0, sizes[0]),
 		leaf(&pool, l, testSymPlus, 1, sizes[1]),
@@ -173,7 +173,7 @@ func TestTreeChangedRanges(t *testing.T) {
 	}
 
 	// the edit changes b, and the new tree has a "+" there
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	updated = newTree(newNode(&pool, testSymExpression, subtreeArray{
 		leaf(&pool, l, testSymIdentifier, 0, 1),
 		leaf(&pool, l, testSymPlus, 1, 1),
@@ -209,7 +209,7 @@ func TestTreeChangedRanges(t *testing.T) {
 	// a new tree that starts later adds its padding and its new end. The
 	// root has the same size, so the rest matches.
 	oldTree = rangesTree(l, [3]uint32{1, 1, 1}, nil)
-	pool = newSubtreePool()
+	pool = newSubtreePool(0)
 	updated = newTree(newNode(&pool, testSymExpression, subtreeArray{
 		leaf(&pool, l, testSymIdentifier, 2, 1),
 		leaf(&pool, l, testSymPlus, 1, 1),

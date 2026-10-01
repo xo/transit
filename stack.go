@@ -14,16 +14,22 @@ import (
 // that points to a node, and each node links to the nodes before it. Two
 // versions that merge share their nodes.
 //
-// The garbage collector frees a stack node, so these parts have no Go form:
-// the free list node_pool of Stack, MAX_NODE_POOL_SIZE, the type
-// StackNodeArray of the free list, ts_stack_delete and the macro
-// forceinline. The reference count of a stack node stays. When the count of
-// a node reaches 0, C releases the subtrees of its links, and the counts of
-// the subtrees decide what ts_subtree_make_mut, ts_subtree_compress and the
-// balancing of the parser do (D64). So Go releases them at the same time.
+// The stack keeps the free list of stack nodes of C, node_pool, with up to
+// MAX_NODE_POOL_SIZE nodes. When the reference count of a node reaches 0, C
+// puts the node on the free list, and stack_node_new takes a node from it.
+// So a parse after an edit does not allocate a node for each push. When the
+// count of a node reaches 0, C also releases the subtrees of its links, and
+// the counts of the subtrees decide what ts_subtree_make_mut,
+// ts_subtree_compress and the balancing of the parser do (D64). So Go
+// releases them at the same time. The garbage collector frees a node that
+// does not fit on the free list, so ts_stack_delete and the macro
+// forceinline have no Go form.
 
 // maxLinkCount is MAX_LINK_COUNT.
 const maxLinkCount = 8
+
+// maxNodePoolSize is MAX_NODE_POOL_SIZE.
+const maxNodePoolSize = 50
 
 // maxIteratorCount is MAX_ITERATOR_COUNT.
 const maxIteratorCount = 64
@@ -81,6 +87,9 @@ type stackIterator struct {
 	isPending    bool
 }
 
+// stackNodeArray is StackNodeArray, the type of the free list.
+type stackNodeArray []*stackNode
+
 // stackStatus is StackStatus.
 type stackStatus int
 
@@ -123,6 +132,7 @@ type stack struct {
 	heads       []stackHead
 	slices      stackSliceArray
 	iterators   []stackIterator
+	nodePool    stackNodeArray
 	baseNode    *stackNode
 	subtreePool *subtreePool
 }
@@ -171,11 +181,13 @@ func (n *stackNode) retain() {
 	assert(n.refCount != 0)
 }
 
-// release is stack_node_release. When the count of a node reaches 0, C puts
-// the node on the free list or frees it. Go releases the links of the node
-// as C does, and the garbage collector frees the memory. The goto of C is
-// the loop.
-func (n *stackNode) release(subtreePool *subtreePool) {
+// release is stack_node_release. When the count of a node reaches 0, it
+// releases the links of the node, and it puts the node on the free list
+// when the list has room, as C does. C frees a node that does not fit, and
+// Go leaves it to the garbage collector. Go also clears a node that goes on
+// the free list, so that the list does not keep the subtrees and the nodes
+// of its links alive. The goto of C is the loop.
+func (n *stackNode) release(pool *stackNodeArray, subtreePool *subtreePool) {
 	for node := n; node != nil; {
 		assert(node.refCount != 0)
 		node.refCount--
@@ -190,13 +202,18 @@ func (n *stackNode) release(subtreePool *subtreePool) {
 				if link.subtree.ptr != nil {
 					link.subtree.release(subtreePool)
 				}
-				link.node.release(subtreePool)
+				link.node.release(pool, subtreePool)
 			}
 			link := node.links[0]
 			if link.subtree.ptr != nil {
 				link.subtree.release(subtreePool)
 			}
 			firstPredecessor = node.links[0].node
+		}
+
+		if len(*pool) < maxNodePoolSize {
+			*node = stackNode{}
+			*pool = append(*pool, node)
 		}
 
 		node = firstPredecessor
@@ -223,15 +240,24 @@ func stackSubtreeNodeCount(subtree subtree) uint32 {
 	return count
 }
 
-// newStackNode is stack_node_new. C takes the node from the free list when
-// it can, and Go allocates it.
+// newStackNode is stack_node_new. It takes the node from the free list
+// when the list is not empty, and it allocates the node when the list is
+// empty.
 func newStackNode(
 	previousNode *stackNode,
 	subtree subtree,
 	isPending bool,
 	state StateID,
+	pool *stackNodeArray,
 ) *stackNode {
-	node := &stackNode{
+	var node *stackNode
+	if n := len(*pool); n > 0 {
+		node = (*pool)[n-1]
+		*pool = (*pool)[:n-1]
+	} else {
+		node = new(stackNode)
+	}
+	*node = stackNode{
 		refCount:  1,
 		linkCount: 0,
 		state:     state,
@@ -363,7 +389,7 @@ func (n *stackNode) addLink(link stackLink, subtreePool *subtreePool) {
 
 // delete is stack_head_delete. It releases what the head holds. C also
 // frees the summary, and Go leaves it to the garbage collector.
-func (h *stackHead) delete(subtreePool *subtreePool) {
+func (h *stackHead) delete(pool *stackNodeArray, subtreePool *subtreePool) {
 	if h.node != nil {
 		if h.lastExternalToken.ptr != nil {
 			h.lastExternalToken.release(subtreePool)
@@ -371,7 +397,7 @@ func (h *stackHead) delete(subtreePool *subtreePool) {
 		if h.lookaheadWhenPaused.ptr != nil {
 			h.lookaheadWhenPaused.release(subtreePool)
 		}
-		h.node.release(subtreePool)
+		h.node.release(pool, subtreePool)
 	}
 }
 
@@ -419,9 +445,12 @@ func (s *stack) addSlice(
 // next call reuses.
 //
 // C reserves room in the first array of subtrees for goal_subtree_count
-// subtrees and a node of ts_subtree_new_node. The Go node comes from the
-// pool, so Go reserves one more slot than the goal. The capacity is above 0,
-// as in C, so ts_subtree_array_copy copies the array.
+// subtrees and a node of ts_subtree_new_node, so the array becomes the
+// memory of the new node. The Go node comes from the pool, so Go reserves one
+// more slot than the goal. Go takes the array from the chunks of the pool,
+// as it takes the children of a node (D62), so that a pop does not allocate
+// it. The capacity is above 0, as in C, so ts_subtree_array_copy copies the
+// array.
 func (s *stack) iter(
 	version stackVersion,
 	callback stackCallback,
@@ -441,7 +470,7 @@ func (s *stack) iter(
 	includeSubtrees := false
 	if goalSubtreeCount >= 0 {
 		includeSubtrees = true
-		newIterator.subtrees = make(subtreeArray, 0, goalSubtreeCount+1)
+		newIterator.subtrees = s.subtreePool.allocateChildren(goalSubtreeCount + 1)[:0]
 	}
 
 	s.iterators = append(s.iterators, newIterator)
@@ -458,7 +487,7 @@ func (s *stack) iter(
 			if shouldPop {
 				subtrees := iterator.subtrees
 				if !shouldStop {
-					subtrees = subtrees.copy()
+					subtrees = subtrees.copy(s.subtreePool)
 				}
 				subtrees.reverse()
 				s.addSlice(
@@ -492,7 +521,7 @@ func (s *stack) iter(
 					currentIterator := s.iterators[i]
 					s.iterators = append(s.iterators, currentIterator)
 					nextIterator = &s.iterators[len(s.iterators)-1]
-					nextIterator.subtrees = nextIterator.subtrees.copy()
+					nextIterator.subtrees = nextIterator.subtrees.copy(s.subtreePool)
 				}
 
 				nextIterator.node = link.node
@@ -519,15 +548,17 @@ func (s *stack) iter(
 	return s.slices
 }
 
-// newStack is ts_stack_new. C reserves room in the arrays, and Go lets
-// append grow them.
+// newStack is ts_stack_new. C reserves room in the arrays heads, slices
+// and iterators, and Go lets append grow them. It reserves room for the
+// free list, as C does.
 //
 // Create a stack.
 func newStack(subtreePool *subtreePool) *stack {
 	s := &stack{}
+	s.nodePool = make(stackNodeArray, 0, maxNodePoolSize)
 
 	s.subtreePool = subtreePool
-	s.baseNode = newStackNode(nil, subtree{}, false, 1)
+	s.baseNode = newStackNode(nil, subtree{}, false, 1, &s.nodePool)
 	s.clear()
 
 	return s
@@ -629,7 +660,7 @@ func (s *stack) push(
 	state StateID,
 ) {
 	head := &s.heads[version]
-	newNode := newStackNode(head.node, subtree, pending, state)
+	newNode := newStackNode(head.node, subtree, pending, state, &s.nodePool)
 	if subtree.ptr == nil {
 		head.nodeCountAtLastError = newNode.nodeCount
 	}
@@ -822,7 +853,7 @@ func (s *stack) hasAdvancedSinceError(version stackVersion) bool {
 //
 // Remove the given version from the stack.
 func (s *stack) removeVersion(version stackVersion) {
-	s.heads[version].delete(s.subtreePool)
+	s.heads[version].delete(&s.nodePool, s.subtreePool)
 	s.heads = slices.Delete(s.heads, int(version), int(version)+1)
 }
 
@@ -839,7 +870,7 @@ func (s *stack) renumberVersion(v1, v2 stackVersion) {
 		sourceHead.summary = targetHead.summary
 		targetHead.summary = nil
 	}
-	targetHead.delete(s.subtreePool)
+	targetHead.delete(&s.nodePool, s.subtreePool)
 	*targetHead = *sourceHead
 	s.heads = slices.Delete(s.heads, int(v1), int(v1)+1)
 }
@@ -940,7 +971,7 @@ func (s *stack) resume(version stackVersion) subtree {
 func (s *stack) clear() {
 	s.baseNode.retain()
 	for i := range s.heads {
-		s.heads[i].delete(s.subtreePool)
+		s.heads[i].delete(&s.nodePool, s.subtreePool)
 	}
 	s.heads = s.heads[:0]
 	s.heads = append(s.heads, stackHead{

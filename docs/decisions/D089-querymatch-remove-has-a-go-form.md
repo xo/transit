@@ -1,6 +1,6 @@
 # D89. QueryMatch.Remove has a Go form
 
-Status: Decided.
+Status: Decided, amended by D94.
 
 The upstream highlighter and its injection code call `QueryMatch::remove` of
 the Rust binding, which calls `ts_query_cursor_remove_match`, so that no

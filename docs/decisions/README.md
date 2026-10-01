@@ -55,7 +55,7 @@ An open question is not a decision. It goes at the end of
 | [D34](D034-gotreesitter-is-read-and-not-copied.md) | gotreesitter can be read, and no code is copied from it | Decided |
 | [D35](D035-every-upstream-test-of-the-ported-parts-is-ported.md) | Every upstream test of the ported parts is ported | Decided |
 | [D36](D036-ci-runs-in-tiers-on-linux-amd64.md) | CI comes with the first package, runs in tiers, and runs on linux/amd64 | Decided |
-| [D37](D037-the-speed-targets.md) | The speed targets are proposed, and phase 3 confirms them | Decided, amended by D47 |
+| [D37](D037-the-speed-targets.md) | The speed targets are proposed, and phase 3 confirms them | Decided, amended by D47, D91 and D97 |
 | [D38](D038-unicode-tables-are-an-input-of-the-generator.md) | The generator uses Go's Unicode tables, and takes them as an input | Decided, amended by D60 |
 | [D39](D039-scanner-character-functions-use-go-unicode.md) | Scanner character functions use Go's unicode package | Decided, amended by D46 |
 | [D40](D040-golden-files-are-hashes.md) | Golden files are hashes, and the test grammars keep their files | Decided |
@@ -103,9 +103,16 @@ An open question is not a decision. It goes at the end of
 | [D82](D082-keywords-leaves-out-hidden-tokens.md) | Keywords leaves out hidden tokens | Decided, amends D77 |
 | [D83](D083-a-corpus-case-runs-in-the-package-of-its-grammar.md) | A corpus case runs in the package of its grammar | Decided, amends D79 |
 | [D84](D084-a-module-copies-the-queries-of-another-grammar-that-it-lists.md) | A module copies the queries of another grammar that it lists | Decided, amends D80 |
-| [D85](D085-the-rules-of-a-scanner-port.md) | The rules of a scanner port | Decided |
+| [D85](D085-the-rules-of-a-scanner-port.md) | The rules of a scanner port | Decided, amended by D96 |
 | [D86](D086-the-layout-of-the-fixture-grammar-modules.md) | The layout of the fixture grammar modules | Decided |
 | [D87](D087-the-test-module-runs-with-a-timeout-of-an-hour.md) | The test module runs with a timeout of an hour | Decided |
-| [D88](D088-a-grammar-module-holds-its-list-of-upstream-failures.md) | A grammar module holds its list of upstream failures | Decided, amends D79 |
-| [D89](D089-querymatch-remove-has-a-go-form.md) | QueryMatch.Remove has a Go form | Decided |
+| [D88](D088-a-grammar-module-holds-its-list-of-upstream-failures.md) | A grammar module holds its list of upstream failures | Decided, amends D79, amended by D93 |
+| [D89](D089-querymatch-remove-has-a-go-form.md) | QueryMatch.Remove has a Go form | Decided, amended by D94 |
 | [D90](D090-the-folder-of-a-package-comes-from-its-path.md) | The folder of a package comes from its path | Decided |
+| [D91](D091-tree-close-returns-the-nodes-to-a-free-list.md) | Tree.Close returns the nodes to a free list | Decided, amends D37, amended by D97 |
+| [D92](D092-the-benchmarks-of-phase-4.md) | The benchmarks of phase 4 | Decided |
+| [D93](D093-the-failure-list-of-a-package-holds-its-own-cases.md) | The failure list of a package holds its own cases | Decided, amends D88 |
+| [D94](D094-remove-on-a-zero-match-does-nothing.md) | Remove on a zero match does nothing | Decided, amends D89 |
+| [D95](D095-the-tests-of-phase-4-run-on-each-grammar-package.md) | The tests of phase 4 run on each grammar package | Decided |
+| [D96](D096-a-scanner-keeps-its-slices-in-deserialize.md) | A scanner keeps its slices in Deserialize | Decided, amends D85 |
+| [D97](D097-target-3-counts-the-chunks-of-new-nodes.md) | Target 3 counts the chunks of new nodes | Decided, amends D37 and D91 |

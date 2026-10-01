@@ -49,7 +49,7 @@ func (p *Parser) StatesAt(ctx context.Context, src []byte, offset int, old *Tree
 	p.Reset()
 	defer p.Reset()
 
-	p.lexer.setInput(input{read: stringInput(src), encoding: EncodingUTF8})
+	p.lexer.setInput(input{read: &stringInput{text: src}, encoding: EncodingUTF8})
 	p.includedRangeDifferences = p.includedRangeDifferences[:0]
 	p.includedRangeDifferenceIndex = 0
 	p.operationCount = 0

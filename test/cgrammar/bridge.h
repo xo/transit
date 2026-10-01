@@ -18,6 +18,17 @@ typedef struct {
 void bridge_lexer_init(BridgeLexer *self, uintptr_t handle);
 
 bool bridge_call_lex(bool (*fn)(TSLexer *, TSStateId), BridgeLexer *lexer, TSStateId state);
+
+// bridge_lex_states runs the lex function fn in each state below states,
+// from the offset pos of a text of length bytes, with a lexer in C that
+// does not call Go. lookahead and size hold the character and its size in
+// bytes at each offset of the text, and 0 and 0 at the end. For each state,
+// it writes to out 1 or 0 for whether fn found a token, the result symbol,
+// the number of the calls of the lexer and each call: 1 for advance, 2 for
+// advance with skip, and -1-p for mark_end at the offset p. It returns the
+// number of values that it wrote, or -1 when out holds fewer than cap
+// values.
+int64_t bridge_lex_states(bool (*fn)(TSLexer *, TSStateId), uint32_t states, const int32_t *lookahead, const uint32_t *size, uint32_t length, uint32_t pos, int32_t *out, uint32_t cap);
 void *bridge_call_create(void *(*fn)(void));
 void bridge_call_destroy(void (*fn)(void *), void *payload);
 bool bridge_call_scan(bool (*fn)(void *, TSLexer *, const bool *), void *payload, BridgeLexer *lexer, const bool *valid);
@@ -59,7 +70,19 @@ typedef struct {
 
 // rt_load finds the functions of the C runtime in a library that dlopen
 // opened. It returns the name of a function that it cannot find, or NULL.
+// rt_o2_load does the same for the runtime of the benchmarks, which is built
+// with -O2.
 const char *rt_load(void *handle);
+const char *rt_o2_load(void *handle);
+
+// The functions of a SpeedSession. Each calls the runtime of the benchmarks
+// when o2 is true, and the runtime of the tests otherwise.
+void *sp_parser_new(bool o2);
+void sp_parser_delete(bool o2, void *parser);
+bool sp_parser_set_language(bool o2, void *parser, const TSLanguage *language);
+void *sp_parser_parse_string(bool o2, void *parser, const void *old_tree, const char *string, uint32_t length);
+void sp_tree_delete(bool o2, void *tree);
+void sp_tree_edit(bool o2, void *tree, const CInputEdit *edit);
 
 void *rt_parser_new(void);
 void rt_parser_delete(void *parser);

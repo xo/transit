@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
+	"io/fs"
 	"maps"
 	"os"
 	"path/filepath"
@@ -132,5 +134,79 @@ func TestCollectOutcomesFindsTheFailures(t *testing.T) {
 	}
 	if len(s.Outcomes) != 4 {
 		t.Errorf("expected 4 outcomes, got: %q", s.Outcomes)
+	}
+}
+
+// phpCorpus is a corpus of two cases: A, which runs in the package of the
+// first grammar of tree-sitter.json, and B, which names php_only (D83).
+const phpCorpus = "===\nA\n===\n<?php 1;\n---\n(program)\n\n===\nB\n:language(php_only)\n===\n1;\n---\n(program)\n"
+
+// TestWriteFailingFiles makes sure that the harness writes
+// testdata/failing.txt of each grammar package from its entry in the record
+// (D88): the failures in the order of the record, one on each line, and no
+// file for a package whose entry has no failure. The entry of a package is
+// the entry with its name, and of the repository of its module when two
+// entries have the name. In a module with two grammars, each package gets
+// only the cases that it runs (D93).
+func TestWriteFailingFiles(t *testing.T) {
+	t.Parallel()
+	grammars := filepath.Join(t.TempDir(), "grammars")
+	failing := filepath.Join("testdata", "failing.txt")
+	for name, text := range map[string]string{
+		"json/go.mod":                          "module example.com/json\n",
+		"json/grammar.json":                    `{"name": "json"}`,
+		"typescript/go.mod":                    "module example.com/typescript\n",
+		"typescript/typescript/grammar.json":   `{"name": "typescript"}`,
+		"typescript/tsx/grammar.json":          `{"name": "tsx"}`,
+		"typescript/tsx/" + failing:            "stale\n",
+		"sql/go.mod":                           "module example.com/sql\n",
+		"sql/grammar.json":                     `{"name": "sql"}`,
+		"php/go.mod":                           "module example.com/php\n",
+		"php/tree-sitter.json":                 `{"grammars": [{"name": "php", "path": "php"}, {"name": "php_only", "path": "php_only"}]}`,
+		"php/php/grammar.json":                 `{"name": "php"}`,
+		"php/php/testdata/corpus/main.txt":     phpCorpus,
+		"php/phponly/grammar.json":             `{"name": "php_only"}`,
+		"php/phponly/testdata/corpus/main.txt": phpCorpus,
+	} {
+		p := filepath.Join(grammars, name)
+		if err := os.MkdirAll(filepath.Dir(p), 0o750); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(text), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	rec := &record{Grammars: []grammar{
+		{Name: "json", Repository: "https://github.com/tree-sitter/tree-sitter-json", Corpus: &corpusResult{Failing: []string{"main/B", "sub/file/D / E", "main/A"}}},
+		{Name: "typescript", Repository: "https://github.com/tree-sitter/tree-sitter-typescript", Path: "typescript", Corpus: &corpusResult{Failing: []string{"x"}}},
+		{Name: "tsx", Repository: "https://github.com/tree-sitter/tree-sitter-typescript", Path: "tsx", Corpus: &corpusResult{}},
+		{Name: "sql", Repository: "https://github.com/a/tree-sitter-sql-a", Corpus: &corpusResult{Failing: []string{"wrong"}}},
+		{Name: "sql", Repository: "https://github.com/b/tree-sitter-sql", Corpus: &corpusResult{Failing: []string{"right"}}},
+		{Name: "php", Repository: "https://github.com/tree-sitter/tree-sitter-php", Path: "php", Corpus: &corpusResult{Failing: []string{"main/A", "main/B"}}},
+		{Name: "php_only", Repository: "https://github.com/tree-sitter/tree-sitter-php", Path: "php_only", Corpus: &corpusResult{Failing: []string{"main/A", "main/B"}}},
+	}}
+	if err := writeFailingFiles(grammars, rec); err != nil {
+		t.Fatal(err)
+	}
+	for dir, want := range map[string]string{
+		"json":                  "main/B\nsub/file/D / E\nmain/A\n",
+		"typescript/typescript": "x\n",
+		"typescript/tsx":        "",
+		"sql":                   "right\n",
+		"php/php":               "main/A\n",
+		"php/phponly":           "main/B\n",
+	} {
+		b, err := os.ReadFile(filepath.Join(grammars, dir, failing))
+		switch {
+		case want == "" && !errors.Is(err, fs.ErrNotExist):
+			t.Errorf("%s: expected no file, got: %q, %v", dir, b, err)
+		case want != "" && (err != nil || string(b) != want):
+			t.Errorf("%s: expected %q, got: %q, %v", dir, want, b, err)
+		}
+	}
+
+	rec.Grammars = rec.Grammars[:1]
+	if err := writeFailingFiles(grammars, rec); err == nil {
+		t.Error("expected an error for a package with no entry")
 	}
 }

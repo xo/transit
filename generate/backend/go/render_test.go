@@ -175,15 +175,14 @@ func TestCharacter(t *testing.T) {
 
 // TestTests makes sure that gofmt leaves each form of grammar_test.go as it
 // is, that the corpus test and the highlight test are there only with their
-// folders, and that the corpus test names the cases that fail upstream.
+// folders, and that the corpus test names no case, because the cases that
+// fail upstream are in testdata/failing.txt (D88).
 func TestTests(t *testing.T) {
 	t.Parallel()
 	for _, opts := range []Options{
 		{},
 		{Queries: true, Corpus: true},
 		{Queries: true, Corpus: true, Highlight: true},
-		{Corpus: true, CorpusFailures: []string{"main/A case", `sub/a "quoted" case`}},
-		{CorpusFailures: []string{"main/A case"}},
 		{Highlight: true, Others: []Other{{"tsx", "github.com/xo/transit/grammars/typescript/tsx"}, {"a", "github.com/xo/transit/grammars/typescript/a"}}},
 		{Others: []Other{{"tsx", "github.com/xo/transit/grammars/typescript/tsx"}}},
 	} {
@@ -198,10 +197,8 @@ func TestTests(t *testing.T) {
 		if got := strings.Contains(text, "func TestHighlight("); got != opts.Highlight {
 			t.Errorf("%+v: TestHighlight is there: %t", opts, got)
 		}
-		for _, name := range opts.CorpusFailures {
-			if got := strings.Contains(text, "\t\t"+strconv.Quote(name)+",\n"); got != opts.Corpus {
-				t.Errorf("%+v: the case %q is there: %t", opts, name, got)
-			}
+		if opts.Corpus && !strings.Contains(text, "\tgrammartest.Corpus(t, Language(), \"testdata/corpus\")\n") {
+			t.Errorf("%+v: the corpus test gives more than the folder of the corpus", opts)
 		}
 		for _, o := range opts.Others {
 			if got := strings.Contains(text, "grammartest.Grammar{Language: "+o.Package+".Language(), Queries: "+o.Package+".Queries}"); got != opts.Highlight {
@@ -243,14 +240,14 @@ func TestReadGrammarOptions(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	opts, rec, err := ReadGrammarOptions(filepath.Join(root, "two", "typescript"), "typescript")
-	if err != nil || rec != nil {
-		t.Fatalf("ReadGrammarOptions = %+v, %+v, %v", opts, rec, err)
+	opts, err := ReadGrammarOptions(filepath.Join(root, "two", "typescript"))
+	if err != nil {
+		t.Fatalf("ReadGrammarOptions = %+v, %v", opts, err)
 	}
 	if want := []Other{{"tsx", "example.com/two/tsx"}, {"phponly", "example.com/two/phponly"}}; !slices.Equal(opts.Others, want) {
 		t.Errorf("Others = %+v, want %+v", opts.Others, want)
 	}
-	opts, _, err = ReadGrammarOptions(filepath.Join(root, "one"), "json")
+	opts, err = ReadGrammarOptions(filepath.Join(root, "one"))
 	if err != nil || len(opts.Others) != 0 {
 		t.Errorf("ReadGrammarOptions of one grammar = %+v, %v", opts, err)
 	}

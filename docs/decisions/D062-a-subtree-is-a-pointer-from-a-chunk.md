@@ -42,3 +42,9 @@ The choice also rests on these facts:
 This is the pool of subtrees that D37 expects the benchmarks to find. It is a
 translation of the memory of upstream, and not a difference in behavior
 (D24).
+
+Ken added on 2026-10-01 that the same rule covers the other kinds of chunk
+that the speed work of phase 4 added: the bytes of the serialized states of
+the external scanners, the arrays of a pop of the stack, and the copies of
+arrays of subtrees. Each comes from a chunk of the subtree pool, and a chunk
+stays alive while any slot of it is alive.

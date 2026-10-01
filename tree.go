@@ -7,8 +7,7 @@ import (
 
 // This file ports lib/src/tree.c and lib/src/tree.h.
 //
-// These parts have no Go form. ts_tree_delete frees memory, and the garbage
-// collector frees a tree (D24). The members of TSTree for WebAssembly and
+// These parts have no Go form. The members of TSTree for WebAssembly and
 // the WebAssembly branch of ts_tree_language are for WebAssembly (D1).
 // Nothing in the runtime uses ParentCacheEntry of tree.h. _ts_dup exists
 // only for the file descriptor of ts_tree_print_dot_graph, and the Go form
@@ -40,6 +39,33 @@ func newTree(root subtree, language *Language, includedRanges []textRange) *Tree
 func (t *Tree) Copy() *Tree {
 	t.root.retain()
 	return newTree(t.root, t.language, t.includedRanges)
+}
+
+// closeTreeStackSize is the capacity of the tree stack that Close starts
+// with.
+const closeTreeStackSize = 64
+
+// Close releases the nodes of the tree. After Close, the program must not
+// use the tree, or a node or a cursor of it, and the runtime does not check
+// this. A node that another tree shares, after Copy or after a parse with
+// the tree as the old tree, stays in the other tree. Close is optional. The
+// garbage collector frees a tree that the program does not close (D91).
+//
+// Close is ts_tree_delete. The C function releases the root into a pool of
+// its own, whose capacity is 0, so no parser takes the freed nodes again.
+// The Go function does the same, and then clears the tree, so that it keeps
+// no node alive.
+func (t *Tree) Close() {
+	if t == nil {
+		return
+	}
+
+	// The tree stack starts at a size that a release seldom passes, so that
+	// it does not grow in several steps.
+	pool := newSubtreePool(0)
+	pool.treeStack = make(subtreeArray, 0, closeTreeStackSize)
+	t.root.release(&pool)
+	*t = Tree{}
 }
 
 // RootNode returns the root node of the tree.
@@ -74,7 +100,7 @@ func (t *Tree) Edit(e InputEdit) {
 		t.includedRanges[i].edit(e)
 	}
 
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	t.root = t.root.edit(e, &pool)
 }
 

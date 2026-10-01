@@ -36,6 +36,8 @@ type Grammar struct {
 	Language *transit.Language
 
 	lang *C.TSLanguage
+	// o2 is true for a grammar that LoadO2 opened.
+	o2 bool
 }
 
 // TokenCount returns the number of the terminal symbols of the grammar. The
@@ -67,6 +69,18 @@ func Load(path, name string) (*Grammar, error) {
 	return g, nil
 }
 
+// LoadO2 is Load for a grammar of the build of the benchmarks, which
+// BuildGrammarVersionO2 builds with -O2. A SpeedSession of the grammar uses
+// the runtime that LoadRuntimeO2 opened (D92).
+func LoadO2(path, name string) (*Grammar, error) {
+	g, err := Load(path, name)
+	if err != nil {
+		return nil, err
+	}
+	g.o2 = true
+	return g, nil
+}
+
 // dlopen opens a shared library.
 func dlopen(path string) (unsafe.Pointer, error) {
 	cpath := C.CString(path)
@@ -82,8 +96,9 @@ func dlopen(path string) (unsafe.Pointer, error) {
 // LoadRuntime.
 var errNoRuntime = errors.New("the C runtime is not loaded")
 
-// runtimeLoaded is true after LoadRuntime.
-var runtimeLoaded bool
+// runtimeLoaded is true after LoadRuntime, and runtimeO2Loaded is true after
+// LoadRuntimeO2.
+var runtimeLoaded, runtimeO2Loaded bool
 
 // LoadRuntime opens the shared library of the upstream C runtime, which is
 // built from lib/src/lib.c.
@@ -99,6 +114,21 @@ func LoadRuntime(path string) error {
 		return err
 	}
 	runtimeLoaded = true
+	return nil
+}
+
+// LoadRuntimeO2 opens the shared library of the upstream C runtime that
+// BuildRuntimeO2 builds with -O2, for the SpeedSession of a grammar that
+// LoadO2 opened. It does not change the runtime of LoadRuntime.
+func LoadRuntimeO2(path string) error {
+	lib, err := dlopen(path)
+	if err != nil {
+		return err
+	}
+	if missing := C.rt_o2_load(lib); missing != nil {
+		return fmt.Errorf("finding %s in %s", C.GoString(missing), path)
+	}
+	runtimeO2Loaded = true
 	return nil
 }
 

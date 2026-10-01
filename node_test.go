@@ -245,7 +245,7 @@ func TestNodeFields(t *testing.T) {
 
 func TestNodeFieldOfAHiddenNode(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	// a node of production 1 whose field left is a hidden node, with a
 	// visible child
 	hidden := newNode(&pool, testSymStatement, subtreeArray{
@@ -355,7 +355,7 @@ func TestNodeFirstChildForByte(t *testing.T) {
 
 func TestNodeErrorAndMissing(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	root := newNode(&pool, testSymExpression, subtreeArray{
 		newErrorNode(&pool, subtreeArray{leaf(&pool, l, testSymPlus, 0, 1)}, false, l),
 		leaf(&pool, l, testSymIdentifier, 1, 1),
@@ -399,7 +399,7 @@ func TestNodeErrorAndMissing(t *testing.T) {
 
 func TestNodeParseState(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	s := newLeaf(&pool, testSymIdentifier, ln(0), ln(1), 1, 0, false, false, false, l)
 	n := newTree(s, l, nil).RootNode()
 	// in state 0, identifier shifts to state 2
@@ -436,7 +436,7 @@ func nodeInheritedLanguage() *Language {
 
 func TestNodeInheritedField(t *testing.T) {
 	l := nodeInheritedLanguage()
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 
 	// child 0 is a hidden node of production 1, and its field left is the
 	// field left of the root

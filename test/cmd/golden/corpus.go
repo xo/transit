@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -25,7 +28,8 @@ type corpusResult struct {
 	// the upstream tool, in the order of the run. A name is the path of the
 	// test in the corpus: the names of its groups and its own name, joined
 	// by "/", such as "expressions/Binary operators". The corpus test of a
-	// grammar package expects these tests to fail, and no other test (D79).
+	// grammar package expects these tests to fail, and no other test. The
+	// package holds them in testdata/failing.txt (D79, D88).
 	Failing []string `json:"failing,omitempty"`
 	// Transit is "same" when the parser.c that transit writes gives the same
 	// result, and "different" when it does not.
@@ -323,4 +327,224 @@ func uniqueValues(m map[int]string) []string {
 func firstLine(s string) string {
 	line, _, _ := strings.Cut(s, "\n")
 	return line
+}
+
+// writeFailing writes testdata/failing.txt of each grammar package under
+// grammars/ from the record (D88).
+func (h *harness) writeFailing() error {
+	rec, err := h.readRecord()
+	if err != nil {
+		return err
+	}
+	return writeFailingFiles(filepath.Join(h.root, "grammars"), rec)
+}
+
+// writeFailingFiles writes testdata/failing.txt of each grammar package
+// under the folder grammars: each folder grammars/<module> or
+// grammars/<module>/<grammar> that holds a grammar.json. The file holds the
+// names of the corpus tests of the entry of the grammar that fail upstream,
+// in the order of the record, each on a line of its own that ends with a
+// newline. A package whose entry names no such test gets no file, and the
+// function deletes a file that is there.
+func writeFailingFiles(grammars string, rec *record) error {
+	var files []string
+	for _, pattern := range []string{"*/grammar.json", "*/*/grammar.json"} {
+		found, err := filepath.Glob(filepath.Join(grammars, pattern))
+		if err != nil {
+			return fmt.Errorf("finding the grammar packages: %w", err)
+		}
+		files = append(files, found...)
+	}
+	for _, f := range files {
+		dir := filepath.Dir(f)
+		g, err := packageEntry(grammars, dir, rec)
+		if err != nil {
+			return err
+		}
+		var text strings.Builder
+		if g.Corpus != nil {
+			own, err := ownCases(grammars, dir, g.Corpus.Failing)
+			if err != nil {
+				return err
+			}
+			for _, name := range own {
+				text.WriteString(name + "\n")
+			}
+		}
+		p := filepath.Join(dir, "testdata", "failing.txt")
+		if text.Len() == 0 {
+			if err := os.Remove(p); err != nil && !errors.Is(err, fs.ErrNotExist) {
+				return fmt.Errorf("deleting %s: %w", p, err)
+			}
+			continue
+		}
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			return fmt.Errorf("making %s: %w", filepath.Dir(p), err)
+		}
+		if err := os.WriteFile(p, []byte(text.String()), 0o644); err != nil {
+			return fmt.Errorf("writing %s: %w", p, err)
+		}
+	}
+	return nil
+}
+
+// ownCases returns the names of cases that the grammar package in dir runs
+// (D83, D93). In a module with more than one grammar, a case runs in the
+// package of the grammar that its :language names, or of the first grammar
+// of tree-sitter.json when it names none. The harness imports only the
+// standard library (D58), so this reads the header of each case itself,
+// with the rule of internal/grammartest. A case that the corpus does not
+// hold, or whose :language names no grammar of the module, stays, because
+// the package fails it.
+func ownCases(grammars, dir string, names []string) ([]string, error) {
+	moduleDir := dir
+	for moduleDir != grammars && !isFile(filepath.Join(moduleDir, "go.mod")) {
+		moduleDir = filepath.Dir(moduleDir)
+	}
+	if moduleDir == dir {
+		return names, nil
+	}
+	b, err := os.ReadFile(filepath.Join(moduleDir, "tree-sitter.json"))
+	if errors.Is(err, fs.ErrNotExist) {
+		return names, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("reading the tree-sitter.json of %s: %w", moduleDir, err)
+	}
+	var cfg struct {
+		Grammars []struct {
+			Name string `json:"name"`
+			Path string `json:"path"`
+		} `json:"grammars"`
+	}
+	if err := json.Unmarshal(b, &cfg); err != nil {
+		return nil, fmt.Errorf("decoding the tree-sitter.json of %s: %w", moduleDir, err)
+	}
+	if len(cfg.Grammars) == 0 {
+		return names, nil
+	}
+	folder := func(p string) string {
+		p = strings.TrimPrefix(path.Clean(p), "./")
+		return strings.NewReplacer("_", "", "-", "").Replace(p)
+	}
+	own := filepath.Base(dir)
+	var out []string
+	for _, name := range names {
+		language, found, err := caseLanguage(filepath.Join(dir, "testdata", "corpus"), name)
+		if err != nil {
+			return nil, err
+		}
+		owner := cfg.Grammars[0]
+		known := true
+		if language != "" {
+			known = false
+			for _, g := range cfg.Grammars {
+				if g.Name == language {
+					owner, known = g, true
+					break
+				}
+			}
+		}
+		if !found || !known || folder(owner.Path) == own {
+			out = append(out, name)
+		}
+	}
+	return out, nil
+}
+
+// caseLanguage returns the language that the :language attribute of a
+// corpus case names, or "" when it names none, and whether the corpus holds
+// the case. name is the path of the case: the path of its file in corpus
+// with no .txt, a "/", and the name of the case.
+func caseLanguage(corpus, name string) (string, bool, error) {
+	for i := len(name) - 1; i > 0; i-- {
+		if name[i] != '/' {
+			continue
+		}
+		b, err := os.ReadFile(filepath.Join(corpus, filepath.FromSlash(name[:i])+".txt"))
+		if errors.Is(err, fs.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return "", false, fmt.Errorf("reading the corpus of %s: %w", name, err)
+		}
+		language, found := headerLanguage(string(b), name[i+1:])
+		return language, found, nil
+	}
+	return "", false, nil
+}
+
+// headerLanguage finds the header of the case title in a corpus file, the
+// title between two lines of "=" and its attributes, and returns the
+// language of its :language attribute.
+func headerLanguage(content, title string) (string, bool) {
+	lines := strings.Split(strings.ReplaceAll(content, "\r\n", "\n"), "\n")
+	for i := 1; i < len(lines); i++ {
+		if strings.TrimSpace(lines[i]) != title || !strings.HasPrefix(lines[i-1], "===") {
+			continue
+		}
+		for _, line := range lines[i+1:] {
+			line = strings.TrimSpace(line)
+			if strings.HasPrefix(line, "===") {
+				return "", true
+			}
+			if rest, ok := strings.CutPrefix(line, ":language("); ok {
+				if lang, _, ok := strings.Cut(rest, ")"); ok {
+					return lang, true
+				}
+			}
+		}
+	}
+	return "", false
+}
+
+// packageEntry returns the entry of the record for the grammar package in
+// dir, as golang.FindRecord of the root module finds it: the entry with the
+// name of grammar.json. When several entries have the name, the entry is
+// the one whose repository gives the name of the folder of the module, the
+// nearest folder that holds a go.mod, as docs/GRAMMAR.md says.
+func packageEntry(grammars, dir string, rec *record) (*grammar, error) {
+	b, err := os.ReadFile(filepath.Join(dir, "grammar.json"))
+	if err != nil {
+		return nil, fmt.Errorf("reading the grammar of %s: %w", dir, err)
+	}
+	var head struct {
+		Name string `json:"name"`
+	}
+	if err := json.Unmarshal(b, &head); err != nil {
+		return nil, fmt.Errorf("decoding the grammar of %s: %w", dir, err)
+	}
+	moduleDir := dir
+	for moduleDir != grammars && !isFile(filepath.Join(moduleDir, "go.mod")) {
+		moduleDir = filepath.Dir(moduleDir)
+	}
+	var found []*grammar
+	for i := range rec.Grammars {
+		if rec.Grammars[i].Name == head.Name {
+			found = append(found, &rec.Grammars[i])
+		}
+	}
+	if len(found) > 1 {
+		found = slices.DeleteFunc(found, func(g *grammar) bool {
+			return moduleFolderName(g.Repository) != filepath.Base(moduleDir)
+		})
+	}
+	if len(found) != 1 {
+		return nil, fmt.Errorf("finding the entry of the grammar package %s: the record has %d entries for the grammar %s in the module folder %s", dir, len(found), head.Name, filepath.Base(moduleDir))
+	}
+	return found[0], nil
+}
+
+// moduleFolderName returns the name of the folder of the module of a
+// repository: its name without the prefix tree-sitter- and with each "-"
+// removed, as docs/GRAMMAR.md says.
+func moduleFolderName(repository string) string {
+	name := strings.TrimPrefix(path.Base(repository), "tree-sitter-")
+	return strings.ReplaceAll(name, "-", "")
+}
+
+// isFile reports whether a file exists at a path.
+func isFile(name string) bool {
+	fi, err := os.Stat(name)
+	return err == nil && !fi.IsDir()
 }

@@ -190,7 +190,7 @@ func TestCorpusExpectsTheRecordedFailures(t *testing.T) {
 		output  []string
 	}{
 		{"the recorded failure", []string{"main/Fails"}, true, []string{
-			"the case fails, as it fails upstream (grammars/grammars.json): the trees differ",
+			"the case fails, as it fails upstream (testdata/failing.txt): the trees differ",
 			"--- PASS: TestCorpusHelper/main/Fails",
 		}},
 		{"no recorded failure", nil, false, []string{

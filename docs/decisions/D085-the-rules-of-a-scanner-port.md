@@ -1,6 +1,6 @@
 # D85. The rules of a scanner port
 
-Status: Decided.
+Status: Decided, amended by D96.
 
 The ports of the scanners of the fixture grammars in phase 4 raised these
 questions. Ken decided on 2026-09-30:

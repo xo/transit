@@ -24,6 +24,7 @@ import (
 	"os"
 	"path"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/xo/transit"
@@ -36,13 +37,16 @@ import (
 // and compares its tree with the expected tree, as `tree-sitter test` does.
 // Each file and each case is a subtest.
 //
-// failing holds the path of each case that fails upstream, as the field
-// failing of grammars/grammars.json records it (D79). A path is the names
-// of the groups of the case and its own name, joined by "/", such as
-// "expressions/Binary operators". The test expects each such case to fail,
-// and it names the case and its failure in its log. A case that fails and
-// is not in failing, and a case in failing that does not fail, fail the
-// test.
+// The cases that fail upstream are the cases of testdata/failing.txt in the
+// working folder, the folder of the package, and the cases of failing. A
+// caller outside a grammar package, such as the test module, gives them in
+// failing. The golden harness writes the file from the field failing of
+// grammars/grammars.json (D79, D88), and failingText gives its form. A case
+// is named by its path: the names of its groups and its own name, joined by
+// "/", such as "expressions/Binary operators". The test expects each such
+// case to fail, and it names the case and its failure in its log. A case
+// that fails and is not in the list, and a case in the list that does not
+// fail, fail the test.
 //
 // A repository can hold more than one grammar, and its grammars share one
 // corpus, as tree-sitter-php does. Each package of the module holds the
@@ -62,6 +66,11 @@ func Corpus(t *testing.T, language *transit.Language, dir string, failing ...str
 	if err != nil {
 		t.Fatal(err)
 	}
+	fromFile, err := readFailing()
+	if err != nil {
+		t.Fatal(err)
+	}
+	failing = append(fromFile, failing...)
 	parser := transit.NewParser()
 	if err := parser.SetLanguage(language); err != nil {
 		t.Fatalf("setting the language: %v", err)
@@ -81,7 +90,7 @@ func Corpus(t *testing.T, language *transit.Language, dir string, failing ...str
 		if r.failed[name] < r.expected[name] {
 			// a name that repeats is reported once
 			r.failed[name] = r.expected[name]
-			t.Errorf("the case %q does not fail, or the corpus does not hold it, and grammars/grammars.json records that it fails upstream", name)
+			t.Errorf("the case %q does not fail, or the corpus does not hold it, and the list of the cases that fail upstream names it", name)
 		}
 	}
 }
@@ -132,8 +141,9 @@ func (r *corpusRun) runTests(t *testing.T, entry testEntry, prefix string) bool 
 }
 
 // runCase runs one corpus test with the path name, and reports whether the
-// run goes on. A failure that grammars/grammars.json records goes to the
-// log, and any other failure fails the test.
+// run goes on. A failure of a case in the list of the cases that fail
+// upstream goes to the log, and any other failure fails the test. The log
+// names testdata/failing.txt, the file that the list comes from (D93).
 func (r *corpusRun) runCase(t *testing.T, e testEntry, name string) bool {
 	t.Helper()
 	a := e.attributes
@@ -152,7 +162,7 @@ func (r *corpusRun) runCase(t *testing.T, e testEntry, name string) bool {
 		return true
 	case r.failed[name] < r.expected[name]:
 		r.failed[name]++
-		t.Logf("the case fails, as it fails upstream (grammars/grammars.json): %s", failure)
+		t.Logf("the case fails, as it fails upstream (testdata/failing.txt): %s", failure)
 	default:
 		t.Error(failure)
 	}
@@ -302,16 +312,19 @@ func Keywords(t *testing.T, language *transit.Language, keywords []string) {
 
 // Generator runs the generator on grammar.json of the package in the
 // working folder, with the version of the nearest tree-sitter.json. It
-// makes sure of two facts:
+// makes sure of three facts:
 //
-//  1. The C backend writes the parser.c and the node-types.json whose
-//     SHA-256 grammars/grammars.json records, at ABI 14 and ABI 15 (D40).
-//  2. The Go backend writes the parser.go, the node-types.json and the
+//  1. The Go backend writes the parser.go, the node-types.json and the
 //     grammar_test.go of the package, at the ABI version of the language.
+//  2. The C backend writes the parser.c and the node-types.json whose
+//     SHA-256 grammars/grammars.json records, at ABI 14 and ABI 15 (D40).
+//  3. testdata/failing.txt names the corpus cases that grammars/grammars.json
+//     records as failing upstream, in the form of failingText. The file does
+//     not exist when the record names no case (D88).
 //
-// The test skips the first check when the package is not in a checkout of
-// transit, which holds grammars/grammars.json, and the whole test in short
-// mode, because the generator takes minutes for a large grammar.
+// The test skips the last two checks when the package is not in a checkout
+// of transit, which holds grammars/grammars.json, and the whole test in
+// short mode, because the generator takes minutes for a large grammar.
 func Generator(t *testing.T, language *transit.Language) {
 	t.Helper()
 	if testing.Short() {
@@ -335,7 +348,11 @@ func Generator(t *testing.T, language *transit.Language) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	opts, rec, err := golang.ReadGrammarOptions(".", name)
+	opts, err := golang.ReadGrammarOptions(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec, err := golang.FindRecord(".", name)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -350,14 +367,11 @@ func Generator(t *testing.T, language *transit.Language) {
 		t.Fatal(err)
 	}
 
-	files := []struct{ name, want string }{
+	for _, f := range []struct{ name, want string }{
 		{"parser.go", backend.outputs[2]},
 		{"node-types.json", parser.NodeTypesJSON},
-	}
-	if rec != nil {
-		files = append(files, struct{ name, want string }{"grammar_test.go", golang.Tests(pkg, opts)})
-	}
-	for _, f := range files {
+		{"grammar_test.go", golang.Tests(pkg, opts)},
+	} {
 		got, err := os.ReadFile(f.name)
 		if err != nil {
 			t.Fatal(err)
@@ -369,8 +383,11 @@ func Generator(t *testing.T, language *transit.Language) {
 
 	if rec == nil {
 		t.Log("the package is not in a checkout of transit, so the test does not read grammars/grammars.json. " +
-			"It does not compare grammar_test.go, which names the corpus cases that fail upstream from that file")
+			"It does not compare the hashes and testdata/failing.txt with that file")
 		return
+	}
+	if err := compareFailing(rec); err != nil {
+		t.Error(err)
 	}
 	for i, abi := range []string{"abi14", "abi15"} {
 		want, ok := rec.Golden[abi]
@@ -389,6 +406,71 @@ func Generator(t *testing.T, language *transit.Language) {
 			t.Errorf("%s: node-types.json has the SHA-256 %s, and the record has %s", abi, got, want.NodeTypes)
 		}
 	}
+}
+
+// failingPath is the file of a grammar package that names the corpus cases
+// that fail upstream (D88).
+const failingPath = "testdata/failing.txt"
+
+// failingText returns the text of testdata/failing.txt for the names of the
+// corpus cases that fail upstream, in the order of grammars/grammars.json:
+// each name on a line of its own, and each line ends with a newline. A name
+// that the record holds twice is on two lines. The text is empty when there
+// is no name, and then the file does not exist.
+func failingText(names []string) string {
+	var b strings.Builder
+	for _, name := range names {
+		b.WriteString(name + "\n")
+	}
+	return b.String()
+}
+
+// readFailing returns the names of testdata/failing.txt in the working
+// folder, or no names when the file does not exist. A file with no name, a
+// blank line or no newline at its end is an error.
+func readFailing() ([]string, error) {
+	b, err := os.ReadFile(failingPath)
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		return nil, nil
+	case err != nil:
+		return nil, fmt.Errorf("reading %s: %w", failingPath, err)
+	}
+	text, ok := strings.CutSuffix(string(b), "\n")
+	if !ok {
+		return nil, fmt.Errorf("reading %s: the file does not end with a newline", failingPath)
+	}
+	names := strings.Split(text, "\n")
+	if slices.Contains(names, "") {
+		return nil, fmt.Errorf("reading %s: the file holds a blank line", failingPath)
+	}
+	return names, nil
+}
+
+// compareFailing makes sure that testdata/failing.txt in the working
+// folder is the file that the golden harness writes from the record of the
+// grammar, and returns an error when it is not.
+func compareFailing(rec *golang.Record) error {
+	var names []string
+	if rec.Corpus != nil {
+		names = rec.Corpus.Failing
+	}
+	want := failingText(names)
+	got, err := os.ReadFile(failingPath)
+	switch {
+	case errors.Is(err, fs.ErrNotExist) && want == "":
+		// no case fails upstream, and the file does not exist
+		return nil
+	case errors.Is(err, fs.ErrNotExist):
+		return fmt.Errorf("%s does not exist, and grammars/grammars.json records the cases %q as failing upstream. Run the golden harness again", failingPath, names)
+	case err != nil:
+		return fmt.Errorf("reading %s: %w", failingPath, err)
+	case want == "":
+		return fmt.Errorf("%s exists, and grammars/grammars.json records no case as failing upstream. Run the golden harness again", failingPath)
+	case string(got) != want:
+		return fmt.Errorf("%s is not the file that the golden harness writes from grammars/grammars.json, which records the cases %q as failing upstream. Run the golden harness again", failingPath, names)
+	}
+	return nil
 }
 
 // target is a backend and the ABI version that it writes.

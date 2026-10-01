@@ -10,7 +10,7 @@ import (
 // testStackNew returns a new stack, its subtree pool and the test language.
 func testStackNew() (*stack, *subtreePool, *Language) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	return newStack(&pool), &pool, l
 }
 
@@ -402,7 +402,7 @@ func TestStackCopyVersionDoesNotRetainTheLookahead(t *testing.T) {
 func TestStackVersions(t *testing.T) {
 	st, pool, l := testStackNew()
 	token := newLeaf(pool, testSymPlus, ln(0), ln(1), 1, 0, true, false, false, l)
-	token.ptr.externalScannerState.init([]byte{1, 2})
+	token.ptr.externalScannerState.init(pool, []byte{1, 2})
 	a := stackTree(pool, l, testSymIdentifier, 0, 1)
 	b := stackTree(pool, l, testSymPlus, 0, 1)
 	st.setLastExternalToken(0, token)
@@ -447,9 +447,9 @@ func TestStackVersions(t *testing.T) {
 func TestStackLastExternalToken(t *testing.T) {
 	st, pool, l := testStackNew()
 	token1 := newLeaf(pool, testSymPlus, ln(0), ln(1), 1, 0, true, false, false, l)
-	token1.ptr.externalScannerState.init([]byte{1})
+	token1.ptr.externalScannerState.init(pool, []byte{1})
 	token2 := newLeaf(pool, testSymPlus, ln(0), ln(1), 1, 0, true, false, false, l)
-	token2.ptr.externalScannerState.init([]byte{2})
+	token2.ptr.externalScannerState.init(pool, []byte{2})
 
 	st.setLastExternalToken(0, token1)
 	st.copyVersion(0)
@@ -586,10 +586,52 @@ func TestStackClear(t *testing.T) {
 	testStackCounts(t, "after clear", []subtree{a, b}, []uint32{0, 0})
 }
 
+func TestStackNodePool(t *testing.T) {
+	st, pool, l := testStackNew()
+	a := stackTree(pool, l, testSymIdentifier, 1, 2)
+	b := stackTree(pool, l, testSymPlus, 0, 1)
+	c := stackTree(pool, l, testSymIdentifier, 1, 1)
+	st.push(0, a, false, 2)
+	st.push(0, b, false, 3)
+	st.push(0, c, false, 4)
+	top := st.heads[0].node
+	below := top.links[0].node
+	st.popCount(0, 2)
+
+	// the removed version releases the two nodes above a, from the top down
+	st.removeVersion(0)
+	if !slices.Equal(st.nodePool, stackNodeArray{top, below}) {
+		t.Fatalf("after the remove, the free list is %v, want the two nodes above a", st.nodePool)
+	}
+	if *top != (stackNode{}) {
+		t.Errorf("a node on the free list is not clear: %+v", *top)
+	}
+
+	// a push takes the last node of the free list
+	d := stackTree(pool, l, testSymPlus, 0, 1)
+	st.push(0, d, true, 5)
+	node := st.heads[0].node
+	if node != below || len(st.nodePool) != 1 {
+		t.Fatalf("the push did not take the last node of the free list")
+	}
+	if node.refCount != 1 || node.state != 5 || node.linkCount != 1 || node.links[0].subtree != d || !node.links[0].isPending || node.position != ln(4) {
+		t.Errorf("the node of the push is %+v", *node)
+	}
+
+	// the free list keeps up to maxNodePoolSize nodes
+	for range 2 * maxNodePoolSize {
+		st.push(0, stackTree(pool, l, testSymPlus, 0, 1), false, 3)
+	}
+	st.clear()
+	if len(st.nodePool) != maxNodePoolSize {
+		t.Errorf("after clear, the free list has %d nodes, want %d", len(st.nodePool), maxNodePoolSize)
+	}
+}
+
 func TestStackPrintDotGraph(t *testing.T) {
 	st, pool, l := testStackNew()
 	token := newLeaf(pool, testSymPlus, ln(0), ln(1), 1, 0, true, false, false, l)
-	token.ptr.externalScannerState.init([]byte{0x01, 0xAB})
+	token.ptr.externalScannerState.init(pool, []byte{0x01, 0xAB})
 	extra := stackTree(pool, l, testSymEnd, 0, 1)
 	st.push(0, stackTree(pool, l, testSymIdentifier, 0, 1), false, 2)
 	st.push(0, stackTree(pool, l, testSymPlus, 0, 1), true, 3)

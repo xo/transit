@@ -1,6 +1,6 @@
 # D88. A grammar module holds its list of upstream failures
 
-Status: Decided, amends D79.
+Status: Decided, amends D79, amended by D93.
 
 D79 says that the corpus test of a grammar module expects the cases that
 fail upstream to fail, and that `grammars/grammars.json` records their

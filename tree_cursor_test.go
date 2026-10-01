@@ -266,7 +266,7 @@ func TestCursorInternals(t *testing.T) {
 
 func TestCursorPreviousSiblingStopsAtIndex255(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	children := make(subtreeArray, 300)
 	for i := range children {
 		children[i] = leaf(&pool, l, testSymIdentifier, 0, 1)
@@ -299,7 +299,7 @@ func TestCursorPreviousSiblingStopsAtIndex255(t *testing.T) {
 
 func TestCursorPreviousSiblingOnTwoRows(t *testing.T) {
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	// b has a padding of one row, so the cursor finds the position of a
 	// from its parent
 	root := newNode(&pool, testSymExpression, subtreeArray{

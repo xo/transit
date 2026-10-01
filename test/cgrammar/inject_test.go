@@ -75,16 +75,22 @@ func injectLanguages(t *testing.T, root, cache, name string) []OracleLanguage {
 }
 
 // goInjectConfigs loads the languages into the Go runtime, and returns the
-// inject configuration of each, by name.
-func goInjectConfigs(t *testing.T, languages []OracleLanguage) map[string]*inject.Config {
+// inject configuration of each, by name. With packages, a language that
+// has a grammar package in goPackages gets the grammar package, and each
+// other language gets the tables of its C grammar.
+func goInjectConfigs(t *testing.T, languages []OracleLanguage, packages bool) map[string]*inject.Config {
 	t.Helper()
 	configs := map[string]*inject.Config{}
 	for _, l := range languages {
-		g, err := Load(l.Library, strings.TrimPrefix(l.Symbol, "tree_sitter_"))
-		if err != nil {
-			t.Fatal(err)
+		language := findGoPackage(l.Name)
+		if !packages || language == nil {
+			g, err := Load(l.Library, strings.TrimPrefix(l.Symbol, "tree_sitter_"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			language = g.Language
 		}
-		c, err := inject.NewConfig(g.Language, l.Name, l.Injections)
+		c, err := inject.NewConfig(language, l.Name, l.Injections)
 		if err != nil {
 			t.Fatalf("%s: %v", l.Name, err)
 		}
@@ -131,10 +137,26 @@ func describeGoLayers(layers []inject.Layer) string {
 	return b.String()
 }
 
+// injectVariant is a set of inject configurations: the tables of the C
+// grammars, or the grammar packages where goPackages has them.
+type injectVariant struct {
+	source  string
+	configs map[string]*inject.Config
+}
+
+// lookup finds the configuration of a language name.
+func (v injectVariant) lookup(name string) (*inject.Config, bool) {
+	c, ok := v.configs[name]
+	return c, ok
+}
+
 // TestInjectLayersMatchOracle parses the corpus inputs of each grammar of
 // injectRoots with inject, and with crates/highlight of upstream through the
 // Rust oracle (D71), and compares the layers: the name, the depth, the
-// ranges and the tree of each, in the order of D72.
+// ranges and the tree of each, in the order of D72. inject runs with the
+// tables of the C grammars, and again with the grammar packages when one of
+// the languages has one. The oracle runs once for both, with the C
+// grammars.
 func TestInjectLayersMatchOracle(t *testing.T) {
 	t.Parallel()
 	oracle, root, cache := oracleSetup(t)
@@ -142,10 +164,9 @@ func TestInjectLayersMatchOracle(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			languages := injectLanguages(t, root, cache, name)
-			configs := goInjectConfigs(t, languages)
-			lookup := func(name string) (*inject.Config, bool) {
-				c, ok := configs[name]
-				return c, ok
+			variants := []injectVariant{{"C", goInjectConfigs(t, languages, false)}}
+			if slices.ContainsFunc(languages, func(l OracleLanguage) bool { return findGoPackage(l.Name) != nil }) {
+				variants = append(variants, injectVariant{"Go", goInjectConfigs(t, languages, true)})
 			}
 			_, corpus := grammarDirs(cache, fixtureByName(t, root, name))
 			examples, err := ReadCorpus(corpus)
@@ -154,9 +175,10 @@ func TestInjectLayersMatchOracle(t *testing.T) {
 			}
 			examples = examples[:min(len(examples), 40)]
 			p := transit.NewParser()
-			layerCount, differ := 0, 0
+			layerCount := 0
+			differ := make([]int, len(variants))
 			for _, e := range examples {
-				want, err := RunOracle(context.Background(), oracle, OracleInput{
+				oracleLayers, err := RunOracle(context.Background(), oracle, OracleInput{
 					Languages: languages,
 					Root:      name,
 					Source:    string(e.Input),
@@ -164,19 +186,24 @@ func TestInjectLayersMatchOracle(t *testing.T) {
 				if err != nil {
 					t.Fatalf("%s: %v", e.Name, err)
 				}
-				layers, err := configs[name].Layers(context.Background(), p, e.Input, lookup)
-				if err != nil {
-					t.Fatalf("%s: %v", e.Name, err)
-				}
-				layerCount += len(layers)
-				if got, want := describeGoLayers(layers), describeOracleLayers(want); got != want {
-					differ++
-					if differ <= 3 {
-						t.Errorf("%s: the layers differ:\nupstream:\n%s\ninject:\n%s", e.Name, want, got)
+				want := describeOracleLayers(oracleLayers)
+				layerCount += len(oracleLayers)
+				for vi, v := range variants {
+					layers, err := v.configs[name].Layers(context.Background(), p, e.Input, v.lookup)
+					if err != nil {
+						t.Fatalf("%s: %s: %v", v.source, e.Name, err)
+					}
+					if got := describeGoLayers(layers); got != want {
+						differ[vi]++
+						if differ[vi] <= 3 {
+							t.Errorf("%s: %s: the layers differ:\nupstream:\n%s\ninject:\n%s", v.source, e.Name, want, got)
+						}
 					}
 				}
 			}
-			t.Logf("%d inputs, %d layers, %d differ", len(examples), layerCount, differ)
+			for vi, v := range variants {
+				t.Logf("%s: %d inputs, %d layers, %d differ", v.source, len(examples), layerCount, differ[vi])
+			}
 		})
 	}
 }
@@ -205,15 +232,13 @@ func fixtureByName(t *testing.T, root, name string) fixture {
 }
 
 // htmlInject returns the inject configurations of html, javascript and css,
-// and a lookup of them.
-func htmlInject(t *testing.T) (*inject.Config, func(string) (*inject.Config, bool)) {
+// and a lookup of them. With packages, html and javascript are the grammar
+// packages.
+func htmlInject(t *testing.T, packages bool) (*inject.Config, func(string) (*inject.Config, bool)) {
 	t.Helper()
 	_, root, cache := oracleSetup(t)
-	configs := goInjectConfigs(t, oracleLanguages(t, root, cache, "html", "javascript", "css"))
-	return configs["html"], func(name string) (*inject.Config, bool) {
-		c, ok := configs[name]
-		return c, ok
-	}
+	v := injectVariant{configs: goInjectConfigs(t, oracleLanguages(t, root, cache, "html", "javascript", "css"), packages)}
+	return v.configs["html"], v.lookup
 }
 
 // htmlSample is an HTML text with a script and a style element.
@@ -222,54 +247,66 @@ const htmlSample = "<html>\n<script>let x = 1;</script>\n<style>p { color: red; 
 // TestInjectLayersRules checks the rules of Layers in D72 that the oracle
 // does not see: the parser has no included ranges after the call, a name
 // that the lookup does not find is skipped, and an ended context gives its
-// error and no layers.
+// error and no layers. It runs with the tables of the C grammars, and with
+// the grammar packages of html and javascript.
 func TestInjectLayersRules(t *testing.T) {
 	t.Parallel()
-	html, lookup := htmlInject(t)
-	p := transit.NewParser()
+	for _, source := range []string{"C", "Go"} {
+		t.Run(source, func(t *testing.T) {
+			t.Parallel()
+			html, lookup := htmlInject(t, source == "Go")
+			p := transit.NewParser()
 
-	layers, err := html.Layers(context.Background(), p, []byte(htmlSample), lookup)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := describeGoLayers(layers); !strings.HasPrefix(got, "html depth 0") || strings.Count(got, "depth 1") != 2 {
-		t.Errorf("the layers are:\n%s", got)
-	}
-	if got := p.IncludedRanges(); len(got) != 1 || got[0].StartByte != 0 || got[0].EndByte != math.MaxUint32 {
-		t.Errorf("after Layers, the included ranges are %v", got)
-	}
+			layers, err := html.Layers(context.Background(), p, []byte(htmlSample), lookup)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := describeGoLayers(layers); !strings.HasPrefix(got, "html depth 0") || strings.Count(got, "depth 1") != 2 {
+				t.Errorf("the layers are:\n%s", got)
+			}
+			if got := p.IncludedRanges(); len(got) != 1 || got[0].StartByte != 0 || got[0].EndByte != math.MaxUint32 {
+				t.Errorf("after Layers, the included ranges are %v", got)
+			}
 
-	onlyCSS := func(name string) (*inject.Config, bool) {
-		if name == "css" {
-			return lookup(name)
-		}
-		return nil, false
-	}
-	layers, err = html.Layers(context.Background(), p, []byte(htmlSample), onlyCSS)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(layers) != 2 || layers[1].Config.Name() != "css" || layers[1].Name != "css" {
-		t.Errorf("with a lookup of css only, the layers are:\n%s", describeGoLayers(layers))
-	}
+			onlyCSS := func(name string) (*inject.Config, bool) {
+				if name == "css" {
+					return lookup(name)
+				}
+				return nil, false
+			}
+			layers, err = html.Layers(context.Background(), p, []byte(htmlSample), onlyCSS)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(layers) != 2 || layers[1].Config.Name() != "css" || layers[1].Name != "css" {
+				t.Errorf("with a lookup of css only, the layers are:\n%s", describeGoLayers(layers))
+			}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	big := []byte(strings.Repeat(htmlSample, 200))
-	layers, err = html.Layers(ctx, p, big, lookup)
-	if !errors.Is(err, context.Canceled) || layers != nil {
-		t.Errorf("with an ended context, Layers gives %d layers and %v", len(layers), err)
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+			big := []byte(strings.Repeat(htmlSample, 200))
+			layers, err = html.Layers(ctx, p, big, lookup)
+			if !errors.Is(err, context.Canceled) || layers != nil {
+				t.Errorf("with an ended context, Layers gives %d layers and %v", len(layers), err)
+			}
+		})
 	}
 }
 
 // TestInjectNewConfigError checks that a query that does not compile gives
-// a *transit.QueryError, wrapped.
+// a *transit.QueryError, wrapped, with the C tables of html and with its
+// grammar package.
 func TestInjectNewConfigError(t *testing.T) {
 	t.Parallel()
-	html, _ := htmlInject(t)
-	_, err := inject.NewConfig(html.Language(), "html", "(no_such_node) @injection.content")
-	var qerr *transit.QueryError
-	if !errors.As(err, &qerr) || qerr.Kind != transit.QueryErrorNodeType {
-		t.Errorf("the error is %v", err)
+	for _, source := range []string{"C", "Go"} {
+		t.Run(source, func(t *testing.T) {
+			t.Parallel()
+			html, _ := htmlInject(t, source == "Go")
+			_, err := inject.NewConfig(html.Language(), "html", "(no_such_node) @injection.content")
+			var qerr *transit.QueryError
+			if !errors.As(err, &qerr) || qerr.Kind != transit.QueryErrorNodeType {
+				t.Errorf("the error is %v", err)
+			}
+		})
 	}
 }

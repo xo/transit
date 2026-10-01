@@ -9,7 +9,8 @@
 // grammar, it keeps the SHA-256 of parser.c and node-types.json at ABI 14 and
 // ABI 15 in grammars/grammars.json (D40). It runs the tool twice for each file
 // and fails when the two runs differ. It reports which paths of render.rs each
-// parser.c reaches.
+// parser.c reaches. At the end of each run, it writes testdata/failing.txt of
+// each grammar package under grammars/ from the record (D88).
 //
 // Run it from the test module:
 //
@@ -117,7 +118,7 @@ func run(ctx context.Context, w io.Writer, sets []string, only map[string]bool, 
 			return fmt.Errorf("naming the set %q, which is not tests, fixtures, candidates or corpus", s)
 		}
 	}
-	return nil
+	return h.writeFailing()
 }
 
 // harness holds what one run of the harness needs.

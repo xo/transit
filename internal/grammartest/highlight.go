@@ -25,12 +25,6 @@ import (
 // parses a layer at an injection. A layer that upstream adds at an
 // injection capture starts at or after that capture, so it gives the same
 // events.
-//
-// Upstream removes a match from its query cursor with QueryMatch::remove,
-// so that none of its other captures come again. The Go API has no form of
-// it, so each layer keeps the matches that it removed, and it drops a later
-// capture of such a match. A match is known by its pattern and by the
-// captures that it had when it was removed, as in the package inject.
 
 // highlightNone is the value of a highlight that is None upstream.
 const highlightNone = -1
@@ -235,8 +229,6 @@ type highlightIterLayer struct {
 	stop      func()
 	peeked    layerCapture
 	hasPeeked bool
-	// removed holds the matches that remove took out, by pattern.
-	removed map[int][][]transit.QueryCapture
 }
 
 // newHighlightIterLayer makes the layer of highlighting of a layer of
@@ -250,7 +242,6 @@ func newHighlightIterLayer(ctx context.Context, config *highlightConfiguration, 
 		depth:      l.Depth,
 		next:       next,
 		stop:       stop,
-		removed:    map[int][][]transit.QueryCapture{},
 	}
 }
 
@@ -258,15 +249,12 @@ func newHighlightIterLayer(ctx context.Context, config *highlightConfiguration, 
 const maxOffset = int(^uint(0) >> 1)
 
 // peek returns the next capture of the layer, and false when there is
-// none. A capture of a match that remove took out is dropped.
+// none.
 func (l *highlightIterLayer) peek() (layerCapture, bool) {
-	for !l.hasPeeked {
+	if !l.hasPeeked {
 		m, i, ok := l.next()
 		if !ok {
 			return layerCapture{}, false
-		}
-		if l.isRemoved(m) {
-			continue
 		}
 		// the cursor reuses the captures, so the layer keeps a copy
 		m.Captures = slices.Clone(m.Captures)
@@ -281,26 +269,6 @@ func (l *highlightIterLayer) nextCapture() (layerCapture, bool) {
 	c, ok := l.peek()
 	l.hasPeeked = false
 	return c, ok
-}
-
-// remove takes out a match, so that none of its other captures come again.
-//
-// remove is QueryMatch::remove.
-func (l *highlightIterLayer) remove(m transit.QueryMatch) {
-	l.removed[m.PatternIndex] = append(l.removed[m.PatternIndex], m.Captures)
-}
-
-// isRemoved reports whether m is a match that remove took out: a match of
-// the same pattern whose captures start with the captures of that match.
-func (l *highlightIterLayer) isRemoved(m transit.QueryMatch) bool {
-	for _, captures := range l.removed[m.PatternIndex] {
-		if len(captures) <= len(m.Captures) && slices.EqualFunc(captures, m.Captures[:len(captures)], func(a, b transit.QueryCapture) bool {
-			return a.Index == b.Index && a.Node.Equal(b.Node)
-		}) {
-			return true
-		}
-	}
-	return false
 }
 
 // sortKey is the key of the next event of a layer.
@@ -498,7 +466,7 @@ func (it *highlightIter) next() (highlightEvent, bool) {
 		// parsed its layer. Explicitly remove this match so that none of its
 		// other captures will remain in the stream of captures.
 		if match.PatternIndex < layer.config.localsPatternIndex {
-			layer.remove(match)
+			match.Remove()
 			it.sortLayers()
 			continue
 		}
@@ -606,7 +574,7 @@ func (it *highlightIter) next() (highlightEvent, bool) {
 				layer.config.nonLocalVariablePatterns[following.match.PatternIndex] {
 				continue
 			}
-			layer.remove(match)
+			match.Remove()
 			capture = following.match.Captures[following.captureIndex]
 			match = following.match
 		}

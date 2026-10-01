@@ -36,7 +36,8 @@ type uqMatch struct {
 }
 
 // uqLanguages holds the language of each fixture grammar that uqLanguage
-// loaded. A Language is safe to share between goroutines (D52).
+// loaded, by its name and by whether it is the grammar package. A Language
+// is safe to share between goroutines (D52).
 var uqLanguages sync.Map
 
 // uqLanguage returns the language of a fixture grammar. It is get_language
@@ -44,12 +45,13 @@ var uqLanguages sync.Map
 // is missing.
 func uqLanguage(t *testing.T, name string) *transit.Language {
 	t.Helper()
-	if l, ok := uqLanguages.Load(name); ok {
+	key := [2]any{name, onGoPackages(t)}
+	if l, ok := uqLanguages.Load(key); ok {
 		language, _ := l.(*transit.Language)
 		return language
 	}
 	language := fixtureGrammar(t, name).Language
-	uqLanguages.Store(name, language)
+	uqLanguages.Store(key, language)
 	return language
 }
 

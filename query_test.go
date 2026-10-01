@@ -1002,7 +1002,7 @@ func TestQueryDisable(t *testing.T) {
 func TestQueryCancel(t *testing.T) {
 	// A tree of 300 identifiers and a "+" at the end.
 	l := testLanguage(15)
-	pool := newSubtreePool()
+	pool := newSubtreePool(0)
 	var children subtreeArray
 	for range 300 {
 		children = append(children, leaf(&pool, l, testSymIdentifier, 1, 1))

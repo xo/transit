@@ -26,9 +26,12 @@ runtime tests of upstream pass. `StatesAt` (D57, D70) gives the parse states
 at a cursor. The package `inject` finds the injections of a text and parses
 their layers (D27, D72), and its layers match those of upstream on the corpora
 of 22 grammars. D73 records the measurements of the prototype of D47, so the
-end conditions of phase 3 hold. Phase 4, the Go backend, writes literal tables
-and a lexer as data (D74), and it starts before Ken accepts `docs/API.md`
-(D75).
+end conditions of phase 3 hold. In phase 4, the Go backend writes literal
+tables and a lexer as data (D74). The 17 fixture grammars are Go packages in
+15 modules under `grammars/`, with their scanners ported to Go, and every test
+of phase 3 passes on them. The speed targets of D37 hold on them, with target
+3 as D97 states it. Phase 4 ends when Ken accepts `docs/API.md` (D75) and tags
+the first grammar module (D43).
 
 [ts]: https://github.com/tree-sitter/tree-sitter
 
@@ -80,8 +83,8 @@ A bare number, such as D3, names a decision of this repository, in
 `docs/decisions/`. A decision of another repository names that repository,
 such as dbmeta D110. An open question has a number, and it is at the end of
 `docs/PLAN.md` until Ken answers it. The numbers do not repeat: questions 1
-to 63 are answered, no question is open, and the next question is question
-64.
+to 64 are answered, no question is open, and the next question is question
+65.
 
 ## Hard rules
 
@@ -177,7 +180,7 @@ these files:
 | `_samples/sample.c` | Ken's first sample of a C program that uses a grammar, the start of the working C example (D10) |
 | `_samples/example/` | the working C example and its build script (D10). The Go sample programs of D53 come in phase 5, in `_example/` |
 | `_samples/subtree/` | the benchmark of the Go form of a subtree (D29, D62) |
-| `test/` | the test module, with its own `go.mod` (D12). `test/cmd/golden` is the golden harness (D58), `test/cmd/regextables` writes the Unicode tables of the port of `regex-syntax` (D60), and `test/cgrammar` loads a C grammar into the Go runtime, compares the Go trees and the matches of queries with those of the C runtime, measures `StatesAt`, compares the layers of `inject` with those of the Rust oracle, compares the tables, the lexers and the trees of the Go backend and of the grammar packages with those of the C grammars in `gopackage_test.go`, and holds the ported tests of `crates/cli/src/tests` of upstream in `upstream_*_test.go` (D35). `test/injectoracle` is the Rust oracle of `inject` (D71). Its `build.rs` copies `highlight.rs` of the checkout and records each layer that upstream builds, and cargo builds it offline into the cache |
+| `test/` | the test module, with its own `go.mod` (D12). `test/cmd/golden` is the golden harness (D58), `test/cmd/regextables` writes the Unicode tables of the port of `regex-syntax` (D60), and `test/cgrammar` loads a C grammar into the Go runtime, compares the Go trees and the matches of queries with those of the C runtime, measures `StatesAt`, compares the layers of `inject` with those of the Rust oracle, compares the tables, the lexers and the trees of the Go backend and of the grammar packages with those of the C grammars in `gopackage_test.go`, runs the other tests of phase 3 on the grammar packages too through `languages_test.go`, and holds the ported tests of `crates/cli/src/tests` of upstream in `upstream_*_test.go` (D35). `test/injectoracle` is the Rust oracle of `inject` (D71). Its `build.rs` copies `highlight.rs` of the checkout and records each layer that upstream builds, and cargo builds it offline into the cache |
 | `gen.sh` | the script that writes the `replace` block of each `go.mod`, with `-m` (D49) |
 | `cmd/transit/` | the command `transit`, with the subcommand `generate` (D41) |
 | `generate/` | the generator (D7). One Go file ports one Rust file of `crates/generate` (D24) |
