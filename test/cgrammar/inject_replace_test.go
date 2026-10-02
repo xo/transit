@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/xo/transit"
-	"github.com/xo/transit/grammars/usql/usqlpostgres"
+	"github.com/xo/transit/grammars/usql"
 	"github.com/xo/transit/inject"
 )
 
@@ -38,7 +38,7 @@ func usqlPlaceholder(_ string, n transit.Node, src []byte) ([]byte, bool) {
 }
 
 // TestInjectReplacesUsqlVariables parses the input of usql with the usql
-// grammar of the family postgres and the SQL grammar of DerekStride, with
+// grammar with the default options and the SQL grammar of DerekStride, with
 // and without inject.WithReplacer. Without it, each variable is an error in
 // the SQL layer. With it, the SQL layer parses the placeholders, and its
 // offsets are the offsets of the input.
@@ -46,11 +46,11 @@ func TestInjectReplacesUsqlVariables(t *testing.T) {
 	t.Parallel()
 	_, root, cache := oracleSetup(t)
 	configs := goInjectConfigs(t, oracleLanguages(t, root, cache, "sql"), false)
-	query, err := fs.ReadFile(usqlpostgres.Queries, "queries/injections.scm")
+	query, err := fs.ReadFile(usql.Queries, "queries/injections.scm")
 	if err != nil {
 		t.Fatal(err)
 	}
-	usql, err := inject.NewConfig(usqlpostgres.Language(), "usql", string(query))
+	usqlConfig, err := inject.NewConfig(usql.Language(), "usql", string(query))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestInjectReplacesUsqlVariables(t *testing.T) {
 			{"without", nil, true},
 			{"with", []inject.Option{inject.WithReplacer(usqlPlaceholder)}, false},
 		} {
-			layers, err := usql.Layers(context.Background(), transit.NewParser(), []byte(src), lookup, test.opts...)
+			layers, err := usqlConfig.Layers(context.Background(), transit.NewParser(), []byte(src), lookup, test.opts...)
 			if err != nil {
 				t.Fatal(err)
 			}

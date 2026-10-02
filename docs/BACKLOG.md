@@ -16,7 +16,6 @@ agent and the date, and deletes the claim when Ken commits the unit (D50, D61).
 | Unit | Agent | Date |
 | --- | --- | --- |
 | Phase 5, unit 22: the MySQL grammar in `grammars/mysql` (D42, D106) | transit, agent 29 | 2026-10-01 |
-| Phase 5, unit 24: the usql grammar as one language that takes options (D108) | transit, agent 31 | 2026-10-02 |
 
 ## The generator
 

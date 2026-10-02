@@ -127,3 +127,4 @@ An open question is not a decision. It goes at the end of
 | [D106](D106-the-grammars-of-phase-5.md) | The grammars of phase 5 | Decided, amends D42, amended by D107 |
 | [D107](D107-a-grammar-module-takes-the-name-of-its-dialect.md) | A grammar module takes the name of its dialect | Decided, amends D26 and D106, amended by D108 |
 | [D108](D108-the-usql-grammar-is-one-language-that-takes-options.md) | The usql grammar is one language that takes options | Decided, amends D101, D105 and D107 |
+| [D109](D109-the-grammar-modules-fit-a-runner-of-ci.md) | The grammar modules fit a runner of CI | Decided |

@@ -81,11 +81,13 @@ func hashFiles(files ...string) (string, error) {
 }
 
 // buildMode is a build of the C runtime and the C grammars: the folder of
-// the cache that holds it, and the flags of the C compiler that set its
-// optimization.
+// the cache that holds it, the flags of the C compiler that set its
+// optimization, and the C macros of a grammar, such as USQL_OPTIONS=1,
+// which the compiler gets as -D flags.
 type buildMode struct {
-	folder string
-	flags  []string
+	folder  string
+	flags   []string
+	defines []string
 }
 
 var (
@@ -179,6 +181,16 @@ func BuildGrammarVersion(ctx context.Context, dir, cache string) (string, error)
 	return buildGrammarVersion(ctx, dir, cache, testBuild)
 }
 
+// BuildGrammarVersionDefines is BuildGrammarVersion with the C macros
+// defines, such as USQL_OPTIONS=1, which the compiler gets as -D flags. The
+// macros are part of the name of the library in the cache, so each set of
+// macros has a library of its own.
+func BuildGrammarVersionDefines(ctx context.Context, dir, cache string, defines ...string) (string, error) {
+	mode := testBuild
+	mode.defines = defines
+	return buildGrammarVersion(ctx, dir, cache, mode)
+}
+
 // BuildGrammarVersionO2 is BuildGrammarVersion for the benchmarks. It
 // compiles with -O2, in a folder of the cache of its own (D92).
 func BuildGrammarVersionO2(ctx context.Context, dir, cache string) (string, error) {
@@ -216,6 +228,9 @@ func buildGrammar(ctx context.Context, dir, cache string, version *generate.Sema
 	name := filepath.Base(dir) + "-" + key
 	if version != nil {
 		name += fmt.Sprintf("-v%d.%d.%d", version.Major, version.Minor, version.Patch)
+	}
+	if len(mode.defines) > 0 {
+		name += "-D" + strings.Join(mode.defines, "-D")
 	}
 	build := filepath.Join(cache, mode.folder, name)
 	out := filepath.Join(build, "grammar.so")
@@ -303,6 +318,9 @@ func buildLibrary(ctx context.Context, grammarJSON []byte, version *generate.Sem
 	// The headers of the build folder come first, so that the scanner gets
 	// the headers of the same version as parser.c.
 	args := append([]string{"-shared", "-fPIC"}, mode.flags...)
+	for _, d := range mode.defines {
+		args = append(args, "-D"+d)
+	}
 	args = append(args, "-I", build)
 	if src != "" {
 		args = append(args, "-I", src)

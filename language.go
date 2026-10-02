@@ -1,6 +1,7 @@
 package transit
 
 import (
+	"fmt"
 	"io"
 	"iter"
 	"math"
@@ -102,6 +103,18 @@ type Language struct {
 // keeps its own copy of the struct, and it shares the tables.
 func NewLanguage(tables *abi.Language) *Language {
 	return &Language{tables: *tables}
+}
+
+// init sets abi.TablesOf, which gives a grammar package the tables of a
+// language (D108). It ports nothing of upstream.
+func init() {
+	abi.TablesOf = func(l any) abi.Language {
+		language, ok := l.(*Language)
+		if !ok {
+			panic(fmt.Sprintf("transit: abi.TablesOf takes a *transit.Language, not a %T", l))
+		}
+		return language.tables
+	}
 }
 
 // The symbols that every language has.

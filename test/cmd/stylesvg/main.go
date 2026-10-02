@@ -49,8 +49,7 @@ import (
 	"github.com/xo/transit/grammars/rust"
 	"github.com/xo/transit/grammars/typescript/tsx"
 	"github.com/xo/transit/grammars/typescript/typescript"
-	"github.com/xo/transit/grammars/usql/usqlmysql"
-	"github.com/xo/transit/grammars/usql/usqlpostgres"
+	"github.com/xo/transit/grammars/usql"
 	"github.com/xo/transit/internal/grammartest"
 	"github.com/xo/transit/styles"
 )
@@ -87,8 +86,18 @@ var grammars = []grammar{
 	{"rust", "rust", rust.Language, rust.Queries},
 	{"typescript", "typescript/typescript", typescript.Language, typescript.Queries},
 	{"tsx", "typescript/tsx", tsx.Language, tsx.Queries},
-	{"usqlpostgres", "usql/usqlpostgres", usqlpostgres.Language, usqlpostgres.Queries},
-	{"usqlmysql", "usql/usqlmysql", usqlmysql.Language, usqlmysql.Queries},
+	{"usql", usqlFolder, usql.Language, usql.Queries},
+	{"usqlmysql", usqlFolder, usqlMySQL, usql.Queries},
+}
+
+// usqlFolder is the folder of the usql grammar under grammars/. The two
+// samples of the grammar, usql and usqlmysql, use it.
+const usqlFolder = "usql"
+
+// usqlMySQL returns the usql grammar with the options of MySQL, so that the
+// sample usqlmysql shows the backticks and the # comments.
+func usqlMySQL() *transit.Language {
+	return usql.LanguageFor(usql.Options{BlockComments: true, HashComments: true, Backticks: true})
 }
 
 func main() {

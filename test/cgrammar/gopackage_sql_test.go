@@ -9,7 +9,7 @@ import (
 
 	"github.com/xo/transit"
 	"github.com/xo/transit/grammars/sql"
-	"github.com/xo/transit/grammars/usql/usqlpostgres"
+	"github.com/xo/transit/grammars/usql"
 	"github.com/xo/transit/inject"
 	"github.com/xo/transit/internal/abi"
 )
@@ -127,16 +127,16 @@ func TestSQLScannerDeserialize(t *testing.T) {
 }
 
 // TestInjectUsqlIntoSQLPackage parses statements of usql with the usql
-// grammar of the family postgres, and injects them into the Go package of
+// grammar with the default options, and injects them into the Go package of
 // the SQL grammar of DerekStride with inject.WithReplacer. The SQL layer
 // parses the placeholders of the variables with no error.
 func TestInjectUsqlIntoSQLPackage(t *testing.T) {
 	t.Parallel()
-	query, err := fs.ReadFile(usqlpostgres.Queries, "queries/injections.scm")
+	query, err := fs.ReadFile(usql.Queries, "queries/injections.scm")
 	if err != nil {
 		t.Fatal(err)
 	}
-	usql, err := inject.NewConfig(usqlpostgres.Language(), "usql", string(query))
+	usqlConfig, err := inject.NewConfig(usql.Language(), "usql", string(query))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,7 +151,7 @@ func TestInjectUsqlIntoSQLPackage(t *testing.T) {
 		"select * from :tbl where id = :id;",
 		"select :'s', :\"c\" from t where :{?flag};",
 	} {
-		layers, err := usql.Layers(context.Background(), transit.NewParser(), []byte(src), lookup, inject.WithReplacer(usqlPlaceholder))
+		layers, err := usqlConfig.Layers(context.Background(), transit.NewParser(), []byte(src), lookup, inject.WithReplacer(usqlPlaceholder))
 		if err != nil {
 			t.Fatal(err)
 		}

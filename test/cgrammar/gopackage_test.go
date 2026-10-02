@@ -76,10 +76,17 @@ func goPackageEntry(t *testing.T, root, name string) fixture {
 // grammar.
 func loadGoPackage(t *testing.T, gp goPackage) (*Grammar, []Example) {
 	t.Helper()
+	return loadGoPackageDefines(t, gp)
+}
+
+// loadGoPackageDefines is loadGoPackage with the C macros defines, which
+// BuildGrammarVersionDefines gives the compiler, such as USQL_OPTIONS=1.
+func loadGoPackageDefines(t *testing.T, gp goPackage, defines ...string) (*Grammar, []Example) {
+	t.Helper()
 	root, cache := setup(t)
 	f := goPackageEntry(t, root, gp.name)
 	dir, corpusDir := grammarDirs(cache, f)
-	so, err := BuildGrammarVersion(context.Background(), dir, cache)
+	so, err := BuildGrammarVersionDefines(context.Background(), dir, cache, defines...)
 	if errors.Is(err, ErrMissing) {
 		t.Skipf("skipping: %v", err)
 	}

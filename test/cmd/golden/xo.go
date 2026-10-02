@@ -15,14 +15,16 @@ const xoRepository = "https://github.com/xo/transit"
 
 // xoGrammars runs the upstream tool on each grammar that xo writes, at
 // ABI 14 and ABI 15, and writes the hashes to the record. Such a grammar is
-// a module grammars/<name> whose packages hold their grammar.js, which no
-// module of another repository holds (D104). It copies each such module of
-// the repository into the cache, as part of the checkout of the repository
-// xo/transit in which the other sets of the harness and the tests find a
-// grammar. The upstream tool makes the grammar.json of each grammar from its
-// grammar.js, as for a candidate that commits none (D51). The harness also
-// writes it into the folder of the grammar package, which holds grammar.json
-// as a package of another repository does. Such an entry has no tag and no
+// a module grammars/<name> whose folder or whose packages hold their
+// grammar.js, which no module of another repository holds (D104). It copies
+// each such module that it runs into the cache, as part of the checkout of
+// the repository xo/transit in which the other sets of the harness and the
+// tests find a grammar. It replaces only the copies of the modules that it
+// runs, so a run with -only keeps the copies of the other modules. The
+// upstream tool makes the grammar.json of each grammar from its grammar.js,
+// as for a candidate that commits none (D51). The harness also writes it
+// into the folder of the grammar package, which holds grammar.json as a
+// package of another repository does. Such an entry has no tag and no
 // commit, because the grammar is in the repository that holds the record.
 func (h *harness) xoGrammars(ctx context.Context, report *coverage) error {
 	modules, err := xoModules(filepath.Join(h.root, "grammars"))
@@ -30,21 +32,23 @@ func (h *harness) xoGrammars(ctx context.Context, report *coverage) error {
 		return err
 	}
 	checkout := filepath.Join(h.cache, "grammars", cacheName(xoRepository))
-	if err := os.RemoveAll(filepath.Join(checkout, "grammars")); err != nil {
-		return fmt.Errorf("deleting the old copy of the grammars of xo: %w", err)
-	}
 	if err := os.MkdirAll(filepath.Join(checkout, "grammars"), 0o755); err != nil {
 		return fmt.Errorf("making %s: %w", filepath.Join(checkout, "grammars"), err)
 	}
 	var names []string
 	for _, name := range modules {
+		if !h.wanted(name) {
+			continue
+		}
+		dst := filepath.Join(checkout, "grammars", name)
+		if err := os.RemoveAll(dst); err != nil {
+			return fmt.Errorf("deleting the old copy of grammars/%s: %w", name, err)
+		}
 		src := filepath.Join(h.root, "grammars", name)
-		if _, err := command(ctx, "", "cp", "-a", src, filepath.Join(checkout, "grammars", name)); err != nil {
+		if _, err := command(ctx, "", "cp", "-a", src, dst); err != nil {
 			return fmt.Errorf("copying grammars/%s to the cache: %w", name, err)
 		}
-		if h.wanted(name) {
-			names = append(names, name)
-		}
+		names = append(names, name)
 	}
 	rec, err := h.readRecord()
 	if err != nil {

@@ -132,19 +132,21 @@ the dialect, so the package name can differ from the grammar name (D107).
 | `github.com/xo/transit/grammars/graphql` | `graphql` | [bkegley/tree-sitter-graphql](https://github.com/bkegley/tree-sitter-graphql) | the branch `master` at `5e66e96` |
 | `github.com/xo/transit/grammars/ydb` | `yql` | [udovin/tree-sitter-yql](https://github.com/udovin/tree-sitter-yql) | the branch `main` at `7e8d3e1` |
 
-xo writes some grammars in this repository (D42, D104). The module
-`github.com/xo/transit/grammars/usql` holds the grammar of the input of
-usql: SQL statements, meta commands such as `\d` and variables such as
-`:name` (D13). It has one package for each family of SQL dialects (D101):
+xo writes some grammars in this repository (D42, D104). The package
+`github.com/xo/transit/grammars/usql` holds the grammar `usql` of the input
+of usql: SQL statements, meta commands such as `\d` and variables such as
+`:name` (D13). It is one language for every SQL dialect (D108). `Language`
+gives the language with dollar quotes and block comments, the options of
+PostgreSQL. `LanguageFor` gives the language with the options of another
+dialect, with the same tables:
 
-| Package | Family |
-| --- | --- |
-| `github.com/xo/transit/grammars/usql/usqlpostgres` | dollar quotes and block comments, for PostgreSQL and the dialects like it |
-| `github.com/xo/transit/grammars/usql/usqlmysql` | block comments, `#` comments and backticks, for MySQL and the dialects like it |
-| `github.com/xo/transit/grammars/usql/usqlsqlite` | block comments and backticks, for SQLite and the dialects like it |
-| `github.com/xo/transit/grammars/usql/usqlstandard` | block comments only, for SQL Server, Oracle, ClickHouse, Trino, DuckDB and the others |
-| `github.com/xo/transit/grammars/usql/usqlcql` | dollar quotes, block comments and `//` comments, for CQL |
-| `github.com/xo/transit/grammars/usql/usqlplain` | none of these, for the dialects that set no option |
+```go
+lang := usql.LanguageFor(usql.Options{BlockComments: true, HashComments: true, Backticks: true})
+```
+
+The fields of `usql.Options` are the flags of the type `Syntax` of dbmeta:
+`DollarQuotes`, `BlockComments`, `SlashComments`, `HashComments` and
+`Backticks`.
 
 Some grammars ship queries written for Neovim, which transit does not support
 now. [docs/NEOVIM.md](docs/NEOVIM.md) lists them.

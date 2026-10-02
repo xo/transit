@@ -283,41 +283,46 @@ stage" in `AGENTS.md`, and its golden files are made again.
 
 The folder `grammars/<name>` is the module of the grammar, and it is laid
 out as the checkout of a grammar repository and as a grammar module at once.
-`grammars/usql` holds six grammars, one for each family of dialects
-(D101), as `tree-sitter-typescript` holds two:
+`grammars/usql` holds one grammar, `usql`, at the root of the module. Its
+package is `usql`. The grammar is one language for every SQL dialect, and
+the options of the dialect change only its scanner (D108):
 
 | Path | What it holds | Who writes it |
 | --- | --- | --- |
-| `go.mod`, `LICENSE`, `tree-sitter.json` | the module, the license of transit, and the grammars with their versions | a person |
-| `common/define-grammar.js` | the rules, which take the name of the family | a person |
-| `common/scanner.h` | the external scanner, which takes the flags of the family | a person |
-| `queries/`, `test/corpus/` | the queries and the corpus of every grammar | a person |
-| `usql<family>/grammar.js` | the grammar of the family, which calls `common/define-grammar.js` | a person |
-| `usql<family>/src/scanner.c` | the scanner of the family, which includes `common/scanner.h` and sets the flags of the family | a person |
-| `usql<family>/grammar.json` | the grammar that the upstream tool makes from `grammar.js` | the golden harness |
-| `usql<family>/parser.go`, `node-types.json`, `grammar_test.go` | the files of the grammar package | `transit generate` |
-| `usql<family>/queries/`, `usql<family>/testdata/corpus/` | copies of `queries/` and `test/corpus/` of the module | copied |
-| `usql<family>/scanner.go` | the port of `src/scanner.c` | a person |
-| `internal/scan/` | the port of `common/scanner.h` | a person |
+| `go.mod`, `LICENSE`, `tree-sitter.json` | the module, the license of transit, and the grammar with its version | a person |
+| `grammar.js` | the rules of the grammar | a person |
+| `src/scanner.c` | the external scanner, which reads the options from the macro `USQL_OPTIONS` | a person |
+| `queries/`, `test/corpus/` | the queries and the corpus of the grammar | a person |
+| `grammar.json` | the grammar that the upstream tool makes from `grammar.js` | the golden harness |
+| `parser.go`, `node-types.json`, `grammar_test.go` | the files of the grammar package | `transit generate` |
+| `testdata/corpus/` | a copy of `test/corpus/` | copied |
+| `scanner.go` | the port of `src/scanner.c` | a person |
+| `options.go` | `Options`, the options of a dialect, and `LanguageFor`, which gives the language with a scanner that reads them | a person |
+| `testdata/options/<name>.txt` | the corpus cases that need options other than the default, which `options_test.go` runs with the options `<name>` | a person |
 
-The set `xo` of the golden harness copies each module that xo writes into
-the cache, as part of the checkout of the repository `xo/transit`. It finds
-such a module by the `grammar.js` of its packages, which no module of
-another repository holds (D104). The cache is where the other sets and the
-test module find a grammar. The upstream tool makes the `grammar.json` of
-each grammar from its `grammar.js`, and the harness writes it into the
-folder of the package. The entry of the grammar has no tag and no commit.
-After a change to a grammar, run the harness on it, then generate its
-packages again:
+The upstream tool, the golden harness and the corpus test use the default
+options of `src/scanner.c`: dollar quotes and block comments. A new option
+is one new field of `Options` and one new flag of `src/scanner.c`, and the
+field and the flag are in the same order. The test module builds the C
+scanner once for each set of options that it tests, with
+`-DUSQL_OPTIONS=<n>`, and compares it with the Go scanner of
+`LanguageFor` with the same options.
+
+The set `xo` of the golden harness copies each module that xo writes and
+that it runs into the cache, as part of the checkout of the repository
+`xo/transit`. It replaces only the copies of the modules that it runs. It
+finds such a module by its `grammar.js`, at the root of the module or in a
+package folder, which no module of another repository holds (D104). The
+cache is where the other sets and the test module find a grammar. The
+upstream tool makes the `grammar.json` of each grammar from its
+`grammar.js`, and the harness writes it into the folder of the package. The
+entry of the grammar has no tag and no commit. After a change to a grammar,
+run the harness on it, then generate its package again:
 
 ```bash
 cd test && go run ./cmd/golden -set xo,corpus -only usql,xo/transit
+cd .. && go run ./cmd/transit generate --backend go grammars/usql
 ```
-
-Each corpus case of a module with more than one grammar names its grammar
-with `:language`. After a case with `:language`, `tree-sitter test` of
-upstream runs a case that names none with the grammar whose name sorts
-first, and not with the first grammar of `tree-sitter.json`.
 
 ## Tests
 

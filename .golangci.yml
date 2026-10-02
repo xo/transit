@@ -200,8 +200,9 @@ linters:
           - unparam
       # The package comment of a grammar package is in its generated
       # parser.go, and golangci-lint skips a generated file, so revive does
-      # not see the comment when it lints scanner.go.
-      - path: grammars/.*/scanner\.go
+      # not see the comment when it lints scanner.go, or options.go of the
+      # usql grammar.
+      - path: grammars/.*/(scanner|options)\.go
         linters:
           - revive
         text: package-comments

@@ -42,6 +42,14 @@ change transit from usql.
 8. The package `github.com/xo/transit/styles` holds styles that are keyed on
    capture names, so that usql and rline draw the same code in the same
    colors (D65). It is a module of its own (D99).
+9. The usql grammar is one language, the package `usql` of
+   `github.com/xo/transit/grammars/usql` (D108). usql gives it the options of
+   the syntax of the dialect with `usql.LanguageFor`. The fields of
+   `usql.Options` are the flags of the type `Syntax` of dbmeta, with the same
+   names: `DollarQuotes`, `BlockComments`, `SlashComments`, `HashComments`
+   and `Backticks`. `usql.Language` has dollar quotes and block comments,
+   the options of PostgreSQL. A comment that starts with `--` is a comment
+   with every set of options.
 
 ## What usql will replace
 

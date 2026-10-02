@@ -9,7 +9,7 @@ import (
 	"github.com/xo/transit"
 	"github.com/xo/transit/grammars/postgres/plpgsql"
 	"github.com/xo/transit/grammars/postgres/postgres"
-	"github.com/xo/transit/grammars/usql/usqlpostgres"
+	"github.com/xo/transit/grammars/usql"
 	"github.com/xo/transit/inject"
 )
 
@@ -29,7 +29,7 @@ func injectConfig(t *testing.T, language *transit.Language, queries fs.FS, name 
 }
 
 // TestInjectUsqlIntoPostgres parses the input of usql with the usql grammar
-// of the family postgres, and injects each statement into the Go package
+// with the default options, and injects each statement into the Go package
 // postgres, with inject.WithReplacer and usqlPlaceholder. The name sql of
 // the injection query of usql gives postgres, as a host that maps sql to the
 // dialect of the user does (D102). The usql layer and the layer of each
@@ -43,7 +43,7 @@ func injectConfig(t *testing.T, language *transit.Language, queries fs.FS, name 
 // rule 6).
 func TestInjectUsqlIntoPostgres(t *testing.T) {
 	t.Parallel()
-	usql := injectConfig(t, usqlpostgres.Language(), usqlpostgres.Queries, "usql")
+	usqlConfig := injectConfig(t, usql.Language(), usql.Queries, "usql")
 	pg := injectConfig(t, postgres.Language(), postgres.Queries, "postgres")
 	pl := injectConfig(t, plpgsql.Language(), plpgsql.Queries, "plpgsql")
 	configs := map[string]*inject.Config{"sql": pg, "postgres": pg, "plpgsql": pl}
@@ -70,7 +70,7 @@ func TestInjectUsqlIntoPostgres(t *testing.T) {
 			[]bool{false, false, true},
 		},
 	} {
-		layers, err := usql.Layers(context.Background(), transit.NewParser(), []byte(c.src), lookup, inject.WithReplacer(usqlPlaceholder))
+		layers, err := usqlConfig.Layers(context.Background(), transit.NewParser(), []byte(c.src), lookup, inject.WithReplacer(usqlPlaceholder))
 		if err != nil {
 			t.Fatal(err)
 		}

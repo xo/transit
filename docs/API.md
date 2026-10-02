@@ -645,8 +645,8 @@ The queries match the text of `src`, and only the parse of the layer reads
 the new text. A text whose length is not the length of its node is an error
 of `Layers`.
 
-The test module shows it with the grammar `usqlpostgres` and the SQL grammar
-of DerekStride. `select * from :tbl where id = :id` gives a SQL layer with an
+The test module shows it with the grammar `usql` and the SQL grammar of
+DerekStride. `select * from :tbl where id = :id` gives a SQL layer with an
 error, and with this replacer the layer has no error:
 
 ```go
@@ -736,6 +736,41 @@ A grammar that has an external scanner gets its scanner from the function
 returns a value that implements the scanner of the tables, so `Language`
 wires `Scan`, `Serialize` and `Deserialize`. The runtime gives `Scan` the
 valid external tokens of each state from the tables.
+
+### The package usql
+
+The package `github.com/xo/transit/grammars/usql` holds the grammar of the
+input of usql, which xo writes (D13, D42). It is one language for every SQL
+dialect, and its scanner takes the options of the dialect (D108). A person
+writes this API in `options.go`, beside the generated files:
+
+```go
+package usql
+
+// Options are the options of the syntax of a SQL dialect that the external
+// scanner reads. Each field is a flag of the type Syntax of dbmeta, with the
+// same name.
+type Options struct {
+	DollarQuotes  bool // $tag$ ... $tag$ and $$ ... $$ are a string
+	BlockComments bool // /* ... */ is a comment
+	SlashComments bool // // starts a comment
+	HashComments  bool // # starts a comment
+	Backticks     bool // `...` is a quoted identifier
+}
+
+// LanguageFor returns the language with an external scanner that reads
+// opts. Every set of options uses the tables of Language.
+func LanguageFor(opts Options) *transit.Language
+```
+
+`Language` gives the language with dollar quotes and block comments, the
+options of PostgreSQL, because the client lexer of PostgreSQL is the
+reference of the grammar (D101). `LanguageFor` gives `Language` for these
+options, and for other options it builds a language once and keeps it. A
+new option is a new field and a new flag of the scanner, and no new grammar
+(D108). The package reads the tables of `Language` with `abi.TablesOf`, a
+function of the internal package `abi` that the root package sets. So the
+root package exports nothing new for it.
 
 ## The module styles
 

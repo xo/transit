@@ -84,8 +84,8 @@ A bare number, such as D3, names a decision of this repository, in
 `docs/decisions/`. A decision of another repository names that repository,
 such as dbmeta D110. An open question has a number, and it is at the end of
 `docs/PLAN.md` until Ken answers it. The numbers do not repeat: questions 1
-to 78 but 77 are answered, questions 77 and 79 are open, and the next question
-is question 80.
+to 80 but 77 and 79 are answered, questions 77 and 79 are open, and the next
+question is question 81.
 
 ## Hard rules
 
@@ -175,7 +175,7 @@ these files:
 | `inject/` | the package `inject`, which finds the injections of a text and parses their layers. `highlight.go` ports the injection part of `crates/highlight/src/highlight.rs` (D27, D72) |
 | `states_at.go` | `StatesAt`, the first API that upstream does not have (D57, D70). It ports no upstream file (D28) |
 | `node_type.go` | `NodeType`, the form of `node-types.json` that the `NodeTypes` function of a grammar package returns. It ports no upstream file (D28) |
-| `internal/abi/` | the tables of a grammar in the shape of `TSLanguage`, a port of `lib/src/parser.h` (D63), and `LexTable`, which runs a lex table that the Go backend writes as data (D74) |
+| `internal/abi/` | the tables of a grammar in the shape of `TSLanguage`, a port of `lib/src/parser.h` (D63), `LexTable`, which runs a lex table that the Go backend writes as data (D74), and `TablesOf`, which gives a grammar package the tables of a language, for the options of the usql grammar (D108) |
 | `internal/wctype/` | the character functions of `<wctype.h>` and `<ctype.h>` that the Go scanners call, which the test module sets to the C locale (D39, D46) |
 | `internal/grammartest/` | the tests of a grammar package, which its `grammar_test.go` calls: the corpus, the queries, the highlight tests and the generator. `test.go` and `query_testing.go` port parts of `crates/cli/src/test.rs` and `query_testing.rs`, and `spans.go` gives the highlights to `test/cmd/stylesvg` |
 | `skills_test.go`, `docs_test.go` | the tests of the agent setup and the documents |
@@ -197,7 +197,7 @@ these files:
 | `generate/testdata/` | the golden files of the 68 test grammars, which the harness writes |
 | `grammars/grammars.json` | the record of every grammar, with the hashes of its golden files (D40) |
 | `grammars/<module>/` | the grammar modules of the 17 fixture grammars, one for each upstream repository, which `docs/GRAMMAR.md` lays out and `README.md` lists. Each package holds its generated `parser.go` and, when the grammar has one, its ported `scanner.go` |
-| `grammars/usql/` | the module of the usql grammar, which xo writes (D13, D42, D104). One `common/define-grammar.js` and one `common/scanner.h` make a grammar for each family of SQL dialects (D101, D102). Each package, such as `usqlpostgres`, holds its `grammar.js`, its `src/scanner.c`, which sets the family, and its `scanner.go`. The package `internal/scan` ports `common/scanner.h`. `queries/` and `test/corpus/` of the module are the sources of the copies in each package |
+| `grammars/usql/` | the module and the package `usql` of the usql grammar, which xo writes (D13, D42, D104). It is one language, whose scanner takes the options of a SQL dialect (D101, D102, D108). The module holds `grammar.js`, `src/scanner.c`, which reads the options from the macro `USQL_OPTIONS`, `scanner.go`, its port, and `options.go`, which holds `Options` and `LanguageFor`. `testdata/corpus/` is a copy of `test/corpus/`, and `testdata/options/` holds the cases that need options that are not the default |
 | `grammars/sql/`, `grammars/sqlserver/`, `grammars/oracle/`, `grammars/cql/` | the modules of the SQL grammars of `DerekStride/tree-sitter-sql`, `Crary-Systems/tree-sitter-tsql`, `andreasmaierde/tree-sitter-plsql` and `shotover/tree-sitter-cql` (D106). A module of the language of one dialect has the name of the dialect, and each package has the name of its folder (D107). `grammars/sql` holds the port of the scanner of its grammar in `scanner.go` |
 | `grammars/postgres/` | the module of `gmr/tree-sitter-postgres`, with the packages `postgres` and `plpgsql`, each with its own corpus and its ported `scanner.go`. `tree-sitter.json` of upstream lists only `postgres`, so the package `plpgsql` runs each case of its own corpus |
 | `grammars/neo4j/`, `grammars/surrealdb/`, `grammars/sparql/`, `grammars/graphql/`, `grammars/ydb/` | the modules of the grammars of the languages of dbmeta that are not SQL: `taekwombo/tree-sitter-cypher`, `surrealdb/surrealql-tree-sitter`, `GordianDziwis/tree-sitter-sparql`, `bkegley/tree-sitter-graphql` and `udovin/tree-sitter-yql` (D21, D23). A module of the language of one dialect has the name of the dialect (D107). `grammars/surrealdb` holds the port of the scanner of its grammar in `scanner.go`. `grammars/ydb` has no license file, because its repository has none (D20) |
@@ -230,7 +230,7 @@ go vet ./...
 go test -race -count=1 ./...
 golangci-lint run ./...
 (cd test && go vet ./... && go test -race -count=1 -timeout 60m ./... && golangci-lint run ./...)
-for m in grammars/*/go.mod; do (cd "$(dirname "$m")" && go vet ./... && go test -race -count=1 -timeout 60m ./... && golangci-lint run ./...) || exit 1; done
+for m in grammars/*/go.mod; do (cd "$(dirname "$m")" && go vet ./... && go test -race -count=1 -timeout 60m -skip TestGenerator ./... && GOGC=25 go test -count=1 -timeout 60m -run TestGenerator ./... && GOGC=25 golangci-lint run --concurrency 1 --disable dupl,goconst,gosec ./...) || exit 1; done
 (cd styles && go vet ./... && go test -race -count=1 ./... && golangci-lint run ./...)
 ```
 

@@ -35,8 +35,11 @@ jobs:
       # under -race, more than the default timeout of 10 minutes (D87)
       run: go vet ./... && go test -race -count=1 -timeout 60m ./...
     - name: Grammar modules
-      # each grammar module has its own go.mod (D26, D79)
-      run: for m in grammars/*/go.mod; do (cd "$(dirname "$m")" && go vet ./... && go test -race -count=1 -timeout 60m ./...) || exit 1; done
+      # each grammar module has its own go.mod (D26, D79). The generator test
+      # of postgres needs about 12 GB, and -race makes it more than a runner
+      # has, so the generator tests run once more without -race, with a
+      # smaller heap
+      run: for m in grammars/*/go.mod; do (cd "$(dirname "$m")" && go vet ./... && go test -race -count=1 -timeout 60m -skip TestGenerator ./... && GOGC=25 go test -count=1 -timeout 60m -run TestGenerator ./...) || exit 1; done
     - name: Styles module
       # the module styles has its own go.mod (D99)
       working-directory: styles
@@ -44,6 +47,11 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    env:
+      # the 31 MB parser.go of postgres makes a cold lint of a module that
+      # imports it need about 15 GB. With GOGC=25 and one job at a time, it
+      # needs about 9 GB
+      GOGC: 25
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -59,9 +67,11 @@ jobs:
       run: golangci-lint run ./...
     - name: Lint the test module
       working-directory: test
-      run: golangci-lint run ./...
+      run: golangci-lint run --concurrency 1 ./...
     - name: Lint the grammar modules
-      run: for m in grammars/*/go.mod; do (cd "$(dirname "$m")" && golangci-lint run ./...) || exit 1; done
+      # dupl, goconst and gosec find nothing in a grammar package and take
+      # most of the memory on the generated parser.go of postgres (D109)
+      run: for m in grammars/*/go.mod; do (cd "$(dirname "$m")" && golangci-lint run --concurrency 1 --disable dupl,goconst,gosec ./...) || exit 1; done
     - name: Lint the styles module
       working-directory: styles
       run: golangci-lint run ./...

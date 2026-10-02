@@ -10849,18 +10849,18 @@
       }
     },
     {
-      "name": "usql_cql",
-      "package": "usqlcql",
+      "name": "usql",
+      "package": "usql",
       "repository": "https://github.com/xo/transit",
       "commit": "",
-      "path": "grammars/usql/usqlcql",
+      "path": "grammars/usql",
       "license": "MIT",
       "scanner": true,
       "set": "xo",
       "status": "available",
       "golden": {
         "abi14": {
-          "parser_c": "c5147f6f3ad8792a734185b9cb648a430774560ba3624f2594c75496e65ad995",
+          "parser_c": "9f2edb9197af25e2be09fb40d912e9d6ed5d26b79af66b50de2a9897b63be9c6",
           "node_types": "8890a72b97de981c9b0825e37d992a79b6e6024916d36976b6369a242f38e570",
           "paths": [
             "field map",
@@ -10877,7 +10877,7 @@
           ]
         },
         "abi15": {
-          "parser_c": "9b2dcf03314789a7fbb135d81e1b511e7e83d28796b62b794917b835a25b1463",
+          "parser_c": "76fcdbf1806c5f949d777902656c8fdf03abce2347b4930913e65d67c8e27eff",
           "node_types": "8890a72b97de981c9b0825e37d992a79b6e6024916d36976b6369a242f38e570",
           "paths": [
             "field map",
@@ -10896,272 +10896,7 @@
         }
       },
       "corpus": {
-        "tests": 74,
-        "failures": 0,
-        "transit": "same"
-      }
-    },
-    {
-      "name": "usql_mysql",
-      "package": "usqlmysql",
-      "repository": "https://github.com/xo/transit",
-      "commit": "",
-      "path": "grammars/usql/usqlmysql",
-      "license": "MIT",
-      "scanner": true,
-      "set": "xo",
-      "status": "available",
-      "golden": {
-        "abi14": {
-          "parser_c": "2d99e84451eb172cc6dd419c272d0208b92508663e6df366474bf694965ae3b8",
-          "node_types": "8890a72b97de981c9b0825e37d992a79b6e6024916d36976b6369a242f38e570",
-          "paths": [
-            "field map",
-            "alias sequences",
-            "non-terminal alias map",
-            "external scanner",
-            "external lex state",
-            "eof action",
-            "small parse table",
-            "SHIFT_REPEAT",
-            "SHIFT_EXTRA",
-            "RECOVER",
-            "ABI 14 lex modes"
-          ]
-        },
-        "abi15": {
-          "parser_c": "9de0fad35a34858342242ad122f1facaa7d0f0f6ba1a50e4329ebeeda985a8c7",
-          "node_types": "8890a72b97de981c9b0825e37d992a79b6e6024916d36976b6369a242f38e570",
-          "paths": [
-            "field map",
-            "alias sequences",
-            "non-terminal alias map",
-            "external scanner",
-            "external lex state",
-            "eof action",
-            "small parse table",
-            "SHIFT_REPEAT",
-            "SHIFT_EXTRA",
-            "RECOVER",
-            "ABI 15 lex modes",
-            "grammar version"
-          ]
-        }
-      },
-      "corpus": {
-        "tests": 74,
-        "failures": 0,
-        "transit": "same"
-      }
-    },
-    {
-      "name": "usql_plain",
-      "package": "usqlplain",
-      "repository": "https://github.com/xo/transit",
-      "commit": "",
-      "path": "grammars/usql/usqlplain",
-      "license": "MIT",
-      "scanner": true,
-      "set": "xo",
-      "status": "available",
-      "golden": {
-        "abi14": {
-          "parser_c": "70645c75ea2458edf5a68f4c531afc7806087bf390f5d06a6092a714b0006477",
-          "node_types": "8890a72b97de981c9b0825e37d992a79b6e6024916d36976b6369a242f38e570",
-          "paths": [
-            "field map",
-            "alias sequences",
-            "non-terminal alias map",
-            "external scanner",
-            "external lex state",
-            "eof action",
-            "small parse table",
-            "SHIFT_REPEAT",
-            "SHIFT_EXTRA",
-            "RECOVER",
-            "ABI 14 lex modes"
-          ]
-        },
-        "abi15": {
-          "parser_c": "1c371f57f76608625718524994eca0e3332a6cc6788c2620fa954bb7a129f663",
-          "node_types": "8890a72b97de981c9b0825e37d992a79b6e6024916d36976b6369a242f38e570",
-          "paths": [
-            "field map",
-            "alias sequences",
-            "non-terminal alias map",
-            "external scanner",
-            "external lex state",
-            "eof action",
-            "small parse table",
-            "SHIFT_REPEAT",
-            "SHIFT_EXTRA",
-            "RECOVER",
-            "ABI 15 lex modes",
-            "grammar version"
-          ]
-        }
-      },
-      "corpus": {
-        "tests": 74,
-        "failures": 0,
-        "transit": "same"
-      }
-    },
-    {
-      "name": "usql_postgres",
-      "package": "usqlpostgres",
-      "repository": "https://github.com/xo/transit",
-      "commit": "",
-      "path": "grammars/usql/usqlpostgres",
-      "license": "MIT",
-      "scanner": true,
-      "set": "xo",
-      "status": "available",
-      "golden": {
-        "abi14": {
-          "parser_c": "09b4e42e0966bc0bb561156a3414c39b406985b6e149f83852ecc7cc6453eac2",
-          "node_types": "8890a72b97de981c9b0825e37d992a79b6e6024916d36976b6369a242f38e570",
-          "paths": [
-            "field map",
-            "alias sequences",
-            "non-terminal alias map",
-            "external scanner",
-            "external lex state",
-            "eof action",
-            "small parse table",
-            "SHIFT_REPEAT",
-            "SHIFT_EXTRA",
-            "RECOVER",
-            "ABI 14 lex modes"
-          ]
-        },
-        "abi15": {
-          "parser_c": "cbe758518bb471ab466d1a26bb95923a84c7783eff29b5076fac242dcd3d1385",
-          "node_types": "8890a72b97de981c9b0825e37d992a79b6e6024916d36976b6369a242f38e570",
-          "paths": [
-            "field map",
-            "alias sequences",
-            "non-terminal alias map",
-            "external scanner",
-            "external lex state",
-            "eof action",
-            "small parse table",
-            "SHIFT_REPEAT",
-            "SHIFT_EXTRA",
-            "RECOVER",
-            "ABI 15 lex modes",
-            "grammar version"
-          ]
-        }
-      },
-      "corpus": {
-        "tests": 74,
-        "failures": 0,
-        "transit": "same"
-      }
-    },
-    {
-      "name": "usql_sqlite",
-      "package": "usqlsqlite",
-      "repository": "https://github.com/xo/transit",
-      "commit": "",
-      "path": "grammars/usql/usqlsqlite",
-      "license": "MIT",
-      "scanner": true,
-      "set": "xo",
-      "status": "available",
-      "golden": {
-        "abi14": {
-          "parser_c": "8a04c4e1ed408bf343f5be61f5a8e268d5d734bc337eb0549e84593b2a9fecd7",
-          "node_types": "8890a72b97de981c9b0825e37d992a79b6e6024916d36976b6369a242f38e570",
-          "paths": [
-            "field map",
-            "alias sequences",
-            "non-terminal alias map",
-            "external scanner",
-            "external lex state",
-            "eof action",
-            "small parse table",
-            "SHIFT_REPEAT",
-            "SHIFT_EXTRA",
-            "RECOVER",
-            "ABI 14 lex modes"
-          ]
-        },
-        "abi15": {
-          "parser_c": "59bd2865651c045aab9e03f085e3d83744041db0927ca86e720a1d9c7dedb304",
-          "node_types": "8890a72b97de981c9b0825e37d992a79b6e6024916d36976b6369a242f38e570",
-          "paths": [
-            "field map",
-            "alias sequences",
-            "non-terminal alias map",
-            "external scanner",
-            "external lex state",
-            "eof action",
-            "small parse table",
-            "SHIFT_REPEAT",
-            "SHIFT_EXTRA",
-            "RECOVER",
-            "ABI 15 lex modes",
-            "grammar version"
-          ]
-        }
-      },
-      "corpus": {
-        "tests": 74,
-        "failures": 0,
-        "transit": "same"
-      }
-    },
-    {
-      "name": "usql_standard",
-      "package": "usqlstandard",
-      "repository": "https://github.com/xo/transit",
-      "commit": "",
-      "path": "grammars/usql/usqlstandard",
-      "license": "MIT",
-      "scanner": true,
-      "set": "xo",
-      "status": "available",
-      "golden": {
-        "abi14": {
-          "parser_c": "f263c6acdd92d679f696a65cbbbc2f158d931e2553e29bb00ad1d0c0f21db39e",
-          "node_types": "8890a72b97de981c9b0825e37d992a79b6e6024916d36976b6369a242f38e570",
-          "paths": [
-            "field map",
-            "alias sequences",
-            "non-terminal alias map",
-            "external scanner",
-            "external lex state",
-            "eof action",
-            "small parse table",
-            "SHIFT_REPEAT",
-            "SHIFT_EXTRA",
-            "RECOVER",
-            "ABI 14 lex modes"
-          ]
-        },
-        "abi15": {
-          "parser_c": "2a0cc6731fb8b1b724b639322a23e6156e40a77db71c3ddb75f9929ded157ac2",
-          "node_types": "8890a72b97de981c9b0825e37d992a79b6e6024916d36976b6369a242f38e570",
-          "paths": [
-            "field map",
-            "alias sequences",
-            "non-terminal alias map",
-            "external scanner",
-            "external lex state",
-            "eof action",
-            "small parse table",
-            "SHIFT_REPEAT",
-            "SHIFT_EXTRA",
-            "RECOVER",
-            "ABI 15 lex modes",
-            "grammar version"
-          ]
-        }
-      },
-      "corpus": {
-        "tests": 74,
+        "tests": 65,
         "failures": 0,
         "transit": "same"
       }

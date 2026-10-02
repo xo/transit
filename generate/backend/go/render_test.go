@@ -150,7 +150,7 @@ func TestPackageName(t *testing.T) {
 		"grammars/go":                                     "golang",
 		"grammars/sqlserver":                              "sqlserver",
 		"grammars/php/phponly":                            "phponly",
-		"grammars/usql/usqlpostgres/":                     "usqlpostgres",
+		"grammars/typescript/typescript/":                 "typescript",
 		"/mod/github.com/xo/transit/grammars/json@v0.1.0": "json",
 		"grammars/Upper":                                  "upper",
 	} {

@@ -2,37 +2,74 @@ package cgrammar
 
 import (
 	"bytes"
+	"fmt"
 	"math/rand/v2"
+	"path/filepath"
+	"reflect"
 	"testing"
 
-	"github.com/xo/transit/grammars/usql/usqlcql"
-	"github.com/xo/transit/grammars/usql/usqlmysql"
-	"github.com/xo/transit/grammars/usql/usqlplain"
-	"github.com/xo/transit/grammars/usql/usqlpostgres"
-	"github.com/xo/transit/grammars/usql/usqlsqlite"
-	"github.com/xo/transit/grammars/usql/usqlstandard"
+	"github.com/xo/transit/grammars/usql"
 	"github.com/xo/transit/internal/abi"
 )
 
 func init() {
-	goPackages = append(goPackages, usqlPackages...)
+	goPackages = append(goPackages, goPackage{"usql", usql.Language})
 }
 
-// usqlPackages are the six packages of the module grammars/usql, one for
-// each family of dialects (D101). They share the scanner of
-// common/scanner.h.
-var usqlPackages = []goPackage{
-	{"usql_postgres", usqlpostgres.Language},
-	{"usql_mysql", usqlmysql.Language},
-	{"usql_sqlite", usqlsqlite.Language},
-	{"usql_standard", usqlstandard.Language},
-	{"usql_cql", usqlcql.Language},
-	{"usql_plain", usqlplain.Language},
+// usqlOptionSets are the options of the families of dialects of D101, which
+// had a grammar each before D108. The test builds the C scanner once for
+// each of them (D108).
+var usqlOptionSets = []struct {
+	name string
+	opts usql.Options
+}{
+	{"postgres", usql.Options{DollarQuotes: true, BlockComments: true}},
+	{"mysql", usql.Options{BlockComments: true, HashComments: true, Backticks: true}},
+	{"sqlite", usql.Options{BlockComments: true, Backticks: true}},
+	{"standard", usql.Options{BlockComments: true}},
+	{"cql", usql.Options{DollarQuotes: true, BlockComments: true, SlashComments: true}},
+	{"plain", usql.Options{}},
+}
+
+// usqlDefine returns the C macro of src/scanner.c of the usql grammar that
+// sets the options opts, such as USQL_OPTIONS=3. Field i of usql.Options is
+// the flag 1<<i of src/scanner.c, so a new field needs no change here.
+func usqlDefine(opts usql.Options) string {
+	v := reflect.ValueOf(opts)
+	n := 0
+	for i := range v.NumField() {
+		if v.Field(i).Bool() {
+			n |= 1 << i
+		}
+	}
+	return fmt.Sprintf("USQL_OPTIONS=%d", n)
+}
+
+// loadUsql builds and loads the C grammar of the usql grammar with the
+// options opts, and returns it with the inputs of the corpus, of the cases
+// of testdata/options of the package, and of usqlScannerInputs.
+func loadUsql(t *testing.T, opts usql.Options) (*Grammar, [][]byte) {
+	t.Helper()
+	g, examples := loadGoPackageDefines(t, goPackage{"usql", usql.Language}, usqlDefine(opts))
+	root, _ := setup(t)
+	more, err := ReadCorpus(filepath.Join(root, "grammars", "usql", "testdata", "options"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	examples = append(examples, more...)
+	inputs := make([][]byte, 0, len(examples)+len(usqlScannerInputs))
+	for _, e := range examples {
+		inputs = append(inputs, e.Input)
+	}
+	for _, s := range usqlScannerInputs {
+		inputs = append(inputs, []byte(s))
+	}
+	return g, inputs
 }
 
 // usqlScannerInputs are inputs that reach each branch of the scanner of the
-// usql grammars: each kind of token, the end of the input in each loop, the
-// options of each family, and characters that are not ASCII.
+// usql grammar: each kind of token, the end of the input in each loop, each
+// option, and characters that are not ASCII.
 var usqlScannerInputs = []string{
 	// statements, parentheses and escapes
 	"select 1; select 2",
@@ -122,23 +159,17 @@ var usqlScannerInputs = []string{
 	"\u00a0select\u2028:x",
 }
 
-// TestUsqlScannersMatchC compares the Go scanner of each package of
-// grammars/usql with its C scanner on each corpus input and on each input
-// of usqlScannerInputs.
+// TestUsqlScannersMatchC compares the Go scanner of the usql grammar with
+// its C scanner, built with the same options, for each set of options of
+// usqlOptionSets, on each corpus input and on each input of
+// usqlScannerInputs.
 func TestUsqlScannersMatchC(t *testing.T) {
 	t.Parallel()
-	for _, gp := range usqlPackages {
-		t.Run(gp.name, func(t *testing.T) {
+	for _, set := range usqlOptionSets {
+		t.Run(set.name, func(t *testing.T) {
 			t.Parallel()
-			g, examples := loadGoPackage(t, gp)
-			inputs := make([][]byte, 0, len(examples)+len(usqlScannerInputs))
-			for _, e := range examples {
-				inputs = append(inputs, e.Input)
-			}
-			for _, s := range usqlScannerInputs {
-				inputs = append(inputs, []byte(s))
-			}
-			n, calls := compareScanners(t, g, gp.language(), inputs)
+			g, inputs := loadUsql(t, set.opts)
+			n, calls := compareScanners(t, g, usql.LanguageFor(set.opts), inputs)
 			if calls == 0 {
 				t.Errorf("the scanner was not called on %d inputs", n)
 			}
@@ -147,38 +178,67 @@ func TestUsqlScannersMatchC(t *testing.T) {
 	}
 }
 
-// TestUsqlScannerDeserializeMatchesC gives random bytes to Deserialize of
-// the Go scanner and of the C scanner of each package, and compares what
-// Serialize writes after it. Every fifth run gives 6 bytes, the size of the
-// state.
-func TestUsqlScannerDeserializeMatchesC(t *testing.T) {
+// TestUsqlScannerOptionsDiffer makes sure that each set of options of
+// usqlOptionSets gives the C scanner and the Go scanner other trees than
+// the default options on the cases of testdata/options, so that the test
+// above compares scanners that read their options.
+func TestUsqlScannerOptionsDiffer(t *testing.T) {
 	t.Parallel()
-	for _, gp := range usqlPackages {
-		t.Run(gp.name, func(t *testing.T) {
+	for _, set := range usqlOptionSets[1:] {
+		t.Run(set.name, func(t *testing.T) {
 			t.Parallel()
-			g, _ := loadGoPackage(t, gp)
-			goCreate := tablesOf(gp.language()).ExternalScanner.Create
-			cCreate := tablesOf(g.Language).ExternalScanner.Create
-			r := rand.New(rand.NewPCG(1, 2))
-			for i := range 1000 {
-				size := r.IntN(abi.SerializationBufferSize + 1)
-				if i%5 == 0 {
-					size = 6
+			g, inputs := loadUsql(t, set.opts)
+			def, _ := loadUsql(t, usql.Options{DollarQuotes: true, BlockComments: true})
+			differ := false
+			for _, in := range inputs {
+				got, _, err := g.CParse(in)
+				if err != nil {
+					t.Fatal(err)
 				}
-				in := make([]byte, size)
-				for k := range in {
-					in[k] = byte(r.Uint32())
+				want, _, err := def.CParse(in)
+				if err != nil {
+					t.Fatal(err)
 				}
-				goScanner, cScanner := goCreate(), cCreate()
-				goScanner.Deserialize(in)
-				cScanner.Deserialize(in)
-				goBuf := make([]byte, abi.SerializationBufferSize)
-				cBuf := make([]byte, abi.SerializationBufferSize)
-				goN, cN := goScanner.Serialize(goBuf), cScanner.Serialize(cBuf)
-				if goN != cN || !bytes.Equal(goBuf[:goN], cBuf[:cN]) {
-					t.Fatalf("run %d with %d bytes: Serialize writes %x in Go and %x in C", i, len(in), goBuf[:goN], cBuf[:cN])
+				if Diff(want, got) != "" {
+					differ = true
+					break
 				}
 			}
+			if !differ {
+				t.Error("expected another tree than with the default options for an input, got the same trees")
+			}
 		})
+	}
+}
+
+// TestUsqlScannerDeserializeMatchesC gives random bytes to Deserialize of
+// the Go scanner and of the C scanner of the usql grammar, and compares what
+// Serialize writes after it. Every fifth run gives 6 bytes, the size of the
+// state. The options do not change the state, so the test uses the default
+// options.
+func TestUsqlScannerDeserializeMatchesC(t *testing.T) {
+	t.Parallel()
+	g, _ := loadUsql(t, usql.Options{DollarQuotes: true, BlockComments: true})
+	goCreate := tablesOf(usql.Language()).ExternalScanner.Create
+	cCreate := tablesOf(g.Language).ExternalScanner.Create
+	r := rand.New(rand.NewPCG(1, 2))
+	for i := range 1000 {
+		size := r.IntN(abi.SerializationBufferSize + 1)
+		if i%5 == 0 {
+			size = 6
+		}
+		in := make([]byte, size)
+		for k := range in {
+			in[k] = byte(r.Uint32())
+		}
+		goScanner, cScanner := goCreate(), cCreate()
+		goScanner.Deserialize(in)
+		cScanner.Deserialize(in)
+		goBuf := make([]byte, abi.SerializationBufferSize)
+		cBuf := make([]byte, abi.SerializationBufferSize)
+		goN, cN := goScanner.Serialize(goBuf), cScanner.Serialize(cBuf)
+		if goN != cN || !bytes.Equal(goBuf[:goN], cBuf[:cN]) {
+			t.Fatalf("run %d with %d bytes: Serialize writes %x in Go and %x in C", i, len(in), goBuf[:goN], cBuf[:cN])
+		}
 	}
 }

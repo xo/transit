@@ -354,3 +354,11 @@ type Language struct {
 	SupertypeMapEntries    []uint16
 	Metadata               LanguageMetadata
 }
+
+// TablesOf returns a copy of the tables of a *transit.Language. The root
+// package sets it when the program starts, because this package cannot
+// import the root package. A grammar package calls it to build a language
+// with its own tables and another external scanner, as the usql grammar
+// does for the options of a dialect (D108). TablesOf ports nothing of
+// upstream.
+var TablesOf func(language any) Language
