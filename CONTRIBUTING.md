@@ -14,7 +14,7 @@ Do not decide an open question on your own. Add it to the end of
 `docs/PLAN.md`, and ask Ken.
 
 Ken accepted `docs/API.md` on 2026-10-01, and that ended phase 1 (D103).
-Phases 2 to 4 are done, and the latest tag of every module is `v0.2.0`. Code
+Phases 2 to 4 are done, and the latest tag of every module is `v0.2.1`. Code
 follows the plan and the decisions.
 
 ## The upstream checkout
