@@ -314,15 +314,16 @@ func (it *LookaheadIterator) next() bool {
 	} else {
 		// For large parse states, iterate through every symbol until one
 		// is found that has valid actions.
-		row := it.data
+		symbolCount := it.language.tables.SymbolCount
+		row := it.data[:symbolCount]
 		symbol := it.symbol + 1
 		if it.phase == lookaheadFresh {
 			symbol = 0
 		}
-		for uint32(symbol) < it.language.tables.SymbolCount && row[symbol] == 0 {
+		for int(symbol) < len(row) && row[symbol] == 0 {
 			symbol++
 		}
-		if uint32(symbol) >= it.language.tables.SymbolCount {
+		if uint32(symbol) >= symbolCount {
 			it.phase = lookaheadDone
 			return false
 		}

@@ -1487,9 +1487,7 @@ func (q *query) performAnalysis(subgraphs []analysisSubgraph, analysis *queryAna
 			childIndex := uint32(state.top().childIndex)
 			step := &q.steps[state.stepIndex]
 
-			subgraphIndex, exists := arraySearchSorted(subgraphs, func(s *analysisSubgraph) int {
-				return int(s.symbol) - int(parentSymbol)
-			})
+			subgraphIndex, exists := searchSubgraphs(subgraphs, parentSymbol)
 			if !exists {
 				continue
 			}
@@ -1522,9 +1520,7 @@ func (q *query) performAnalysis(subgraphs []analysisSubgraph, analysis *queryAna
 					continue
 				}
 
-				nodeIndex, _ := arraySearchSorted(subgraph.nodes, func(n *analysisSubgraphNode) int {
-					return analysisSubgraphNodeCompare(n, &successor)
-				})
+				nodeIndex, _ := searchSubgraphNodes(subgraph.nodes, &successor)
 				for nodeIndex < uint32(len(subgraph.nodes)) {
 					node := &subgraph.nodes[nodeIndex]
 					nodeIndex++
@@ -1775,17 +1771,10 @@ func (q *query) analyzePatterns() (errorOffset uint32, ok bool) {
 	// parent.
 	var subgraphs []analysisSubgraph
 	insertSubgraph := func(subgraph analysisSubgraph) {
-		index, exists := arraySearchSorted(subgraphs, func(s *analysisSubgraph) int {
-			return int(s.symbol) - int(subgraph.symbol)
-		})
+		index, exists := searchSubgraphs(subgraphs, subgraph.symbol)
 		if !exists {
 			subgraphs = slices.Insert(subgraphs, int(index), subgraph)
 		}
-	}
-	searchSubgraphs := func(symbol Symbol) (uint32, bool) {
-		return arraySearchSorted(subgraphs, func(s *analysisSubgraph) int {
-			return int(s.symbol) - int(symbol)
-		})
 	}
 	for _, parentStepIndex := range parentStepIndices {
 		parentSymbol := q.steps[parentStepIndex].symbol
@@ -1813,7 +1802,7 @@ func (q *query) analyzePatterns() (errorOffset uint32, ok bool) {
 					if action.Type == abi.ParseActionTypeReduce {
 						aliases := q.language.aliasesForSymbol(Symbol(action.Reduce.Symbol))
 						for _, symbol := range aliases {
-							subgraphIndex, exists := searchSubgraphs(Symbol(symbol))
+							subgraphIndex, exists := searchSubgraphs(subgraphs, Symbol(symbol))
 							if exists {
 								subgraph := &subgraphs[subgraphIndex]
 								if len(subgraph.nodes) == 0 || subgraph.nodes[len(subgraph.nodes)-1].state != state {
@@ -1838,7 +1827,7 @@ func (q *query) analyzePatterns() (errorOffset uint32, ok bool) {
 				if q.language.stateIsPrimary(state) {
 					aliases := q.language.aliasesForSymbol(lookaheadIterator.symbol)
 					for _, symbol := range aliases {
-						subgraphIndex, exists := searchSubgraphs(Symbol(symbol))
+						subgraphIndex, exists := searchSubgraphs(subgraphs, Symbol(symbol))
 						if exists {
 							subgraph := &subgraphs[subgraphIndex]
 							if len(subgraph.startStates) == 0 ||
@@ -1875,9 +1864,7 @@ func (q *query) analyzePatterns() (errorOffset uint32, ok bool) {
 						productionID: node.productionID,
 						done:         false,
 					}
-					index, exists := arraySearchSorted(subgraph.nodes, func(n *analysisSubgraphNode) int {
-						return analysisSubgraphNodeCompare(n, &predecessorNode)
-					})
+					index, exists := searchSubgraphNodes(subgraph.nodes, &predecessorNode)
 					if !exists {
 						subgraph.nodes = slices.Insert(subgraph.nodes, int(index), predecessorNode)
 						nextNodes = append(nextNodes, predecessorNode)
@@ -1900,7 +1887,7 @@ func (q *query) analyzePatterns() (errorOffset uint32, ok bool) {
 
 		// Find the subgraph that corresponds to this pattern's root symbol. If the pattern's
 		// root symbol is a terminal, then return an error.
-		subgraphIndex, exists := searchSubgraphs(parentSymbol)
+		subgraphIndex, exists := searchSubgraphs(subgraphs, parentSymbol)
 		if !exists {
 			firstChildStepIndex := uint32(parentStepIndex) + 1
 			j, childExists := arraySearchSorted(q.stepOffsets, func(s *stepOffset) int {
@@ -4457,6 +4444,57 @@ func arraySearchSorted[T any](self []T, compare func(*T) int) (index uint32, exi
 	if comparison == 0 {
 		exists = true
 	} else if comparison < 0 {
+		index++
+	}
+	return index, exists
+}
+
+// searchSubgraphs is array_search_sorted_by of array.h for subgraphs, by
+// their symbol. The macro of upstream expands at each call, and this form
+// keeps the comparison inline, as arraySearchSorted cannot.
+func searchSubgraphs(self []analysisSubgraph, symbol Symbol) (index uint32, exists bool) {
+	size := uint32(len(self))
+	if size == 0 {
+		return 0, false
+	}
+	for size > 1 {
+		halfSize := size / 2
+		midIndex := index + halfSize
+		if int(self[midIndex].symbol)-int(symbol) <= 0 {
+			index = midIndex
+		}
+		size -= halfSize
+	}
+	switch comparison := int(self[index].symbol) - int(symbol); {
+	case comparison == 0:
+		exists = true
+	case comparison < 0:
+		index++
+	}
+	return index, exists
+}
+
+// searchSubgraphNodes is array_search_sorted_with of array.h for the nodes
+// of a subgraph, with analysis_subgraph_node__compare. The macro of upstream
+// expands at each call, and this form keeps the comparison inline, as
+// arraySearchSorted cannot.
+func searchSubgraphNodes(self []analysisSubgraphNode, needle *analysisSubgraphNode) (index uint32, exists bool) {
+	size := uint32(len(self))
+	if size == 0 {
+		return 0, false
+	}
+	for size > 1 {
+		halfSize := size / 2
+		midIndex := index + halfSize
+		if analysisSubgraphNodeCompare(&self[midIndex], needle) <= 0 {
+			index = midIndex
+		}
+		size -= halfSize
+	}
+	switch comparison := analysisSubgraphNodeCompare(&self[index], needle); {
+	case comparison == 0:
+		exists = true
+	case comparison < 0:
 		index++
 	}
 	return index, exists
