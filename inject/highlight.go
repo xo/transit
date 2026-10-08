@@ -46,6 +46,12 @@ type Layer struct {
 	// Depth is 0 for the root layer, and one more than the depth of its
 	// parent for another layer.
 	Depth int
+	// Text is the text that the layer parses. It is the text of Layers,
+	// with the replacements of WithReplacer for this layer, and it has the
+	// same length and the same offsets. When nothing is replaced, it is the
+	// text of Layers, not a copy. Text is an API that upstream does not have
+	// (D28, D111).
+	Text []byte
 }
 
 // NewConfig compiles the injection query of a language. name is the name of
@@ -135,7 +141,8 @@ func (c *Config) Language() *transit.Language {
 // every depth, and there is no limit on the depth (hard rule 6).
 //
 // The options are an API that upstream does not have (D28). WithReplacer
-// replaces the text of nodes before a layer is parsed.
+// replaces the text of nodes before a layer is parsed, and the Text of the
+// layer holds the text that it parsed (D111).
 //
 // Layers runs HighlightIterLayer::new for the root layer, and the injection
 // part of the Iterator of HighlightIter for each layer, as Highlighter::highlight
@@ -300,6 +307,7 @@ func (b *builder) newLayer(
 				Tree:   tree,
 				Ranges: ranges,
 				Depth:  depth,
+				Text:   text,
 			})
 		}
 

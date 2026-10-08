@@ -12,7 +12,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/xo/transit"
 	"github.com/xo/transit/generate"
+	"github.com/xo/transit/internal/abi"
+	"github.com/xo/transit/internal/corpus"
 )
 
 // This file writes the files of a grammar package in its folder, as
@@ -89,11 +92,7 @@ func ReadGrammarOptions(dir string) (Options, error) {
 // module, and else the last element of p with each "_" and "-" removed, as
 // docs/GRAMMAR.md lays it out. The path php_only gives the folder phponly.
 func GrammarFolder(p string) string {
-	p = path.Clean(filepath.ToSlash(p))
-	if p == "." || p == "" {
-		return "."
-	}
-	return strings.NewReplacer("_", "", "-", "").Replace(path.Base(p))
+	return corpus.GrammarFolder(p)
 }
 
 // readOthers returns the other grammar packages of the module of the
@@ -187,6 +186,8 @@ type Files struct {
 	NodeTypes string
 	// Tests is grammar_test.go.
 	Tests string
+	// Example is example_test.go.
+	Example string
 }
 
 // Package generates the files of the grammar package in dir, from
@@ -214,11 +215,41 @@ func Package(dir string, abiVersion int, optimizations generate.OptLevel, diagno
 	if err != nil {
 		return nil, err
 	}
-	parser, err := generate.ParserForGrammarWithOpts(inputGrammar, abiVersion, semanticVersion, optimizations, Backend{Package: pkg, Queries: opts.Queries}, diagnostics)
+	backend := &packageBackend{pkg: pkg, queries: opts.Queries}
+	parser, err := generate.ParserForGrammarWithOpts(inputGrammar, abiVersion, semanticVersion, optimizations, backend, diagnostics)
 	if err != nil {
 		return nil, err
 	}
-	return &Files{Parser: parser.Code, NodeTypes: parser.NodeTypesJSON, Tests: Tests(pkg, opts)}, nil
+	var nodeTypes []transit.NodeType
+	if err := json.Unmarshal([]byte(parser.NodeTypesJSON), &nodeTypes); err != nil {
+		return nil, fmt.Errorf("reading the node types of %s: %w", dir, err)
+	}
+	example, err := Example(dir, pkg, transit.NewLanguage(backend.tables), nodeTypes, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &Files{Parser: parser.Code, NodeTypes: parser.NodeTypesJSON, Tests: Tests(pkg, opts), Example: example}, nil
+}
+
+// packageBackend is the Go backend, and it keeps the tables of the grammar
+// that it writes, for the example of the package.
+type packageBackend struct {
+	// pkg and queries are the fields Package and Queries of Backend.
+	pkg     string
+	queries bool
+	// tables holds the tables of the grammar after Render.
+	tables *abi.Language
+}
+
+// Render returns the Go code of parser.go of a grammar, as Backend does,
+// and keeps its tables.
+func (b *packageBackend) Render(in *generate.RenderInput) (string, error) {
+	out, err := render(in)
+	if err != nil {
+		return "", err
+	}
+	b.tables = out.languageTables()
+	return writeParser(out, b.pkg, b.queries), nil
 }
 
 // PackageInDirectory generates the files of the grammar package in dir, as
@@ -244,6 +275,7 @@ func PackageInDirectory(dir, outDir string, abiVersion int, generateParser bool,
 		{"parser.go", files.Parser},
 		{"node-types.json", files.NodeTypes},
 		{"grammar_test.go", files.Tests},
+		{"example_test.go", files.Example},
 	} {
 		p := filepath.Join(outDir, f.name)
 		if err := os.WriteFile(p, []byte(f.body), 0o644); err != nil {

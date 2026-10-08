@@ -44,6 +44,10 @@ jobs:
       # the module styles has its own go.mod (D99)
       working-directory: styles
       run: go vet ./... && go test -race -count=1 ./...
+    - name: Sample programs
+      # the module of the two sample programs has its own go.mod (D53)
+      working-directory: _example
+      run: go vet ./... && go test -race -count=1 ./...
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -75,3 +79,7 @@ jobs:
     - name: Lint the styles module
       working-directory: styles
       run: golangci-lint run ./...
+    - name: Lint the sample programs
+      # the sample programs import postgres, as the test module does
+      working-directory: _example
+      run: golangci-lint run --concurrency 1 ./...

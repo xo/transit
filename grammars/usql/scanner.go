@@ -1,7 +1,7 @@
 package usql
 
 // This file is a port of src/scanner.c of the usql grammar of transit, in
-// grammars/usql (D101, D102, D108).
+// grammars/usql (D101, D102, D108, D112).
 //
 // The scanner reads every token of the grammar. It finds the end of a
 // statement, the strings, the dollar quotes, the comments and the depth of
@@ -20,11 +20,18 @@ package usql
 // from the macro USQL_OPTIONS when it is compiled, and the Go scanner reads
 // them from its field options.
 //
+// With the option BeginEndBlocks, the scanner keeps a stored program in one
+// statement (D112). It reads the words of the SQL text, outside strings,
+// quoted identifiers and comments. After CREATE ... PROCEDURE, FUNCTION,
+// TRIGGER or EVENT, it counts BEGIN and END, and a ; inside the body does
+// not end the statement. The words that it reads are in keywords below.
+//
 // The C scanner is the reference (D42). The test module compares the two
 // scanners on every corpus input, with each set of options that it tests.
 
 import (
 	"encoding/binary"
+	"math"
 	"strings"
 
 	"github.com/xo/transit/internal/abi"
@@ -86,9 +93,138 @@ const maxNameLength = 32
 // allows it.
 const maxTagLength = 128
 
+// maxWordLength is MAX_WORD_LENGTH, the longest keyword that the scanner
+// reads in SQL text.
+const maxWordLength = 16
+
 // serializedSize is SERIALIZED_SIZE, the number of bytes that Serialize
 // writes.
-const serializedSize = 6
+const serializedSize = 9
+
+// block is the C enum Block, the part of a statement that the scanner is
+// in, with the option BeginEndBlocks.
+type block uint8
+
+const (
+	// blockStart is before the first word of the statement.
+	blockStart block = iota
+	// blockNone is a statement that is not a stored program, or the rest of
+	// a stored program after the END of its body.
+	blockNone
+	// blockCreate is after CREATE, before the kind of the object.
+	blockCreate
+	// blockDefiner is after DEFINER in blockCreate, where a word can name
+	// the user.
+	blockDefiner
+	// blockHeader is after PROCEDURE or FUNCTION, where IS or AS can start
+	// the declarations of PL/SQL.
+	blockHeader
+	// blockRoutine is in a stored program before its BEGIN. A ; ends the
+	// statement.
+	blockRoutine
+	// blockDeclare is in the declarations of a stored program before its
+	// BEGIN. A ; does not end the statement.
+	blockDeclare
+	// blockBody is inside the body, from BEGIN to its END.
+	blockBody
+)
+
+// pending is the C enum Pending, a word whose meaning depends on the next
+// word.
+type pending uint8
+
+const (
+	pendingNone pending = iota
+	// pendingBegin is after BEGIN, which starts a transaction when WORK,
+	// TRANSACTION, TRAN, DISTRIBUTED or ; comes next, and else a block.
+	pendingBegin
+	// pendingEnd is after END, which ends a statement when IF, LOOP, WHILE
+	// or REPEAT comes next, and else a block.
+	pendingEnd
+	// pendingAs is after IS or AS in blockHeader, which starts declarations
+	// when a word that does not start a statement comes next.
+	pendingAs
+)
+
+// keyword is the C enum Keyword, a word that the scanner reads in SQL text,
+// or kwNone for any other word. The order is the order of keywords.
+type keyword int
+
+const (
+	kwNone keyword = iota
+	kwAggregate
+	kwAlter
+	kwAs
+	kwBegin
+	kwCall
+	kwCase
+	kwCatch
+	kwConstraint
+	kwCreate
+	kwDeclare
+	kwDefiner
+	kwDelete
+	kwDistributed
+	kwEditionable
+	kwEnd
+	kwEvent
+	kwExec
+	kwExecute
+	kwExternal
+	kwFunction
+	kwIf
+	kwInsert
+	kwIs
+	kwLanguage
+	kwLoop
+	kwMerge
+	kwNoneditionable
+	kwOr
+	kwPrint
+	kwProc
+	kwProcedure
+	kwRepeat
+	kwReplace
+	kwReturn
+	kwSelect
+	kwSet
+	kwTemp
+	kwTemporary
+	kwTran
+	kwTransaction
+	kwTrigger
+	kwTry
+	kwUpdate
+	kwValues
+	kwWhile
+	kwWith
+	kwWork
+)
+
+// keywords holds the text of each keyword, in lower case.
+var keywords = [...]string{
+	"", "aggregate", "alter", "as", "begin", "call",
+	"case", "catch", "constraint", "create", "declare", "definer",
+	"delete", "distributed", "editionable", "end", "event", "exec",
+	"execute", "external", "function", "if", "insert", "is",
+	"language", "loop", "merge", "noneditionable", "or", "print",
+	"proc", "procedure", "repeat", "replace", "return", "select",
+	"set", "temp", "temporary", "tran", "transaction", "trigger",
+	"try", "update", "values", "while", "with", "work",
+}
+
+// sqlWord is the C struct Word, the word of SQL text that the scanner
+// reads, in lower case.
+type sqlWord struct {
+	// text holds the first maxWordLength characters of the word. A
+	// character that is not ASCII is 1.
+	text [maxWordLength]byte
+	// n is the length of the word, or maxWordLength + 1 for a longer word.
+	n int
+	// spoiled is true for a word right after ., @, $, # or [, which is a
+	// name and not a keyword.
+	spoiled bool
+}
 
 // scanner is a port of src/scanner.c of the usql grammar of transit, in
 // grammars/usql. It is the C struct Scanner, the state of the scanner, with
@@ -107,6 +243,12 @@ type scanner struct {
 	// command is 1 from the name of a meta command to its commandEnd. It
 	// makes commandEnd, which reads no character, change the state.
 	command uint8
+	// block is the block of the statement, pending its pending word, and
+	// level the number of blocks of the body that are open. They stay 0
+	// without the option BeginEndBlocks.
+	block   block
+	pending pending
+	level   uint8
 }
 
 // command is the C struct Command, a meta command of usql, from
@@ -426,6 +568,218 @@ func scanDollarRest(lexer *abi.Lexer, tag []int32) bool {
 	return true
 }
 
+// resetBlocks is reset_blocks. It resets the state of the blocks at the
+// end of a statement.
+func (s *scanner) resetBlocks() {
+	s.block = blockStart
+	s.pending = pendingNone
+	s.level = 0
+}
+
+// openBlock is open_block. It opens a block of the body: the first BEGIN of
+// the body, a BEGIN in it, or a CASE in it, which ends at END or END CASE.
+func (s *scanner) openBlock() {
+	if s.block != blockBody {
+		s.block = blockBody
+		s.level = 1
+	} else if s.level < math.MaxUint8 {
+		s.level++
+	}
+}
+
+// closeBlock is close_block. It closes a block of the body. After the last
+// one, the body ends.
+func (s *scanner) closeBlock() {
+	if s.block != blockBody {
+		return
+	}
+	if s.level > 0 {
+		s.level--
+	}
+	if s.level == 0 {
+		s.block = blockNone
+	}
+}
+
+// resolvePending is resolve_pending. It gives the pending word its meaning
+// when a character that is not in a word comes after it: BEGIN does not
+// start a block, END ends one, and AS does not start declarations.
+func (s *scanner) resolvePending() {
+	p := s.pending
+	s.pending = pendingNone
+	if p == pendingEnd {
+		s.closeBlock()
+	}
+}
+
+// endsStatement is ends_statement. It reports whether a ; outside
+// parentheses ends the statement. It is not the end inside the
+// declarations or the body of a stored program.
+func (s *scanner) endsStatement(opts Options) bool {
+	if !opts.BeginEndBlocks {
+		return true
+	}
+	s.resolvePending()
+	return s.block != blockDeclare && s.block != blockBody
+}
+
+// scanString is scan_string. It notes a string in SQL text. After IS or AS,
+// a string is the body of the stored program, so no declarations follow.
+func (s *scanner) scanString(opts Options) {
+	if opts.BeginEndBlocks && s.pending == pendingAs {
+		s.pending = pendingNone
+		s.block = blockRoutine
+	}
+}
+
+// keywordOf is keyword_of. It returns the keyword of the word w, or kwNone.
+func keywordOf(w *sqlWord) keyword {
+	if w.n > maxWordLength {
+		return kwNone
+	}
+	for i := 1; i < len(keywords); i++ {
+		if keywords[i] == string(w.text[:w.n]) {
+			return keyword(i)
+		}
+	}
+	return kwNone
+}
+
+// isStatementWord is is_statement_word. It reports whether kw starts a
+// statement. After it, the header of a stored program ended, and IS or AS
+// is a part of that statement.
+func isStatementWord(kw keyword) bool {
+	switch kw {
+	case kwCall, kwDelete, kwExec, kwExecute, kwInsert, kwMerge, kwReplace,
+		kwSelect, kwSet, kwUpdate, kwValues, kwWith:
+		return true
+	}
+	return false
+}
+
+// scanKeyword is scan_keyword. It changes the state of the blocks for the
+// word kw of SQL text.
+func (s *scanner) scanKeyword(kw keyword) {
+	p := s.pending
+	s.pending = pendingNone
+	switch p {
+	case pendingNone:
+	case pendingBegin:
+		if kw == kwWork || kw == kwTransaction || kw == kwTran || kw == kwDistributed {
+			return
+		}
+		s.openBlock()
+	case pendingEnd:
+		if kw == kwIf || kw == kwLoop || kw == kwWhile || kw == kwRepeat {
+			return
+		}
+		s.closeBlock()
+		if kw == kwNone || kw == kwCase || kw == kwTry || kw == kwCatch {
+			// a label, or the end of CASE, BEGIN TRY or BEGIN CATCH
+			return
+		}
+	case pendingAs:
+		if isStatementWord(kw) || kw == kwReturn || kw == kwPrint || kw == kwIf ||
+			kw == kwWhile || kw == kwLanguage || kw == kwExternal {
+			s.block = blockRoutine
+			return
+		}
+		if kw != kwBegin {
+			s.block = blockDeclare
+		}
+	}
+	switch s.block {
+	case blockStart:
+		if kw == kwCreate {
+			s.block = blockCreate
+		} else {
+			s.block = blockNone
+		}
+	case blockNone:
+	case blockDefiner:
+		s.block = blockCreate
+		if kw != kwProcedure && kw != kwProc && kw != kwFunction && kw != kwTrigger && kw != kwEvent {
+			// the name of the user
+			return
+		}
+		fallthrough
+	case blockCreate:
+		switch kw {
+		case kwProcedure, kwProc, kwFunction:
+			s.block = blockHeader
+		case kwTrigger, kwEvent:
+			s.block = blockRoutine
+		case kwDefiner:
+			s.block = blockDefiner
+		case kwAggregate, kwAlter, kwConstraint, kwEditionable, kwNoneditionable,
+			kwOr, kwReplace, kwTemp, kwTemporary:
+		default:
+			s.block = blockNone
+		}
+	case blockHeader:
+		if kw == kwIs || kw == kwAs {
+			if s.depth == 0 {
+				s.pending = pendingAs
+			}
+			return
+		}
+		if isStatementWord(kw) {
+			s.block = blockRoutine
+			return
+		}
+		fallthrough
+	case blockRoutine, blockDeclare:
+		switch kw {
+		case kwBegin:
+			s.pending = pendingBegin
+		case kwDeclare:
+			s.block = blockDeclare
+		}
+	case blockBody:
+		switch kw {
+		case kwBegin:
+			s.pending = pendingBegin
+		case kwEnd:
+			s.pending = pendingEnd
+		case kwCase:
+			s.openBlock()
+		}
+	}
+}
+
+// isWordChar is is_word_char. It reports whether c continues the word w: a
+// letter, a digit, an underscore, a character that is not ASCII, or a $
+// after the first character.
+func isWordChar(w *sqlWord, c int32) bool {
+	return isVariableChar(c) || (c == '$' && w.n > 0)
+}
+
+// addWordChar is add_word_char. It adds the character c to the word w.
+func addWordChar(w *sqlWord, c int32) {
+	if w.n < maxWordLength {
+		lower := byte(1)
+		if c >= 'A' && c <= 'Z' {
+			lower = byte(c - 'A' + 'a')
+		} else if c >= 0 && c < 0x80 {
+			lower = byte(c)
+		}
+		w.text[w.n] = lower
+	}
+	if w.n <= maxWordLength {
+		w.n++
+	}
+}
+
+// endWord is end_word. It ends the word w at the character c, which is not
+// in a word, and gives the word to scanKeyword.
+func (s *scanner) endWord(w *sqlWord, c int32) {
+	if w.n > 0 && !w.spoiled {
+		s.scanKeyword(keywordOf(w))
+	}
+	w.n = 0
+	w.spoiled = c == '.' || c == '@' || c == '$' || c == '#' || c == '['
+}
+
 // scanVariableStart is scan_variable_start. It scans from the colon of a
 // variable. It returns the sigil when a valid variable follows. Else the
 // colon is text in the context ctx. After :' or :" with no valid name and
@@ -499,10 +853,20 @@ func (s *scanner) scanVariableStart(lexer *abi.Lexer, opts Options, ctx context,
 // SQL text, a word of an argument, or a word of a list of options. content
 // is true when the token already holds text, and prev is the last character
 // of that text. The token ends at its last character that is not white
-// space.
+// space. With the option BeginEndBlocks, scanText reads the words of SQL
+// text.
 func (s *scanner) scanText(lexer *abi.Lexer, opts Options, ctx context, content bool, prev int32) bool {
+	blocks := ctx == contextSQL && opts.BeginEndBlocks
+	var w sqlWord
 	for !lexer.EOF() {
 		c := lexer.Lookahead
+		if blocks {
+			if isWordChar(&w, c) {
+				addWordChar(&w, c)
+			} else {
+				s.endWord(&w, c)
+			}
+		}
 		if ctx != contextSQL {
 			// an argument ends at white space, and a word at a quote
 			if isSpace(c) || c == '\\' || c == '\'' || c == '"' || c == '`' {
@@ -512,7 +876,7 @@ func (s *scanner) scanText(lexer *abi.Lexer, opts Options, ctx context, content 
 				break
 			}
 		} else {
-			if (c == ';' && s.depth == 0) || c == '\'' || c == '"' ||
+			if (c == ';' && s.depth == 0 && s.endsStatement(opts)) || c == '\'' || c == '"' ||
 				(c == '`' && opts.Backticks) || (c == '#' && opts.HashComments) {
 				if !content && c == '#' {
 					return scanLineComment(lexer)
@@ -574,9 +938,11 @@ func (s *scanner) scanText(lexer *abi.Lexer, opts Options, ctx context, content 
 						break
 					}
 					advance(lexer)
+					s.scanString(opts)
 					return scanDollarRest(lexer, tag[:n])
 				}
-				// not a dollar quote, so the characters are text
+				// not a dollar quote, so the characters are text, and the
+				// word after the $ is not a keyword
 				lexer.MarkEnd()
 				content = true
 				prev = last
@@ -609,12 +975,18 @@ func (s *scanner) scanText(lexer *abi.Lexer, opts Options, ctx context, content 
 				s.depth--
 			}
 		}
+		if blocks && !isSpace(c) && w.n == 0 {
+			s.resolvePending()
+		}
 		advance(lexer)
 		if !isSpace(c) {
 			lexer.MarkEnd()
 			content = true
 		}
 		prev = c
+	}
+	if blocks {
+		s.endWord(&w, 0)
 	}
 	if !content {
 		return false
@@ -637,6 +1009,7 @@ func (s *scanner) scanText(lexer *abi.Lexer, opts Options, ctx context, content 
 func (s *scanner) scanCommandName(lexer *abi.Lexer, validSymbols []bool) bool {
 	lexer.MarkEnd()
 	s.depth = 0
+	s.resetBlocks()
 	if lexer.Lookahead == '\\' {
 		advance(lexer)
 		lexer.MarkEnd()
@@ -800,13 +1173,15 @@ func (s *scanner) scanSQL(lexer *abi.Lexer, validSymbols []bool, opts Options) b
 		}
 		return s.scanCommandName(lexer, validSymbols)
 	}
-	if c == ';' && s.depth == 0 {
+	if c == ';' && s.depth == 0 && s.endsStatement(opts) {
 		advance(lexer)
 		lexer.MarkEnd()
+		s.resetBlocks()
 		lexer.ResultSymbol = semicolon
 		return true
 	}
 	if c == '\'' {
+		s.scanString(opts)
 		return scanQuoted(lexer, stringToken, false)
 	}
 	if c == '"' || (c == '`' && opts.Backticks) {
@@ -821,13 +1196,16 @@ func (s *scanner) scanSQL(lexer *abi.Lexer, validSymbols []bool, opts Options) b
 func newScanner() *scanner { return &scanner{options: defaultOptions} }
 
 // Serialize writes the depth in its first 4 bytes, in little-endian order,
-// then base and then command.
+// then base, command, block, pending and level.
 //
 // Serialize is tree_sitter_usql_external_scanner_serialize.
 func (s *scanner) Serialize(buffer []byte) int {
 	binary.LittleEndian.PutUint32(buffer, s.depth)
 	buffer[4] = s.base
 	buffer[5] = s.command
+	buffer[6] = byte(s.block)
+	buffer[7] = byte(s.pending)
+	buffer[8] = s.level
 	return serializedSize
 }
 
@@ -839,10 +1217,14 @@ func (s *scanner) Deserialize(buffer []byte) {
 	s.depth = 0
 	s.base = 0
 	s.command = 0
+	s.resetBlocks()
 	if len(buffer) == serializedSize {
 		s.depth = binary.LittleEndian.Uint32(buffer)
 		s.base = buffer[4]
 		s.command = buffer[5]
+		s.block = block(buffer[6])
+		s.pending = pending(buffer[7])
+		s.level = buffer[8]
 	}
 }
 

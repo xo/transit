@@ -11,6 +11,11 @@
 // Config.Layers gives every layer of a text at once. The text is UTF-8
 // (D71).
 //
+// WithReplacer, Layer.Text and Layer.StatesAt are APIs that upstream does
+// not have (D28, D101, D111). They let a consumer such as usql replace the
+// variables of its input before a SQL layer is parsed, and complete in that
+// layer.
+//
 // The examples of Layers and WithReplacer are in the grammar package
 // github.com/xo/transit/grammars/html, because they need the grammars of
 // HTML and JavaScript.

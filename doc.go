@@ -2,10 +2,9 @@
 // incremental parsing library.
 //
 // This package holds the runtime: the parser, the tree, the query engine and
-// the lookahead iterator. Phase 3 ports it from lib/src of upstream, one C
-// file at a time. Today it holds all of the runtime.
-// See docs/PLAN.md for the plan, and docs/decisions for the decisions that
-// shape it.
+// the lookahead iterator. It ports lib/src of upstream, and each Go file
+// ports one C file. See docs/PLAN.md for the plan, and docs/decisions for
+// the decisions that shape it.
 //
 // This module requires no other module, so the examples that parse a text
 // are in the grammar package github.com/xo/transit/grammars/json. They show

@@ -1,9 +1,7 @@
 package grammartest
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -17,8 +15,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/xo/transit"
-	golang "github.com/xo/transit/generate/backend/go"
 	"github.com/xo/transit/inject"
+	"github.com/xo/transit/internal/corpus"
 )
 
 // This file ports crates/cli/src/test_highlight.rs: test_highlights,
@@ -318,40 +316,13 @@ type loader struct {
 type loaderGrammar struct {
 	language       *transit.Language
 	queries        fs.FS
-	entry          treeSitterGrammar
+	entry          corpus.Grammar
 	injectionRegex *regexp.Regexp
 	configs        map[*inject.Config]*highlightConfiguration
 
 	loaded bool
 	config *highlightConfiguration
 	err    error
-}
-
-// pathsJSON is a list of paths in tree-sitter.json: a path, a list of paths,
-// or nothing.
-//
-// pathsJSON is PathsJSON.
-type pathsJSON struct {
-	paths []string
-	set   bool
-}
-
-// UnmarshalJSON reads a path or a list of paths.
-func (p *pathsJSON) UnmarshalJSON(b []byte) error {
-	if string(bytes.TrimSpace(b)) == "null" {
-		return nil
-	}
-	var single string
-	if err := json.Unmarshal(b, &single); err == nil {
-		*p = pathsJSON{paths: []string{single}, set: true}
-		return nil
-	}
-	var multiple []string
-	if err := json.Unmarshal(b, &multiple); err != nil {
-		return fmt.Errorf("reading a list of paths: %w", err)
-	}
-	*p = pathsJSON{paths: multiple, set: true}
-	return nil
 }
 
 // newLoader makes the loader of the grammars of the module, with their
@@ -363,7 +334,7 @@ func (p *pathsJSON) UnmarshalJSON(b []byte) error {
 // holds is left out. With no entry for own, own gets an entry with no
 // lists, which reads the default query files.
 func newLoader(own Grammar, others []Grammar) (*loader, error) {
-	m, err := readModule(own.Language.Name())
+	m, err := corpus.ReadModule(own.Language.Name())
 	if err != nil {
 		return nil, err
 	}
@@ -371,16 +342,16 @@ func newLoader(own Grammar, others []Grammar) (*loader, error) {
 }
 
 // newLoaderFor is newLoader with the module m.
-func newLoaderFor(m *module, own Grammar, others []Grammar) (*loader, error) {
+func newLoaderFor(m *corpus.Module, own Grammar, others []Grammar) (*loader, error) {
 	l := &loader{parser: transit.NewParser(), configs: map[*inject.Config]*highlightConfiguration{}}
-	byFolder := map[string]Grammar{m.own: own}
+	byFolder := map[string]Grammar{m.Own: own}
 	for _, g := range others {
-		if f := golang.GrammarFolder(g.Language.Name()); f != m.own {
+		if f := corpus.GrammarFolder(g.Language.Name()); f != m.Own {
 			byFolder[f] = g
 		}
 	}
-	for _, e := range m.entries {
-		g, ok := byFolder[e.folder()]
+	for _, e := range m.Entries {
+		g, ok := byFolder[e.Folder()]
 		if !ok {
 			continue
 		}
@@ -392,7 +363,7 @@ func newLoaderFor(m *module, own Grammar, others []Grammar) (*loader, error) {
 			}
 		}
 		l.grammars = append(l.grammars, lg)
-		if l.own == nil && e.folder() == m.own {
+		if l.own == nil && e.Folder() == m.Own {
 			l.own = lg
 		}
 	}
@@ -491,10 +462,10 @@ func (g *loaderGrammar) makeHighlightConfig(names *[]string) (*highlightConfigur
 // packageQueryPath says.
 //
 // readQueries is read_queries.
-func readQueries(fsys fs.FS, paths pathsJSON, defaultPath string) (string, error) {
-	if paths.set {
+func readQueries(fsys fs.FS, paths corpus.Paths, defaultPath string) (string, error) {
+	if paths.Set {
 		var query strings.Builder
-		for _, p := range paths.paths {
+		for _, p := range paths.Paths {
 			b, err := fs.ReadFile(fsys, packageQueryPath(p))
 			if err != nil {
 				return "", fmt.Errorf("reading the query file %s: %w", p, err)

@@ -1,0 +1,493 @@
+================================================================================
+Keywords in any case
+================================================================================
+
+select ID from Users Where id = 1 oRdEr By id;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (identifier)))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (number))))
+    (order_by_clause
+      (column_reference
+        (identifier)))))
+
+================================================================================
+Backtick identifiers
+================================================================================
+
+SELECT `select`, `a``b`, `my col` FROM `my db`.`my table`;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (identifier)
+          (identifier))))))
+
+================================================================================
+Single quoted strings
+================================================================================
+
+SELECT 'a', 'it''s', 'it\'s', 'line\nbreak', '';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string)
+      (string)
+      (string)
+      (string)
+      (string))))
+
+================================================================================
+Double quoted strings
+================================================================================
+
+SELECT "a", "say ""hi""", "say \"hi\"";
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string)
+      (string)
+      (string))))
+
+================================================================================
+Character set introducers
+================================================================================
+
+SELECT _utf8mb4'x', _latin1"y", _binary'z';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string)
+      (string)
+      (string))))
+
+================================================================================
+National strings
+================================================================================
+
+SELECT N'text', n'other';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string)
+      (string))))
+
+================================================================================
+Hexadecimal and binary strings
+================================================================================
+
+SELECT X'4D7953514C', x'', B'0101', b'1';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string)
+      (string)
+      (string)
+      (string))))
+
+================================================================================
+Hexadecimal and binary numbers
+================================================================================
+
+SELECT 0x4D7953514C, 0b0101, 0X1;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (number)
+      (aliased_expression
+        (number)
+        (identifier)))))
+
+================================================================================
+Numbers
+================================================================================
+
+SELECT 1, 1.5, .5, 1., 1e10, 1.5E-3, 2e+5;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number))))
+
+================================================================================
+Boolean and null literals
+================================================================================
+
+SELECT TRUE, FALSE, NULL, true, null;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (boolean)
+      (boolean)
+      (null)
+      (boolean)
+      (null))))
+
+================================================================================
+Hash comments
+================================================================================
+
+SELECT 1; # a comment
+# another comment
+SELECT 2;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)))
+  (comment)
+  (comment)
+  (select_statement
+    (select
+      (number))))
+
+================================================================================
+Dash comments
+================================================================================
+
+SELECT 1; -- a comment
+--	after a tab
+SELECT 2;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)))
+  (comment)
+  (comment)
+  (select_statement
+    (select
+      (number))))
+
+================================================================================
+Dash without a space is not a comment
+================================================================================
+
+SELECT 5--3;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (number)
+        (unary_expression
+          (number))))))
+
+================================================================================
+A dash comment at the end of the input
+================================================================================
+
+SELECT 1;
+--
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)))
+  (comment))
+
+================================================================================
+Block comments
+================================================================================
+
+SELECT /* inline */ 1 /* multi
+line */;
+/* only a comment */
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (comment)
+      (number)))
+  (comment)
+  (comment))
+
+================================================================================
+Optimizer hints are comments
+================================================================================
+
+SELECT /*+ MAX_EXECUTION_TIME(1000) */ * FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (comment)
+      (all_columns)
+      (from_clause
+        (table_reference
+          (identifier))))))
+
+================================================================================
+Version comments
+================================================================================
+
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE */;
+SELECT /*!32302 SQL_NO_CACHE */ 1;
+
+---
+
+(source_file
+  (version_comment_start)
+  (set_statement
+    (variable_assignment
+      (user_variable)
+      (system_variable)))
+  (version_comment_end)
+  (select_statement
+    (select
+      (version_comment_start)
+      (version_comment_end)
+      (number))))
+
+================================================================================
+A version comment without a version
+================================================================================
+
+CREATE TABLE t (id INT) /*! ENGINE=InnoDB */;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))
+    (version_comment_start)
+    (table_option
+      (identifier)))
+  (version_comment_end))
+
+================================================================================
+A MariaDB version comment
+================================================================================
+
+SELECT /*M!100100 1 + */ 2;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (version_comment_start)
+      (binary_expression
+        (number)
+        (version_comment_end)
+        (number)))))
+
+================================================================================
+User variables
+================================================================================
+
+SELECT @a, @my_var, @'quoted var', @"dq", @`bt`, @a.b;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (user_variable)
+      (user_variable)
+      (user_variable)
+      (user_variable)
+      (user_variable)
+      (user_variable))))
+
+================================================================================
+System variables
+================================================================================
+
+SELECT @@version, @@session.sql_mode, @@GLOBAL.max_connections, @@local.autocommit;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (system_variable)
+      (system_variable)
+      (system_variable)
+      (system_variable))))
+
+================================================================================
+Statements without a semicolon at the end
+================================================================================
+
+SELECT 1;
+SELECT 2
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)))
+  (select_statement
+    (select
+      (number))))
+
+================================================================================
+Empty statements
+================================================================================
+
+;;
+SELECT 1;;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number))))
+
+================================================================================
+A dump header
+================================================================================
+
+/*!40101 SET NAMES utf8mb4 */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+DROP TABLE IF EXISTS `t`;
+/*!40101 SET @saved_cs_client = @@character_set_client */;
+CREATE TABLE `t` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+LOCK TABLES `t` WRITE;
+/*!40000 ALTER TABLE `t` DISABLE KEYS */;
+INSERT INTO `t` VALUES (1),(2);
+/*!40000 ALTER TABLE `t` ENABLE KEYS */;
+UNLOCK TABLES;
+
+---
+
+(source_file
+  (version_comment_start)
+  (set_statement
+    (identifier))
+  (version_comment_end)
+  (version_comment_start)
+  (set_statement
+    (variable_assignment
+      (column_reference
+        (identifier))
+      (string)))
+  (version_comment_end)
+  (drop_table_statement
+    (object_reference
+      (identifier)))
+  (version_comment_start)
+  (set_statement
+    (variable_assignment
+      (user_variable)
+      (system_variable)))
+  (version_comment_end)
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))
+    (table_constraint
+      (key_parts
+        (key_part
+          (identifier))))
+    (table_option
+      (identifier))
+    (table_option
+      (number))
+    (table_option
+      (identifier))
+    (table_option
+      (identifier)))
+  (lock_tables_statement
+    (table_lock
+      (object_reference
+        (identifier))))
+  (version_comment_start)
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (alter_option))
+  (version_comment_end)
+  (insert_statement
+    (object_reference
+      (identifier))
+    (values_clause
+      (value_list
+        (number))
+      (value_list
+        (number))))
+  (version_comment_start)
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (alter_option))
+  (version_comment_end)
+  (unlock_tables_statement))

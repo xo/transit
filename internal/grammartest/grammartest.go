@@ -5,7 +5,8 @@
 // test module can import it. It uses no cgo, so a grammar module stays pure
 // Go (D1).
 //
-// test.go ports the parts of crates/cli/src/test.rs that read a corpus,
+// The package internal/corpus ports the parts of crates/cli/src/test.rs
+// that read a corpus, and this file ports the parts that run its cases.
 // parse.go ports the output of a concrete syntax tree of
 // crates/cli/src/parse.rs, query_testing.go ports
 // crates/cli/src/query_testing.rs, test_highlight.go ports
@@ -18,6 +19,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -31,6 +33,7 @@ import (
 	"github.com/xo/transit/generate"
 	"github.com/xo/transit/generate/backend/c"
 	golang "github.com/xo/transit/generate/backend/go"
+	"github.com/xo/transit/internal/corpus"
 )
 
 // Corpus parses each case of the corpus in dir, such as testdata/corpus,
@@ -60,15 +63,15 @@ import (
 // folder, and it runs each case that names no grammar.
 func Corpus(t *testing.T, language *transit.Language, dir string, failing ...string) {
 	t.Helper()
-	entry, err := parseTests(dir)
+	entry, err := corpus.Parse(dir)
 	if err != nil {
 		t.Fatalf("reading the corpus: %v", err)
 	}
-	m, err := readModule(language.Name())
+	m, err := corpus.ReadModule(language.Name())
 	if err != nil {
 		t.Fatal(err)
 	}
-	fromFile, err := readFailing()
+	fromFile, err := corpus.ReadFailing(".")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +105,7 @@ type corpusRun struct {
 	parser   *transit.Parser
 	language *transit.Language
 	// module is the tree-sitter.json of the module of the package.
-	module *module
+	module *corpus.Module
 	// expected counts the cases of each path that fail upstream, and failed
 	// counts the cases of each path that failed in this run.
 	expected map[string]int
@@ -115,27 +118,27 @@ type corpusRun struct {
 //
 // runTests is run_tests, without the report and the update of a corpus
 // file.
-func (r *corpusRun) runTests(t *testing.T, entry testEntry, prefix string) bool {
+func (r *corpusRun) runTests(t *testing.T, entry corpus.Entry, prefix string) bool {
 	t.Helper()
 	goOn := true
-	for _, child := range entry.children {
+	for _, child := range entry.Children {
 		if !goOn {
 			break
 		}
-		name := child.name
+		name := child.Name
 		if prefix != "" {
-			name = prefix + "/" + child.name
+			name = prefix + "/" + child.Name
 		}
-		if child.isGroup {
-			if len(child.children) == 0 {
+		if child.IsGroup {
+			if len(child.Children) == 0 {
 				continue
 			}
-			t.Run(child.name, func(t *testing.T) {
+			t.Run(child.Name, func(t *testing.T) {
 				goOn = r.runTests(t, child, name)
 			})
 			continue
 		}
-		t.Run(child.name, func(t *testing.T) {
+		t.Run(child.Name, func(t *testing.T) {
 			goOn = r.runCase(t, child, name)
 		})
 	}
@@ -146,16 +149,16 @@ func (r *corpusRun) runTests(t *testing.T, entry testEntry, prefix string) bool 
 // run goes on. A failure of a case in the list of the cases that fail
 // upstream goes to the log, and any other failure fails the test. The log
 // names testdata/failing.txt, the file that the list comes from (D93).
-func (r *corpusRun) runCase(t *testing.T, e testEntry, name string) bool {
+func (r *corpusRun) runCase(t *testing.T, e corpus.Entry, name string) bool {
 	t.Helper()
-	a := e.attributes
+	a := e.Attributes
 	switch {
-	case a.expectation == expectSkip:
+	case a.Expectation == corpus.ExpectSkip:
 		t.Skip("the test has the attribute :skip")
-	case !a.platform:
+	case !a.Platform:
 		t.Skip("the test is for another platform")
 	}
-	if owner := r.owner(a); owner != r.module.own {
+	if owner := r.module.Owner(a); owner != r.module.Own {
 		t.Skipf("the package in the folder %s of the module runs the case (D83)", owner)
 	}
 	failure := r.runExample(e)
@@ -168,57 +171,32 @@ func (r *corpusRun) runCase(t *testing.T, e testEntry, name string) bool {
 	default:
 		t.Error(failure)
 	}
-	return !a.failFast
-}
-
-// owner returns the folder of the package that runs a case: the package of
-// the grammar of its first :language, or of the first grammar of the module
-// when it names none. A case for a grammar that the module does not hold
-// runs in the package, and fails with "Language not found". A case that
-// names no grammar runs in the package when no entry of tree-sitter.json
-// has the folder of the package, such as plpgsql of tree-sitter-postgres.
-// Upstream runs the corpus of such a grammar in its own folder, where the
-// grammar of the folder is the only language.
-func (r *corpusRun) owner(a testAttributes) string {
-	name := ""
-	if len(a.languages) > 0 {
-		name = a.languages[0]
-	}
-	if name == "" {
-		if len(r.module.entries) == 0 || !r.module.hasFolder(r.module.own) {
-			return r.module.own
-		}
-		return r.module.entries[0].folder()
-	}
-	if e, ok := r.module.entry(name); ok {
-		return e.folder()
-	}
-	return r.module.own
+	return !a.FailFast
 }
 
 // runExample runs one corpus test, and returns the text of its failure, or
 // an empty text when it passes.
-func (r *corpusRun) runExample(e testEntry) string {
-	a := e.attributes
-	for _, name := range a.languages {
+func (r *corpusRun) runExample(e corpus.Entry) string {
+	a := e.Attributes
+	for _, name := range a.Languages {
 		// A package has one language. A grammar of the module in the folder
 		// of the package, such as flow of tree-sitter-typescript, is that
 		// language.
-		if entry, ok := r.module.entry(name); name != "" && name != r.language.Name() && (!ok || entry.folder() != r.module.own) {
+		if !r.module.Holds(r.language.Name(), name) {
 			return "Language not found: " + name
 		}
-		tree, err := r.parser.Parse(context.Background(), e.input, nil)
+		tree, err := r.parser.Parse(context.Background(), e.Input, nil)
 		if err != nil {
 			return fmt.Sprintf("parsing the input: %v", err)
 		}
-		if a.expectation == expectError {
+		if a.Expectation == corpus.ExpectError {
 			if !tree.RootNode().HasError() {
-				return fmt.Sprintf("the tree has no error:\n  actual:   %s\n  expected: NO ERROR", renderTestOutput(e.input, tree, a.cst, true))
+				return fmt.Sprintf("the tree has no error:\n  actual:   %s\n  expected: NO ERROR", renderTestOutput(e.Input, tree, a.CST, true))
 			}
 			continue
 		}
-		if actual := renderTestOutput(e.input, tree, a.cst, e.hasFields); actual != e.output {
-			return fmt.Sprintf("the trees differ:\n  actual:   %s\n  expected: %s", actual, e.output)
+		if actual := renderTestOutput(e.Input, tree, a.CST, e.HasFields); actual != e.Output {
+			return fmt.Sprintf("the trees differ:\n  actual:   %s\n  expected: %s", actual, e.Output)
 		}
 	}
 	return ""
@@ -237,7 +215,7 @@ func renderTestOutput(input []byte, tree *transit.Tree, cst, includeFields bool)
 	if includeFields {
 		return out
 	}
-	return stripSexpFields(out)
+	return corpus.StripSexpFields(out)
 }
 
 // Queries compiles each file queries/*.scm of fsys, such as the Queries of a
@@ -320,8 +298,9 @@ func Keywords(t *testing.T, language *transit.Language, keywords []string) {
 // working folder, with the version of the nearest tree-sitter.json. It
 // makes sure of three facts:
 //
-//  1. The Go backend writes the parser.go, the node-types.json and the
-//     grammar_test.go of the package, at the ABI version of the language.
+//  1. The Go backend writes the parser.go, the node-types.json, the
+//     grammar_test.go and the example_test.go of the package, at the ABI
+//     version of the language.
 //  2. The C backend writes the parser.c and the node-types.json whose
 //     SHA-256 grammars/grammars.json records, at ABI 14 and ABI 15 (D40).
 //  3. testdata/failing.txt names the corpus cases that grammars/grammars.json
@@ -373,10 +352,19 @@ func Generator(t *testing.T, language *transit.Language) {
 		t.Fatal(err)
 	}
 
+	var nodeTypes []transit.NodeType
+	if err := json.Unmarshal([]byte(parser.NodeTypesJSON), &nodeTypes); err != nil {
+		t.Fatal(err)
+	}
+	example, err := golang.Example(".", pkg, language, nodeTypes, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, f := range []struct{ name, want string }{
 		{"parser.go", backend.outputs[2]},
 		{"node-types.json", parser.NodeTypesJSON},
 		{"grammar_test.go", golang.Tests(pkg, opts)},
+		{"example_test.go", example},
 	} {
 		got, err := os.ReadFile(f.name)
 		if err != nil {
@@ -414,10 +402,6 @@ func Generator(t *testing.T, language *transit.Language) {
 	}
 }
 
-// failingPath is the file of a grammar package that names the corpus cases
-// that fail upstream (D88).
-const failingPath = "testdata/failing.txt"
-
 // failingText returns the text of testdata/failing.txt for the names of the
 // corpus cases that fail upstream, in the order of grammars/grammars.json:
 // each name on a line of its own, and each line ends with a newline. A name
@@ -431,28 +415,6 @@ func failingText(names []string) string {
 	return b.String()
 }
 
-// readFailing returns the names of testdata/failing.txt in the working
-// folder, or no names when the file does not exist. A file with no name, a
-// blank line or no newline at its end is an error.
-func readFailing() ([]string, error) {
-	b, err := os.ReadFile(failingPath)
-	switch {
-	case errors.Is(err, fs.ErrNotExist):
-		return nil, nil
-	case err != nil:
-		return nil, fmt.Errorf("reading %s: %w", failingPath, err)
-	}
-	text, ok := strings.CutSuffix(string(b), "\n")
-	if !ok {
-		return nil, fmt.Errorf("reading %s: the file does not end with a newline", failingPath)
-	}
-	names := strings.Split(text, "\n")
-	if slices.Contains(names, "") {
-		return nil, fmt.Errorf("reading %s: the file holds a blank line", failingPath)
-	}
-	return names, nil
-}
-
 // compareFailing makes sure that testdata/failing.txt in the working
 // folder is the file that the golden harness writes from the record of the
 // grammar, and returns an error when it is not.
@@ -462,19 +424,19 @@ func compareFailing(rec *golang.Record) error {
 		names = rec.Corpus.Failing
 	}
 	want := failingText(names)
-	got, err := os.ReadFile(failingPath)
+	got, err := os.ReadFile(corpus.FailingPath)
 	switch {
 	case errors.Is(err, fs.ErrNotExist) && want == "":
 		// no case fails upstream, and the file does not exist
 		return nil
 	case errors.Is(err, fs.ErrNotExist):
-		return fmt.Errorf("%s does not exist, and grammars/grammars.json records the cases %q as failing upstream. Run the golden harness again", failingPath, names)
+		return fmt.Errorf("%s does not exist, and grammars/grammars.json records the cases %q as failing upstream. Run the golden harness again", corpus.FailingPath, names)
 	case err != nil:
-		return fmt.Errorf("reading %s: %w", failingPath, err)
+		return fmt.Errorf("reading %s: %w", corpus.FailingPath, err)
 	case want == "":
-		return fmt.Errorf("%s exists, and grammars/grammars.json records no case as failing upstream. Run the golden harness again", failingPath)
+		return fmt.Errorf("%s exists, and grammars/grammars.json records no case as failing upstream. Run the golden harness again", corpus.FailingPath)
 	case string(got) != want:
-		return fmt.Errorf("%s is not the file that the golden harness writes from grammars/grammars.json, which records the cases %q as failing upstream. Run the golden harness again", failingPath, names)
+		return fmt.Errorf("%s is not the file that the golden harness writes from grammars/grammars.json, which records the cases %q as failing upstream. Run the golden harness again", corpus.FailingPath, names)
 	}
 	return nil
 }

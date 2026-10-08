@@ -6,6 +6,7 @@ import (
 	"math/rand/v2"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/xo/transit/grammars/usql"
@@ -17,8 +18,11 @@ func init() {
 }
 
 // usqlOptionSets are the options of the families of dialects of D101, which
-// had a grammar each before D108. The test builds the C scanner once for
-// each of them (D108).
+// had a grammar each before D108, and sets with BeginEndBlocks (D112). The
+// test builds the C scanner once for each of them (D108). The options of
+// SQL Server and Oracle with BeginEndBlocks are those of standard with
+// BeginEndBlocks, and postgres with BeginEndBlocks reaches the branches of
+// dollar quotes.
 var usqlOptionSets = []struct {
 	name string
 	opts usql.Options
@@ -29,6 +33,9 @@ var usqlOptionSets = []struct {
 	{"standard", usql.Options{BlockComments: true}},
 	{"cql", usql.Options{DollarQuotes: true, BlockComments: true, SlashComments: true}},
 	{"plain", usql.Options{}},
+	{"mysql_blocks", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true}},
+	{"standard_blocks", usql.Options{BlockComments: true, BeginEndBlocks: true}},
+	{"postgres_blocks", usql.Options{DollarQuotes: true, BlockComments: true, BeginEndBlocks: true}},
 }
 
 // usqlDefine returns the C macro of src/scanner.c of the usql grammar that
@@ -157,6 +164,64 @@ var usqlScannerInputs = []string{
 	"(\\g\n)",
 	"\\g (=)",
 	"\u00a0select\u2028:x",
+	// the blocks of stored programs (D112)
+	"create procedure p() begin select 1; end; select 2",
+	"CREATE PROCEDURE p() BEGIN; END; x",
+	"CREATE PROCEDURE p() BEGIN(1); x; END; y",
+	"CREATE PROCEDURE p() BEGIN WORK; x; END; y",
+	"CREATE PROCEDURE p() BEGIN /* a */ BEGIN TRANSACTION; END; x; END; y",
+	"CREATE PROCEDURE p() BEGIN x; END) y; END END; z",
+	"CREATE PROCEDURE p() BEGIN a.end; @end; $end; #end; [end]; b$end; END; x",
+	"CREATE PROCEDURE p() BEGIN case x when 1 then end case; END CASE; END; y",
+	"CREATE PROCEDURE p() BEGIN IF a THEN END IF; LOOP END LOOP; WHILE b DO END WHILE; REPEAT UNTIL c END REPEAT; END; x",
+	"CREATE PROCEDURE p() BEGIN -- a\nBEGIN TRY x; END TRY BEGIN CATCH y; END CATCH END; z",
+	"CREATE PROCEDURE p() BEGIN x; END 'a'; y",
+	"CREATE PROCEDURE p() BEGIN x; END",
+	"CREATE PROCEDURE p() BEGIN",
+	"CREATE PROCEDURE p() BEGIN x; \\ y; END; z",
+	"CREATE PROCEDURE p() BEGIN x \\; y; END; z",
+	"CREATE PROCEDURE p() BEGIN :a; :'b'; END; c",
+	"CREATE PROCEDURE p() BEGIN `end`; \"end\"; 'end'; -- end\n /* end */ # end\n END; x",
+	"CREATE PROCEDURE p() BEGIN averyveryverylongidentifier; END averyveryverylongidentifier; x",
+	"CREATE PROCEDURE p() BEGIN \u00e9nd; END \u00e9; x",
+	"CREATE PROCEDURE p() BEGIN $$ end; $$; $t$ x $t$; END; y",
+	"CREATE PROCEDURE p() " + strings.Repeat("BEGIN x ", 300) + strings.Repeat("END; ", 300) + "y; z",
+	"CREATE DEFINER = root@localhost PROCEDURE p() BEGIN x; END; y",
+	"CREATE DEFINER=`a`@`b` FUNCTION f() BEGIN x; END; y",
+	"CREATE DEFINER = CURRENT_USER EVENT e DO BEGIN x; END; y",
+	"CREATE DEFINER = x VIEW v AS SELECT 1; BEGIN; y",
+	"CREATE OR REPLACE AGGREGATE FUNCTION f() BEGIN x; END; y",
+	"CREATE TEMP TRIGGER t BEGIN x; END; y",
+	"CREATE CONSTRAINT TRIGGER t BEGIN x; END; y",
+	"CREATE NONEDITIONABLE PROCEDURE p IS BEGIN x; END; y",
+	"CREATE TABLE t (begin int); x",
+	"SELECT 1; CREATE PROCEDURE p() BEGIN x; END; y",
+	"(CREATE PROCEDURE p() BEGIN x; END); y",
+	"CREATE PROCEDURE p IS v NUMBER; BEGIN x; END; y",
+	"CREATE PROCEDURE p AS v NUMBER; w NUMBER; BEGIN x; END; y",
+	"CREATE PROCEDURE p AS BEGIN x; END; y",
+	"CREATE PROCEDURE p AS SELECT 1; y",
+	"CREATE PROCEDURE p AS RETURN; y",
+	"CREATE PROCEDURE p AS PRINT 1; y",
+	"CREATE PROCEDURE p AS IF a; y",
+	"CREATE PROCEDURE p AS WHILE a; y",
+	"CREATE PROCEDURE p AS LANGUAGE C; y",
+	"CREATE PROCEDURE p AS EXTERNAL; y",
+	"CREATE PROCEDURE p AS 'body'; y",
+	"CREATE PROCEDURE p AS $$ body $$; y",
+	"CREATE PROCEDURE p AS (x); y",
+	"CREATE PROCEDURE p AS; y",
+	"CREATE PROCEDURE p (a int AS b) x; y",
+	"CREATE PROCEDURE p WITH x AS y; z",
+	"CREATE PROCEDURE p CALL q; y",
+	"CREATE PROCEDURE p DELETE; INSERT; UPDATE; y",
+	"CREATE PROCEDURE p EXEC a; EXECUTE b; MERGE c; REPLACE d; VALUES e; SET f; y",
+	"CREATE PROCEDURE p DECLARE x; BEGIN y; END; z",
+	"CREATE TRIGGER t DECLARE x; BEGIN y; END; z",
+	"CREATE TRIGGER t AS x; y",
+	"CREATE FUNCTION f RETURN NUMBER IS BEGIN RETURN 1; END; y",
+	"CREATE PROC p AS BEGIN DISTRIBUTED TRANSACTION; TRAN; END; x",
+	"create Procedure P() Begin x; End; y",
 }
 
 // TestUsqlScannersMatchC compares the Go scanner of the usql grammar with
@@ -213,7 +278,7 @@ func TestUsqlScannerOptionsDiffer(t *testing.T) {
 
 // TestUsqlScannerDeserializeMatchesC gives random bytes to Deserialize of
 // the Go scanner and of the C scanner of the usql grammar, and compares what
-// Serialize writes after it. Every fifth run gives 6 bytes, the size of the
+// Serialize writes after it. Every fifth run gives 9 bytes, the size of the
 // state. The options do not change the state, so the test uses the default
 // options.
 func TestUsqlScannerDeserializeMatchesC(t *testing.T) {
@@ -225,7 +290,7 @@ func TestUsqlScannerDeserializeMatchesC(t *testing.T) {
 	for i := range 1000 {
 		size := r.IntN(abi.SerializationBufferSize + 1)
 		if i%5 == 0 {
-			size = 6
+			size = 9
 		}
 		in := make([]byte, size)
 		for k := range in {

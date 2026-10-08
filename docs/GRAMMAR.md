@@ -7,8 +7,9 @@ exports one function, `Language`, which returns a `*transit.Language`.
 
 The rules were written on 2026-09-29, before any code existed (D3). Today
 `transit generate` works with the C backend, and the golden harness runs it.
-`transit generate --backend go` writes a Go package, and `grammars/json` is
-the first one. Each rule names the decision that it comes from.
+`transit generate --backend go` writes a Go package. It wrote the 30 grammar
+packages in the 27 modules under `grammars/`. Each rule names the decision
+that it comes from.
 
 ## Two stages
 
@@ -146,8 +147,11 @@ A repository that holds one grammar, such as JSON, looks like this:
 | `grammars/json/node-types.json` | the node types, which `parser.go` embeds | `transit generate` |
 | `grammars/json/grammar_test.go` | the tests of "Tests" below, which call the package `internal/grammartest` | `transit generate` |
 | `grammars/json/scanner.go` | the external scanner, if the grammar has one | a person, as a port |
-| `grammars/json/example_test.go` | the example functions that pkg.go.dev shows (D53), if the package has them | a person |
+| `grammars/json/example_test.go` | `ExampleLanguage`, the example that pkg.go.dev shows for `Language`, as "The example" below says (D115) | `transit generate` |
+| `grammars/json/example_more_test.go` | more example functions, if a person writes them, as in `json` and `html` (D53, D115) | a person |
 | `grammars/json/queries/*.scm` | `queries/*.scm` of the upstream repository | copied |
+| `grammars/json/queries/highlights.scm` | the highlight query, if the upstream repository has none, as in `sqlserver`, `oracle` and `cql` (D113) | a person |
+| `grammars/json/highlight_test.go` | a test that makes sure of the capture name of each word that it names in a text, if the grammar has no comment node to hold the assertions of `testdata/highlight`, as in `sqlserver` and `cql` | a person |
 | `grammars/json/testdata/corpus/` | `test/corpus/` of the upstream repository | copied |
 | `grammars/json/testdata/highlight/` | `test/highlight/`, if it exists | copied |
 | `grammars/json/testdata/failing.txt` | the names of the corpus cases that fail upstream, if a case fails, as "Tests" below says | the golden harness |
@@ -180,6 +184,15 @@ copies it from the checkout of that grammar, at the tag that
 Do not edit a file that `transit generate` writes, and do not edit a copied
 file. To change a generated file, change the generator. To change a copied
 file, update the grammar to a new tag.
+
+If the upstream repository of a grammar has no highlight query, xo writes
+`queries/highlights.scm` of the package (D113). The first line of its
+comment says that xo wrote it. It uses only the capture names of
+`styles/captures.txt`. After you add the file, generate the package again,
+so that `parser.go` embeds `queries/`. A grammar can hide a keyword in a
+token that a query cannot capture, such as `FROM` of `sqlserver`. Then the
+query captures the node that holds the token, and the patterns of its
+children color the rest of the node.
 
 ## The external scanner
 
@@ -294,7 +307,7 @@ the options of the dialect change only its scanner (D108):
 | `src/scanner.c` | the external scanner, which reads the options from the macro `USQL_OPTIONS` | a person |
 | `queries/`, `test/corpus/` | the queries and the corpus of the grammar | a person |
 | `grammar.json` | the grammar that the upstream tool makes from `grammar.js` | the golden harness |
-| `parser.go`, `node-types.json`, `grammar_test.go` | the files of the grammar package | `transit generate` |
+| `parser.go`, `node-types.json`, `grammar_test.go`, `example_test.go` | the files of the grammar package | `transit generate` |
 | `testdata/corpus/` | a copy of `test/corpus/` | copied |
 | `scanner.go` | the port of `src/scanner.c` | a person |
 | `options.go` | `Options`, the options of a dialect, and `LanguageFor`, which gives the language with a scanner that reads them | a person |
@@ -388,7 +401,8 @@ tool on your machine and compare the files with `diff` to find the difference.
 D40 holds this.
 
 The same run of the generator writes the files of the Go package again, and
-the test makes sure that they are the files of the package. If they differ,
+the test makes sure that they are the files of the package: `parser.go`,
+`node-types.json`, `grammar_test.go` and `example_test.go`. If they differ,
 generate the package again. The test finds `grammars/grammars.json` in a
 folder above the package. In a checkout of transit, it also makes sure that
 `testdata/failing.txt` is the file that the golden harness writes from the
@@ -396,6 +410,34 @@ record (D88). If the file differs, run the golden harness again. The test
 skips the hashes and `failing.txt` when the package is not in a checkout of
 transit. It skips the whole test with `go test -short`, because the
 generator takes minutes for a large grammar.
+
+### The example
+
+`transit generate` writes `example_test.go` into each grammar package
+(D115). Its function `ExampleLanguage` parses the input of a corpus case
+and prints the tree with `Node.String`. Then it compiles each query file of
+the package and prints the number of its patterns. Its block `Output` holds
+what it prints, so `go test` runs the example and makes sure of the output.
+
+The generator has no external scanner, so it does not parse the input. The
+tree in the block `Output` is the expected tree of the case in the corpus,
+and the corpus test makes sure that the package parses the same tree. An
+expected tree can leave out the names of the fields, and `Node.String`
+prints them. So the case is the first case of the corpus that meets all of
+these conditions:
+
+1. The case is not in `testdata/failing.txt`. It expects no error and has no
+   attribute `:cst`.
+2. The package runs the case (D83), and its input is not blank.
+3. Its expected tree names its fields, or it holds no node of a type that has
+   fields in `node-types.json`, and no node `ERROR`.
+
+If no case meets the conditions, as in a package with no corpus, the
+example only compiles the queries. The package `internal/corpus` reads the
+corpus for the example and for the corpus test.
+
+A hand-written example of a grammar package goes in `example_more_test.go`,
+which the generator does not write.
 
 ## Steps to add a grammar to the set
 

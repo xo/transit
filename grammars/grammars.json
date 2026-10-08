@@ -10849,6 +10849,69 @@
       }
     },
     {
+      "name": "mysql",
+      "package": "mysql",
+      "repository": "https://github.com/xo/transit",
+      "commit": "",
+      "path": "grammars/mysql",
+      "license": "MIT",
+      "scanner": true,
+      "set": "xo",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "99e30037ac8694427b6ab423d4de40555f4a1ccf3da8c044268aaac001c94695",
+          "node_types": "a242a31e526e179b0d84f23c72a7c1ba738afe87c3a7989d7f545bad0cded440",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "anonymous unique alias",
+            "non-terminal alias map",
+            "keyword lexer",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "4b0ff5c2e722ba492d448b9e65ef7490edf2a3c492e65ec9a01a3ff3ecb527e7",
+          "node_types": "a242a31e526e179b0d84f23c72a7c1ba738afe87c3a7989d7f545bad0cded440",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "anonymous unique alias",
+            "non-terminal alias map",
+            "keyword lexer",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      },
+      "corpus": {
+        "tests": 246,
+        "failures": 0,
+        "transit": "same"
+      }
+    },
+    {
       "name": "usql",
       "package": "usql",
       "repository": "https://github.com/xo/transit",

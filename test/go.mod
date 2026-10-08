@@ -16,6 +16,7 @@ require (
 	github.com/xo/transit/grammars/javascript v0.2.1
 	github.com/xo/transit/grammars/jsdoc v0.2.1
 	github.com/xo/transit/grammars/json v0.2.1
+	github.com/xo/transit/grammars/mysql v0.2.1
 	github.com/xo/transit/grammars/neo4j v0.2.1
 	github.com/xo/transit/grammars/oracle v0.2.1
 	github.com/xo/transit/grammars/php v0.2.1
@@ -58,6 +59,8 @@ replace github.com/xo/transit/grammars/javascript => ../grammars/javascript
 replace github.com/xo/transit/grammars/jsdoc => ../grammars/jsdoc
 
 replace github.com/xo/transit/grammars/json => ../grammars/json
+
+replace github.com/xo/transit/grammars/mysql => ../grammars/mysql
 
 replace github.com/xo/transit/grammars/neo4j => ../grammars/neo4j
 

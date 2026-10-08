@@ -1,6 +1,6 @@
 # D107. A grammar module takes the name of its dialect
 
-Status: Decided, amends D26 and D106, amended by D108.
+Status: Decided, amends D26 and D106, amended by D108 and D110.
 
 Ken decided on 2026-10-01, answering questions 76 and 78, that the grammar
 modules take the names of the dialects of dbmeta. The dbmeta agent gave the

@@ -4,8 +4,8 @@
 //
 // The package is internal, so only code under github.com/xo/transit/ can fill
 // a Language: the grammar packages that the Go backend writes, and the test
-// module, which copies the tables of a C grammar through cgo (D12). The form of
-// the tables can change in phase 4 (D31) without a change of the exported API.
+// module, which copies the tables of a C grammar through cgo (D12). So the
+// form of the tables can change without a change of the exported API (D31).
 package abi
 
 // This file ports the types and the constants of lib/src/parser.h: the

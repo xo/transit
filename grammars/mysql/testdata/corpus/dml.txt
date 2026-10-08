@@ -1,0 +1,657 @@
+================================================================================
+Insert values
+================================================================================
+
+INSERT INTO t (a, b) VALUES (1, 'x'), (2, 'y');
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier))
+    (values_clause
+      (value_list
+        (number)
+        (string))
+      (value_list
+        (number)
+        (string)))))
+
+================================================================================
+Insert without into
+================================================================================
+
+INSERT t VALUES (1);
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (values_clause
+      (value_list
+        (number)))))
+
+================================================================================
+Insert with modifiers
+================================================================================
+
+INSERT LOW_PRIORITY IGNORE INTO t VALUES (DEFAULT, NULL);
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (values_clause
+      (value_list
+        (null)))))
+
+================================================================================
+Insert with value
+================================================================================
+
+INSERT INTO t VALUE (1);
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (values_clause
+      (value_list
+        (number)))))
+
+================================================================================
+Insert with set
+================================================================================
+
+INSERT INTO t SET a = 1, b = 'two';
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (number))
+    (assignment
+      (column_reference
+        (identifier))
+      (string))))
+
+================================================================================
+Insert from a select
+================================================================================
+
+INSERT INTO t (a) SELECT x FROM u WHERE x > 0;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier))
+    (select_statement
+      (select
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (identifier)))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (number)))))))
+
+================================================================================
+Insert on duplicate key update
+================================================================================
+
+INSERT INTO t (id, n) VALUES (1, 1) ON DUPLICATE KEY UPDATE n = n + 1;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier))
+    (values_clause
+      (value_list
+        (number)
+        (number)))
+    (on_duplicate_key_update
+      (assignment
+        (column_reference
+          (identifier))
+        (binary_expression
+          (column_reference
+            (identifier))
+          (number))))))
+
+================================================================================
+Insert with a row alias
+================================================================================
+
+INSERT INTO t (a, b) VALUES (1, 2) AS new ON DUPLICATE KEY UPDATE b = new.b;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier))
+    (values_clause
+      (value_list
+        (number)
+        (number)))
+    (identifier)
+    (on_duplicate_key_update
+      (assignment
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier)
+          (identifier))))))
+
+================================================================================
+Insert with a row alias and columns
+================================================================================
+
+INSERT INTO t VALUES (1, 2) AS new (m, n) ON DUPLICATE KEY UPDATE b = m + n;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (values_clause
+      (value_list
+        (number)
+        (number)))
+    (identifier)
+    (column_list
+      (identifier)
+      (identifier))
+    (on_duplicate_key_update
+      (assignment
+        (column_reference
+          (identifier))
+        (binary_expression
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier)))))))
+
+================================================================================
+Insert with values function
+================================================================================
+
+INSERT INTO t (a, b) VALUES (1, 2) ON DUPLICATE KEY UPDATE b = VALUES(b);
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier))
+    (values_clause
+      (value_list
+        (number)
+        (number)))
+    (on_duplicate_key_update
+      (assignment
+        (column_reference
+          (identifier))
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier))))))))
+
+================================================================================
+Insert into a partition
+================================================================================
+
+INSERT INTO t PARTITION (p1) VALUES (1);
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (partition_list
+      (identifier))
+    (values_clause
+      (value_list
+        (number)))))
+
+================================================================================
+Insert rows
+================================================================================
+
+INSERT INTO t VALUES ROW(1, 2), ROW(3, 4);
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (values_clause
+      (value_list
+        (number)
+        (number))
+      (value_list
+        (number)
+        (number)))))
+
+================================================================================
+Replace values
+================================================================================
+
+REPLACE INTO t (id, name) VALUES (1, 'a');
+
+---
+
+(source_file
+  (replace_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier))
+    (values_clause
+      (value_list
+        (number)
+        (string)))))
+
+================================================================================
+Replace with set
+================================================================================
+
+REPLACE t SET id = 2;
+
+---
+
+(source_file
+  (replace_statement
+    (object_reference
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (number))))
+
+================================================================================
+Replace from a select
+================================================================================
+
+REPLACE INTO t SELECT * FROM u;
+
+---
+
+(source_file
+  (replace_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (all_columns)
+        (from_clause
+          (table_reference
+            (identifier)))))))
+
+================================================================================
+Update a table
+================================================================================
+
+UPDATE t SET a = 1, b = b * 2 WHERE id = 3;
+
+---
+
+(source_file
+  (update_statement
+    (table_reference
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (number))
+    (assignment
+      (column_reference
+        (identifier))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (number)))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (number)))))
+
+================================================================================
+Update with order by and limit
+================================================================================
+
+UPDATE LOW_PRIORITY IGNORE t SET a = a + 1 ORDER BY id DESC LIMIT 10;
+
+---
+
+(source_file
+  (update_statement
+    (table_reference
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (number)))
+    (order_by_clause
+      (column_reference
+        (identifier)))
+    (limit_clause
+      (number))))
+
+================================================================================
+Update with a join
+================================================================================
+
+UPDATE items i JOIN prices p ON p.id = i.id SET i.price = p.price WHERE p.x = 1;
+
+---
+
+(source_file
+  (update_statement
+    (join
+      (table_reference
+        (identifier)
+        (identifier))
+      (table_reference
+        (identifier)
+        (identifier))
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (column_reference
+          (identifier)
+          (identifier))))
+    (assignment
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier)))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (number)))))
+
+================================================================================
+Update many tables
+================================================================================
+
+UPDATE a, b SET a.x = b.x, b.y = DEFAULT WHERE a.id = b.id;
+
+---
+
+(source_file
+  (update_statement
+    (table_reference
+      (identifier))
+    (table_reference
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier)))
+    (assignment
+      (column_reference
+        (identifier)
+        (identifier)))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (column_reference
+          (identifier)
+          (identifier))))))
+
+================================================================================
+Update with a common table expression
+================================================================================
+
+WITH c AS (SELECT 1 AS id) UPDATE t, c SET t.a = 0 WHERE t.id = c.id;
+
+---
+
+(source_file
+  (update_statement
+    (with_clause
+      (cte
+        (identifier)
+        (subquery
+          (select
+            (aliased_expression
+              (number)
+              (identifier))))))
+    (table_reference
+      (identifier))
+    (table_reference
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier)
+        (identifier))
+      (number))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (column_reference
+          (identifier)
+          (identifier))))))
+
+================================================================================
+Delete rows
+================================================================================
+
+DELETE FROM t WHERE id = 1;
+
+---
+
+(source_file
+  (delete_statement
+    (table_reference
+      (identifier))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (number)))))
+
+================================================================================
+Delete with modifiers, order by and limit
+================================================================================
+
+DELETE LOW_PRIORITY QUICK IGNORE FROM t WHERE a < 0 ORDER BY id LIMIT 100;
+
+---
+
+(source_file
+  (delete_statement
+    (table_reference
+      (identifier))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (number)))
+    (order_by_clause
+      (column_reference
+        (identifier)))
+    (limit_clause
+      (number))))
+
+================================================================================
+Delete from many tables
+================================================================================
+
+DELETE t1, t2 FROM t1 INNER JOIN t2 ON t1.id = t2.id WHERE t1.x = 1;
+
+---
+
+(source_file
+  (delete_statement
+    (table_reference
+      (identifier))
+    (table_reference
+      (identifier))
+    (join
+      (table_reference
+        (identifier))
+      (table_reference
+        (identifier))
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (column_reference
+          (identifier)
+          (identifier))))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (number)))))
+
+================================================================================
+Delete with using
+================================================================================
+
+DELETE FROM t1, t2 USING t1 JOIN t2 ON t1.id = t2.id JOIN t3;
+
+---
+
+(source_file
+  (delete_statement
+    (table_reference
+      (identifier))
+    (table_reference
+      (identifier))
+    (join
+      (join
+        (table_reference
+          (identifier))
+        (table_reference
+          (identifier))
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (column_reference
+            (identifier)
+            (identifier))))
+      (table_reference
+        (identifier)))))
+
+================================================================================
+Delete all rows
+================================================================================
+
+DELETE FROM t;
+
+---
+
+(source_file
+  (delete_statement
+    (table_reference
+      (identifier))))
+
+================================================================================
+Truncate a table
+================================================================================
+
+TRUNCATE TABLE logs;
+
+---
+
+(source_file
+  (truncate_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+Load data
+================================================================================
+
+LOAD DATA LOCAL INFILE '/tmp/d.csv' INTO TABLE t FIELDS TERMINATED BY ',' IGNORE 1 LINES (a, b);
+
+---
+
+(source_file
+  (load_data_statement
+    (string)
+    (object_reference
+      (identifier))
+    (string)
+    (number)
+    (column_list
+      (identifier)
+      (identifier))))
+
+================================================================================
+Do
+================================================================================
+
+DO SLEEP(1), RELEASE_LOCK('l');
+
+---
+
+(source_file
+  (do_statement
+    (function_call
+      (identifier)
+      (arguments
+        (number)))
+    (function_call
+      (identifier)
+      (arguments
+        (string)))))

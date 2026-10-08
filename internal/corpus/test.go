@@ -1,4 +1,4 @@
-package grammartest
+package corpus
 
 import (
 	"os"
@@ -92,62 +92,62 @@ func lines(s string) func(func(string) bool) {
 	}
 }
 
-// testExpectation is what a corpus test expects.
+// Expectation is what a corpus test expects.
 //
-// testExpectation is TestExpectation.
-type testExpectation uint8
+// Expectation is TestExpectation.
+type Expectation uint8
 
 // The expectations of a corpus test.
 const (
-	expectPass testExpectation = iota
-	expectError
-	expectSkip
+	ExpectPass Expectation = iota
+	ExpectError
+	ExpectSkip
 )
 
-// testAttributes are the attributes of a corpus test, from the lines after
+// Attributes are the attributes of a corpus test, from the lines after
 // its name.
 //
-// testAttributes is TestAttributes.
-type testAttributes struct {
-	platform    bool
-	failFast    bool
-	expectation testExpectation
-	cst         bool
-	languages   []string
+// Attributes is TestAttributes.
+type Attributes struct {
+	Platform    bool
+	FailFast    bool
+	Expectation Expectation
+	CST         bool
+	Languages   []string
 }
 
-// testEntry is a group of corpus tests or one corpus test, an example.
+// Entry is a group of corpus tests or one corpus test, an example.
 // A group has children, and an example has an input and an output.
 //
-// testEntry is TestEntry, an enum with data upstream. The port keeps the
+// Entry is TestEntry, an enum with data upstream. The port keeps the
 // fields that the tests of a grammar read.
-type testEntry struct {
-	name     string
-	children []testEntry
-	isGroup  bool
-	filePath string
+type Entry struct {
+	Name     string
+	Children []Entry
+	IsGroup  bool
+	FilePath string
 
-	input      []byte
-	output     string
-	hasFields  bool
-	attributes testAttributes
+	Input      []byte
+	Output     string
+	HasFields  bool
+	Attributes Attributes
 }
 
-// parseTests reads the corpus tests of a file, or of each file in a folder
+// Parse reads the corpus tests of a file, or of each file in a folder
 // and its subfolders. The name of each group is the name of its file or
 // folder without the extension.
 //
-// parseTests is parse_tests.
-func parseTests(path string) (testEntry, error) {
+// Parse is parse_tests.
+func Parse(path string) (Entry, error) {
 	name := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
 	info, err := os.Stat(path)
 	if err != nil {
-		return testEntry{}, err
+		return Entry{}, err
 	}
 	if info.IsDir() {
 		entries, err := os.ReadDir(path)
 		if err != nil {
-			return testEntry{}, err
+			return Entry{}, err
 		}
 		var childPaths []string
 		for _, entry := range entries {
@@ -159,29 +159,29 @@ func parseTests(path string) (testEntry, error) {
 		slices.SortFunc(childPaths, func(a, b string) int {
 			return strings.Compare(filepath.Base(a), filepath.Base(b))
 		})
-		group := testEntry{name: name, isGroup: true}
+		group := Entry{Name: name, IsGroup: true}
 		for _, p := range childPaths {
-			child, err := parseTests(p)
+			child, err := Parse(p)
 			if err != nil {
-				return testEntry{}, err
+				return Entry{}, err
 			}
-			group.children = append(group.children, child)
+			group.Children = append(group.Children, child)
 		}
 		return group, nil
 	}
 	content, err := os.ReadFile(path)
 	if err != nil {
-		return testEntry{}, err
+		return Entry{}, err
 	}
 	return parseTestContent(name, string(content), path), nil
 }
 
-// stripSexpFields replaces ` word: (` with ` (` throughout the string. It is
+// StripSexpFields replaces ` word: (` with ` (` throughout the string. It is
 // for the output of Node.String, where the elements are separated by single
 // spaces.
 //
-// stripSexpFields is strip_sexp_fields.
-func stripSexpFields(sexp string) string {
+// StripSexpFields is strip_sexp_fields.
+func StripSexpFields(sexp string) string {
 	var result strings.Builder
 	result.Grow(len(sexp))
 	remaining := sexp
@@ -231,8 +231,8 @@ func suffixMatches(firstSuffix *string, suffix string) bool {
 //
 // pendingTest is PendingTest.
 type pendingTest struct {
-	name          string
-	attributes    testAttributes
+	Name          string
+	Attributes    Attributes
 	bodyStartLine int
 }
 
@@ -310,15 +310,15 @@ func parseHeader(lines []string, firstSuffix *string, startLine int) (pendingTes
 		return pendingTest{}, 0, false
 	}
 
-	var expectation testExpectation
+	var expectation Expectation
 	switch {
 	case seenSkip:
 		// with :error too, upstream warns and drops :error
-		expectation = expectSkip
+		expectation = ExpectSkip
 	case seenError:
-		expectation = expectError
+		expectation = ExpectError
 	default:
-		expectation = expectPass
+		expectation = ExpectPass
 	}
 
 	if len(languages) == 0 {
@@ -326,13 +326,13 @@ func parseHeader(lines []string, firstSuffix *string, startLine int) (pendingTes
 	}
 
 	pending := pendingTest{
-		name: strings.TrimRightFunc(testName.String(), unicode.IsSpace),
-		attributes: testAttributes{
-			platform:    platform == nil || *platform,
-			failFast:    failFast,
-			expectation: expectation,
-			cst:         cst,
-			languages:   languages,
+		Name: strings.TrimRightFunc(testName.String(), unicode.IsSpace),
+		Attributes: Attributes{
+			Platform:    platform == nil || *platform,
+			FailFast:    failFast,
+			Expectation: expectation,
+			CST:         cst,
+			Languages:   languages,
 		},
 		bodyStartLine: lineNum + 1,
 	}
@@ -354,8 +354,8 @@ func markerArgument(trimmed, marker string) (string, bool) {
 // parseTestContent splits the content of a corpus file into its tests.
 //
 // parseTestContent is parse_test_content.
-func parseTestContent(name, content, filePath string) testEntry {
-	var children []testEntry
+func parseTestContent(name, content, filePath string) Entry {
+	var children []Entry
 	lines := strings.SplitAfter(content, "\n")
 	if lines[len(lines)-1] == "" {
 		lines = lines[:len(lines)-1]
@@ -401,7 +401,7 @@ func parseTestContent(name, content, filePath string) testEntry {
 		}
 	}
 
-	return testEntry{name: name, children: children, isGroup: true, filePath: filePath}
+	return Entry{Name: name, Children: children, IsGroup: true, FilePath: filePath}
 }
 
 // buildTestEntry builds a single test entry from the body lines between a
@@ -409,7 +409,7 @@ func parseTestContent(name, content, filePath string) testEntry {
 // separate the input from the expected output.
 //
 // buildTestEntry is build_test_entry.
-func buildTestEntry(bodyLines []string, firstSuffix *string, pending pendingTest) (testEntry, bool) {
+func buildTestEntry(bodyLines []string, firstSuffix *string, pending pendingTest) (Entry, bool) {
 	// Find the longest `---` divider line in the body whose suffix matches.
 	dividerLine := -1
 	bestTotalLen := 0
@@ -425,7 +425,7 @@ func buildTestEntry(bodyLines []string, firstSuffix *string, pending pendingTest
 		}
 	}
 	if dividerLine < 0 {
-		return testEntry{}, false
+		return Entry{}, false
 	}
 
 	// Input: lines before the divider, with the trailing newline stripped.
@@ -442,17 +442,17 @@ func buildTestEntry(bodyLines []string, firstSuffix *string, pending pendingTest
 
 	var output string
 	var hasFields bool
-	if pending.attributes.cst {
+	if pending.Attributes.CST {
 		output = strings.TrimSpace(outputStr)
 	} else {
 		output, hasFields = normalizeSexpOutput(outputStr)
 	}
 
-	return testEntry{
-		name:       pending.name,
-		input:      input,
-		output:     output,
-		hasFields:  hasFields,
-		attributes: pending.attributes,
+	return Entry{
+		Name:       pending.Name,
+		Input:      input,
+		Output:     output,
+		HasFields:  hasFields,
+		Attributes: pending.Attributes,
 	}, true
 }

@@ -79,7 +79,7 @@ The SQL grammar has 729 symbols, 53 fields and 17,329 parse states.
 
 ## The package transit
 
-This is the proposed surface of the root package. The bodies are ports of the
+This is the surface of the root package. The bodies are ports of the
 upstream functions that the table below names. Each enum type, such as
 `SymbolType`, `Encoding` and `LogType`, also has a `String` method, which the
 list leaves out.
@@ -563,7 +563,10 @@ and `Kind` is the key `type`, as `Node.Kind` is the type of a node. D76
 records them.
 
 The fourth one is `inject.WithReplacer`, which replaces the text of nodes
-before a layer is parsed (D101). "The package inject" below gives it.
+before a layer is parsed (D101). The fifth one is `inject.Layer.Text` and
+`inject.Layer.StatesAt`, which give the text that a layer parses and the
+parse states of the layer at an offset (D111). "The package inject" below
+gives them.
 
 ## The package inject
 
@@ -591,8 +594,14 @@ type Layer struct {
 	Config *Config
 	Tree   *transit.Tree
 	Ranges []transit.Range
-	Depth  int // 0 for the root layer
+	Depth  int    // 0 for the root layer
+	Text   []byte // the text that the layer parses, after the replacements
 }
+
+// StatesAt returns the parse states of the layer at offset, as
+// transit.Parser.StatesAt gives them. It is an API that upstream does not
+// have.
+func (l Layer) StatesAt(ctx context.Context, p *transit.Parser, offset int) ([]transit.StateID, error)
 
 // Layers parses src with c, finds every injection, and parses the layer of
 // each. lookup gives the configuration of an injected language name.
@@ -675,6 +684,37 @@ psql gives `TRUE` or `FALSE` for `:{?name}`, so its placeholder is `TRUE`
 with spaces after it. The name of a variable needs at least one character,
 so each placeholder fits.
 
+`Layer.Text` and `Layer.StatesAt` are an API that upstream does not have
+(D28, D111). `Text` is the text that the layer parses: the text of
+`Layers`, with the replacements of `WithReplacer` for that layer. It has the
+length and the offsets of the text of `Layers`. When nothing is replaced,
+it is the text of `Layers` and not a copy.
+
+To complete in a layer, usql runs `StatesAt` on `Text` with the language of
+the layer. A layer whose ranges do not cover the whole text also needs its
+ranges on the parser. Without them, the parser reads the text of the other
+layers too. For example, the quote of `\echo 'it` before a statement starts
+a string in SQL that holds the statement. `Layer.StatesAt` sets the language
+and the included ranges of the layer on the parser, and it gives the tree of
+the layer as the old tree. It clears the included ranges before it returns,
+as `Layers` does:
+
+```go
+for _, l := range slices.Backward(layers) {
+	if holds(l.Ranges, cursor) {
+		states, err := l.StatesAt(ctx, parser, cursor)
+		// ...
+	}
+}
+```
+
+The test module parses `select * from :tbl where id = :id;` after a meta
+command, with `usql.LanguageFor` and the options of PostgreSQL, and with the
+package `postgres` for the statement. At the start of `:tbl`, the states
+accept `table_ref` and `relation_expr`. After `where `, they accept `a_expr`
+and `columnref`. At both offsets, the states are the states of a parse of
+`select * from _tbl where id = _id;` alone.
+
 ## A generated grammar package
 
 The Go backend writes one package for each grammar (D26, D31). For the SQL
@@ -748,14 +788,16 @@ writes this API in `options.go`, beside the generated files:
 package usql
 
 // Options are the options of the syntax of a SQL dialect that the external
-// scanner reads. Each field is a flag of the type Syntax of dbmeta, with the
-// same name.
+// scanner reads. Each field but BeginEndBlocks is a flag of the type Syntax
+// of dbmeta, with the same name.
 type Options struct {
 	DollarQuotes  bool // $tag$ ... $tag$ and $$ ... $$ are a string
 	BlockComments bool // /* ... */ is a comment
 	SlashComments bool // // starts a comment
 	HashComments  bool // # starts a comment
 	Backticks     bool // `...` is a quoted identifier
+
+	BeginEndBlocks bool // a stored program with BEGIN ... END is one statement
 }
 
 // LanguageFor returns the language with an external scanner that reads
@@ -771,6 +813,12 @@ new option is a new field and a new flag of the scanner, and no new grammar
 (D108). The package reads the tables of `Language` with `abi.TablesOf`, a
 function of the internal package `abi` that the root package sets. So the
 root package exports nothing new for it.
+
+`BeginEndBlocks` is the option of D112, and it is off by default. With it
+on, a statement that starts with `CREATE ... PROCEDURE`, `FUNCTION`,
+`TRIGGER` or `EVENT` keeps its `BEGIN ... END` body, and a `;` inside the
+body does not end the statement. `docs/USQL.md` says which words the
+scanner reads.
 
 ## The module styles
 
@@ -871,3 +919,8 @@ its input from `inject`. On the layer at the cursor, it completes with
 `LookaheadIterator`. It decides what kind of name goes at the cursor from
 the symbols that come back and from its own queries (D6).
 `RLINE.md` and `USQL.md` hold the details.
+
+The sample programs of D53 make these calls. `_example/highlight` highlights
+the input of usql as rline will, and `_example/complete` completes at a
+cursor as usql will. They live in the module `github.com/xo/transit/_example`,
+so the root module still requires no other module.

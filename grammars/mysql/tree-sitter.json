@@ -1,0 +1,22 @@
+{
+  "grammars": [
+    {
+      "name": "mysql",
+      "camelcase": "MySQL",
+      "scope": "source.mysql",
+      "path": ".",
+      "file-types": [
+        "mysql"
+      ],
+      "highlights": "queries/highlights.scm"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "A grammar of the SQL that MySQL 8.4 and MariaDB share",
+    "links": {
+      "repository": "https://github.com/xo/transit"
+    }
+  }
+}

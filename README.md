@@ -1,5 +1,6 @@
 <div align="center">
   <a href="#status" title="Status">Status</a> |
+  <a href="#sample-programs" title="Sample programs">Sample programs</a> |
   <a href="#documents" title="Documents">Documents</a> |
   <a href="#grammars" title="Grammars">Grammars</a> |
   <a href="#differences-from-upstream" title="Differences from upstream">Differences from upstream</a> |
@@ -58,8 +59,31 @@ backend writes a grammar package with literal tables and a lexer as data
 (D74). The 17 fixture grammars are Go packages in 15 modules under
 `grammars/`, with their scanners ported to Go. Every test of phase 3 passes on
 them, and the speed targets of D37 hold on them. Ken tagged `v0.1.0` of every
-module on 2026-10-01, which ended phase 4. [docs/PLAN.md](docs/PLAN.md) holds
-the plan, and the decisions record every answer that shapes it.
+module on 2026-10-01, which ended phase 4.
+
+Phase 5 makes the grammars for rline and usql. The SQL grammars, the grammars
+of the languages of dbmeta, the usql grammar and the MySQL grammar are Go
+packages, in 27 grammar modules in all. The package `inject` gives the
+replaced text of a layer and its parse states, for completion in a SQL
+statement (D111). Two sample programs show how rline and usql use transit
+(D53). The option `BeginEndBlocks` of the usql grammar keeps the `BEGIN ...
+END` body of a stored program in one statement (D112). On 2026-10-09 every
+test of these grammars passes in Go, and the sample programs run, and that
+ended phase 5. [docs/PLAN.md](docs/PLAN.md) holds the plan, and the decisions
+record every answer that shapes it.
+
+## Sample programs
+
+The module `github.com/xo/transit/_example` holds two programs that use
+transit as rline and usql will (D53). Run them in the folder `_example`:
+
+| Program | What it does |
+| --- | --- |
+| `go run ./highlight -dialect mysql -style monokai -colors 256` | It types a text of usql one key at a time, parses again with the old tree after each key, and finds the layer of each SQL statement with `inject`. It prints the text in the colors of a style of the module `styles`, and the time of each edit |
+| `go run ./complete -dialect postgres -text 'select * from '` | It completes at each cursor that it gets as a byte offset. It says whether the cursor is in a meta command, in a variable or in a SQL statement, and in a statement it lists the keywords and the kinds of node that can come next, from `Layer.StatesAt` |
+
+The flag `-dialect` takes `cql`, `generic`, `mysql`, `oracle`, `postgres` or
+`sqlserver`.
 
 ## Documents
 
@@ -118,6 +142,9 @@ package name can differ from the grammar name (D107):
 | `github.com/xo/transit/grammars/oracle` | `plsql` | [andreasmaierde/tree-sitter-plsql](https://github.com/andreasmaierde/tree-sitter-plsql) | the branch `main` at `28aebef` |
 | `github.com/xo/transit/grammars/cql` | `cql` | [shotover/tree-sitter-cql](https://github.com/shotover/tree-sitter-cql) | `v0.2.0` |
 
+The repositories of `sqlserver`, `oracle` and `cql` have no highlight query,
+so xo wrote `queries/highlights.scm` of these three packages (D113).
+
 These packages hold the grammars of the languages of dbmeta that are not SQL
 (D21, D23). A module that holds the language of one dialect has the name of
 the dialect, so the package name can differ from the grammar name (D107).
@@ -148,6 +175,17 @@ The fields of `usql.Options` are the flags of the type `Syntax` of dbmeta:
 `DollarQuotes`, `BlockComments`, `SlashComments`, `HashComments` and
 `Backticks`.
 
+The package `github.com/xo/transit/grammars/mysql` holds the grammar
+`mysql`, which xo writes from the reference manual of MySQL 8.4 (D42, D106).
+It covers the SQL that MySQL 8.4 and MariaDB share, with backticks, `#` and
+`-- ` comments, version comments such as `/*!40101 ... */`, the variables
+`@name` and `@@session.name`, and stored programs with `BEGIN ... END`
+bodies. It does not read the `DELIMITER` command of the mysql client. The
+usql grammar ends a statement at each `;`, so by default it splits such a
+body into several statements, and the MySQL grammar finds an error in each
+part. The option `BeginEndBlocks` of `usql.Options` keeps the body in one
+statement (D112). It is off by default.
+
 Some grammars ship queries written for Neovim, which transit does not support
 now. [docs/NEOVIM.md](docs/NEOVIM.md) lists them.
 
@@ -163,10 +201,20 @@ transit differs from upstream tree-sitter only where a decision says so:
    surrogates only, where the C code of upstream reads past its array (D78).
 
 transit also adds an API that upstream does not have, one decision each
-(D28), such as `StatesAt` (D57, D70). It does not evaluate the predicates of
-Neovim, and upstream does not either ([docs/NEOVIM.md](docs/NEOVIM.md)).
-[docs/UPSTREAM.md](docs/UPSTREAM.md) says when one can be made. This section
-will list each one with its decision.
+(D28). [docs/UPSTREAM.md](docs/UPSTREAM.md) says when one can be made, and
+[docs/API.md](docs/API.md) gives each one:
+
+1. `Parser.StatesAt` gives the parse states at a byte offset, before the
+   parser recovers from an error (D57, D70).
+2. `NodeType`, `FieldInfo` and `NodeKind` give `node-types.json` in Go, as
+   the function `NodeTypes` of a grammar package returns it (D76).
+3. `inject.WithReplacer` replaces the text of nodes before a layer is parsed
+   (D101).
+4. `inject.Layer.Text` and `inject.Layer.StatesAt` give the text that a layer
+   parses and the parse states of the layer at an offset (D111).
+
+transit does not evaluate the predicates of Neovim, and upstream does not
+either ([docs/NEOVIM.md](docs/NEOVIM.md)).
 
 ## License
 

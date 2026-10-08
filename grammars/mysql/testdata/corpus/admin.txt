@@ -1,0 +1,841 @@
+================================================================================
+Use a database
+================================================================================
+
+USE shop;
+
+---
+
+(source_file
+  (use_statement
+    (identifier)))
+
+================================================================================
+Use a quoted database
+================================================================================
+
+USE `my-db`;
+
+---
+
+(source_file
+  (use_statement
+    (identifier)))
+
+================================================================================
+Set a user variable
+================================================================================
+
+SET @a = 1, @b := 'x';
+
+---
+
+(source_file
+  (set_statement
+    (variable_assignment
+      (user_variable)
+      (number))
+    (variable_assignment
+      (user_variable)
+      (string))))
+
+================================================================================
+Set a session variable
+================================================================================
+
+SET SESSION sql_mode = 'TRADITIONAL', LOCAL autocommit = 0;
+
+---
+
+(source_file
+  (set_statement
+    (variable_assignment
+      (column_reference
+        (identifier))
+      (string))
+    (variable_assignment
+      (column_reference
+        (identifier))
+      (number))))
+
+================================================================================
+Set a global variable
+================================================================================
+
+SET GLOBAL max_connections = 500;
+
+---
+
+(source_file
+  (set_statement
+    (variable_assignment
+      (column_reference
+        (identifier))
+      (number))))
+
+================================================================================
+Set a persisted variable
+================================================================================
+
+SET PERSIST innodb_buffer_pool_size = 1073741824;
+
+---
+
+(source_file
+  (set_statement
+    (variable_assignment
+      (column_reference
+        (identifier))
+      (number))))
+
+================================================================================
+Set system variables
+================================================================================
+
+SET @@session.time_zone = '+00:00', @@GLOBAL.sql_mode = DEFAULT, @@autocommit = ON;
+
+---
+
+(source_file
+  (set_statement
+    (variable_assignment
+      (system_variable)
+      (string))
+    (variable_assignment
+      (system_variable))
+    (variable_assignment
+      (system_variable))))
+
+================================================================================
+Set a plain variable
+================================================================================
+
+SET autocommit = 1;
+
+---
+
+(source_file
+  (set_statement
+    (variable_assignment
+      (column_reference
+        (identifier))
+      (number))))
+
+================================================================================
+Set names
+================================================================================
+
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+---
+
+(source_file
+  (set_statement
+    (identifier)
+    (identifier)))
+
+================================================================================
+Set names default
+================================================================================
+
+SET NAMES DEFAULT;
+
+---
+
+(source_file
+  (set_statement))
+
+================================================================================
+Set the character set
+================================================================================
+
+SET CHARACTER SET utf8mb4;
+
+---
+
+(source_file
+  (set_statement
+    (identifier)))
+
+================================================================================
+Set a transaction
+================================================================================
+
+SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED, READ ONLY;
+
+---
+
+(source_file
+  (set_statement))
+
+================================================================================
+Show databases
+================================================================================
+
+SHOW DATABASES LIKE 'shop%';
+
+---
+
+(source_file
+  (show_statement
+    (string)))
+
+================================================================================
+Show tables
+================================================================================
+
+SHOW FULL TABLES FROM shop WHERE Table_type = 'VIEW';
+
+---
+
+(source_file
+  (show_statement
+    (identifier)
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (string)))))
+
+================================================================================
+Show columns
+================================================================================
+
+SHOW FULL COLUMNS FROM t FROM shop LIKE 'a%';
+
+---
+
+(source_file
+  (show_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (string)))
+
+================================================================================
+Show index
+================================================================================
+
+SHOW INDEX FROM t;
+
+---
+
+(source_file
+  (show_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+Show create table
+================================================================================
+
+SHOW CREATE TABLE shop.t;
+
+---
+
+(source_file
+  (show_statement
+    (object_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+Show create database
+================================================================================
+
+SHOW CREATE DATABASE IF NOT EXISTS shop;
+
+---
+
+(source_file
+  (show_statement
+    (identifier)))
+
+================================================================================
+Show variables
+================================================================================
+
+SHOW GLOBAL VARIABLES LIKE 'max%';
+
+---
+
+(source_file
+  (show_statement
+    (string)))
+
+================================================================================
+Show status
+================================================================================
+
+SHOW SESSION STATUS WHERE Variable_name = 'Uptime';
+
+---
+
+(source_file
+  (show_statement
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (string)))))
+
+================================================================================
+Show processlist
+================================================================================
+
+SHOW FULL PROCESSLIST;
+
+---
+
+(source_file
+  (show_statement))
+
+================================================================================
+Show grants
+================================================================================
+
+SHOW GRANTS FOR 'bob'@'localhost';
+
+---
+
+(source_file
+  (show_statement
+    (account
+      (string)
+      (string))))
+
+================================================================================
+Show warnings
+================================================================================
+
+SHOW WARNINGS LIMIT 10;
+SHOW COUNT(*) ERRORS;
+
+---
+
+(source_file
+  (show_statement
+    (limit_clause
+      (number)))
+  (show_statement))
+
+================================================================================
+Show engines and table status
+================================================================================
+
+SHOW ENGINES;
+SHOW TABLE STATUS FROM shop;
+SHOW ENGINE INNODB STATUS;
+
+---
+
+(source_file
+  (show_statement)
+  (show_statement
+    (identifier))
+  (show_statement
+    (identifier)))
+
+================================================================================
+Show triggers and procedure status
+================================================================================
+
+SHOW TRIGGERS FROM shop;
+SHOW PROCEDURE STATUS LIKE 'p%';
+SHOW FUNCTION CODE f;
+
+---
+
+(source_file
+  (show_statement
+    (identifier))
+  (show_statement
+    (string))
+  (show_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+Show character sets and collations
+================================================================================
+
+SHOW CHARACTER SET LIKE 'utf8%';
+SHOW COLLATION WHERE Charset = 'latin1';
+
+---
+
+(source_file
+  (show_statement
+    (string))
+  (show_statement
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (string)))))
+
+================================================================================
+Show binary logs and replica status
+================================================================================
+
+SHOW BINARY LOGS;
+SHOW REPLICA STATUS;
+SHOW PLUGINS;
+
+---
+
+(source_file
+  (show_statement)
+  (show_statement)
+  (show_statement))
+
+================================================================================
+Describe a table
+================================================================================
+
+DESCRIBE t;
+DESC shop.t name;
+EXPLAIN t;
+
+---
+
+(source_file
+  (describe_statement
+    (object_reference
+      (identifier)))
+  (describe_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier))
+  (describe_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+Explain a query
+================================================================================
+
+EXPLAIN SELECT * FROM t WHERE a = 1;
+
+---
+
+(source_file
+  (explain_statement
+    (select_statement
+      (select
+        (all_columns)
+        (from_clause
+          (table_reference
+            (identifier)))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (number)))))))
+
+================================================================================
+Explain with a format
+================================================================================
+
+EXPLAIN FORMAT = JSON SELECT 1;
+EXPLAIN ANALYZE SELECT * FROM t;
+
+---
+
+(source_file
+  (explain_statement
+    (identifier)
+    (select_statement
+      (select
+        (number))))
+  (explain_statement
+    (select_statement
+      (select
+        (all_columns)
+        (from_clause
+          (table_reference
+            (identifier)))))))
+
+================================================================================
+Explain an update
+================================================================================
+
+EXPLAIN UPDATE t SET a = 1;
+EXPLAIN FOR CONNECTION 42;
+
+---
+
+(source_file
+  (explain_statement
+    (update_statement
+      (table_reference
+        (identifier))
+      (assignment
+        (column_reference
+          (identifier))
+        (number))))
+  (explain_statement
+    (number)))
+
+================================================================================
+Grant privileges
+================================================================================
+
+GRANT SELECT, INSERT, UPDATE ON shop.* TO 'bob'@'localhost';
+
+---
+
+(source_file
+  (grant_statement
+    (privilege)
+    (privilege)
+    (privilege)
+    (privilege_level
+      (identifier))
+    (account
+      (string)
+      (string))))
+
+================================================================================
+Grant all privileges
+================================================================================
+
+GRANT ALL PRIVILEGES ON *.* TO 'admin'@'%' WITH GRANT OPTION;
+
+---
+
+(source_file
+  (grant_statement
+    (privilege)
+    (privilege_level)
+    (account
+      (string)
+      (string))))
+
+================================================================================
+Grant column privileges
+================================================================================
+
+GRANT SELECT (a, b), UPDATE (b) ON TABLE shop.t TO bob;
+
+---
+
+(source_file
+  (grant_statement
+    (privilege
+      (column_list
+        (identifier)
+        (identifier)))
+    (privilege
+      (column_list
+        (identifier)))
+    (privilege_level
+      (identifier)
+      (identifier))
+    (account
+      (identifier))))
+
+================================================================================
+Grant on a procedure
+================================================================================
+
+GRANT EXECUTE ON PROCEDURE shop.p TO 'app'@'10.0.0.%';
+
+---
+
+(source_file
+  (grant_statement
+    (privilege)
+    (privilege_level
+      (identifier)
+      (identifier))
+    (account
+      (string)
+      (string))))
+
+================================================================================
+Grant a role
+================================================================================
+
+GRANT 'reader', 'writer'@'%' TO 'bob'@'localhost' WITH ADMIN OPTION;
+
+---
+
+(source_file
+  (grant_statement
+    (account
+      (string))
+    (account
+      (string)
+      (string))
+    (account
+      (string)
+      (string))))
+
+================================================================================
+Grant proxy
+================================================================================
+
+GRANT PROXY ON 'root'@'localhost' TO 'bob'@'localhost';
+
+---
+
+(source_file
+  (grant_statement
+    (account
+      (string)
+      (string))
+    (account
+      (string)
+      (string))))
+
+================================================================================
+Revoke privileges
+================================================================================
+
+REVOKE INSERT, DELETE ON shop.t FROM 'bob'@'localhost';
+
+---
+
+(source_file
+  (revoke_statement
+    (privilege)
+    (privilege)
+    (privilege_level
+      (identifier)
+      (identifier))
+    (account
+      (string)
+      (string))))
+
+================================================================================
+Revoke all privileges
+================================================================================
+
+REVOKE IF EXISTS ALL PRIVILEGES, GRANT OPTION FROM bob;
+
+---
+
+(source_file
+  (revoke_statement
+    (privilege)
+    (privilege)
+    (account
+      (identifier))))
+
+================================================================================
+Create a user
+================================================================================
+
+CREATE USER IF NOT EXISTS 'bob'@'localhost' IDENTIFIED BY 'secret';
+
+---
+
+(source_file
+  (create_user_statement
+    (account
+      (string)
+      (string))
+    (string)))
+
+================================================================================
+Create a user with a plugin
+================================================================================
+
+CREATE USER 'app'@'%' IDENTIFIED WITH caching_sha2_password BY 'pw' DEFAULT ROLE 'reader';
+
+---
+
+(source_file
+  (create_user_statement
+    (account
+      (string)
+      (string))
+    (identifier)
+    (string)
+    (account
+      (string))))
+
+================================================================================
+Alter and drop users
+================================================================================
+
+ALTER USER 'bob'@'localhost' IDENTIFIED BY 'new';
+DROP USER IF EXISTS 'bob'@'localhost', alice;
+
+---
+
+(source_file
+  (alter_user_statement
+    (account
+      (string)
+      (string))
+    (string))
+  (drop_user_statement
+    (account
+      (string)
+      (string))
+    (account
+      (identifier))))
+
+================================================================================
+Start a transaction
+================================================================================
+
+START TRANSACTION;
+START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY;
+
+---
+
+(source_file
+  (start_transaction_statement)
+  (start_transaction_statement))
+
+================================================================================
+Begin a transaction
+================================================================================
+
+BEGIN;
+BEGIN WORK;
+
+---
+
+(source_file
+  (start_transaction_statement)
+  (start_transaction_statement))
+
+================================================================================
+Commit and roll back
+================================================================================
+
+COMMIT;
+COMMIT WORK AND NO CHAIN NO RELEASE;
+ROLLBACK;
+ROLLBACK WORK AND CHAIN;
+
+---
+
+(source_file
+  (commit_statement)
+  (commit_statement)
+  (rollback_statement)
+  (rollback_statement))
+
+================================================================================
+Savepoints
+================================================================================
+
+SAVEPOINT s1;
+ROLLBACK TO SAVEPOINT s1;
+ROLLBACK TO s1;
+RELEASE SAVEPOINT s1;
+
+---
+
+(source_file
+  (savepoint_statement
+    (identifier))
+  (rollback_statement
+    (identifier))
+  (rollback_statement
+    (identifier))
+  (release_savepoint_statement
+    (identifier)))
+
+================================================================================
+Lock and unlock tables
+================================================================================
+
+LOCK TABLES t READ, u AS x WRITE, v READ LOCAL;
+UNLOCK TABLES;
+
+---
+
+(source_file
+  (lock_tables_statement
+    (table_lock
+      (object_reference
+        (identifier)))
+    (table_lock
+      (object_reference
+        (identifier))
+      (identifier))
+    (table_lock
+      (object_reference
+        (identifier))))
+  (unlock_tables_statement))
+
+================================================================================
+Lock a table
+================================================================================
+
+LOCK TABLE t LOW_PRIORITY WRITE;
+UNLOCK TABLE;
+
+---
+
+(source_file
+  (lock_tables_statement
+    (table_lock
+      (object_reference
+        (identifier))))
+  (unlock_tables_statement))
+
+================================================================================
+Prepare a statement
+================================================================================
+
+PREPARE stmt FROM 'SELECT * FROM t WHERE id = ?';
+
+---
+
+(source_file
+  (prepare_statement
+    (identifier)
+    (string)))
+
+================================================================================
+Prepare from a variable
+================================================================================
+
+PREPARE stmt FROM @sql;
+
+---
+
+(source_file
+  (prepare_statement
+    (identifier)
+    (user_variable)))
+
+================================================================================
+Execute a statement
+================================================================================
+
+EXECUTE stmt USING @id, @name;
+EXECUTE stmt;
+
+---
+
+(source_file
+  (execute_statement
+    (identifier)
+    (user_variable)
+    (user_variable))
+  (execute_statement
+    (identifier)))
+
+================================================================================
+Deallocate a statement
+================================================================================
+
+DEALLOCATE PREPARE stmt;
+DROP PREPARE stmt;
+
+---
+
+(source_file
+  (deallocate_statement
+    (identifier))
+  (deallocate_statement
+    (identifier)))

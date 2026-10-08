@@ -1,0 +1,130 @@
+================================================================================
+MySQL blocks: a procedure with a BEGIN ... END body
+================================================================================
+
+CREATE PROCEDURE p (IN n INT)
+BEGIN
+  DECLARE i INT DEFAULT 0; # the counter; END
+  WHILE i < n DO
+    IF i = 2 THEN
+      SELECT 'END;';
+    END IF;
+    SET i = i + 1;
+  END WHILE;
+END;
+CALL p(3);
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (comment)
+    (string))
+  (statement))
+
+================================================================================
+MySQL blocks: nested blocks, labels, CASE and loops
+================================================================================
+
+create definer = `admin`@`%` procedure q()
+outer_block: begin
+  declare continue handler for sqlexception begin
+    rollback;
+  end;
+  start transaction;
+  case (select count(*) from t)
+    when 0 then select case when 1 then 'a' else 'b' end;
+    else repeat set @x = @x + 1; until @x > 3 end repeat;
+  end case;
+  l: loop leave l; end loop l;
+  commit;
+end outer_block;
+select 1;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (quoted_identifier)
+    (quoted_identifier)
+    (string)
+    (string))
+  (statement))
+
+================================================================================
+MySQL blocks: a trigger and an event
+================================================================================
+
+CREATE DEFINER = root@localhost TRIGGER t BEFORE INSERT ON x FOR EACH ROW
+BEGIN
+  SET NEW.a = 1;
+  SET NEW.b = NEW.a.end;
+END;
+CREATE EVENT IF NOT EXISTS e ON SCHEDULE EVERY 1 DAY DO BEGIN
+  DELETE FROM log WHERE `end` < NOW();
+END;
+SELECT 2;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement
+    (quoted_identifier))
+  (statement))
+
+================================================================================
+MySQL blocks: a body with no BEGIN ends at its semicolon
+================================================================================
+
+CREATE FUNCTION f (x INT) RETURNS INT DETERMINISTIC RETURN x + 1;
+CREATE PROCEDURE g () SELECT a AS b FROM t;
+CREATE TRIGGER t2 AFTER UPDATE ON x FOR EACH ROW SET @n = @n + 1;
+SELECT 3;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement)
+  (statement)
+  (statement))
+
+================================================================================
+MySQL blocks: BEGIN outside a stored program starts a transaction
+================================================================================
+
+BEGIN;
+INSERT INTO t VALUES (1);
+BEGIN WORK;
+COMMIT;
+SELECT begin, end FROM t;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement)
+  (statement)
+  (statement)
+  (statement))
+
+================================================================================
+MySQL blocks: a meta command ends the block
+================================================================================
+
+CREATE PROCEDURE r ()
+BEGIN
+  SELECT :id;
+\g
+SELECT 4;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (variable
+      (variable_name)))
+  (meta_command
+    (command_name))
+  (statement))

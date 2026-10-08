@@ -5,7 +5,7 @@ This document holds the plan for `github.com/xo/transit`. The decisions are in
 
 This plan was written on 2026-09-29, before any code existed (D3). Ken
 answered its open questions on that date, and later ones as they came. The
-decisions D1 to D109 record the answers and the other choices of Ken. A part
+decisions D1 to D115 record the answers and the other choices of Ken. A part
 of this plan that names a decision follows it. A new question
 goes at the end of this document until Ken answers it.
 
@@ -156,6 +156,7 @@ D26 names each package:
 | `grammars/<repository>` | one for each grammar | one module for each grammar repository |
 | `grammars/<name>` | the grammar | a grammar that `xo` writes, such as `usql` (D42, D104) |
 | `test` | | the test module, which uses cgo (D12) |
+| `_example` | `main` | the two sample programs, in a module of their own (D53) |
 
 rline imports the root package and no grammar (D11). usql imports the root
 package, `inject`, the grammars that it needs and, if it wants the shared
@@ -313,9 +314,10 @@ grammar is ported by hand, line by line, from its `scanner.c`, into idiomatic
 Go (D24). A C function such as `iswalpha` becomes a function that uses the
 package `unicode` (D39). [`GRAMMAR.md`](GRAMMAR.md) holds the rules.
 
-Until the Go backend exists, the test module runs the C scanner of each
-grammar through cgo (D12). The Go port of a scanner is needed only for the
-grammars that the Go backend writes.
+The test module runs the C scanner of each grammar through cgo (D12), and
+it compares the C scanner with the Go port of each grammar package. The Go
+port of a scanner is needed only for the grammars that the Go backend
+writes.
 
 ## What the consumers get
 
@@ -535,20 +537,20 @@ name and the flags. It does the same after each edit, and it compares the
 changed ranges. It runs each query on both and compares the captures. It
 compares the symbols that the lookahead iterator lists at each offset.
 
-When the Go backend exists, the same tests also run on the Go grammars. A Go
-grammar and its C grammar use the same Unicode tables, so their trees must be
-the same (D60).
+The same tests also run on the Go grammar packages (D95). A Go grammar and
+its C grammar use the same Unicode tables, so their trees must be the same
+(D60).
 
 ### 4a. The lexer, compared with the C lexer
 
 In part 4, the C lexer function of each grammar runs in the Go runtime. It
 calls back into the Go port of `lexer.c`, so the Go decoder, the columns, the
 end of the input and the included ranges run in every test. The lexer state
-machine itself is C until the Go backend exists. So a second test lexes each
-grammar at each byte offset of each corpus input, in each lexer state that
-the parse table uses there, with the C runtime and with the Go runtime, and
-it compares each token, its end, and the state of the lexer. The same test
-runs on the Go lexers of phase 4.
+machine of a C grammar is C. So a second test lexes each grammar at each
+byte offset of each corpus input, in each lexer state that the parse table
+uses there, with the C runtime and with the Go runtime, and it compares each
+token, its end, and the state of the lexer. The same test runs on the Go
+lexers that the Go backend writes.
 
 ### 4b. Scanners, errors, timeouts and cancellation
 
@@ -591,11 +593,12 @@ and target 3 does not.
 CI comes with the first Go package, and it runs on linux/amd64 only (D36). It
 runs in three tiers:
 
-1. On each push: the test grammars, the tests of the root package, and json,
-   c, python, javascript, the PostgreSQL grammar and one large grammar.
+1. On each push: the tests and the lint of the root module, the test module,
+   each grammar module, the module `styles` and the sample programs (D109).
+   The comparisons with C skip, because CI has no checkout of upstream.
 2. Each night: every grammar, at both ABI versions, with the corpus of each C
-   output.
-3. Each week: the long fuzz tests.
+   output. This tier waits ([`BACKLOG.md`](BACKLOG.md)).
+3. Each week: the long fuzz tests. This tier waits too.
 
 ## The gate for the Go backend
 
@@ -708,12 +711,32 @@ and the speed targets hold on them (D37, D47).
 ### Phase 5. The grammars and the modules for rline and usql
 
 Generate the SQL grammars in Go. Write the usql grammar and the MySQL grammar
-(D13, D42, D106). The other grammars that `xo` needs come after phase 5. Write the other APIs that upstream does not have
-(D28), the example functions and the two sample programs (D53), and bring
-`RLINE.md` and `USQL.md` up to date with the code.
+(D13, D42, D106). The other grammars that `xo` needs come after phase 5.
+Write the other APIs that upstream does not have (D28), the example
+functions and the two sample programs (D53), and bring `RLINE.md` and
+`USQL.md` up to date with the code.
 
 The phase ends when the usql grammar and the SQL grammars pass every test in
 Go, and the two sample programs run.
+
+On 2026-10-09 the end conditions hold, and phase 5 is done. These are its parts:
+
+1. The SQL grammars of D106 are Go packages: `sql`, `postgres` and
+   `plpgsql`, `sqlserver`, `oracle` and `cql`. The modules take the names of
+   the dialects (D107). `bigquery` and `spanner` get no grammar (D110).
+2. The grammars of the languages of dbmeta that are not SQL are Go packages
+   (D21, D23): `neo4j`, `surrealdb`, `sparql`, `graphql` and `ydb`.
+3. The usql grammar is one language that takes the options of a dialect
+   (D101, D102, D105, D108). The MySQL grammar is in `grammars/mysql`.
+4. `inject.WithReplacer`, `Layer.Text` and `Layer.StatesAt` are the APIs of
+   D101 and D111.
+5. The two sample programs are in `_example/`, and their tests run them.
+6. The example functions are in `example_test.go` of the root package and
+   of `styles`. The Go backend writes `example_test.go` of each grammar
+   package (D115). `example_more_test.go` of `grammars/json` and
+   `grammars/html` holds the examples of the root package and of `inject`.
+7. The option `BeginEndBlocks` of the usql grammar keeps the `BEGIN ...
+   END` body of a stored program in one statement (D112).
 
 ### Phase 6. Follow upstream
 
@@ -927,20 +950,10 @@ raised questions 53 to 55, and D55 to D57 record the answers. Phase 2 raised
 questions 56 to 58, and D59, D60 and D66 record the answers. Phase 3 raised
 questions 59 to 63, and D63, D64, D70, D72 and D74 record the answers.
 Phase 4 raised questions 64 to 72, and D97 to D102 record the answers.
-Phase 5 raised questions 73 to 80, and D106, D107 and D109 record the
-answers to all but questions 77 and 79. The next question is question 81.
+Phase 5 raised questions 73 to 85, and D106, D107 and D109 to D115 record
+the answers. Question 85 asked for a cleanup, and no decision records it.
+The next question is question 86.
 
-77. Two grammars parse GoogleSQL, the language of the dialects `bigquery` and
-    `spanner`: `takegue/tree-sitter-sql-bigquery`, which has a scanner and 31
-    stars, and `kitagry/tree-sitter-bigquery`, which has 2 stars. Which one
-    gets the module `grammars/bigquery`, and does the other one get
-    `grammars/spanner` or no Go package? Ken skipped it on 2026-10-01.
-
-79. To complete in a SQL statement, usql runs `StatesAt` with the grammar of
-    the dialect on the text of the statement, with the same placeholders
-    that `inject.WithReplacer` gives the layer. `inject` does not give back
-    that text, so usql has to make the replacements again. Does transit add
-    an API for it, such as a function that gives the text of a layer after
-    its replacements, or a form of `StatesAt` that works on a layer?
+No question is open.
 
 Raise a new question here rather than deciding one alone.

@@ -34,6 +34,16 @@ D37 hold on them, with target 3 as D97 states it. Ken tagged `v0.1.0` of the
 root module and of each module of the repository on 2026-10-01, and that ended
 phase 4 (D43).
 
+Phase 5 makes the grammars and the modules for rline and usql. The SQL
+grammars of D106, the grammars of the languages of dbmeta that are not SQL,
+the usql grammar and the MySQL grammar are Go packages under `grammars/`, in
+27 grammar modules in all. The usql grammar is one language that takes the
+options of a dialect (D108). `inject` gives the replaced text of a layer and
+its parse states (D111). The two sample programs of D53 are in `_example/`.
+The option `BeginEndBlocks` of D112 keeps a `BEGIN ... END` body in one
+statement. On 2026-10-09 the usql grammar and the SQL grammars pass every test
+in Go, and the two sample programs run, and that ended phase 5.
+
 [ts]: https://github.com/tree-sitter/tree-sitter
 
 ## Standing rules
@@ -84,8 +94,8 @@ A bare number, such as D3, names a decision of this repository, in
 `docs/decisions/`. A decision of another repository names that repository,
 such as dbmeta D110. An open question has a number, and it is at the end of
 `docs/PLAN.md` until Ken answers it. The numbers do not repeat: questions 1
-to 80 but 77 and 79 are answered, questions 77 and 79 are open, and the next
-question is question 81.
+to 85 are answered, no question is open, and the next question is question
+86.
 
 ## Hard rules
 
@@ -172,33 +182,36 @@ these files:
 | `doc.go` | the comment of the root package, which holds the runtime |
 | `language.go`, `lexer.go`, `subtree.go`, `stack.go`, `parser.go`, `reusable_node.go`, `tree.go`, `node.go`, `tree_cursor.go`, `get_changed_ranges.go`, `query.go`, `length.go`, `point.go`, `assert.go` | the runtime. One Go file ports one file of `lib/src` of upstream (D24) |
 | `query_binding.go` | the query API and the predicates of the Rust binding (D27) |
-| `inject/` | the package `inject`, which finds the injections of a text and parses their layers. `highlight.go` ports the injection part of `crates/highlight/src/highlight.rs` (D27, D72) |
+| `inject/` | the package `inject`, which finds the injections of a text and parses their layers. `highlight.go` ports the injection part of `crates/highlight/src/highlight.rs` (D27, D72). `replace.go` and `states_at.go` port no upstream file. They hold `WithReplacer` and `Layer.StatesAt` (D28, D101, D111) |
 | `states_at.go` | `StatesAt`, the first API that upstream does not have (D57, D70). It ports no upstream file (D28) |
 | `node_type.go` | `NodeType`, the form of `node-types.json` that the `NodeTypes` function of a grammar package returns. It ports no upstream file (D28) |
 | `internal/abi/` | the tables of a grammar in the shape of `TSLanguage`, a port of `lib/src/parser.h` (D63), `LexTable`, which runs a lex table that the Go backend writes as data (D74), and `TablesOf`, which gives a grammar package the tables of a language, for the options of the usql grammar (D108) |
 | `internal/wctype/` | the character functions of `<wctype.h>` and `<ctype.h>` that the Go scanners call, which the test module sets to the C locale (D39, D46) |
-| `internal/grammartest/` | the tests of a grammar package, which its `grammar_test.go` calls: the corpus, the queries, the highlight tests and the generator. `test.go` and `query_testing.go` port parts of `crates/cli/src/test.rs` and `query_testing.rs`, and `spans.go` gives the highlights to `test/cmd/stylesvg` |
+| `internal/grammartest/` | the tests of a grammar package, which its `grammar_test.go` calls: the corpus, the queries, the highlight tests and the generator. `grammartest.go` and `query_testing.go` port parts of `crates/cli/src/test.rs` and `query_testing.rs`, and `spans.go` gives the highlights to `test/cmd/stylesvg` |
+| `internal/corpus/` | the reader of the corpus of a grammar package, of the `tree-sitter.json` of its module and of its `testdata/failing.txt`, for the corpus test and for the example that the Go backend writes (D115). `test.go` ports the parts of `crates/cli/src/test.rs` that read a corpus |
 | `skills_test.go`, `docs_test.go` | the tests of the agent setup and the documents |
 | `upstream_test.go`, `docs/upstream/ledger.tsv` | the ledger of upstream commits and its test (D30) |
 | `.github/workflows/test.yml`, `.golangci.yml` | CI and the lint configuration (D36) |
 | `skills-lock.json`, `.agents/skills/`, `.claude/skills/` | the agent skills |
 | `docs/` | the plan, the rules, the grammar set, the references for rline and usql, the backlog and the decisions |
-| `_samples/example/` | the working C example and its build script (D10). The Go sample programs of D53 come in phase 5, in `_example/` |
+| `_samples/example/` | the working C example and its build script (D10) |
+| `_example/` | the module `github.com/xo/transit/_example`, with its own `go.mod`, which holds the two sample programs of D53. `highlight` highlights the input of usql as rline will, and `complete` completes at a cursor as usql will. `internal/dialect` holds what they share: the dialects, the options of the usql grammar for each one, and the placeholders of the variables |
 | `_samples/subtree/` | the benchmark of the Go form of a subtree (D29, D62) |
 | `test/` | the test module, with its own `go.mod` (D12). `test/cmd/golden` is the golden harness (D58), `test/cmd/regextables` writes the Unicode tables of the port of `regex-syntax` (D60), `test/cmd/stylesvg` draws a code sample of each grammar in each style as SVG files, with a red line under each parse error, `test/cmd/chromastyles` measures the capture names of the highlight queries and converts the styles of chroma into `styles/` (D65), and `test/cgrammar` loads a C grammar into the Go runtime, compares the Go trees and the matches of queries with those of the C runtime, measures `StatesAt`, compares the layers of `inject` with those of the Rust oracle, compares the tables, the lexers and the trees of the Go backend and of the grammar packages with those of the C grammars in `gopackage_test.go`, runs the other tests of phase 3 on the grammar packages too through `languages_test.go`, and holds the ported tests of `crates/cli/src/tests` of upstream in `upstream_*_test.go` (D35). `test/injectoracle` is the Rust oracle of `inject` (D71). Its `build.rs` copies `highlight.rs` of the checkout and records each layer that upstream builds, and cargo builds it offline into the cache |
-| `gen.sh` | the script that writes the `replace` block of each `go.mod`, with `-m` (D49) |
+| `gen.sh` | the script that writes the `replace` block of each `go.mod`, with `-m` (D49), and the version of each module of the repository that a `go.mod` requires, with `-r` |
 | `cmd/transit/` | the command `transit`, with the subcommand `generate` (D41) |
 | `generate/` | the generator (D7). One Go file ports one Rust file of `crates/generate` (D24) |
 | `generate/templates/` | the headers `parser.h`, `alloc.h` and `array.h` that a generated parser includes, copied from upstream |
 | `generate/backend/c/` | the C backend, a port of `render.rs` (D8) |
-| `generate/backend/go/` | the Go backend, the package `golang` (D26). `render.go` ports `render.rs`, `write.go` writes `parser.go`, and `package.go` writes the files of a grammar package |
+| `generate/backend/go/` | the Go backend, the package `golang` (D26). `render.go` ports `render.rs`, `write.go` writes `parser.go`, `example.go` writes `example_test.go` (D115), and `package.go` writes the files of a grammar package |
 | `generate/internal/fxhash/` | the hash of the Rust crate `rustc-hash` and the order of a small `FxHashSet` of the Rust standard library, where upstream output depends on them |
 | `generate/internal/regexsyntax/` | the port of the Rust crate `regex-syntax`, in the packages `ast`, `hir` and `unicodetables` (D59) |
 | `generate/testdata/` | the golden files of the 68 test grammars, which the harness writes |
 | `grammars/grammars.json` | the record of every grammar, with the hashes of its golden files (D40) |
 | `grammars/<module>/` | the grammar modules of the 17 fixture grammars, one for each upstream repository, which `docs/GRAMMAR.md` lays out and `README.md` lists. Each package holds its generated `parser.go` and, when the grammar has one, its ported `scanner.go` |
 | `grammars/usql/` | the module and the package `usql` of the usql grammar, which xo writes (D13, D42, D104). It is one language, whose scanner takes the options of a SQL dialect (D101, D102, D108). The module holds `grammar.js`, `src/scanner.c`, which reads the options from the macro `USQL_OPTIONS`, `scanner.go`, its port, and `options.go`, which holds `Options` and `LanguageFor`. `testdata/corpus/` is a copy of `test/corpus/`, and `testdata/options/` holds the cases that need options that are not the default |
-| `grammars/sql/`, `grammars/sqlserver/`, `grammars/oracle/`, `grammars/cql/` | the modules of the SQL grammars of `DerekStride/tree-sitter-sql`, `Crary-Systems/tree-sitter-tsql`, `andreasmaierde/tree-sitter-plsql` and `shotover/tree-sitter-cql` (D106). A module of the language of one dialect has the name of the dialect, and each package has the name of its folder (D107). `grammars/sql` holds the port of the scanner of its grammar in `scanner.go` |
+| `grammars/mysql/` | the module and the package `mysql` of the MySQL grammar, which xo writes from the reference manual of MySQL 8.4 (D42, D106). The module holds `grammar.js`, `src/scanner.c`, which reads the comments and the version comments, `scanner.go`, its port, `queries/highlights.scm` and `test/corpus/`. `testdata/corpus/` is a copy of `test/corpus/` |
+| `grammars/sql/`, `grammars/sqlserver/`, `grammars/oracle/`, `grammars/cql/` | the modules of the SQL grammars of `DerekStride/tree-sitter-sql`, `Crary-Systems/tree-sitter-tsql`, `andreasmaierde/tree-sitter-plsql` and `shotover/tree-sitter-cql` (D106). A module of the language of one dialect has the name of the dialect, and each package has the name of its folder (D107). `grammars/sql` holds the port of the scanner of its grammar in `scanner.go`. The repositories of the other three have no highlight query, so xo wrote `queries/highlights.scm` of each (D113) |
 | `grammars/postgres/` | the module of `gmr/tree-sitter-postgres`, with the packages `postgres` and `plpgsql`, each with its own corpus and its ported `scanner.go`. `tree-sitter.json` of upstream lists only `postgres`, so the package `plpgsql` runs each case of its own corpus |
 | `grammars/neo4j/`, `grammars/surrealdb/`, `grammars/sparql/`, `grammars/graphql/`, `grammars/ydb/` | the modules of the grammars of the languages of dbmeta that are not SQL: `taekwombo/tree-sitter-cypher`, `surrealdb/surrealql-tree-sitter`, `GordianDziwis/tree-sitter-sparql`, `bkegley/tree-sitter-graphql` and `udovin/tree-sitter-yql` (D21, D23). A module of the language of one dialect has the name of the dialect (D107). `grammars/surrealdb` holds the port of the scanner of its grammar in `scanner.go`. `grammars/ydb` has no license file, because its repository has none (D20) |
 | `styles/` | the module `github.com/xo/transit/styles`, which has its own `go.mod` (D99). It holds the styles as JSON files: the styles of chroma in `chroma/`, the styles that a person makes in `themes/`, the license files in `licenses/`, and the list of capture names in `captures.txt` (D65) |
@@ -232,11 +245,15 @@ golangci-lint run ./...
 (cd test && go vet ./... && go test -race -count=1 -timeout 60m ./... && golangci-lint run ./...)
 for m in grammars/*/go.mod; do (cd "$(dirname "$m")" && go vet ./... && go test -race -count=1 -timeout 60m -skip TestGenerator ./... && GOGC=25 go test -count=1 -timeout 60m -run TestGenerator ./... && GOGC=25 golangci-lint run --concurrency 1 --disable dupl,goconst,gosec ./...) || exit 1; done
 (cd styles && go vet ./... && go test -race -count=1 ./... && golangci-lint run ./...)
+(cd _example && go vet ./... && go test -race -count=1 ./... && GOGC=25 golangci-lint run --concurrency 1 ./...)
 ```
 
-The test module in `test/`, each grammar module under `grammars/` and the
-module in `styles/` have their own `go.mod`, so `./...` in the root does not
-reach them. The last three commands run the same commands in those modules.
+The test module in `test/`, each grammar module under `grammars/`, the
+module in `styles/` and the module of the sample programs in `_example/`
+have their own `go.mod`, so `./...` in the root does not reach them. The
+last four commands run the same commands in those modules. The sample
+programs import the package `postgres`, so their lint runs with `GOGC=25`
+and one job at a time, as the lint of the test module does in CI (D109).
 The package `test/cgrammar` of the test module builds the C runtime and the fixture grammars from the
 checkout of upstream and the cache of the golden harness, and it skips its
 tests when they are missing. The tests of `inject` also build the Rust oracle

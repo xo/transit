@@ -12,6 +12,7 @@ import (
 	"github.com/xo/transit"
 	"github.com/xo/transit/generate"
 	golang "github.com/xo/transit/generate/backend/go"
+	"github.com/xo/transit/internal/corpus"
 )
 
 // This file tests testdata/failing.txt of a grammar package (D88): how the
@@ -138,7 +139,7 @@ func TestCorpusReadsFailing(t *testing.T) {
 			dir := t.TempDir()
 			files := map[string]string{"testdata/corpus/main.txt": tinyCorpus}
 			if c.failing != "" {
-				files[failingPath] = c.failing
+				files[corpus.FailingPath] = c.failing
 			}
 			writeFiles(t, dir, files)
 			cmd := exec.CommandContext(t.Context(), os.Args[0], "-test.run=^TestFailingHelper$", "-test.v", "-test.count=1")
@@ -163,7 +164,7 @@ func TestCorpusReadsFailing(t *testing.T) {
 }
 
 // TestFailingText makes sure of the form of testdata/failing.txt, and that
-// readFailing reads the names that failingText writes.
+// corpus.ReadFailing reads the names that failingText writes.
 func TestFailingText(t *testing.T) {
 	for _, names := range [][]string{
 		{"main/B"},
@@ -174,11 +175,11 @@ func TestFailingText(t *testing.T) {
 			t.Errorf("failingText(%q) = %q, want %q", names, text, want)
 		}
 		dir := t.TempDir()
-		writeFiles(t, dir, map[string]string{failingPath: text})
+		writeFiles(t, dir, map[string]string{corpus.FailingPath: text})
 		t.Chdir(dir)
-		got, err := readFailing()
+		got, err := corpus.ReadFailing(".")
 		if err != nil || !slices.Equal(got, names) {
-			t.Errorf("readFailing = %q, %v, want %q", got, err, names)
+			t.Errorf("ReadFailing = %q, %v, want %q", got, err, names)
 		}
 	}
 	if text := failingText(nil); text != "" {
@@ -210,7 +211,7 @@ func TestCompareFailing(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			dir := t.TempDir()
 			if c.failing != "" {
-				writeFiles(t, dir, map[string]string{failingPath: c.failing})
+				writeFiles(t, dir, map[string]string{corpus.FailingPath: c.failing})
 			}
 			t.Chdir(dir)
 			err := compareFailing(c.rec)

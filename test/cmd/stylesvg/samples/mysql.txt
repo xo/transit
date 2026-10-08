@@ -1,0 +1,44 @@
+/*!40101 SET NAMES utf8mb4 */;
+USE `shop`;
+
+-- The orders of each customer, with a running total.
+CREATE TABLE IF NOT EXISTS `orders` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `customer_id` INT UNSIGNED NOT NULL,
+  `total` DECIMAL(10, 2) DEFAULT 0.00,
+  `placed` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_customer` (`customer_id`),
+  CONSTRAINT `fk_customer` FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+SET @since = '2026-01-01', @@session.sql_mode = 'TRADITIONAL';
+
+WITH recent AS (
+  SELECT o.customer_id, o.total, o.placed
+    FROM orders AS o
+   WHERE o.placed >= @since AND o.total > 0x10
+)
+SELECT c.name, r.total,
+       sum(r.total) OVER (PARTITION BY c.id ORDER BY r.placed) AS running,
+       CASE WHEN r.total > 100 THEN 'big' ELSE N'small' END AS size
+  FROM recent r
+  JOIN customers c ON c.id = r.customer_id
+ GROUP BY c.name, r.total WITH ROLLUP
+ ORDER BY running DESC
+ LIMIT 10, 20;
+
+INSERT INTO orders (customer_id, total) VALUES (1, 9.99), (2, 1.5e2)
+  ON DUPLICATE KEY UPDATE total = total + VALUES(total); # merge
+
+CREATE PROCEDURE close_month (IN cutoff DATE)
+BEGIN
+  DECLARE done INT DEFAULT FALSE;
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+  IF cutoff IS NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'no cutoff';
+  END IF;
+  DELETE FROM orders WHERE placed < cutoff LIMIT 1000;
+END;
+
+GRANT SELECT, INSERT ON shop.* TO 'app'@'%';

@@ -42,6 +42,7 @@ import (
 	"github.com/xo/transit/grammars/javascript"
 	"github.com/xo/transit/grammars/jsdoc"
 	"github.com/xo/transit/grammars/json"
+	"github.com/xo/transit/grammars/mysql"
 	"github.com/xo/transit/grammars/php/php"
 	"github.com/xo/transit/grammars/php/phponly"
 	"github.com/xo/transit/grammars/python"
@@ -79,6 +80,7 @@ var grammars = []grammar{
 	{"javascript", "javascript", javascript.Language, javascript.Queries},
 	{"jsdoc", "jsdoc", jsdoc.Language, jsdoc.Queries},
 	{"json", "json", json.Language, json.Queries},
+	{"mysql", "mysql", mysql.Language, mysql.Queries},
 	{"php", "php/php", php.Language, php.Queries},
 	{"phponly", "php/phponly", phponly.Language, phponly.Queries},
 	{"python", "python", python.Language, python.Queries},

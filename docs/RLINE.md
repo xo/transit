@@ -1,14 +1,14 @@
 # What rline gets from transit
 
 This document is for a coding agent that works in
-[rline](https://github.com/xo/rline). It says what transit will give rline
-for syntax highlighting, what is decided, and what is still open.
+[rline](https://github.com/xo/rline). It says what transit gives rline for
+syntax highlighting, what is decided, and what is still open.
 
-transit holds the runtime, with the query engine. It parses through the
-tables and the lexers of C grammars in the test module, until the Go backend writes
-Go grammars. [`API.md`](API.md) holds the target API, which came from the
-working C example of phase 1 (D10). This document
-names the parts that rline uses.
+transit holds the runtime, with the query engine, the package `inject` and
+the Go packages of the grammars. [`API.md`](API.md) holds the API, which came
+from the working C example of phase 1 (D10). This document names the parts
+that rline uses. The sample program `_example/highlight` highlights the
+input of usql as rline will (D53).
 
 ## The direction
 
@@ -36,7 +36,8 @@ a decision of rline. Ken makes it in rline.
 
 ## How highlighting will work
 
-This is the plan, not an API. The names can change in phase 1.
+These are the steps that rline takes. [`API.md`](API.md) gives the API of
+each step, and `_example/highlight` runs them.
 
 1. rline hands the whole statement to its highlighter, across every row.
    rline's `docs/USQL.md` says this for `WithContinue`, and it says that
@@ -75,8 +76,20 @@ This is the plan, not an API. The names can change in phase 1.
 7. A compiled query and a query cursor can be kept and used again on each
    key. A `Query` is safe to share, and a `QueryCursor` belongs to one
    goroutine at a time (D52). [`API.md`](API.md) says how.
-8. A sample program in `_example/` of transit highlights a SQL statement as
-   rline will, in phase 5 (D53).
+8. The sample program `_example/highlight` of transit highlights the input
+   of usql as rline will (D53). It types a text one key at a time. After
+   each key, it edits the tree of the usql grammar and parses again with the
+   old tree. It finds the layer of each SQL statement with `inject.Layers`
+   and `inject.WithReplacer`, and runs the highlight query of the usql
+   grammar and of the SQL grammar of a dialect. It prints the text with the
+   escapes of a terminal of 256 or 16 colors, in a style of the module
+   `styles`, and the time of each edit. `inject.Layers` parses each layer
+   with no old tree (D72), so the time of an edit counts the parse of every
+   layer. Run it in the folder `_example`:
+
+   ```bash
+   go run ./highlight -dialect postgres -style monokai -colors 256
+   ```
 9. The C example measured the cost of one key: edit, parse again, changed
    ranges and highlight took 12.2 µs on average in C, for the SQL grammar. A
    query took 6.7 ms to compile, so rline compiles each query once.

@@ -1,0 +1,711 @@
+================================================================================
+Create a procedure with a single statement
+================================================================================
+
+CREATE PROCEDURE p () SELECT 1;
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (number)))))
+
+================================================================================
+Create a procedure with parameters
+================================================================================
+
+CREATE PROCEDURE shop.p (IN a INT, OUT b VARCHAR(10), INOUT c DECIMAL(5, 2))
+BEGIN
+  SET b = 'x';
+  SET c = c + a;
+END;
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (routine_parameter
+      (identifier)
+      (data_type
+        (type_name)))
+    (routine_parameter
+      (identifier)
+      (data_type
+        (type_name)
+        (number)))
+    (routine_parameter
+      (identifier)
+      (data_type
+        (type_name)
+        (number)
+        (number)))
+    (block
+      (set_statement
+        (variable_assignment
+          (column_reference
+            (identifier))
+          (string)))
+      (set_statement
+        (variable_assignment
+          (column_reference
+            (identifier))
+          (binary_expression
+            (column_reference
+              (identifier))
+            (column_reference
+              (identifier))))))))
+
+================================================================================
+Create a procedure with characteristics
+================================================================================
+
+CREATE DEFINER = CURRENT_USER PROCEDURE p ()
+  COMMENT 'demo'
+  LANGUAGE SQL
+  NOT DETERMINISTIC
+  READS SQL DATA
+  SQL SECURITY DEFINER
+BEGIN
+END;
+
+---
+
+(source_file
+  (create_procedure_statement
+    (definer
+      (account))
+    (object_reference
+      (identifier))
+    (characteristic
+      (string))
+    (characteristic)
+    (characteristic)
+    (characteristic)
+    (characteristic)
+    (block)))
+
+================================================================================
+Create a procedure with declarations
+================================================================================
+
+CREATE PROCEDURE p ()
+BEGIN
+  DECLARE a, b INT DEFAULT 0;
+  DECLARE s VARCHAR(20);
+  DECLARE not_found CONDITION FOR SQLSTATE '02000';
+  DECLARE dup CONDITION FOR 1062;
+  SELECT a, b, s;
+END;
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier))
+    (block
+      (declare_variable
+        (identifier)
+        (identifier)
+        (data_type
+          (type_name))
+        (number))
+      (declare_variable
+        (identifier)
+        (data_type
+          (type_name)
+          (number)))
+      (declare_condition
+        (identifier)
+        (string))
+      (declare_condition
+        (identifier)
+        (number))
+      (select_statement
+        (select
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier)))))))
+
+================================================================================
+Create a procedure with a cursor
+================================================================================
+
+CREATE PROCEDURE p ()
+BEGIN
+  DECLARE done INT DEFAULT FALSE;
+  DECLARE v INT;
+  DECLARE cur CURSOR FOR SELECT id FROM t;
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+  OPEN cur;
+  read_loop: LOOP
+    FETCH cur INTO v;
+    IF done THEN
+      LEAVE read_loop;
+    END IF;
+    INSERT INTO u VALUES (v);
+  END LOOP read_loop;
+  CLOSE cur;
+END;
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier))
+    (block
+      (declare_variable
+        (identifier)
+        (data_type
+          (type_name))
+        (boolean))
+      (declare_variable
+        (identifier)
+        (data_type
+          (type_name)))
+      (declare_cursor
+        (identifier)
+        (select_statement
+          (select
+            (column_reference
+              (identifier))
+            (from_clause
+              (table_reference
+                (identifier))))))
+      (declare_handler
+        (set_statement
+          (variable_assignment
+            (column_reference
+              (identifier))
+            (boolean))))
+      (open_statement
+        (identifier))
+      (loop_statement
+        (identifier)
+        (fetch_statement
+          (identifier)
+          (identifier))
+        (if_statement
+          (column_reference
+            (identifier))
+          (leave_statement
+            (identifier)))
+        (insert_statement
+          (object_reference
+            (identifier))
+          (values_clause
+            (value_list
+              (column_reference
+                (identifier)))))
+        (identifier))
+      (close_statement
+        (identifier)))))
+
+================================================================================
+Create a procedure with handlers
+================================================================================
+
+CREATE PROCEDURE p ()
+BEGIN
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION, SQLWARNING
+  BEGIN
+    ROLLBACK;
+    RESIGNAL;
+  END;
+  DECLARE CONTINUE HANDLER FOR 1051, SQLSTATE VALUE '42S02' SET @err = 1;
+  START TRANSACTION;
+  COMMIT;
+END;
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier))
+    (block
+      (declare_handler
+        (block
+          (rollback_statement)
+          (resignal_statement)))
+      (declare_handler
+        (number)
+        (string)
+        (set_statement
+          (variable_assignment
+            (user_variable)
+            (number))))
+      (start_transaction_statement)
+      (commit_statement))))
+
+================================================================================
+Create a procedure with if
+================================================================================
+
+CREATE PROCEDURE p (n INT)
+BEGIN
+  IF n > 0 THEN
+    SELECT 'positive';
+  ELSEIF n < 0 THEN
+    SELECT 'negative';
+  ELSE
+    SELECT 'zero';
+  END IF;
+END;
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier))
+    (routine_parameter
+      (identifier)
+      (data_type
+        (type_name)))
+    (block
+      (if_statement
+        (binary_expression
+          (column_reference
+            (identifier))
+          (number))
+        (select_statement
+          (select
+            (string)))
+        (elseif_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (number))
+          (select_statement
+            (select
+              (string))))
+        (else_clause
+          (select_statement
+            (select
+              (string))))))))
+
+================================================================================
+Create a procedure with a case statement
+================================================================================
+
+CREATE PROCEDURE p (n INT)
+BEGIN
+  CASE n
+    WHEN 1 THEN SELECT 'one';
+    WHEN 2 THEN SELECT 'two';
+    ELSE BEGIN END;
+  END CASE;
+  CASE
+    WHEN n > 10 THEN SET @big = 1;
+  END CASE;
+END;
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier))
+    (routine_parameter
+      (identifier)
+      (data_type
+        (type_name)))
+    (block
+      (case_statement
+        (column_reference
+          (identifier))
+        (when_clause
+          (number)
+          (select_statement
+            (select
+              (string))))
+        (when_clause
+          (number)
+          (select_statement
+            (select
+              (string))))
+        (else_clause
+          (block)))
+      (case_statement
+        (when_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (number))
+          (set_statement
+            (variable_assignment
+              (user_variable)
+              (number))))))))
+
+================================================================================
+Create a procedure with while and repeat
+================================================================================
+
+CREATE PROCEDURE p ()
+BEGIN
+  DECLARE i INT DEFAULT 0;
+  w: WHILE i < 10 DO
+    SET i = i + 1;
+    IF i = 5 THEN
+      ITERATE w;
+    END IF;
+  END WHILE w;
+  REPEAT
+    SET i = i - 1;
+  UNTIL i <= 0
+  END REPEAT;
+END;
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier))
+    (block
+      (declare_variable
+        (identifier)
+        (data_type
+          (type_name))
+        (number))
+      (while_statement
+        (identifier)
+        (binary_expression
+          (column_reference
+            (identifier))
+          (number))
+        (set_statement
+          (variable_assignment
+            (column_reference
+              (identifier))
+            (binary_expression
+              (column_reference
+                (identifier))
+              (number))))
+        (if_statement
+          (binary_expression
+            (column_reference
+              (identifier))
+            (number))
+          (iterate_statement
+            (identifier)))
+        (identifier))
+      (repeat_statement
+        (set_statement
+          (variable_assignment
+            (column_reference
+              (identifier))
+            (binary_expression
+              (column_reference
+                (identifier))
+              (number))))
+        (binary_expression
+          (column_reference
+            (identifier))
+          (number))))))
+
+================================================================================
+Create a procedure with a labeled block
+================================================================================
+
+CREATE PROCEDURE p ()
+outer_block: BEGIN
+  inner_block: BEGIN
+    LEAVE outer_block;
+  END inner_block;
+END outer_block;
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier))
+    (block
+      (identifier)
+      (block
+        (identifier)
+        (leave_statement
+          (identifier))
+        (identifier))
+      (identifier))))
+
+================================================================================
+Create a procedure with signal
+================================================================================
+
+CREATE PROCEDURE p (x INT)
+BEGIN
+  IF x < 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'negative', MYSQL_ERRNO = 1644;
+  END IF;
+END;
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier))
+    (routine_parameter
+      (identifier)
+      (data_type
+        (type_name)))
+    (block
+      (if_statement
+        (binary_expression
+          (column_reference
+            (identifier))
+          (number))
+        (signal_statement
+          (string)
+          (identifier)
+          (string)
+          (identifier)
+          (number))))))
+
+================================================================================
+Create a procedure if not exists
+================================================================================
+
+CREATE PROCEDURE IF NOT EXISTS p () BEGIN SELECT 1; END;
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier))
+    (block
+      (select_statement
+        (select
+          (number))))))
+
+================================================================================
+Create a function
+================================================================================
+
+CREATE FUNCTION add_one (x INT) RETURNS INT DETERMINISTIC RETURN x + 1;
+
+---
+
+(source_file
+  (create_function_statement
+    (object_reference
+      (identifier))
+    (routine_parameter
+      (identifier)
+      (data_type
+        (type_name)))
+    (data_type
+      (type_name))
+    (characteristic)
+    (return_statement
+      (binary_expression
+        (column_reference
+          (identifier))
+        (number)))))
+
+================================================================================
+Create a function with a body
+================================================================================
+
+CREATE FUNCTION hello (s CHAR(20)) RETURNS CHAR(50) CHARSET utf8mb4
+DETERMINISTIC NO SQL
+BEGIN
+  DECLARE r CHAR(50);
+  SET r = CONCAT('Hello, ', s, '!');
+  RETURN r;
+END;
+
+---
+
+(source_file
+  (create_function_statement
+    (object_reference
+      (identifier))
+    (routine_parameter
+      (identifier)
+      (data_type
+        (type_name)
+        (number)))
+    (data_type
+      (type_name)
+      (number)
+      (identifier))
+    (characteristic)
+    (characteristic)
+    (block
+      (declare_variable
+        (identifier)
+        (data_type
+          (type_name)
+          (number)))
+      (set_statement
+        (variable_assignment
+          (column_reference
+            (identifier))
+          (function_call
+            (identifier)
+            (arguments
+              (string)
+              (column_reference
+                (identifier))
+              (string)))))
+      (return_statement
+        (column_reference
+          (identifier))))))
+
+================================================================================
+Create a trigger
+================================================================================
+
+CREATE TRIGGER trg BEFORE INSERT ON t FOR EACH ROW SET NEW.created = NOW();
+
+---
+
+(source_file
+  (create_trigger_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (set_statement
+      (variable_assignment
+        (column_reference
+          (identifier)
+          (identifier))
+        (function_call
+          (identifier)
+          (arguments))))))
+
+================================================================================
+Create a trigger with a body
+================================================================================
+
+CREATE DEFINER = 'root'@'%' TRIGGER IF NOT EXISTS trg AFTER UPDATE ON t FOR EACH ROW FOLLOWS other
+BEGIN
+  IF NEW.a <> OLD.a THEN
+    INSERT INTO audit (a, b) VALUES (OLD.a, NEW.a);
+  END IF;
+END;
+
+---
+
+(source_file
+  (create_trigger_statement
+    (definer
+      (account
+        (string)
+        (string)))
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (identifier)
+    (block
+      (if_statement
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (column_reference
+            (identifier)
+            (identifier)))
+        (insert_statement
+          (object_reference
+            (identifier))
+          (column_list
+            (identifier)
+            (identifier))
+          (values_clause
+            (value_list
+              (column_reference
+                (identifier)
+                (identifier))
+              (column_reference
+                (identifier)
+                (identifier)))))))))
+
+================================================================================
+Drop a trigger
+================================================================================
+
+DROP TRIGGER IF EXISTS shop.trg;
+
+---
+
+(source_file
+  (drop_trigger_statement
+    (object_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+Alter a procedure
+================================================================================
+
+ALTER PROCEDURE p COMMENT 'new' SQL SECURITY INVOKER;
+
+---
+
+(source_file
+  (alter_routine_statement
+    (object_reference
+      (identifier))
+    (characteristic
+      (string))
+    (characteristic)))
+
+================================================================================
+Drop a procedure and a function
+================================================================================
+
+DROP PROCEDURE IF EXISTS p;
+DROP FUNCTION f;
+
+---
+
+(source_file
+  (drop_routine_statement
+    (object_reference
+      (identifier)))
+  (drop_routine_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+Call a procedure
+================================================================================
+
+CALL p(1, @out);
+CALL q;
+CALL shop.r();
+
+---
+
+(source_file
+  (call_statement
+    (object_reference
+      (identifier))
+    (number)
+    (user_variable))
+  (call_statement
+    (object_reference
+      (identifier)))
+  (call_statement
+    (object_reference
+      (identifier)
+      (identifier))))

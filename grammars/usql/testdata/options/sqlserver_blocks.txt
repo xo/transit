@@ -1,0 +1,83 @@
+================================================================================
+SQL Server blocks: a procedure with BEGIN ... END after AS
+================================================================================
+
+CREATE PROCEDURE dbo.p @a INT, @b NVARCHAR(10) = N'x;' AS
+BEGIN
+  SET NOCOUNT ON;
+  IF @a > 0
+  BEGIN
+    SELECT @a AS [end];
+  END
+  ELSE
+    SELECT "begin";
+END;
+EXEC dbo.p 1;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (string)
+    (quoted_identifier))
+  (statement))
+
+================================================================================
+SQL Server blocks: TRY, CATCH and a transaction
+================================================================================
+
+CREATE OR ALTER PROC dbo.q AS
+BEGIN
+  BEGIN TRY
+    BEGIN TRANSACTION;
+    UPDATE t SET v = CASE WHEN v IS NULL THEN 0 ELSE v END;
+    COMMIT TRANSACTION;
+  END TRY
+  BEGIN CATCH
+    ROLLBACK TRAN;
+    THROW;
+  END CATCH
+END;
+SELECT 1;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement))
+
+================================================================================
+SQL Server blocks: a trigger and a function
+================================================================================
+
+CREATE TRIGGER tr ON t AFTER INSERT AS
+BEGIN
+  INSERT INTO log SELECT * FROM inserted;
+END;
+CREATE FUNCTION dbo.f (@x INT) RETURNS INT AS
+BEGIN
+  RETURN @x + 1;
+END;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement))
+
+================================================================================
+SQL Server blocks: a body with no BEGIN ends at its semicolon
+================================================================================
+
+CREATE PROCEDURE r AS SELECT 1;
+CREATE FUNCTION g () RETURNS TABLE AS RETURN (SELECT 1 AS a);
+CREATE PROCEDURE s WITH EXECUTE AS OWNER AS SET NOCOUNT ON;
+SELECT 2;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement)
+  (statement)
+  (statement))

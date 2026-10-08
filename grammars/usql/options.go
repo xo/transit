@@ -8,10 +8,11 @@ import (
 )
 
 // Options are the options of the syntax of a SQL dialect that the external
-// scanner reads (D108). Each field is a flag of the type Syntax of dbmeta,
-// with the same name. With the zero value, none of these texts is a string
-// or a comment. A comment that starts with -- is a comment with every set
-// of options.
+// scanner reads (D108). Each field but BeginEndBlocks is a flag of the
+// type Syntax of dbmeta, with the same name. With the zero value, none of
+// these texts is a string or a comment, and a ; outside parentheses always
+// ends a statement. A comment that starts with -- is a comment with every
+// set of options.
 //
 // Each field is the flag of the same name in src/scanner.c, such as
 // USQL_DOLLAR_QUOTES for DollarQuotes.
@@ -26,6 +27,12 @@ type Options struct {
 	HashComments bool
 	// Backticks makes `...` a quoted identifier.
 	Backticks bool
+
+	// BeginEndBlocks keeps a stored program of MySQL, SQL Server or Oracle
+	// in one statement (D112). After CREATE ... PROCEDURE, FUNCTION,
+	// TRIGGER or EVENT, the scanner counts BEGIN and END, and a ; inside
+	// the body does not end the statement. It is not a flag of dbmeta.
+	BeginEndBlocks bool
 }
 
 // defaultOptions are the options of Language, and of src/scanner.c when the

@@ -1,0 +1,792 @@
+================================================================================
+Arithmetic operators
+================================================================================
+
+SELECT 1 + 2 * 3 - 4 / 5 % 6, 7 DIV 2, 8 MOD 3;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (binary_expression
+          (number)
+          (binary_expression
+            (number)
+            (number)))
+        (binary_expression
+          (binary_expression
+            (number)
+            (number))
+          (number)))
+      (binary_expression
+        (number)
+        (number))
+      (binary_expression
+        (number)
+        (number)))))
+
+================================================================================
+Unary operators
+================================================================================
+
+SELECT -a, +b, ~c, !d, NOT e;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (unary_expression
+        (column_reference
+          (identifier)))
+      (unary_expression
+        (column_reference
+          (identifier)))
+      (unary_expression
+        (column_reference
+          (identifier)))
+      (unary_expression
+        (column_reference
+          (identifier)))
+      (unary_expression
+        (column_reference
+          (identifier))))))
+
+================================================================================
+Comparison operators
+================================================================================
+
+SELECT a = b, a <=> b, a != b, a <> b, a < b, a <= b, a > b, a >= b;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))))))
+
+================================================================================
+Logical operators
+================================================================================
+
+SELECT a AND b OR c XOR d, a && b || c;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (binary_expression
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier)))
+        (binary_expression
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))))
+      (binary_expression
+        (binary_expression
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier)))
+        (column_reference
+          (identifier))))))
+
+================================================================================
+Bit operators
+================================================================================
+
+SELECT a | b, a & b, a ^ b, a << 2, a >> 1;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (number))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (number)))))
+
+================================================================================
+Is operators
+================================================================================
+
+SELECT a IS NULL, b IS NOT NULL, c IS TRUE, d IS NOT UNKNOWN;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (is_expression
+        (column_reference
+          (identifier))
+        (null))
+      (is_expression
+        (column_reference
+          (identifier))
+        (null))
+      (is_expression
+        (column_reference
+          (identifier))
+        (boolean))
+      (is_expression
+        (column_reference
+          (identifier))))))
+
+================================================================================
+In operators
+================================================================================
+
+SELECT a IN (1, 2, 3), b NOT IN ('x');
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (in_expression
+        (column_reference
+          (identifier))
+        (list
+          (number)
+          (number)
+          (number)))
+      (in_expression
+        (column_reference
+          (identifier))
+        (list
+          (string))))))
+
+================================================================================
+Between operators
+================================================================================
+
+SELECT a BETWEEN 1 AND 10, b NOT BETWEEN x AND y;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (between_expression
+        (column_reference
+          (identifier))
+        (number)
+        (number))
+      (between_expression
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))))))
+
+================================================================================
+Like operators
+================================================================================
+
+SELECT a LIKE '%x', b NOT LIKE 'y_' ESCAPE '!', c REGEXP '^a', d RLIKE 'b$', e SOUNDS LIKE f;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (like_expression
+        (column_reference
+          (identifier))
+        (string))
+      (like_expression
+        (column_reference
+          (identifier))
+        (string)
+        (string))
+      (like_expression
+        (column_reference
+          (identifier))
+        (string))
+      (like_expression
+        (column_reference
+          (identifier))
+        (string))
+      (like_expression
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))))))
+
+================================================================================
+Collate
+================================================================================
+
+SELECT name COLLATE utf8mb4_bin FROM t ORDER BY name COLLATE utf8mb4_general_ci;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (collate_expression
+        (column_reference
+          (identifier))
+        (identifier))
+      (from_clause
+        (table_reference
+          (identifier))))
+    (order_by_clause
+      (collate_expression
+        (column_reference
+          (identifier))
+        (identifier)))))
+
+================================================================================
+Binary operator
+================================================================================
+
+SELECT BINARY 'a' = 'A';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (unary_expression
+          (string))
+        (string)))))
+
+================================================================================
+Assignment in an expression
+================================================================================
+
+SELECT @n := @n + 1 FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (assignment_expression
+        (user_variable)
+        (binary_expression
+          (user_variable)
+          (number)))
+      (from_clause
+        (table_reference
+          (identifier))))))
+
+================================================================================
+Case expressions
+================================================================================
+
+SELECT CASE a WHEN 1 THEN 'one' WHEN 2 THEN 'two' ELSE 'many' END, CASE WHEN b > 0 THEN 1 END;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (case_expression
+        (column_reference
+          (identifier))
+        (when_clause
+          (number)
+          (string))
+        (when_clause
+          (number)
+          (string))
+        (string))
+      (case_expression
+        (when_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (number))
+          (number))))))
+
+================================================================================
+Function calls
+================================================================================
+
+SELECT count(*), COUNT(DISTINCT a), max(b), concat('a', 'b'), IFNULL(c, 0), shop.f(1);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (string)
+          (string)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (number)))
+      (function_call
+        (identifier)
+        (identifier)
+        (arguments
+          (number))))))
+
+================================================================================
+Cast and convert
+================================================================================
+
+SELECT CAST(a AS UNSIGNED), CAST(b AS CHAR(10)), CONVERT(c, DECIMAL(10, 2)), CONVERT(d USING utf8mb4);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (column_reference
+          (identifier))
+        (data_type
+          (type_name)))
+      (function_call
+        (identifier)
+        (column_reference
+          (identifier))
+        (data_type
+          (type_name)
+          (number)))
+      (function_call
+        (identifier)
+        (column_reference
+          (identifier))
+        (data_type
+          (type_name)
+          (number)
+          (number)))
+      (function_call
+        (identifier)
+        (column_reference
+          (identifier))
+        (identifier)))))
+
+================================================================================
+Extract and interval
+================================================================================
+
+SELECT EXTRACT(YEAR FROM d), d + INTERVAL 1 DAY, DATE_ADD(d, INTERVAL '1:30' HOUR_MINUTE);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (interval_expression
+          (number)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (interval_expression
+            (string)))))))
+
+================================================================================
+Trim, substring and position
+================================================================================
+
+SELECT TRIM(' a '), TRIM(LEADING 'x' FROM s), SUBSTRING(s, 1, 2), SUBSTRING(s FROM 2 FOR 3), POSITION('a' IN s);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (string))
+      (function_call
+        (identifier)
+        (string)
+        (column_reference
+          (identifier)))
+      (function_call
+        (identifier)
+        (column_reference
+          (identifier))
+        (number)
+        (number))
+      (function_call
+        (identifier)
+        (column_reference
+          (identifier))
+        (number)
+        (number))
+      (function_call
+        (identifier)
+        (string)
+        (column_reference
+          (identifier))))))
+
+================================================================================
+Functions without parentheses
+================================================================================
+
+SELECT CURRENT_TIMESTAMP, CURRENT_DATE(), NOW(), CURRENT_USER, UTC_TIMESTAMP;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier))
+      (function_call
+        (identifier))
+      (function_call
+        (identifier)
+        (arguments))
+      (function_call
+        (identifier))
+      (function_call
+        (identifier)))))
+
+================================================================================
+Date and time functions
+================================================================================
+
+SELECT DATE(created), TIME(created), TIMESTAMP('2024-01-01') FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (string)))
+      (from_clause
+        (table_reference
+          (identifier))))))
+
+================================================================================
+Temporal literals
+================================================================================
+
+SELECT DATE '2024-01-01', TIME '12:00:00', TIMESTAMP '2024-01-01 12:00:00';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (temporal_literal
+        (string))
+      (temporal_literal
+        (string))
+      (temporal_literal
+        (string)))))
+
+================================================================================
+Json operators
+================================================================================
+
+SELECT doc->'$.name', doc->>'$.age' FROM t WHERE doc->'$.id' = 1;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (column_reference
+          (identifier))
+        (string))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (string))
+      (from_clause
+        (table_reference
+          (identifier)))
+      (where_clause
+        (binary_expression
+          (binary_expression
+            (column_reference
+              (identifier))
+            (string))
+          (number))))))
+
+================================================================================
+Member of
+================================================================================
+
+SELECT 3 MEMBER OF ('[1, 2, 3]');
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (number)
+        (parenthesized_expression
+          (string))))))
+
+================================================================================
+Match against
+================================================================================
+
+SELECT * FROM docs WHERE MATCH (title, body) AGAINST ('tree' IN BOOLEAN MODE);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (identifier)))
+      (where_clause
+        (match_expression
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))
+          (string))))))
+
+================================================================================
+Row constructors
+================================================================================
+
+SELECT * FROM t WHERE (a, b) = (1, 2) AND ROW(c, d) IN (SELECT x, y FROM u);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (identifier)))
+      (where_clause
+        (binary_expression
+          (binary_expression
+            (row_constructor
+              (column_reference
+                (identifier))
+              (column_reference
+                (identifier)))
+            (row_constructor
+              (number)
+              (number)))
+          (in_expression
+            (row_constructor
+              (column_reference
+                (identifier))
+              (column_reference
+                (identifier)))
+            (subquery
+              (select
+                (column_reference
+                  (identifier))
+                (column_reference
+                  (identifier))
+                (from_clause
+                  (table_reference
+                    (identifier)))))))))))
+
+================================================================================
+Placeholders
+================================================================================
+
+SELECT * FROM t WHERE a = ? AND b IN (?, ?);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (identifier)))
+      (where_clause
+        (binary_expression
+          (binary_expression
+            (column_reference
+              (identifier))
+            (parameter))
+          (in_expression
+            (column_reference
+              (identifier))
+            (list
+              (parameter)
+              (parameter))))))))
+
+================================================================================
+Parentheses and precedence
+================================================================================
+
+SELECT (1 + 2) * 3, NOT (a OR b) AND c;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (parenthesized_expression
+          (binary_expression
+            (number)
+            (number)))
+        (number))
+      (binary_expression
+        (unary_expression
+          (parenthesized_expression
+            (binary_expression
+              (column_reference
+                (identifier))
+              (column_reference
+                (identifier)))))
+        (column_reference
+          (identifier))))))
+
+================================================================================
+Window functions with arguments
+================================================================================
+
+SELECT lag(x, 1) OVER (PARTITION BY g ORDER BY t), rank() OVER w FROM t WINDOW w AS (ORDER BY x);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (number))
+        (over_clause
+          (window_specification
+            (column_reference
+              (identifier))
+            (order_by_clause
+              (column_reference
+                (identifier))))))
+      (function_call
+        (identifier)
+        (arguments)
+        (over_clause
+          (identifier)))
+      (from_clause
+        (table_reference
+          (identifier)))
+      (window_clause
+        (window_definition
+          (identifier)
+          (window_specification
+            (order_by_clause
+              (column_reference
+                (identifier)))))))))

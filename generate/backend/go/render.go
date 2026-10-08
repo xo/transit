@@ -1975,12 +1975,18 @@ func Tables(in *generate.RenderInput) (*abi.Language, error) {
 	if err != nil {
 		return nil, err
 	}
-	t := out.tables
-	t.LexFn = out.mainLex.Lex
-	if out.keywordLex != nil {
-		t.KeywordLexFn = out.keywordLex.Lex
+	return out.languageTables(), nil
+}
+
+// languageTables returns the tables of the output, with the lex functions
+// of its lex tables and no external scanner.
+func (o *output) languageTables() *abi.Language {
+	t := o.tables
+	t.LexFn = o.mainLex.Lex
+	if o.keywordLex != nil {
+		t.KeywordLexFn = o.keywordLex.Lex
 	}
-	return &t, nil
+	return &t
 }
 
 // render builds the output of a grammar.

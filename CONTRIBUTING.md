@@ -14,7 +14,8 @@ Do not decide an open question on your own. Add it to the end of
 `docs/PLAN.md`, and ask Ken.
 
 Ken accepted `docs/API.md` on 2026-10-01, and that ended phase 1 (D103).
-Phases 2 to 4 are done, and the latest tag of every module is `v0.2.1`. Code
+Phases 2 to 5 are done. The latest tag of each module is `v0.2.1`. The modules
+`grammars/mysql` and `_example` are new, and they have no tag yet. Code
 follows the plan and the decisions.
 
 ## The upstream checkout
@@ -76,6 +77,7 @@ release every module at a version such as `v0.2.0`:
    build in the repository still uses the folders.
 2. Run the commands under "Before you stage" in `AGENTS.md`, and commit.
 3. Tag the commit `v0.2.0` for the root module, and `<folder>/v0.2.0` for
-   each other module except `test`, such as `grammars/json/v0.2.0` and
-   `styles/v0.2.0`.
+   each other module except `test` and `_example`, such as
+   `grammars/json/v0.2.0` and `styles/v0.2.0`. No program imports the test
+   module or the module of the sample programs.
 4. Push the commit and the tags.

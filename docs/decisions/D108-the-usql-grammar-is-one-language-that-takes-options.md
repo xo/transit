@@ -1,6 +1,6 @@
 # D108. The usql grammar is one language that takes options
 
-Status: Decided, amends D101, D105 and D107.
+Status: Decided, amends D101, D105 and D107, amended by D112 and D114.
 
 D101 built one usql grammar for each family of dialects, six in all, because
 the statement scanner depends on the options of the dialect. Ken decided on

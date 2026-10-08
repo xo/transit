@@ -1,0 +1,91 @@
+================================================================================
+Oracle blocks: a procedure with declarations after IS
+================================================================================
+
+CREATE OR REPLACE PROCEDURE p (a IN NUMBER) IS
+  v NUMBER := 0;
+  CURSOR c IS SELECT id FROM t;
+BEGIN
+  FOR r IN c LOOP
+    IF r.id > a THEN
+      v := v + 1;
+    ELSIF r.id = a THEN
+      NULL;
+    END IF;
+  END LOOP;
+  DECLARE
+    w NUMBER;
+  BEGIN
+    w := CASE WHEN v > 0 THEN 1 ELSE 0 END;
+  END;
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE;
+END p;
+SELECT 1 FROM dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement))
+
+================================================================================
+Oracle blocks: a function with AS and a CASE statement
+================================================================================
+
+create function f (x number) return varchar2 as
+begin
+  case x
+    when 1 then return 'one';
+    else return 'END';
+  end case;
+end;
+select f(1) from dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (string)
+    (string))
+  (statement))
+
+================================================================================
+Oracle blocks: a trigger with a DECLARE section
+================================================================================
+
+CREATE OR REPLACE EDITIONABLE TRIGGER tr
+BEFORE INSERT ON t REFERENCING NEW AS n FOR EACH ROW
+DECLARE
+  k NUMBER;
+BEGIN
+  SELECT s.nextval INTO k FROM dual;
+  :n.id := k;
+END;
+SELECT 2 FROM dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (variable
+      (variable_name)))
+  (statement))
+
+================================================================================
+Oracle blocks: a call specification ends at its semicolon
+================================================================================
+
+CREATE PROCEDURE j (a VARCHAR2) AS LANGUAGE JAVA NAME 'J.run(java.lang.String)';
+CREATE FUNCTION e RETURN NUMBER AS EXTERNAL LIBRARY l NAME "e";
+SELECT 3 FROM dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (string))
+  (statement
+    (quoted_identifier))
+  (statement))

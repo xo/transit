@@ -3,6 +3,8 @@ package grammartest
 import (
 	"context"
 	"fmt"
+
+	"github.com/xo/transit/internal/corpus"
 )
 
 // This file gives the highlights of the highlight test to a program, such as
@@ -21,7 +23,7 @@ type Span struct {
 // folder above it gives the queries and the injections, as for Highlight,
 // and others are the other grammars of the module.
 func Spans(ctx context.Context, dir string, own Grammar, others []Grammar, src []byte) ([]Span, error) {
-	m, err := readModuleIn(dir, own.Language.Name())
+	m, err := corpus.ReadModuleIn(dir, own.Language.Name())
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,6 @@
 # D53. Examples, and two sample programs
 
-Status: Decided.
+Status: Decided, amended by D115.
 
 Ken decided on 2026-09-29, answering question 52, that transit ships:
 

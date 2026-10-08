@@ -1,0 +1,1092 @@
+================================================================================
+Create a database
+================================================================================
+
+CREATE DATABASE shop;
+
+---
+
+(source_file
+  (create_database_statement
+    (identifier)))
+
+================================================================================
+Create a schema with options
+================================================================================
+
+CREATE SCHEMA IF NOT EXISTS shop DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+---
+
+(source_file
+  (create_database_statement
+    (identifier)
+    (database_option
+      (identifier))
+    (database_option
+      (identifier))))
+
+================================================================================
+Alter a database
+================================================================================
+
+ALTER DATABASE shop CHARACTER SET = latin1;
+
+---
+
+(source_file
+  (alter_database_statement
+    (identifier)
+    (database_option
+      (identifier))))
+
+================================================================================
+Drop a database
+================================================================================
+
+DROP DATABASE IF EXISTS shop;
+
+---
+
+(source_file
+  (drop_database_statement
+    (identifier)))
+
+================================================================================
+Create a table
+================================================================================
+
+CREATE TABLE t (id INT, name VARCHAR(100));
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)
+        (number)))))
+
+================================================================================
+Create a table with column attributes
+================================================================================
+
+CREATE TABLE users (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL UNIQUE,
+  age TINYINT(3) UNSIGNED ZEROFILL DEFAULT 0,
+  note TEXT COMMENT 'free text'
+);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)
+        (number)
+        (identifier)
+        (identifier)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)
+        (number))
+      (number))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name))
+      (string))))
+
+================================================================================
+Create a table with timestamps
+================================================================================
+
+CREATE TABLE t (
+  created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)
+);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name))
+      (function_call
+        (identifier)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)
+        (number))
+      (function_call
+        (identifier)
+        (number))
+      (function_call
+        (identifier)
+        (number)))))
+
+================================================================================
+Create a table with numeric types
+================================================================================
+
+CREATE TABLE t (a DECIMAL(10, 2), b DOUBLE PRECISION, c FLOAT(7, 4) SIGNED, d BIT(8), e BIGINT DEFAULT -1, f BOOL DEFAULT TRUE);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)
+        (number)
+        (number)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)
+        (number)
+        (number)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)
+        (number)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name))
+      (unary_expression
+        (number)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name))
+      (boolean))))
+
+================================================================================
+Create a table with string and binary types
+================================================================================
+
+CREATE TABLE t (a CHAR(3) BINARY, b NATIONAL VARCHAR(10), c VARBINARY(16), d LONGBLOB, e MEDIUMTEXT, f ENUM('a', 'b') DEFAULT 'a', g SET('x', 'y'));
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)
+        (number)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)
+        (number)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)
+        (number)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)
+        (string)
+        (string))
+      (string))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)
+        (string)
+        (string)))))
+
+================================================================================
+Create a table with other types
+================================================================================
+
+CREATE TABLE t (a JSON, b DATE, c TIME(3), d YEAR, e GEOMETRY NOT NULL SRID 4326, f POINT);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)
+        (number)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name))
+      (number))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))))
+
+================================================================================
+Create a table with generated columns
+================================================================================
+
+CREATE TABLE t (a INT, b INT GENERATED ALWAYS AS (a * 2) VIRTUAL, c INT AS (a + 1) STORED);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (number)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (number)))))
+
+================================================================================
+Create a table with keys and indexes
+================================================================================
+
+CREATE TABLE t (
+  id INT,
+  a INT,
+  b VARCHAR(50),
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_a (a),
+  KEY idx_b (b(10) DESC),
+  INDEX idx_ab USING BTREE (a, b) COMMENT 'two',
+  FULLTEXT INDEX ft (b)
+);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)
+        (number)))
+    (table_constraint
+      (key_parts
+        (key_part
+          (identifier))))
+    (table_constraint
+      (identifier)
+      (key_parts
+        (key_part
+          (identifier))))
+    (index_definition
+      (identifier)
+      (key_parts
+        (key_part
+          (identifier)
+          (number))))
+    (index_definition
+      (identifier)
+      (key_parts
+        (key_part
+          (identifier))
+        (key_part
+          (identifier)))
+      (string))
+    (index_definition
+      (identifier)
+      (key_parts
+        (key_part
+          (identifier))))))
+
+================================================================================
+Create a table with a foreign key
+================================================================================
+
+CREATE TABLE orders (
+  id INT PRIMARY KEY,
+  user_id INT,
+  CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE ON UPDATE SET NULL
+);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))
+    (table_constraint
+      (identifier)
+      (column_list
+        (identifier))
+      (references_clause
+        (object_reference
+          (identifier))
+        (column_list
+          (identifier))))))
+
+================================================================================
+Create a table with a check constraint
+================================================================================
+
+CREATE TABLE t (a INT CHECK (a > 0), b INT, CONSTRAINT c1 CHECK (b < 10) NOT ENFORCED);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name))
+      (check_constraint
+        (binary_expression
+          (column_reference
+            (identifier))
+          (number))))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))
+    (table_constraint
+      (identifier)
+      (check_constraint
+        (binary_expression
+          (column_reference
+            (identifier))
+          (number))))))
+
+================================================================================
+Create a table with a functional index
+================================================================================
+
+CREATE TABLE t (a JSON, INDEX ((CAST(a->'$.id' AS UNSIGNED ARRAY))));
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))
+    (index_definition
+      (key_parts
+        (key_part
+          (function_call
+            (identifier)
+            (binary_expression
+              (column_reference
+                (identifier))
+              (string))
+            (data_type
+              (type_name))))))))
+
+================================================================================
+Create a table with table options
+================================================================================
+
+CREATE TABLE t (id INT) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci AUTO_INCREMENT = 100 COMMENT = 'the table' ROW_FORMAT = DYNAMIC;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))
+    (table_option
+      (identifier))
+    (table_option
+      (identifier))
+    (table_option
+      (identifier))
+    (table_option
+      (number))
+    (table_option
+      (string))
+    (table_option
+      (identifier))))
+
+================================================================================
+Create a table with options and no equals signs
+================================================================================
+
+CREATE TABLE t (id INT) ENGINE MyISAM, CHARSET latin1;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))
+    (table_option
+      (identifier))
+    (table_option
+      (identifier))))
+
+================================================================================
+Create a temporary table
+================================================================================
+
+CREATE TEMPORARY TABLE IF NOT EXISTS tmp (x INT);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))))
+
+================================================================================
+Create a table like another
+================================================================================
+
+CREATE TABLE t2 LIKE t1;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))))
+
+================================================================================
+Create a table from a select
+================================================================================
+
+CREATE TABLE t2 AS SELECT * FROM t1 WHERE 0;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (all_columns)
+        (from_clause
+          (table_reference
+            (identifier)))
+        (where_clause
+          (number))))))
+
+================================================================================
+Create a table with partitions by range
+================================================================================
+
+CREATE TABLE t (id INT, y INT) PARTITION BY RANGE (y) (
+  PARTITION p0 VALUES LESS THAN (2000),
+  PARTITION p1 VALUES LESS THAN MAXVALUE
+);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))
+    (partition_by
+      (column_reference
+        (identifier))
+      (partition_definition
+        (identifier)
+        (number))
+      (partition_definition
+        (identifier)))))
+
+================================================================================
+Create a table with partitions by hash
+================================================================================
+
+CREATE TABLE t (id INT) PARTITION BY HASH (id) PARTITIONS 4;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)))
+    (partition_by
+      (column_reference
+        (identifier))
+      (number))))
+
+================================================================================
+Create a table with partitions by list columns
+================================================================================
+
+CREATE TABLE t (c CHAR(2)) PARTITION BY LIST COLUMNS (c) (PARTITION pa VALUES IN ('a', 'b'));
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)
+        (number)))
+    (partition_by
+      (identifier)
+      (partition_definition
+        (identifier)
+        (string)
+        (string)))))
+
+================================================================================
+Alter a table to add a column
+================================================================================
+
+ALTER TABLE t ADD COLUMN c INT NOT NULL DEFAULT 0 AFTER b;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (add_column
+      (column_definition
+        (identifier)
+        (data_type
+          (type_name))
+        (number))
+      (identifier))))
+
+================================================================================
+Alter a table to add columns first
+================================================================================
+
+ALTER TABLE t ADD c INT FIRST, ADD (d INT, e TEXT);
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (add_column
+      (column_definition
+        (identifier)
+        (data_type
+          (type_name))))
+    (add_column
+      (column_definition
+        (identifier)
+        (data_type
+          (type_name)))
+      (column_definition
+        (identifier)
+        (data_type
+          (type_name))))))
+
+================================================================================
+Alter a table to add an index and a key
+================================================================================
+
+ALTER TABLE t ADD INDEX idx (a), ADD UNIQUE KEY uk (b), ADD PRIMARY KEY (id);
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (add_constraint
+      (index_definition
+        (identifier)
+        (key_parts
+          (key_part
+            (identifier)))))
+    (add_constraint
+      (table_constraint
+        (identifier)
+        (key_parts
+          (key_part
+            (identifier)))))
+    (add_constraint
+      (table_constraint
+        (key_parts
+          (key_part
+            (identifier)))))))
+
+================================================================================
+Alter a table to add a foreign key
+================================================================================
+
+ALTER TABLE t ADD CONSTRAINT fk FOREIGN KEY (u) REFERENCES u (id);
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (add_constraint
+      (table_constraint
+        (identifier)
+        (column_list
+          (identifier))
+        (references_clause
+          (object_reference
+            (identifier))
+          (column_list
+            (identifier)))))))
+
+================================================================================
+Alter a table to drop
+================================================================================
+
+ALTER TABLE t DROP COLUMN c, DROP INDEX idx, DROP PRIMARY KEY, DROP FOREIGN KEY fk, DROP CHECK c1;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (drop_column
+      (identifier))
+    (drop_constraint
+      (identifier))
+    (drop_constraint)
+    (drop_constraint
+      (identifier))
+    (drop_constraint
+      (identifier))))
+
+================================================================================
+Alter a table to modify and change columns
+================================================================================
+
+ALTER TABLE t MODIFY COLUMN a BIGINT UNSIGNED, CHANGE b b2 VARCHAR(20) NULL;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (modify_column
+      (column_definition
+        (identifier)
+        (data_type
+          (type_name))))
+    (change_column
+      (identifier)
+      (column_definition
+        (identifier)
+        (data_type
+          (type_name)
+          (number))))))
+
+================================================================================
+Alter a table to rename
+================================================================================
+
+ALTER TABLE t RENAME COLUMN a TO b, RENAME INDEX i1 TO i2, RENAME TO t2;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (rename_column
+      (identifier)
+      (identifier))
+    (rename_index
+      (identifier)
+      (identifier))
+    (rename_table
+      (object_reference
+        (identifier)))))
+
+================================================================================
+Alter a table to set and drop defaults
+================================================================================
+
+ALTER TABLE t ALTER COLUMN a SET DEFAULT 1, ALTER b DROP DEFAULT, ALTER INDEX i INVISIBLE;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (alter_column
+      (identifier)
+      (number))
+    (alter_column
+      (identifier))
+    (alter_index
+      (identifier))))
+
+================================================================================
+Alter a table to convert its character set
+================================================================================
+
+ALTER TABLE t CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (convert_to_charset
+      (identifier)
+      (identifier))))
+
+================================================================================
+Alter a table with options
+================================================================================
+
+ALTER TABLE t ENGINE = InnoDB, ALGORITHM = INPLACE, LOCK = NONE;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (table_option
+      (identifier))
+    (alter_option
+      (identifier))
+    (alter_option
+      (identifier))))
+
+================================================================================
+Alter a table with force
+================================================================================
+
+ALTER TABLE t FORCE;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (alter_option)))
+
+================================================================================
+Drop a table
+================================================================================
+
+DROP TABLE IF EXISTS t1, shop.t2 CASCADE;
+
+---
+
+(source_file
+  (drop_table_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+Drop a temporary table
+================================================================================
+
+DROP TEMPORARY TABLE tmp;
+
+---
+
+(source_file
+  (drop_table_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+Rename tables
+================================================================================
+
+RENAME TABLE a TO b, c TO d;
+
+---
+
+(source_file
+  (rename_table_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))))
+
+================================================================================
+Create an index
+================================================================================
+
+CREATE INDEX idx ON t (a, b DESC);
+
+---
+
+(source_file
+  (create_index_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (key_parts
+      (key_part
+        (identifier))
+      (key_part
+        (identifier)))))
+
+================================================================================
+Create a unique index with options
+================================================================================
+
+CREATE UNIQUE INDEX idx USING HASH ON t (a(10)) ALGORITHM = INPLACE LOCK = DEFAULT;
+
+---
+
+(source_file
+  (create_index_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (key_parts
+      (key_part
+        (identifier)
+        (number)))
+    (alter_option
+      (identifier))
+    (alter_option)))
+
+================================================================================
+Create a fulltext index
+================================================================================
+
+CREATE FULLTEXT INDEX ft ON docs (body) WITH PARSER ngram;
+
+---
+
+(source_file
+  (create_index_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (key_parts
+      (key_part
+        (identifier)))
+    (identifier)))
+
+================================================================================
+Drop an index
+================================================================================
+
+DROP INDEX idx ON t;
+
+---
+
+(source_file
+  (drop_index_statement
+    (identifier)
+    (object_reference
+      (identifier))))
+
+================================================================================
+Create a view
+================================================================================
+
+CREATE VIEW v AS SELECT a, b FROM t;
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (identifier)))))))
+
+================================================================================
+Create or replace a view with options
+================================================================================
+
+CREATE OR REPLACE ALGORITHM = MERGE DEFINER = 'admin'@'localhost' SQL SECURITY INVOKER VIEW v (x, y) AS SELECT a, b FROM t WITH CASCADED CHECK OPTION;
+
+---
+
+(source_file
+  (create_view_statement
+    (definer
+      (account
+        (string)
+        (string)))
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier))
+    (select_statement
+      (select
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (identifier)))))))
+
+================================================================================
+Alter a view
+================================================================================
+
+ALTER VIEW v AS SELECT 1;
+
+---
+
+(source_file
+  (alter_view_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (number)))))
+
+================================================================================
+Drop a view
+================================================================================
+
+DROP VIEW IF EXISTS v1, v2;
+
+---
+
+(source_file
+  (drop_view_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))))

@@ -71,7 +71,7 @@ An open question is not a decision. It goes at the end of
 | [D50](D050-one-unit-of-work-per-change.md) | One unit of work per change | Decided, amended by D61 |
 | [D51](D051-a-grammar-is-pinned-by-its-commit.md) | A grammar is pinned by its commit | Decided |
 | [D52](D052-the-concurrency-guarantees-follow-upstream.md) | The concurrency guarantees follow upstream, in Go terms | Decided |
-| [D53](D053-examples-and-two-sample-programs.md) | Examples, and two sample programs | Decided |
+| [D53](D053-examples-and-two-sample-programs.md) | Examples, and two sample programs | Decided, amended by D115 |
 | [D54](D054-the-plan-is-ready-and-phase-1-starts.md) | The plan is ready, and phase 1 starts | Decided |
 | [D55](D055-transit-adds-the-lua-match-predicate.md) | transit adds the #lua-match? predicate | Decided, amended by D69 |
 | [D56](D056-a-node-lookup-returns-a-bool.md) | A node lookup returns the node and a bool | Decided |
@@ -125,6 +125,12 @@ An open question is not a decision. It goes at the end of
 | [D104](D104-a-grammar-that-xo-writes-lives-in-grammars.md) | A grammar that xo writes lives in grammars | Decided, amends D42 |
 | [D105](D105-ken-accepts-the-usql-grammar.md) | Ken accepts the usql grammar | Decided, amends D101 and D102, amended by D108 |
 | [D106](D106-the-grammars-of-phase-5.md) | The grammars of phase 5 | Decided, amends D42, amended by D107 |
-| [D107](D107-a-grammar-module-takes-the-name-of-its-dialect.md) | A grammar module takes the name of its dialect | Decided, amends D26 and D106, amended by D108 |
-| [D108](D108-the-usql-grammar-is-one-language-that-takes-options.md) | The usql grammar is one language that takes options | Decided, amends D101, D105 and D107 |
+| [D107](D107-a-grammar-module-takes-the-name-of-its-dialect.md) | A grammar module takes the name of its dialect | Decided, amends D26 and D106, amended by D108 and D110 |
+| [D108](D108-the-usql-grammar-is-one-language-that-takes-options.md) | The usql grammar is one language that takes options | Decided, amends D101, D105 and D107, amended by D112 and D114 |
 | [D109](D109-the-grammar-modules-fit-a-runner-of-ci.md) | The grammar modules fit a runner of CI | Decided |
+| [D110](D110-no-grammar-for-bigquery-or-spanner.md) | No grammar for bigquery or spanner | Decided, amends D107 |
+| [D111](D111-inject-gives-the-replaced-text-of-a-layer.md) | inject gives the replaced text of a layer | Decided |
+| [D112](D112-the-usql-grammar-can-keep-a-block-in-one-statement.md) | The usql grammar can keep a block in one statement | Decided, amends D108 |
+| [D113](D113-xo-writes-the-highlight-queries-that-upstream-lacks.md) | xo writes the highlight queries that upstream lacks | Decided |
+| [D114](D114-usql-language-has-the-options-of-postgres.md) | usql.Language has the options of PostgreSQL | Decided, amends D108 |
+| [D115](D115-each-grammar-package-has-a-generated-example.md) | Each grammar package has a generated example | Decided, amends D53 |

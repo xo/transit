@@ -15,7 +15,32 @@ agent and the date, and deletes the claim when Ken commits the unit (D50, D61).
 
 | Unit | Agent | Date |
 | --- | --- | --- |
-| Phase 5, unit 22: the MySQL grammar in `grammars/mysql` (D42, D106) | transit, agent 29 | 2026-10-01 |
+
+## Tools
+
+### Draw railroad diagrams of a grammar
+
+Ken asked on 2026-10-08 for railroad diagrams of the grammars, as the manuals
+of SQLite and PostgreSQL show, to start after phase 5. Write a command in the
+test module, as `test/cmd/stylesvg` is, that reads the `grammar.json` of a
+grammar and draws an SVG diagram of each rule, with links between the rules.
+A sequence is a row of boxes, a choice is a set of branches, a repeat is a
+loop, and an optional part has a path around it. To make the diagrams
+readable, the command draws a hidden rule (a name that starts with `_`) in
+place, drops the wrappers of precedence, shows an alias by the name that it
+gives, draws a token of the external scanner as a box with its name, and
+shows a rule that only matches one keyword, such as `keyword_select`, as the
+keyword. The converter `json2ebnf` of mingodad/plgh and the generator RR of
+Gunther Rademacher do this in two steps today, outside Go.
+
+Ken asked that the diagrams look as good as those of
+[lukaslueg/railroad](https://github.com/lukaslueg/railroad), a Rust library
+under the MIT license. It draws a terminal as a box with round ends, a rule
+name as a box with square corners, and a branch or a loop as a curved track.
+It has a light and a dark style sheet. Its example of a `CREATE TABLE` of
+SQL is the target. Ken decided on 2026-10-08 that transit does not port it.
+The command writes its own layout, and the look of that library is the bar
+to meet.
 
 ## The generator
 

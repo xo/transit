@@ -368,7 +368,7 @@ func TestPackageInDirectory(t *testing.T) {
 	src := filepath.Join("..", "..", "..", "grammars", "json")
 	// the folder gives the name of the package
 	dir := filepath.Join(t.TempDir(), "json")
-	for _, name := range []string{"grammar.json", "tree-sitter.json", "queries/highlights.scm", "testdata/corpus/main.txt"} {
+	for _, name := range []string{"go.mod", "grammar.json", "tree-sitter.json", "queries/highlights.scm", "testdata/corpus/main.txt"} {
 		b, err := os.ReadFile(filepath.Join(src, name))
 		if err != nil {
 			t.Fatal(err)
@@ -389,7 +389,7 @@ func TestPackageInDirectory(t *testing.T) {
 	if err := PackageInDirectory(dir, "", generate.LanguageVersion, true, generate.OptLevelMergeStates, &diagnostics); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"parser.go", "node-types.json", "grammar_test.go"} {
+	for _, name := range []string{"parser.go", "node-types.json", "grammar_test.go", "example_test.go"} {
 		got, err := os.ReadFile(filepath.Join(dir, name))
 		if err != nil {
 			t.Fatal(err)
@@ -413,5 +413,43 @@ func TestPackageInDirectory(t *testing.T) {
 	}
 	if len(entries) != 1 || entries[0].Name() != "node-types.json" {
 		t.Errorf("without the parser, the folder holds %v, want node-types.json only", entries)
+	}
+}
+
+// TestGoString makes sure that a text becomes a raw string when it can, and
+// an interpreted string when it holds a backquote, a carriage return, a
+// character that does not print or bytes that are not UTF-8.
+func TestGoString(t *testing.T) {
+	t.Parallel()
+	for in, want := range map[string]string{
+		"a\n\tb \u00e9": "`a\n\tb é`",
+		"":              "``",
+		"a`b":           `"a` + "`" + `b"`,
+		"a\r\nb":        `"a\r\nb"`,
+		"\ufeffa":       `"\ufeffa"`,
+		"\xffa":         `"\xffa"`,
+		"a\u00a0b":      `"a\u00a0b"`,
+	} {
+		if got := goString([]byte(in)); got != want {
+			t.Errorf("goString(%q) = %s, want %s", in, got, want)
+		}
+	}
+}
+
+// TestHoldsKind makes sure that the kinds of the nodes of a tree come from
+// the tree as Node.String prints it.
+func TestHoldsKind(t *testing.T) {
+	t.Parallel()
+	kinds := map[string]bool{"pair": true, "ERROR": true}
+	for sexp, want := range map[string]bool{
+		"(document (object (pair (string) (number))))": true,
+		"(document (array (number) (pair)))":           true,
+		"(document (array (number) (string)))":         false,
+		"(document (ERROR (number)))":                  true,
+		"(document (MISSING pair))":                    false,
+	} {
+		if got := holdsKind(sexp, kinds); got != want {
+			t.Errorf("holdsKind(%q) = %t, want %t", sexp, got, want)
+		}
 	}
 }

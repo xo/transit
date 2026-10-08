@@ -54,7 +54,11 @@ var language = sync.OnceValue(func() *transit.Language {
 	})
 })
 
-// Queries is empty, because the grammar plsql has no queries/*.scm.
+// Queries holds queries/ of the grammar plsql: its own queries, and in
+// queries/<grammar>/ the queries of another grammar that its tree-sitter.json
+// lists (D84).
+//
+//go:embed queries
 var Queries embed.FS
 
 // nodeTypes is node-types.json of the grammar.

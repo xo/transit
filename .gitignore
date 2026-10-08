@@ -10,3 +10,7 @@
 # is not ignored, because a setting that belongs to the project is committed.
 # See dbmeta D89.
 .claude/settings.local.json
+
+# The git worktrees in which the coding agents work. Each one is a checkout of
+# this repository, and its work comes back through the main checkout.
+/.claude/worktrees/

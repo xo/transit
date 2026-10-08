@@ -2,6 +2,7 @@ package inject_test
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"testing"
 
@@ -176,5 +177,61 @@ func TestWithReplacerNames(t *testing.T) {
 	want := "sql statement,sql word,sql variable,sql ;,sql statement,sql word,sql ;"
 	if got := strings.Join(asked, ","); got != want {
 		t.Errorf("the replacer was asked about %s, and want %s", got, want)
+	}
+}
+
+// TestLayerText makes sure that the text of a layer holds the replacements
+// of its layer only, with the offsets of the source. The root layer has no
+// parent, so its text is the source. It also makes sure that the states of
+// Layer.StatesAt are the states of a plain parse of the text of the layer
+// with spaces in place of the bytes outside its ranges.
+func TestLayerText(t *testing.T) {
+	t.Parallel()
+	host := testConfig(t, hostGrammar, "host", hostInjections)
+	sql := testConfig(t, sqlGrammar, "sql", "")
+	lookup := func(name string) (*inject.Config, bool) { return sql, name == "sql" }
+	src := []byte("select :a; b :cd;")
+	p := transit.NewParser()
+	layers, err := host.Layers(context.Background(), p, src, lookup, inject.WithReplacer(placeholder))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{
+		"select :a; b :cd;",
+		"select _a; b :cd;",
+		"select :a; b _cd;",
+	}
+	if len(layers) != len(want) {
+		t.Fatalf("expected %d layers, got %d", len(want), len(layers))
+	}
+	if &layers[0].Text[0] != &src[0] {
+		t.Errorf("the text of the root layer is a copy of the source")
+	}
+	for i, l := range layers {
+		if got := string(l.Text); got != want[i] {
+			t.Errorf("layer %d: the text is %q, and want %q", i, got, want[i])
+		}
+	}
+	for _, l := range layers[1:] {
+		blank := []byte(strings.Repeat(" ", len(src)))
+		for _, r := range l.Ranges {
+			copy(blank[r.StartByte:r.EndByte], l.Text[r.StartByte:r.EndByte])
+		}
+		for offset := l.Ranges[0].StartByte; offset <= l.Ranges[len(l.Ranges)-1].EndByte; offset++ {
+			got, err := l.StatesAt(context.Background(), p, offset)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(p.IncludedRanges()) != 1 {
+				t.Errorf("the parser keeps the ranges of the layer: %v", p.IncludedRanges())
+			}
+			plain, err := p.StatesAt(context.Background(), blank, offset, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !slices.Equal(got, plain) {
+				t.Errorf("%q at %d: the states of the layer are %v, and the states of %q are %v", l.Text, offset, got, blank, plain)
+			}
+		}
 	}
 }

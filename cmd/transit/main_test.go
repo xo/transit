@@ -97,7 +97,7 @@ func TestGenerateGoPackage(t *testing.T) {
 	for _, arg := range []string{"", "grammar.json"} {
 		// the folder gives the name of the package
 		dir := filepath.Join(t.TempDir(), "json")
-		for _, name := range []string{"grammar.json", "tree-sitter.json", "queries/highlights.scm", "testdata/corpus/main.txt"} {
+		for _, name := range []string{"go.mod", "grammar.json", "tree-sitter.json", "queries/highlights.scm", "testdata/corpus/main.txt"} {
 			b, err := os.ReadFile(filepath.Join(src, name))
 			if err != nil {
 				t.Fatal(err)
@@ -114,7 +114,7 @@ func TestGenerateGoPackage(t *testing.T) {
 		if code := run([]string{"generate", "--backend", "go", filepath.Join(dir, arg)}, &stderr); code != 0 {
 			t.Fatalf("expected no error, got code %d and:\n%s", code, stderr.String())
 		}
-		for _, name := range []string{"parser.go", "node-types.json", "grammar_test.go"} {
+		for _, name := range []string{"parser.go", "node-types.json", "grammar_test.go", "example_test.go"} {
 			actual, err := os.ReadFile(filepath.Join(dir, name))
 			if err != nil {
 				t.Fatal(err)

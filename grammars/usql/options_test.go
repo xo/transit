@@ -9,15 +9,19 @@ import (
 )
 
 // optionSets are the options of the families of dialects of D101, which
-// had a grammar each before D108. The test module compares the Go scanner
-// with the C scanner on each of them.
+// had a grammar each before D108, and the options of MySQL, SQL Server and
+// Oracle with BeginEndBlocks (D112). The test module compares the Go
+// scanner with the C scanner on each of them.
 var optionSets = map[string]Options{
-	"postgres": {DollarQuotes: true, BlockComments: true},
-	"mysql":    {BlockComments: true, HashComments: true, Backticks: true},
-	"sqlite":   {BlockComments: true, Backticks: true},
-	"standard": {BlockComments: true},
-	"cql":      {DollarQuotes: true, BlockComments: true, SlashComments: true},
-	"plain":    {},
+	"postgres":         {DollarQuotes: true, BlockComments: true},
+	"mysql":            {BlockComments: true, HashComments: true, Backticks: true},
+	"sqlite":           {BlockComments: true, Backticks: true},
+	"standard":         {BlockComments: true},
+	"cql":              {DollarQuotes: true, BlockComments: true, SlashComments: true},
+	"plain":            {},
+	"mysql_blocks":     {BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true},
+	"sqlserver_blocks": {BlockComments: true, BeginEndBlocks: true},
+	"oracle_blocks":    {BlockComments: true, BeginEndBlocks: true},
 }
 
 // TestOptions parses each case of testdata/options/<name>.txt with the
