@@ -128,6 +128,73 @@ type minimizeConflictBits struct {
 	hasWordToken bool
 }
 
+// newMinimizeConflictBits returns the bit sets of the states, the tokens
+// and the keywords of the minimizer.
+//
+// newMinimizeConflictBits is ConflictBits::new.
+func newMinimizeConflictBits(m *minimizer) *minimizeConflictBits {
+	// Precompute word-aligned bitsets so `token_conflicts` can test a candidate
+	// token against a whole state's terminals.
+	//   - per state: which terminal indices have entries
+	//   - per token: which terminal indices it lexically conflicts with
+	//   - the keyword set as bits
+	nTerminals := len(m.lexicalGrammar.Variables)
+	rowWords := (nTerminals + 63) / 64
+	set := func(bits []uint64, index int) { bits[index/64] |= 1 << (index % 64) }
+
+	stateTerminals := make([]uint64, len(m.parseTable.States)*rowWords)
+	for s := range m.parseTable.States {
+		base := s * rowWords
+		row := stateTerminals[base : base+rowWords]
+		for symbol := range m.parseTable.States[s].TerminalEntries.Keys() {
+			if index, ok := symbol.TerminalIndex(); ok {
+				set(row, int(index))
+			}
+		}
+	}
+
+	conflictRows := make([]uint64, nTerminals*rowWords)
+	for i := range nTerminals {
+		base := i * rowWords
+		row := conflictRows[base : base+rowWords]
+		for j := range nTerminals {
+			if m.tokenConflictMap.DoesConflict(i, j) {
+				set(row, j)
+			}
+		}
+	}
+
+	keywords := make([]uint64, rowWords)
+	for symbol := range m.keywords.All() {
+		if index, ok := symbol.TerminalIndex(); ok {
+			set(keywords, int(index))
+		}
+	}
+
+	internalExternal := make([]uint64, rowWords)
+	for _, external := range m.syntaxGrammar.ExternalTokens {
+		if !external.HasCorrespondingInternalToken {
+			continue
+		}
+		if index, ok := external.CorrespondingInternalToken.TerminalIndex(); ok {
+			set(internalExternal, int(index))
+		}
+	}
+
+	conflictBits := &minimizeConflictBits{
+		rowWords:         rowWords,
+		stateTerminals:   stateTerminals,
+		conflictRows:     conflictRows,
+		keywords:         keywords,
+		internalExternal: internalExternal,
+		hasWordToken:     m.syntaxGrammar.HasWordToken,
+	}
+	if m.syntaxGrammar.HasWordToken {
+		conflictBits.wordToken = newMinimizeSymbolKey(m.syntaxGrammar.WordToken)
+	}
+	return conflictBits
+}
+
 // getConflictRow returns the terminals that a token conflicts with.
 //
 // getConflictRow is ConflictBits::get_conflict_row.
@@ -159,6 +226,55 @@ type minimizeConflictPass struct {
 	staticSignatures []uint64
 	// shiftMaps holds each state's shift targets, sorted by symbol.
 	shiftMaps [][]minimizeShift
+}
+
+// newMinimizeConflictPass returns the conflict pass of a minimizer.
+// shiftMaps holds each state's shift targets, sorted by symbol.
+//
+// newMinimizeConflictPass is ConflictPass::new.
+func newMinimizeConflictPass(m *minimizer, shiftMaps [][]minimizeShift) *minimizeConflictPass {
+	// Precompute sorted terminal entry references for merge-join in states_conflict.
+	// entry_maps[state_id][i] = (symbol_key, action_list_id). Keys are packed u64s
+	// (symbol_key) for easy comparison. Upstream sorts with sort_unstable_by_key.
+	// The keys of the entries of a state are different, so the order is the
+	// same in Go.
+	entryMaps := make([][]minimizeEntry, len(m.parseTable.States))
+	for s := range m.parseTable.States {
+		entries := make([]minimizeEntry, 0, m.parseTable.States[s].TerminalEntries.Len())
+		for sym, id := range m.parseTable.States[s].TerminalEntries.All() {
+			entries = append(entries, minimizeEntry{key: newMinimizeSymbolKey(sym), id: id})
+		}
+		slices.SortFunc(entries, func(a, b minimizeEntry) int { return cmp.Compare(a.key, b.key) })
+		entryMaps[s] = entries
+	}
+
+	// Hash each state's terminal entries once, apart from its shift targets, whose groups
+	// change as groups split.
+	staticSignatures := make([]uint64, len(m.parseTable.States))
+	for s := range m.parseTable.States {
+		state := &m.parseTable.States[s]
+		var hasher fxhash.Hasher
+		hasher.Write([]byte(state.ReservedWords.Key()))
+		for _, entry := range entryMaps[state.ID] {
+			hasher.WriteU64(uint64(entry.key))
+			for _, action := range m.parseTable.ActionLists.Get(entry.id) {
+				if action.Kind == ParseActionShift {
+					hasher.WriteU8(uint8(boolWord(action.IsRepetition)))
+				} else {
+					minimizeHashAction(&hasher, action)
+				}
+			}
+		}
+		staticSignatures[s] = hasher.Finish()
+	}
+
+	return &minimizeConflictPass{
+		minimizer:        m,
+		entryMaps:        entryMaps,
+		bits:             newMinimizeConflictBits(m),
+		staticSignatures: staticSignatures,
+		shiftMaps:        shiftMaps,
+	}
 }
 
 // ShouldSplit reports whether two states conflict.
@@ -242,6 +358,34 @@ type minimizeSuccessorPass struct {
 	// nonterminalMaps holds each state's nonterminal entries, sorted by
 	// symbol.
 	nonterminalMaps [][]minimizeGoto
+}
+
+// newMinimizeSuccessorPass returns the successor pass of a minimizer.
+// shiftMaps holds each state's shift targets, sorted by symbol.
+//
+// newMinimizeSuccessorPass is SuccessorPass::new.
+func newMinimizeSuccessorPass(m *minimizer, shiftMaps [][]minimizeShift) *minimizeSuccessorPass {
+	// Store only the symbol index: all nonterminal entries share the same kind,
+	// so index alone is sufficient for sorting and comparison.
+	nonterminalMaps := make([][]minimizeGoto, len(m.parseTable.States))
+	for s := range m.parseTable.States {
+		entries := make([]minimizeGoto, 0, m.parseTable.States[s].NonterminalEntries.Len())
+		for sym, action := range m.parseTable.States[s].NonterminalEntries.All() {
+			index, ok := sym.NonTerminalIndex()
+			if !ok {
+				panic("generate: a non-terminal entry has a symbol that is not a non-terminal")
+			}
+			entries = append(entries, minimizeGoto{index: uint32(index), action: action})
+		}
+		slices.SortFunc(entries, func(a, b minimizeGoto) int { return cmp.Compare(a.index, b.index) })
+		nonterminalMaps[s] = entries
+	}
+
+	return &minimizeSuccessorPass{
+		minimizer:       m,
+		shiftMaps:       shiftMaps,
+		nonterminalMaps: nonterminalMaps,
+	}
 }
 
 // ShouldSplit reports whether the successors of two states differ.
@@ -516,82 +660,7 @@ func (m *minimizer) mergeCompatibleStates() {
 		groupIDsByStateID = append(groupIDsByStateID, coreID)
 	}
 
-	// Precompute sorted terminal entry references for merge-join in states_conflict.
-	// entry_maps[state_id][i] = (symbol_key, action_list_id). Keys are packed u64s
-	// (symbol_key) for easy comparison. Upstream sorts with sort_unstable_by_key.
-	// The keys of the entries of a state are different, so the order is the
-	// same in Go.
-	entryMaps := make([][]minimizeEntry, len(states))
-	for s := range states {
-		entries := make([]minimizeEntry, 0, states[s].TerminalEntries.Len())
-		for sym, id := range states[s].TerminalEntries.All() {
-			entries = append(entries, minimizeEntry{key: newMinimizeSymbolKey(sym), id: id})
-		}
-		slices.SortFunc(entries, func(a, b minimizeEntry) int { return cmp.Compare(a.key, b.key) })
-		entryMaps[s] = entries
-	}
-
-	// Precompute word-aligned bitsets so `token_conflicts` can test a candidate
-	// token against a whole state's terminals.
-	//   - per state: which terminal indices have entries
-	//   - per token: which terminal indices it lexically conflicts with
-	//   - the keyword set as bits
-	nTerminals := len(m.lexicalGrammar.Variables)
-	rowWords := (nTerminals + 63) / 64
-	set := func(bits []uint64, index int) { bits[index/64] |= 1 << (index % 64) }
-
-	stateTerminals := make([]uint64, len(states)*rowWords)
-	for s := range states {
-		base := s * rowWords
-		row := stateTerminals[base : base+rowWords]
-		for symbol := range states[s].TerminalEntries.Keys() {
-			if index, ok := symbol.TerminalIndex(); ok {
-				set(row, int(index))
-			}
-		}
-	}
-
-	conflictRows := make([]uint64, nTerminals*rowWords)
-	for i := range nTerminals {
-		base := i * rowWords
-		row := conflictRows[base : base+rowWords]
-		for j := range nTerminals {
-			if m.tokenConflictMap.DoesConflict(i, j) {
-				set(row, j)
-			}
-		}
-	}
-
-	keywords := make([]uint64, rowWords)
-	for symbol := range m.keywords.All() {
-		if index, ok := symbol.TerminalIndex(); ok {
-			set(keywords, int(index))
-		}
-	}
-
-	internalExternal := make([]uint64, rowWords)
-	for _, external := range m.syntaxGrammar.ExternalTokens {
-		if !external.HasCorrespondingInternalToken {
-			continue
-		}
-		if index, ok := external.CorrespondingInternalToken.TerminalIndex(); ok {
-			set(internalExternal, int(index))
-		}
-	}
-
-	conflictBits := &minimizeConflictBits{
-		rowWords:         rowWords,
-		stateTerminals:   stateTerminals,
-		conflictRows:     conflictRows,
-		keywords:         keywords,
-		internalExternal: internalExternal,
-		hasWordToken:     m.syntaxGrammar.HasWordToken,
-	}
-	if m.syntaxGrammar.HasWordToken {
-		conflictBits.wordToken = newMinimizeSymbolKey(m.syntaxGrammar.WordToken)
-	}
-
-	// Precompute per-state sorted shift actions and nonterminal goto actions.
+	// Precompute per-state sorted shift actions, for both passes.
 	// State actions are stable across loop iterations; only group assignments change.
 	// Keys are packed u64s (symbol_key) for single-instruction comparison.
 	// Upstream sorts with sort_unstable_by_key. The keys of the entries of a
@@ -612,33 +681,7 @@ func (m *minimizer) mergeCompatibleStates() {
 		shiftMaps[s] = shifts
 	}
 
-	// Hash each state's terminal entries once, apart from its shift targets, whose groups
-	// change as groups split.
-	staticSignatures := make([]uint64, len(states))
-	for s := range states {
-		state := &states[s]
-		var hasher fxhash.Hasher
-		hasher.Write([]byte(state.ReservedWords.Key()))
-		for _, entry := range entryMaps[state.ID] {
-			hasher.WriteU64(uint64(entry.key))
-			for _, action := range m.parseTable.ActionLists.Get(entry.id) {
-				if action.Kind == ParseActionShift {
-					hasher.WriteU8(uint8(boolWord(action.IsRepetition)))
-				} else {
-					minimizeHashAction(&hasher, action)
-				}
-			}
-		}
-		staticSignatures[s] = hasher.Finish()
-	}
-
-	conflictPass := &minimizeConflictPass{
-		minimizer:        m,
-		entryMaps:        entryMaps,
-		bits:             conflictBits,
-		staticSignatures: staticSignatures,
-		shiftMaps:        shiftMaps,
-	}
+	conflictPass := newMinimizeConflictPass(m, shiftMaps)
 	SplitStateIDGroups(
 		states,
 		&stateIDsByGroupID,
@@ -648,27 +691,7 @@ func (m *minimizer) mergeCompatibleStates() {
 	)
 	// The rest only looks at successors.
 
-	// Store only the symbol index: all nonterminal entries share the same kind,
-	// so index alone is sufficient for sorting and comparison.
-	nonterminalMaps := make([][]minimizeGoto, len(states))
-	for s := range states {
-		entries := make([]minimizeGoto, 0, states[s].NonterminalEntries.Len())
-		for sym, action := range states[s].NonterminalEntries.All() {
-			index, ok := sym.NonTerminalIndex()
-			if !ok {
-				panic("generate: a non-terminal entry has a symbol that is not a non-terminal")
-			}
-			entries = append(entries, minimizeGoto{index: uint32(index), action: action})
-		}
-		slices.SortFunc(entries, func(a, b minimizeGoto) int { return cmp.Compare(a.index, b.index) })
-		nonterminalMaps[s] = entries
-	}
-
-	successorPass := &minimizeSuccessorPass{
-		minimizer:       m,
-		shiftMaps:       shiftMaps,
-		nonterminalMaps: nonterminalMaps,
-	}
+	successorPass := newMinimizeSuccessorPass(m, shiftMaps)
 
 	for SplitStateIDGroups(
 		states,

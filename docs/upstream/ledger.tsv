@@ -28,7 +28,7 @@ cd8caa9f316f31a71195419a4b4ca882d28e8309	2026-10-03	ported		perf(generate): stop
 80bd4075e0744eb97f39c3be50af213c25ffc3d2	2026-10-03	ported		perf(generate): find and order closure additions by precomputed rank
 23b0e7dcb1d5b2d2649ec0022938ac894431329f	2026-10-03	ported		perf(generate): record each coincident terminal set once
 801c9626955e8d27cfecc232cec4e34a7168c77d	2026-10-03	ported		perf(generate): compare one state per class when merging parse states
-11cad57fdfef22b400abac1da2a8db6d9add473c	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/minimize_parse_table.rs
+11cad57fdfef22b400abac1da2a8db6d9add473c	2026-10-03	ported		refactor(generate): build each minimizer pass's tables in its constructor
 4a09eb30c1e8de5c9998b1ff9e6a6d38ff388f93	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/minimize_parse_table.rs, crates/generate/src/dedup.rs
 4c6466d7b31cee51d4a43a17c4bb249a5061712a	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/minimize_parse_table.rs
 6c9a707cc7d8c2315f343134ef5a19f8e2b4851f	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/build_parse_table.rs
