@@ -50,20 +50,20 @@ faacf4ee6f259414e99137d6d6982fd3f96008cb	2026-10-03	ported	38d3846	refactor(gene
 c9d7450cdc7e2c67429d44df2a92e862ceff2761	2026-10-03	ported	3cb5ecc	perf(generate): store each parse state's terminal entries in a plain list
 5091247754e69084613e48613fe2215c7df8ec68	2026-10-03	ported	3400538	perf(generate): store each parse state's non-terminal entries in a plain list
 43e82a2767cf75df4f668752cd884368e21a5ccd	2026-10-03	ported	75ddd17	fix(generate): detect indirect recursion in flattened productions
-26123e098422639fe50c9be5a1911bbe49a755c8	2026-10-04	ported		fix: preserve column dependency when balancing repeat nodes
-2ef426e10b4fa8189a761025f17548073249c2fc	2026-10-04	ported		fix: track column dependency after failed external scans
-e1566be3a261d97618e09428b9bacd68442afa27	2026-10-04	ported		perf(lib): acquire capture lists from a free stack instead of scanning
-b2f00cb0b5942ff10c45dc77d3a9c7e9c7515da8	2026-10-05	not-applicable		the build script of the Rust binding, which transit does not port
-19084772dfd5c2c417ae9cbfa1815578ace70fae	2026-10-05	ported		fix(lib): halt the query cursor when the progress callback asks to stop
-0714d5e4ba058703c63493d59b9ee6dadb7d0251	2026-10-05	ported		fix(lib): charge query cursor work for the states it visits
-0e0a86b8d4718143cf32c6a80754a9a224cab422	2026-10-05	ported		fix(test): give the query timeout tests room to time out
-2f5fa28410b45d98b1b7eb5bde9deaea1b2f7730	2026-10-05	not-applicable		changes only paths that transit does not port: lib/binding_web/lib/tree-sitter.c, lib/binding_web/test/query.test.ts
-752c612a1359f00e4c113593837a0c1e880214e3	2026-10-05	not-applicable		the CLI and the dependency list of crates, which transit does not port
-d7d4713b6d557567926a8eef8cd36b064bac9d55	2026-10-07	not-applicable		changes only paths that transit does not port: crates/cli/src/templates/index.js
-3b36eaf81217b1f5d95b1a537431c421e79b371f	2026-10-07	not-applicable		changes only paths that transit does not port: crates/cli/src/init.rs, crates/cli/src/templates/index.js
-06c3c267b88d81f6febbc66da7bfea2861bf33e4	2026-10-07	not-applicable		changes only paths that transit does not port: crates/cli/src/init.rs, crates/cli/src/templates/binding_test.js
-8261cea5e5098ad4b88f234dbaa224a916a34af3	2026-10-07	not-applicable		changes only paths that transit does not port: crates/cli/src/init.rs, crates/cli/src/templates/index.js
-004c2452c429c876c7607fa3344a744a286fabd8	2026-10-08	ported		fix(generate)!: reject extras that can match the empty string
-6278dc13c751e0293c16fa28dbc6135083008b7d	2026-10-09	not-applicable		changes only paths that transit does not port: lib/binding_web/package-lock.json
-fcb3fde8edce7d88227d164e3658004cd481d43e	2026-10-09	not-applicable		changes only the update of a corpus file and the summary of run_tests in crates/cli/src/test.rs, which internal/grammartest leaves out
-e9930e0915685efb98a9d325b8f23dfdb9e99559	2026-10-09	ported		fix(lib): only match the whole name `ERROR` in `ts_language_symbol_for_name`
+26123e098422639fe50c9be5a1911bbe49a755c8	2026-10-04	ported	7602606	fix: preserve column dependency when balancing repeat nodes
+2ef426e10b4fa8189a761025f17548073249c2fc	2026-10-04	ported	6a4e297	fix: track column dependency after failed external scans
+e1566be3a261d97618e09428b9bacd68442afa27	2026-10-04	ported	4f70b41	perf(lib): acquire capture lists from a free stack instead of scanning
+b2f00cb0b5942ff10c45dc77d3a9c7e9c7515da8	2026-10-05	not-applicable	13e685e	the build script of the Rust binding, which transit does not port
+19084772dfd5c2c417ae9cbfa1815578ace70fae	2026-10-05	ported	4f34ded	fix(lib): halt the query cursor when the progress callback asks to stop
+0714d5e4ba058703c63493d59b9ee6dadb7d0251	2026-10-05	ported	a5dacc4	fix(lib): charge query cursor work for the states it visits
+0e0a86b8d4718143cf32c6a80754a9a224cab422	2026-10-05	ported	50b3974	fix(test): give the query timeout tests room to time out
+2f5fa28410b45d98b1b7eb5bde9deaea1b2f7730	2026-10-05	not-applicable	65bc373	changes only paths that transit does not port: lib/binding_web/lib/tree-sitter.c, lib/binding_web/test/query.test.ts
+752c612a1359f00e4c113593837a0c1e880214e3	2026-10-05	not-applicable	65bc373	the CLI and the dependency list of crates, which transit does not port
+d7d4713b6d557567926a8eef8cd36b064bac9d55	2026-10-07	not-applicable	65bc373	changes only paths that transit does not port: crates/cli/src/templates/index.js
+3b36eaf81217b1f5d95b1a537431c421e79b371f	2026-10-07	not-applicable	65bc373	changes only paths that transit does not port: crates/cli/src/init.rs, crates/cli/src/templates/index.js
+06c3c267b88d81f6febbc66da7bfea2861bf33e4	2026-10-07	not-applicable	65bc373	changes only paths that transit does not port: crates/cli/src/init.rs, crates/cli/src/templates/binding_test.js
+8261cea5e5098ad4b88f234dbaa224a916a34af3	2026-10-07	not-applicable	65bc373	changes only paths that transit does not port: crates/cli/src/init.rs, crates/cli/src/templates/index.js
+004c2452c429c876c7607fa3344a744a286fabd8	2026-10-08	ported	6ab6379	fix(generate)!: reject extras that can match the empty string
+6278dc13c751e0293c16fa28dbc6135083008b7d	2026-10-09	not-applicable	44cb1a2	changes only paths that transit does not port: lib/binding_web/package-lock.json
+fcb3fde8edce7d88227d164e3658004cd481d43e	2026-10-09	not-applicable	44cb1a2	changes only the update of a corpus file and the summary of run_tests in crates/cli/src/test.rs, which internal/grammartest leaves out
+e9930e0915685efb98a9d325b8f23dfdb9e99559	2026-10-09	ported	35b5750	fix(lib): only match the whole name `ERROR` in `ts_language_symbol_for_name`
