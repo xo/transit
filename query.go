@@ -429,11 +429,11 @@ type captureListPool struct {
 	// never allow `list` to allocate more entries than this, dropping pending
 	// matches if needed to stay under the limit.
 	maxCaptureListCount uint32
-	// The number of capture lists allocated in `list` that are not currently in
+	// The ids of the capture lists allocated in `list` that are not currently in
 	// use. We reuse those existing-but-unused capture lists before trying to
-	// allocate any new ones. We use an invalid value (UINT32_MAX) for a capture
+	// allocate any new ones. We use an invalid value (`UINT32_MAX`) for a capture
 	// list's length to indicate that it's not in use.
-	freeCaptureListCount uint32
+	freeIDStack []uint32
 }
 
 // analysisStateEntry is AnalysisStateEntry. fieldID keeps the 15 bits of the
@@ -661,20 +661,21 @@ func (s *stream) offset() uint32 {
 // newCaptureListPool is capture_list_pool_new.
 func newCaptureListPool() captureListPool {
 	return captureListPool{
-		list:                 nil,
-		emptyList:            nil,
-		maxCaptureListCount:  math.MaxUint32,
-		freeCaptureListCount: 0,
+		list:                nil,
+		emptyList:           nil,
+		maxCaptureListCount: math.MaxUint32,
+		freeIDStack:         nil,
 	}
 }
 
 // reset is capture_list_pool_reset.
 func (p *captureListPool) reset() {
+	p.freeIDStack = p.freeIDStack[:0]
 	for i := range p.list {
 		// This invalid size means that the list is not in use.
 		p.list[i].released = true
+		p.freeIDStack = append(p.freeIDStack, uint32(i))
 	}
-	p.freeCaptureListCount = uint32(len(p.list))
 }
 
 // get is capture_list_pool_get. C returns the size UINT32_MAX for a list
@@ -697,21 +698,18 @@ func (p *captureListPool) getMut(id uint32) *captureList {
 func (p *captureListPool) isEmpty() bool {
 	// The capture list pool is empty if all allocated lists are in use, and we
 	// have reached the maximum allowed number of allocated lists.
-	return p.freeCaptureListCount == 0 && uint32(len(p.list)) >= p.maxCaptureListCount
+	return len(p.freeIDStack) == 0 && uint32(len(p.list)) >= p.maxCaptureListCount
 }
 
 // acquire is capture_list_pool_acquire.
 func (p *captureListPool) acquire() uint32 {
 	// First see if any already allocated capture list is currently unused.
-	if p.freeCaptureListCount > 0 {
-		for i := range p.list {
-			if p.list[i].released {
-				p.list[i].contents = p.list[i].contents[:0]
-				p.list[i].released = false
-				p.freeCaptureListCount--
-				return uint32(i)
-			}
-		}
+	if len(p.freeIDStack) > 0 {
+		id := p.freeIDStack[len(p.freeIDStack)-1]
+		p.freeIDStack = p.freeIDStack[:len(p.freeIDStack)-1]
+		p.list[id].contents = p.list[id].contents[:0]
+		p.list[id].released = false
+		return id
 	}
 
 	// Otherwise allocate and initialize a new capture list, as long as that
@@ -729,8 +727,12 @@ func (p *captureListPool) release(id uint32) {
 	if id >= uint32(len(p.list)) {
 		return
 	}
-	p.list[id].released = true
-	p.freeCaptureListCount++
+	list := &p.list[id]
+	if list.released {
+		return // Guard against releasing a list twice
+	}
+	list.released = true
+	p.freeIDStack = append(p.freeIDStack, id)
 }
 
 // FinishedStateHeap
