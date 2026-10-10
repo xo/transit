@@ -38,7 +38,7 @@ da18743c5cc702bc9fd8085c97a69f3e93af8c3d	2026-10-03	ported		perf(generate): buil
 70bf7f4b3663947348832f681b2690cccd0c8ba8	2026-10-03	ported		perf(generate): check the end first when inserting into item sets
 e3c2053c9841032dc956271ae5fd49c787331158	2026-10-03	ported		perf(generate): shrink each parse state's maps once it's complete
 52fcc462c93a6fdab7ff085740b3fefb2e0ffd56	2026-10-03	ported		perf(generate): find used variables in one pass when checking productions
-9f760b04325dbc0d52ed547a03b440831b818286	2026-10-03	pending		port in phase 6: crates/generate/src/grammars.rs, crates/generate/src/prepare_grammar/flatten_grammar.rs
+9f760b04325dbc0d52ed547a03b440831b818286	2026-10-03	ported		perf(generate): find duplicate productions by hash when flattening
 3e6d2003ad6da93e3ab1671e3576cec3c2611790	2026-10-03	pending		port in phase 6: crates/generate/src/nfa.rs
 7d159bc3f93592a1fabc30054aa478644c7137a8	2026-10-03	pending		port in phase 6: crates/generate/src/render.rs
 e4c863e2d12526215663daab736fee3835c8bd9a	2026-10-03	pending		port in phase 6: crates/generate/src/nfa.rs

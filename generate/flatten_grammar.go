@@ -144,6 +144,9 @@ type flattenState struct {
 	choices choiceCursor
 	dynPrec int32
 	dead    bool
+	// emitted holds the positions in ProductionStore.Productions of the
+	// current variable's productions, by the hash of their ProdRef.
+	emitted map[uint64][]uint32
 }
 
 // resetVariable starts the paths of a new variable.
@@ -151,6 +154,7 @@ type flattenState struct {
 // resetVariable is FlattenState::reset_variable.
 func (s *flattenState) resetVariable() {
 	s.choices.reset()
+	clear(s.emitted)
 	s.resetPath()
 }
 
@@ -285,31 +289,39 @@ func abs32(x int32) int32 {
 // because such a production can never complete, and reports false.
 //
 // flattenEmit is emit in flatten_grammar.rs.
-func flattenEmit(st *flattenState, out *ProductionStore, prodStart uint32) bool {
+func flattenEmit(st *flattenState, out *ProductionStore) bool {
 	eofIndex := slices.IndexFunc(st.steps, func(s ProductionStep) bool { return s.Symbol() == SymbolEndValue })
 	if eofIndex < 0 {
-		return flattenEmitReady(st, out, prodStart, false)
+		return flattenEmitReady(st, out, false)
 	}
 	if eofIndex != max(len(st.steps)-1, 0) {
 		return false
 	}
 	st.steps = st.steps[:len(st.steps)-1]
-	return flattenEmitReady(st, out, prodStart, true)
+	return flattenEmitReady(st, out, true)
 }
 
 // flattenEmitReady adds the path as a production, unless the variable already has
 // the same one.
 //
 // flattenEmitReady is emit_ready in flatten_grammar.rs.
-func flattenEmitReady(st *flattenState, out *ProductionStore, prodStart uint32, requiresEOFLookahead bool) bool {
-	for _, p := range out.Productions[prodStart:] {
-		start, end := p.StepRange()
-		if p.DynamicPrecedence == st.dynPrec &&
-			p.RequiresEOFLookahead == requiresEOFLookahead &&
-			slices.Equal(out.Steps[start:end], st.steps) {
+func flattenEmitReady(st *flattenState, out *ProductionStore, requiresEOFLookahead bool) bool {
+	production := ProdRef{
+		Steps:                st.steps,
+		DynamicPrecedence:    st.dynPrec,
+		RequiresEOFLookahead: requiresEOFLookahead,
+	}
+	hash := production.hash()
+	for _, index := range st.emitted[hash] {
+		if out.Production(index).equal(production) {
+			// This variable already has an identical production.
 			return true
 		}
 	}
+	if st.emitted == nil {
+		st.emitted = make(map[uint64][]uint32)
+	}
+	st.emitted[hash] = append(st.emitted[hash], uint32(len(out.Productions)))
 	stepsStart := uint32(len(out.Steps))
 	out.Steps = append(out.Steps, st.steps...)
 	out.Productions = append(out.Productions, Production{
@@ -342,7 +354,7 @@ func flattenGrammar(g *InputGrammar, meta *extractedGrammarMeta, st *flattenStat
 			if _, err := flattenApply(g.Pool, reservedIDs, v.Root, flattenCtx{}, true, st); err != nil {
 				return err
 			}
-			if !st.dead && !flattenEmit(st, out, prodStart) {
+			if !st.dead && !flattenEmit(st, out) {
 				droppedForEOF = true
 			}
 			if !st.choices.advance() {

@@ -4,6 +4,8 @@ import (
 	"cmp"
 	"iter"
 	"slices"
+
+	"github.com/xo/transit/generate/internal/fxhash"
 )
 
 // This file ports crates/generate/src/grammars.rs. ProductionStep::child_type
@@ -344,6 +346,19 @@ func (p Production) StepRange() (start, end int) {
 	return int(p.StepsStart), int(p.StepsStart + p.StepsLen)
 }
 
+// Contents returns the contents of the production, with its steps taken
+// from steps.
+//
+// Contents is Production::contents.
+func (p Production) Contents(steps []ProductionStep) ProdRef {
+	start, end := p.StepRange()
+	return ProdRef{
+		Steps:                steps[start:end],
+		DynamicPrecedence:    p.DynamicPrecedence,
+		RequiresEOFLookahead: p.RequiresEOFLookahead,
+	}
+}
+
 // ProductionStore is the flat output of flattening: one store of steps, each
 // production as a range in it, and the productions of each variable.
 //
@@ -352,6 +367,13 @@ type ProductionStore struct {
 	Steps       []ProductionStep
 	Productions []Production
 	VarProds    [][2]uint32
+}
+
+// Production returns the production at a position in Productions.
+//
+// Production is ProductionStore::production.
+func (s *ProductionStore) Production(id uint32) ProdRef {
+	return s.Productions[id].Contents(s.Steps)
 }
 
 // InlinedProductionMap maps a production and a step to the productions that
@@ -430,13 +452,7 @@ type SyntaxGrammar struct {
 //
 // Production is SyntaxGrammar::production.
 func (g *SyntaxGrammar) Production(id uint32) ProdRef {
-	p := g.Productions[id]
-	start, end := p.StepRange()
-	return ProdRef{
-		Steps:                g.Steps[start:end],
-		DynamicPrecedence:    p.DynamicPrecedence,
-		RequiresEOFLookahead: p.RequiresEOFLookahead,
-	}
+	return g.Productions[id].Contents(g.Steps)
 }
 
 // VariableProdIDs returns the range of the ids of the productions of a
@@ -448,13 +464,44 @@ func (g *SyntaxGrammar) VariableProdIDs(variableIndex int) (start, end uint32) {
 	return r[0], r[1]
 }
 
-// ProdRef is a production in the store of a SyntaxGrammar.
+// ProdRef is the contents of a production, with its steps taken from where
+// they are stored.
 //
 // ProdRef is ProdRef.
 type ProdRef struct {
 	Steps                []ProductionStep
 	DynamicPrecedence    int32
 	RequiresEOFLookahead bool
+}
+
+// equal reports whether two productions have the same contents.
+//
+// equal is the PartialEq of ProdRef.
+func (p ProdRef) equal(other ProdRef) bool {
+	return p.DynamicPrecedence == other.DynamicPrecedence &&
+		p.RequiresEOFLookahead == other.RequiresEOFLookahead &&
+		slices.Equal(p.Steps, other.Steps)
+}
+
+// hash returns the hash of the contents of the production, with the
+// FxHasher of the package fxhash.
+//
+// hash is the Hash of ProdRef. A hash only narrows which productions are
+// compared, so its value cannot reach the output.
+func (p ProdRef) hash() uint64 {
+	var h fxhash.Hasher
+	h.WriteUsize(uint64(len(p.Steps)))
+	for _, step := range p.Steps {
+		h.WriteU32(step.SymIndex)
+		h.WriteU32(uint32(step.PrecVal))
+		h.WriteU32(step.Alias)
+		h.WriteU32(step.Field)
+		h.WriteU16(step.Reserved)
+		h.WriteU8(step.Flags)
+	}
+	h.WriteU32(uint32(p.DynamicPrecedence))
+	h.WriteU8(uint8(boolWord(p.RequiresEOFLookahead)))
+	return h.Finish()
 }
 
 // FirstSymbol returns the first symbol of the production, and false when the
