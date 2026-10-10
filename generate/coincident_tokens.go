@@ -1,5 +1,10 @@
 package generate
 
+import (
+	"encoding/binary"
+	"slices"
+)
+
 // This file ports crates/generate/src/build_tables/coincident_tokens.rs: the
 // pairs of tokens that are valid in the same parse state. The Debug text of
 // CoincidentTokenIndexDisplay is a debugging aid that upstream does not use,
@@ -31,7 +36,11 @@ type CoincidentTokenIndex struct {
 // in the states of a parse table. hasWordToken is false when the grammar has
 // no word token.
 //
-// NewCoincidentTokenIndex is CoincidentTokenIndex::new.
+// NewCoincidentTokenIndex is CoincidentTokenIndex::new. Upstream keeps the
+// recorded sets of terminals in two FxHashSets, and only looks them up. The
+// Go form maps the bytes of each sorted set to true. Upstream sorts with
+// sort_unstable, and two indices that compare equal are the same value, so
+// the order is the same in Go.
 func NewCoincidentTokenIndex[T any](table *ParseTable[T], lexicalGrammar *LexicalGrammar, wordToken Symbol, hasWordToken bool) *CoincidentTokenIndex {
 	n := len(lexicalGrammar.Variables)
 	rowWords := (n + 63) / 64
@@ -44,6 +53,11 @@ func NewCoincidentTokenIndex[T any](table *ParseTable[T], lexicalGrammar *Lexica
 	// Pre-collect terminal indices up front rather than continuously
 	// recomputing within the loop below.
 	var terminalIndices []uint32
+	// The index only records which terminals share some state, so a state adds nothing if a
+	// state with the same terminals was already recorded, with/without the word token.
+	recordedWithWord := make(map[string]bool)
+	recordedWithoutWord := make(map[string]bool)
+	var key []byte
 	for s := range table.States {
 		state := &table.States[s]
 		terminalIndices = terminalIndices[:0]
@@ -52,7 +66,20 @@ func NewCoincidentTokenIndex[T any](table *ParseTable[T], lexicalGrammar *Lexica
 				terminalIndices = append(terminalIndices, uint32(index))
 			}
 		}
+		slices.Sort(terminalIndices)
 		hasWord := hasWordToken && state.TerminalEntries.ContainsKey(wordToken)
+		recorded := recordedWithoutWord
+		if hasWord {
+			recorded = recordedWithWord
+		}
+		key = key[:0]
+		for _, index := range terminalIndices {
+			key = binary.LittleEndian.AppendUint32(key, index)
+		}
+		if recorded[string(key)] {
+			continue
+		}
+		recorded[string(key)] = true
 		for i, a := range terminalIndices {
 			for _, b := range terminalIndices[i:] {
 				a, b := int(a), int(b)

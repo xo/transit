@@ -26,7 +26,7 @@ fe8d1936509826e755a1a8ce1309fe7a182c2eb0	2026-10-03	not-applicable	e45fc39	a bum
 e0d0db1d373796e2eaf34eb18e340162ed844d72	2026-10-03	ported		perf(generate): share auxiliary symbol contexts between parse states
 cd8caa9f316f31a71195419a4b4ca882d28e8309	2026-10-03	ported		perf(generate): stop sorted-inserting every item into closures
 80bd4075e0744eb97f39c3be50af213c25ffc3d2	2026-10-03	ported		perf(generate): find and order closure additions by precomputed rank
-23b0e7dcb1d5b2d2649ec0022938ac894431329f	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/coincident_tokens.rs
+23b0e7dcb1d5b2d2649ec0022938ac894431329f	2026-10-03	ported		perf(generate): record each coincident terminal set once
 801c9626955e8d27cfecc232cec4e34a7168c77d	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/build_lex_table.rs, crates/generate/src/build_tables/minimize_parse_table.rs, crates/generate/src/dedup.rs
 11cad57fdfef22b400abac1da2a8db6d9add473c	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/minimize_parse_table.rs
 4a09eb30c1e8de5c9998b1ff9e6a6d38ff388f93	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/minimize_parse_table.rs, crates/generate/src/dedup.rs
