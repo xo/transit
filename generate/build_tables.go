@@ -106,19 +106,18 @@ func BuildTables(syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGrammar, s
 	keywords := identifyKeywords(lexicalGrammar, syntaxGrammar.WordToken, syntaxGrammar.HasWordToken, tokenConflictMap, coincidentTokenIndex)
 	populateErrorState(&parseTable, syntaxGrammar, lexicalGrammar, coincidentTokenIndex, tokenConflictMap, &keywords)
 	populateUsedSymbols(&parseTable, syntaxGrammar, lexicalGrammar)
-	internedTable := InternTable(parseTable)
-	MinimizeParseTable(&internedTable, syntaxGrammar, lexicalGrammar, simpleAliases, tokenConflictMap, &keywords, strPool, optimizations)
-	lexTables := BuildLexTable(&internedTable, syntaxGrammar, lexicalGrammar, &keywords, coincidentTokenIndex, tokenConflictMap)
-	populateExternalLexStates(&internedTable, syntaxGrammar)
-	markFragileTokens(&internedTable, tokenConflictMap)
-	internedTable.ActionLists.Canonicalize(internedTable.States)
+	MinimizeParseTable(&parseTable, syntaxGrammar, lexicalGrammar, simpleAliases, tokenConflictMap, &keywords, strPool, optimizations)
+	lexTables := BuildLexTable(&parseTable, syntaxGrammar, lexicalGrammar, &keywords, coincidentTokenIndex, tokenConflictMap)
+	populateExternalLexStates(&parseTable, syntaxGrammar)
+	markFragileTokens(&parseTable, tokenConflictMap)
+	parseTable.ActionLists.Canonicalize(parseTable.States)
 
-	if len(internedTable.States) > math.MaxUint16 {
-		return nil, &ParseTableBuilderError{Kind: ParseTableBuilderStateCount, StateCount: len(internedTable.States)}
+	if len(parseTable.States) > math.MaxUint16 {
+		return nil, &ParseTableBuilderError{Kind: ParseTableBuilderStateCount, StateCount: len(parseTable.States)}
 	}
 
 	return &Tables{
-		ParseTable:         internedTable,
+		ParseTable:         parseTable,
 		MainLexTable:       lexTables.MainLexTable,
 		KeywordLexTable:    lexTables.KeywordLexTable,
 		LargeCharacterSets: lexTables.LargeCharacterSets,
@@ -172,8 +171,7 @@ func getFollowingTokens(syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGra
 // recover action for each token that can be recovered to.
 //
 // populateErrorState is populate_error_state.
-func populateErrorState(parseTable *ParseTable[ParseTableEntry], syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGrammar, coincidentTokenIndex *CoincidentTokenIndex, tokenConflictMap *TokenConflictMap, keywords *TokenSet) {
-	state := &parseTable.States[0]
+func populateErrorState(parseTable *ParseTable[ActionListID], syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGrammar, coincidentTokenIndex *CoincidentTokenIndex, tokenConflictMap *TokenConflictMap, keywords *TokenSet) {
 	n := len(lexicalGrammar.Variables)
 
 	// First find the tokens that are free of conflicts: the tokens that
@@ -194,7 +192,8 @@ func populateErrorState(parseTable *ParseTable[ParseTableEntry], syntaxGrammar *
 		}
 	}
 
-	recoverEntry := ParseTableEntry{Actions: ActionList{{Kind: ParseActionRecover}}}
+	recoverEntry := NewActionListID(parseTable.ActionLists.Push([]ParseAction{{Kind: ParseActionRecover}}), false)
+	state := &parseTable.States[0]
 
 	// Leave out of the state of error recovery each token that conflicts
 	// with one of the tokens that are free of conflicts.
@@ -214,12 +213,12 @@ func populateErrorState(parseTable *ParseTable[ParseTableEntry], syntaxGrammar *
 				continue
 			}
 		}
-		state.TerminalEntries.GetOrInsertFunc(symbol, recoverEntry.Clone)
+		state.TerminalEntries.GetOrInsert(symbol, recoverEntry)
 	}
 
 	for i, externalToken := range syntaxGrammar.ExternalTokens {
 		if !externalToken.HasCorrespondingInternalToken {
-			state.TerminalEntries.GetOrInsertFunc(ExternalSymbol(i), recoverEntry.Clone)
+			state.TerminalEntries.GetOrInsert(ExternalSymbol(i), recoverEntry)
 		}
 	}
 
@@ -231,7 +230,7 @@ func populateErrorState(parseTable *ParseTable[ParseTableEntry], syntaxGrammar *
 // the word token first, the external tokens and the non-terminals.
 //
 // populateUsedSymbols is populate_used_symbols.
-func populateUsedSymbols(parseTable *ParseTable[ParseTableEntry], syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGrammar) {
+func populateUsedSymbols(parseTable *ParseTable[ActionListID], syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGrammar) {
 	terminalUsages := make([]bool, len(lexicalGrammar.Variables))
 	nonTerminalUsages := make([]bool, len(syntaxGrammar.Variables))
 	externalUsages := make([]bool, len(syntaxGrammar.ExternalTokens))

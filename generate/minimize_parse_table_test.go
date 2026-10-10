@@ -33,9 +33,8 @@ func minimizeTablesForTest(t *testing.T, file string, optimizations OptLevel) (*
 	keywords := identifyKeywords(lexicalGrammar, syntaxGrammar.WordToken, syntaxGrammar.HasWordToken, tokenConflictMap, coincidentTokenIndex)
 	populateErrorState(&parseTable, syntaxGrammar, lexicalGrammar, coincidentTokenIndex, tokenConflictMap, &keywords)
 	populateUsedSymbols(&parseTable, syntaxGrammar, lexicalGrammar)
-	table := InternTable(parseTable)
 	MinimizeParseTable(
-		&table,
+		&parseTable,
 		syntaxGrammar,
 		lexicalGrammar,
 		prepared.DefaultAliases,
@@ -44,7 +43,7 @@ func minimizeTablesForTest(t *testing.T, file string, optimizations OptLevel) (*
 		prepared.StrPool,
 		optimizations,
 	)
-	return &table, true
+	return &parseTable, true
 }
 
 // stateCountRE finds the number of parse states in a parser.c.

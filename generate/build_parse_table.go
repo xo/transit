@@ -416,13 +416,20 @@ type parseTableBuilder struct {
 	auxiliaryContexts         auxiliarySymbolContexts
 	nonTerminalExtraStates    []buildParseExtraState
 	actualConflicts           map[string][]Symbol
-	parseTable                ParseTable[ParseTableEntry]
-	strPool                   *StrPool
+	parseTable                ParseTable[ActionListID]
+	// actionListIDs holds the pool index of each action list that is
+	// interned into parseTable so far, by the key of Intern.
+	actionListIDs map[string]uint32
+	strPool       *StrPool
+	// terminalEntries is scratch for addActions: the terminal entries of the
+	// state that it works on. They are interned into the table when the
+	// state is complete.
+	terminalEntries IndexMap[Symbol, ParseTableEntry]
 	// successorSets is scratch for addActions: the successor item sets of
-	// the state that it works on.
+	// the state that it builds now.
 	successorSets successorSets
 	// reductionInfos is scratch for addActions: the reductions on each
-	// lookahead of the state that it works on.
+	// lookahead of the state that it builds now.
 	reductionInfos reductionInfos
 	// parseStateQueueHead is the index of the front of parseStateQueue,
 	// which is a VecDeque upstream.
@@ -729,9 +736,10 @@ func newParseTableBuilder(
 		coreIDsByCore:             make(map[string]uint32),
 		productionInfoIDsByProdID: productionInfoIDs,
 		actualConflicts:           actualConflicts,
-		parseTable: ParseTable[ParseTableEntry]{
+		parseTable: ParseTable[ActionListID]{
 			MaxAliasedProductionLength: 1,
 		},
+		actionListIDs:  make(map[string]uint32),
 		strPool:        strPool,
 		successorSets:  newSuccessorSets(symbolIndexer),
 		reductionInfos: newReductionInfos(symbolIndexer),
@@ -754,7 +762,7 @@ func buildParseSymbolsKey(symbols []Symbol) string {
 // grammar does not need.
 //
 // build is ParseTableBuilder::build.
-func (b *parseTableBuilder) build(diagnostics *[]Diagnostic) (ParseTable[ParseTableEntry], *ParseStateInfo, error) {
+func (b *parseTableBuilder) build(diagnostics *[]Diagnostic) (ParseTable[ActionListID], *ParseStateInfo, error) {
 	// Ensure that the empty alias sequence has index 0.
 	b.parseTable.ProductionInfos = append(b.parseTable.ProductionInfos, ProductionInfo{})
 
@@ -807,7 +815,7 @@ func (b *parseTableBuilder) build(diagnostics *[]Diagnostic) (ParseTable[ParseTa
 	for _, terminal := range slices.SortedFunc(maps.Keys(nonTerminalExtraItemSetsByFirstTerminal), CompareSymbol) {
 		itemSet := nonTerminalExtraItemSetsByFirstTerminal[terminal]
 		if _, ok := terminal.NonTerminalIndex(); ok {
-			return ParseTable[ParseTableEntry]{}, nil, &ParseTableBuilderError{
+			return ParseTable[ActionListID]{}, nil, &ParseTableBuilderError{
 				Kind: ParseTableBuilderImproperNonTerminalExtra,
 				Name: b.symbolName(terminal),
 			}
@@ -834,7 +842,7 @@ func (b *parseTableBuilder) build(diagnostics *[]Diagnostic) (ParseTable[ParseTa
 			entry.stateID,
 			&itemSet,
 		); err != nil {
-			return ParseTable[ParseTableEntry]{}, nil, err
+			return ParseTable[ActionListID]{}, nil, err
 		}
 	}
 
@@ -894,7 +902,7 @@ func (b *parseTableBuilder) addParseState(
 	stateID := ParseStateID(len(b.parseTable.States))
 	b.precedingSymbolsByID = append(b.precedingSymbolsByID, slices.Clone(precedingSymbols))
 
-	b.parseTable.States = append(b.parseTable.States, ParseState[ParseTableEntry]{
+	b.parseTable.States = append(b.parseTable.States, ParseState[ActionListID]{
 		ID:                 stateID,
 		LexStateID:         0,
 		ExternalLexStateID: 0,
@@ -997,7 +1005,7 @@ func (b *parseTableBuilder) addActions(
 			if requiresEOFLookahead && lookahead != SymbolEndValue {
 				continue
 			}
-			tableEntry := b.parseTable.States[stateID].TerminalEntries.GetOrInsertFunc(lookahead, NewParseTableEntry)
+			tableEntry := b.terminalEntries.GetOrInsertFunc(lookahead, NewParseTableEntry)
 			info := b.reductionInfos.get(lookahead)
 
 			// While inserting Reduce actions, eagerly resolve conflicts related
@@ -1066,7 +1074,7 @@ func (b *parseTableBuilder) addActions(
 		nextStateID := b.addParseState(precedingSymbols, auxiliaryContext, nextItemSet)
 		precedingSymbols = precedingSymbols[:len(precedingSymbols)-1]
 
-		entries := &b.parseTable.States[stateID].TerminalEntries
+		entries := &b.terminalEntries
 		if e, ok := entries.Get(symbol); ok && len(e.Actions) > 0 {
 			lookaheadsWithConflicts.Insert(symbol)
 		}
@@ -1102,7 +1110,7 @@ func (b *parseTableBuilder) addActions(
 			}
 		}
 		for symbol := range lookaheadsWithConflicts.All() {
-			if err := b.handleConflict(candidates, stateID, precedingSymbols, auxiliaryContext, symbol); err != nil {
+			if err := b.handleConflict(candidates, precedingSymbols, auxiliaryContext, symbol); err != nil {
 				return err
 			}
 		}
@@ -1110,13 +1118,14 @@ func (b *parseTableBuilder) addActions(
 
 	// Add actions for the grammar's `extra` symbols.
 	state := &b.parseTable.States[stateID]
-	isEndOfNonTerminalExtra := state.IsEndOfNonTerminalExtra()
+	// Same check as IsEndOfNonTerminalExtra for entries not in the table yet
+	isEndOfNonTerminalExtra := b.terminalEntries.ContainsKey(SymbolEndOfNonTerminalExtraValue)
 
 	// If this state represents the end of a non-terminal extra rule, then make sure that
 	// it doesn't have other successor states. Non-terminal extra rules must have
 	// unambiguous endings.
 	if isEndOfNonTerminalExtra {
-		if state.TerminalEntries.Len() > 1 {
+		if b.terminalEntries.Len() > 1 {
 			// Upstream collects the variable indices into an FxHashSet and
 			// writes the names in the order of the set. fxhash.SetOrderU32
 			// gives that order.
@@ -1141,7 +1150,7 @@ func (b *parseTableBuilder) addActions(
 	} else {
 		// Add actions for the start tokens of each non-terminal extra rule.
 		for _, extra := range b.nonTerminalExtraStates {
-			state.TerminalEntries.GetOrInsert(extra.terminal, ParseTableEntry{
+			b.terminalEntries.GetOrInsert(extra.terminal, ParseTableEntry{
 				Reusable: true,
 				Actions: ActionList{{
 					Kind:         ParseActionShift,
@@ -1159,7 +1168,7 @@ func (b *parseTableBuilder) addActions(
 			case SymbolNonTerminal:
 				state.NonterminalEntries.Insert(extraToken, GotoAction{Kind: GotoActionShiftExtra})
 			case SymbolTerminal, SymbolExternal:
-				state.TerminalEntries.GetOrInsert(extraToken, ParseTableEntry{
+				b.terminalEntries.GetOrInsert(extraToken, ParseTableEntry{
 					Reusable: true,
 					Actions:  ActionList{{Kind: ParseActionShiftExtra}},
 				})
@@ -1196,9 +1205,14 @@ func (b *parseTableBuilder) addActions(
 		}
 	}
 
-	// Every state stays in the table until minimization, so give back the capacity its
-	// maps grew into now that they're complete.
-	state.TerminalEntries.ShrinkToFit()
+	// Every state stays in the table until minimization, so store its terminal entries as
+	// interned action lists, in a map with no spare capacity, and give back the capacity
+	// its non-terminal map grew into.
+	state.TerminalEntries.ReserveExact(b.terminalEntries.Len())
+	for symbol, entry := range b.terminalEntries.Drain() {
+		index := b.parseTable.ActionLists.Intern(b.actionListIDs, entry.Actions)
+		state.TerminalEntries.Insert(symbol, NewActionListID(index, entry.Reusable))
+	}
 	state.NonterminalEntries.ShrinkToFit()
 
 	return nil
@@ -1247,12 +1261,11 @@ type buildParsePrecedenceSymbol struct {
 // sorted by the Ord of ParseItem, with no two items that compare equal.
 func (b *parseTableBuilder) handleConflict(
 	candidates []*ParseItemSetEntry,
-	stateID ParseStateID,
 	precedingSymbols []Symbol,
 	auxiliaryContext auxiliaryContextID,
 	conflictingLookahead Symbol,
 ) error {
-	entry := b.parseTable.States[stateID].TerminalEntries.GetMut(conflictingLookahead)
+	entry := b.terminalEntries.GetMut(conflictingLookahead)
 	reductionInfo := b.reductionInfos.get(conflictingLookahead)
 
 	// Determine which items in the set conflict with each other, and the
@@ -1362,7 +1375,7 @@ func (b *parseTableBuilder) handleConflict(
 	}
 
 	// If all of the actions but one have been eliminated, then there's no problem.
-	entry = b.parseTable.States[stateID].TerminalEntries.GetMut(conflictingLookahead)
+	entry = b.terminalEntries.GetMut(conflictingLookahead)
 	if len(entry.Actions) == 1 {
 		return nil
 	}
@@ -1668,7 +1681,7 @@ func BuildParseTable(
 	variableInfo []VariableInfo,
 	strPool *StrPool,
 	diagnostics *[]Diagnostic,
-) (ParseTable[ParseTableEntry], *ParseStateInfo, error) {
+) (ParseTable[ActionListID], *ParseStateInfo, error) {
 	return newParseTableBuilder(
 		syntaxGrammar,
 		lexicalGrammar,

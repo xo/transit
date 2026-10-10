@@ -91,6 +91,23 @@ func TestIndexMapOrder(t *testing.T) {
 	if m.Len() != 4 || c.Len() != 5 || m.ContainsKey(TerminalSymbol(9)) {
 		t.Error("Clone shares memory with the original")
 	}
+
+	var r IndexMap[Symbol, int]
+	r.ReserveExact(m.Len())
+	d := m.Clone()
+	for k, v := range d.Drain() {
+		r.Insert(k, v)
+	}
+	if d.Len() != 0 || d.ContainsKey(SymbolEndValue) {
+		t.Errorf("Len after Drain: got %d, want 0", d.Len())
+	}
+	if keys := slices.Collect(r.Keys()); !slices.Equal(keys, wantKeys) {
+		t.Errorf("keys after Drain: got %v, want %v", keys, wantKeys)
+	}
+	d.Insert(TerminalSymbol(9), 9)
+	if v, ok := d.Get(TerminalSymbol(9)); !ok || v != 9 || d.Len() != 1 {
+		t.Errorf("Get after Drain and an insert: got %d, %t, want 9, true", v, ok)
+	}
 }
 
 // TestCanonicalizeKeepsEmptyListFirst checks that Canonicalize gives the
@@ -100,14 +117,18 @@ func TestCanonicalizeKeepsEmptyListFirst(t *testing.T) {
 	t.Parallel()
 	shift := ParseAction{Kind: ParseActionShift, State: 2}
 	reduce := ParseAction{Kind: ParseActionReduce, Symbol: NonTerminalSymbol(1), ChildCount: 1}
-	var table ParseTable[ParseTableEntry]
-	table.States = make([]ParseState[ParseTableEntry], 2)
-	table.States[0].TerminalEntries.Insert(TerminalSymbol(0), ParseTableEntry{Actions: ActionList{shift}, Reusable: true})
-	table.States[0].TerminalEntries.Insert(TerminalSymbol(1), ParseTableEntry{Actions: ActionList{reduce}})
-	table.States[1].TerminalEntries.Insert(TerminalSymbol(2), ParseTableEntry{Actions: ActionList{shift}, Reusable: true})
-	interned := InternTable(table)
+	var interned ParseTable[ActionListID]
+	interned.States = make([]ParseState[ActionListID], 2)
+	ids := make(map[string]uint32)
+	intern := func(state int, symbol Symbol, list ActionList, reusable bool) {
+		index := interned.ActionLists.Intern(ids, list)
+		interned.States[state].TerminalEntries.Insert(symbol, NewActionListID(index, reusable))
+	}
+	intern(0, TerminalSymbol(0), ActionList{shift}, true)
+	intern(0, TerminalSymbol(1), ActionList{reduce}, false)
+	intern(1, TerminalSymbol(2), ActionList{shift}, true)
 	if n := interned.ActionLists.Len(); n != 2 {
-		t.Fatalf("InternTable: got %d lists, want 2", n)
+		t.Fatalf("Intern: got %d lists, want 2", n)
 	}
 	interned.ActionLists.Canonicalize(interned.States)
 	if n := interned.ActionLists.Len(); n != 3 {

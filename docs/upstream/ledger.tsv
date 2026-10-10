@@ -43,7 +43,7 @@ e3c2053c9841032dc956271ae5fd49c787331158	2026-10-03	ported	fff3187	perf(generate
 7d159bc3f93592a1fabc30054aa478644c7137a8	2026-10-03	ported	d84432a	perf(generate): stop searching for a large character set at an exact match
 e4c863e2d12526215663daab736fee3835c8bd9a	2026-10-03	ported		perf(generate): remove character set intersections in one pass
 918bb662b558f5a0e877dc9368fed6d7271306f9	2026-10-03	ported		perf(generate): compare lex states only with the first one kept
-bca909c4151d42a19e8fc8952f6b03a1260f4e18	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables.rs, crates/generate/src/build_tables/build_parse_table.rs, crates/generate/src/tables.rs
+bca909c4151d42a19e8fc8952f6b03a1260f4e18	2026-10-03	ported		perf(generate): intern each parse state's action lists once it's complete
 b83508e08272d0348b62acdbe929331bfdf205dd	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables.rs, crates/generate/src/build_tables/minimize_parse_table.rs, crates/generate/src/rules.rs
 7379b711ce06e9ad6c6800fc8c7dafe5c14ab018	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/minimize_parse_table.rs
 faacf4ee6f259414e99137d6d6982fd3f96008cb	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/coincident_tokens.rs, crates/generate/src/tables.rs

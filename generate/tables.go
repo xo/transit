@@ -230,10 +230,11 @@ type actionListRange struct {
 // holds an ActionListID. The id is the index of a range, and the range is the
 // slice of the actions of one list.
 //
-// InternTable builds this pool as soon as the parse table is built, and every
-// list becomes an id. Then minimize changes the targets of the shift actions
-// in the pool. Canonicalize builds the pool again before render, with each
-// list stored once. The list at index 0 of the pool is always the empty list.
+// The builder of the parse table interns the lists of each state into this
+// pool as it completes the state, and every list becomes an id. Then minimize
+// changes the targets of the shift actions in the pool. Canonicalize builds
+// the pool again before render, with each list stored once. The list at
+// index 0 of the pool is always the empty list.
 //
 // ActionListPool is ActionListPool. The zero ActionListPool is empty and
 // ready to use.
@@ -285,43 +286,6 @@ func (p *ActionListPool) Intern(dedup map[string]uint32, list ActionList) uint32
 	return index
 }
 
-// InternTable returns the table with each action list of its terminal
-// entries in a new pool. The new table takes the memory of table, so do not
-// use table after the call.
-//
-// InternTable is ActionListPool::intern_table.
-func InternTable(table ParseTable[ParseTableEntry]) ParseTable[ActionListID] {
-	var pool ActionListPool
-	ids := make(map[string]uint32)
-	states := make([]ParseState[ActionListID], 0, len(table.States))
-	for i := range table.States {
-		state := &table.States[i]
-		var terminalEntries IndexMap[Symbol, ActionListID]
-		for symbol, entry := range state.TerminalEntries.All() {
-			index := pool.Intern(ids, entry.Actions)
-			terminalEntries.Insert(symbol, NewActionListID(index, entry.Reusable))
-		}
-		states = append(states, ParseState[ActionListID]{
-			ID:                 state.ID,
-			TerminalEntries:    terminalEntries,
-			NonterminalEntries: state.NonterminalEntries,
-			ReservedWords:      state.ReservedWords,
-			LexStateID:         state.LexStateID,
-			ExternalLexStateID: state.ExternalLexStateID,
-			CoreID:             state.CoreID,
-			HasEOFGatedReduce:  state.HasEOFGatedReduce,
-		})
-	}
-	return ParseTable[ActionListID]{
-		States:                     states,
-		ActionLists:                pool,
-		Symbols:                    table.Symbols,
-		ProductionInfos:            table.ProductionInfos,
-		MaxAliasedProductionLength: table.MaxAliasedProductionLength,
-		ExternalLexStates:          table.ExternalLexStates,
-	}
-}
-
 // Canonicalize builds the pool again, with only the lists that the states
 // use, each stored once, and changes the ids of the states to the new
 // indices. The empty list gets index 0.
@@ -363,8 +327,7 @@ type ParseTableEntry struct {
 }
 
 // ParseState is a state of the parse table. T is the type of the value of a
-// terminal entry: ParseTableEntry while the table is built, and ActionListID
-// after InternTable.
+// terminal entry. The builder of the parse table makes ActionListID entries.
 //
 // ParseState is ParseState. Upstream gives T the default ActionListId, and Go
 // has no default for a type parameter. The zero ParseState is
@@ -836,6 +799,52 @@ func (m *IndexMap[K, V]) Clone() IndexMap[K, V] {
 		keys:    slices.Clone(m.keys),
 		values:  slices.Clone(m.values),
 		indices: maps.Clone(m.indices),
+	}
+}
+
+// ReserveExact makes room for additional more entries, with no spare
+// capacity.
+//
+// ReserveExact is IndexMap::reserve_exact. A Go map cannot grow in place, so
+// ReserveExact makes the map of indices again when the map holds entries.
+func (m *IndexMap[K, V]) ReserveExact(additional int) {
+	n := len(m.keys) + additional
+	if cap(m.keys) < n {
+		keys := make([]K, len(m.keys), n)
+		copy(keys, m.keys)
+		m.keys = keys
+	}
+	if cap(m.values) < n {
+		values := make([]V, len(m.values), n)
+		copy(values, m.values)
+		m.values = values
+	}
+	indices := make(map[K]int, n)
+	for i, k := range m.keys {
+		indices[k] = i
+	}
+	m.indices = indices
+}
+
+// Drain returns each key and value, in order, and removes them all from the
+// map. The map keeps its capacity. The entries are removed when the loop
+// ends, even when it ends early.
+//
+// Drain is IndexMap::drain(..).
+func (m *IndexMap[K, V]) Drain() iter.Seq2[K, V] {
+	return func(yield func(K, V) bool) {
+		defer func() {
+			clear(m.keys)
+			clear(m.values)
+			m.keys = m.keys[:0]
+			m.values = m.values[:0]
+			clear(m.indices)
+		}()
+		for i, k := range m.keys {
+			if !yield(k, m.values[i]) {
+				return
+			}
+		}
 	}
 }
 
