@@ -93,7 +93,6 @@ func TestIndexMapOrder(t *testing.T) {
 	}
 
 	var r IndexMap[Symbol, int]
-	r.ReserveExact(m.Len())
 	d := m.Clone()
 	for k, v := range d.Drain() {
 		r.Insert(k, v)
@@ -107,6 +106,40 @@ func TestIndexMapOrder(t *testing.T) {
 	d.Insert(TerminalSymbol(9), 9)
 	if v, ok := d.Get(TerminalSymbol(9)); !ok || v != 9 || d.Len() != 1 {
 		t.Errorf("Get after Drain and an insert: got %d, %t, want 9, true", v, ok)
+	}
+}
+
+// TestTerminalEntriesOrder checks that TerminalEntries keeps its entries in
+// the order in which they were added, and that an entry that exists keeps its
+// place. It is not an upstream test.
+func TestTerminalEntriesOrder(t *testing.T) {
+	t.Parallel()
+	var e TerminalEntries
+	e.ReserveExact(3)
+	e.Push(TerminalSymbol(2), NewActionListID(1, true))
+	e.Insert(SymbolEndValue, NewActionListID(2, false))
+	e.Insert(TerminalSymbol(2), NewActionListID(3, true))
+	e.InsertIfMissing(SymbolEndValue, NewActionListID(4, true))
+	e.InsertIfMissing(ExternalSymbol(0), NewActionListID(5, false))
+	wantKeys := []Symbol{TerminalSymbol(2), SymbolEndValue, ExternalSymbol(0)}
+	if keys := slices.Collect(e.Keys()); !slices.Equal(keys, wantKeys) {
+		t.Errorf("keys: got %v, want %v", keys, wantKeys)
+	}
+	wantValues := []ActionListID{NewActionListID(3, true), NewActionListID(2, false), NewActionListID(5, false)}
+	if values := slices.Collect(e.Values()); !slices.Equal(values, wantValues) {
+		t.Errorf("values: got %v, want %v", values, wantValues)
+	}
+	if !e.ContainsKey(ExternalSymbol(0)) || e.ContainsKey(TerminalSymbol(0)) {
+		t.Error("ContainsKey: got the wrong answer")
+	}
+	if _, id, ok := e.GetIndexMut(1); ok {
+		*id = NewActionListID(6, true)
+	}
+	if k, v, ok := e.GetIndex(1); !ok || k != SymbolEndValue || v != NewActionListID(6, true) {
+		t.Errorf("GetIndex(1): got %v, %v, %t", k, v, ok)
+	}
+	if _, _, ok := e.GetIndex(3); ok {
+		t.Error("GetIndex(3): got true, want false")
 	}
 }
 

@@ -974,10 +974,21 @@ func (m *minimizer) mergeCompatibleStates() {
 
 	// Create a list of new parse states: one state for each group of old states.
 	newStates := make([]ParseState, 0, len(stateIDsByGroupID))
+	// Scratch for merging: the position of each token's entry in the new state, by
+	// `SymbolIndexer::index`. -1 is None.
+	positions := make([]int, m.indexer.tokenCount())
+	for i := range positions {
+		positions[i] = -1
+	}
 	for _, stateIDs := range stateIDsByGroupID {
 		// Initialize the new state based on the first old state in the group.
 		parseState := states[stateIDs[0]]
 		states[stateIDs[0]] = ParseState{}
+		position := 0
+		for symbol := range parseState.TerminalEntries.Keys() {
+			positions[m.indexer.index(symbol)] = position
+			position++
+		}
 
 		// Extend the new state with all of the actions from the other old states
 		// in the group.
@@ -986,12 +997,28 @@ func (m *minimizer) mergeCompatibleStates() {
 			states[stateID] = ParseState{}
 
 			parseState.HasEOFGatedReduce = parseState.HasEOFGatedReduce || otherParseState.HasEOFGatedReduce
-			parseState.TerminalEntries.Extend(otherParseState.TerminalEntries.All())
+			// A token the new state already has keeps its place and takes the other state's
+			// action list.
+			for symbol, id := range otherParseState.TerminalEntries.All() {
+				position := &positions[m.indexer.index(symbol)]
+				if *position >= 0 {
+					// INVARIANT: `positions` only holds positions of the new state's entries.
+					_, entryID, _ := parseState.TerminalEntries.GetIndexMut(*position)
+					*entryID = id
+				} else {
+					*position = parseState.TerminalEntries.Len()
+					parseState.TerminalEntries.Push(symbol, id)
+				}
+			}
 			parseState.NonterminalEntries.Extend(otherParseState.NonterminalEntries.All())
 			parseState.ReservedWords.InsertAll(&otherParseState.ReservedWords)
 			for symbol := range parseState.TerminalEntries.Keys() {
 				parseState.ReservedWords.Remove(symbol)
 			}
+		}
+
+		for symbol := range parseState.TerminalEntries.Keys() {
+			positions[m.indexer.index(symbol)] = -1
 		}
 
 		// Update the new state's outgoing references using the new grouping.

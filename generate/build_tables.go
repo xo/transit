@@ -232,12 +232,12 @@ func populateErrorState(parseTable *ParseTable, syntaxGrammar *SyntaxGrammar, le
 				continue
 			}
 		}
-		state.TerminalEntries.GetOrInsert(symbol, recoverEntry)
+		state.TerminalEntries.InsertIfMissing(symbol, recoverEntry)
 	}
 
 	for i, externalToken := range syntaxGrammar.ExternalTokens {
 		if !externalToken.HasCorrespondingInternalToken {
-			state.TerminalEntries.GetOrInsert(ExternalSymbol(i), recoverEntry)
+			state.TerminalEntries.InsertIfMissing(ExternalSymbol(i), recoverEntry)
 		}
 	}
 

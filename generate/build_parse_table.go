@@ -1206,12 +1206,12 @@ func (b *parseTableBuilder) addActions(
 	}
 
 	// Every state stays in the table until minimization, so store its terminal entries as
-	// interned action lists, in a map with no spare capacity, and give back the capacity
-	// its non-terminal map grew into.
+	// interned action lists, with no spare capacity, and give back the capacity its
+	// non-terminal map grew into.
 	state.TerminalEntries.ReserveExact(b.terminalEntries.Len())
 	for symbol, entry := range b.terminalEntries.Drain() {
 		index := b.parseTable.ActionLists.Intern(b.actionListIDs, entry.Actions)
-		state.TerminalEntries.Insert(symbol, NewActionListID(index, entry.Reusable))
+		state.TerminalEntries.Push(symbol, NewActionListID(index, entry.Reusable))
 	}
 	state.NonterminalEntries.ShrinkToFit()
 

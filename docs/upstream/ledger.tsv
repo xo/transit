@@ -47,7 +47,7 @@ bca909c4151d42a19e8fc8952f6b03a1260f4e18	2026-10-03	ported		perf(generate): inte
 b83508e08272d0348b62acdbe929331bfdf205dd	2026-10-03	ported		perf(generate): key the minimizer's entries by symbol position
 7379b711ce06e9ad6c6800fc8c7dafe5c14ab018	2026-10-03	ported		perf(generate): store the minimizer's per-state lists in one buffer each
 faacf4ee6f259414e99137d6d6982fd3f96008cb	2026-10-03	ported		refactor(generate): drop the parse table's action list type parameter
-c9d7450cdc7e2c67429d44df2a92e862ceff2761	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables.rs, crates/generate/src/build_tables/build_parse_table.rs, crates/generate/src/build_tables/coincident_tokens.rs
+c9d7450cdc7e2c67429d44df2a92e862ceff2761	2026-10-03	ported		perf(generate): store each parse state's terminal entries in a plain list
 5091247754e69084613e48613fe2215c7df8ec68	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/build_parse_table.rs, crates/generate/src/build_tables/minimize_parse_table.rs, crates/generate/src/render.rs
 43e82a2767cf75df4f668752cd884368e21a5ccd	2026-10-03	pending		port in phase 6: crates/generate/src/prepare_grammar.rs
 26123e098422639fe50c9be5a1911bbe49a755c8	2026-10-04	pending		port in phase 6: lib/src/subtree.c, test/fixtures/test_grammars/depends_on_column_repetition/corpus.txt, test/fixtures/test_grammars/depends_on_column_repetition/grammar.js
