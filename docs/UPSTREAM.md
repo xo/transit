@@ -395,7 +395,7 @@ It does these steps:
    It writes `generate/testdata/<grammar>/grammar.json`, and `parser.c` and
    `node-types.json` in a folder for each variant, such as
    `generate/testdata/<grammar>/abi14/`. A grammar that the tool rejects gets
-   `error.txt` in place of the two files. Upstream expects 12 of the 70 test
+   `error.txt` in place of the two files. Upstream expects 12 of the 71 test
    grammars to fail.
 3. For each fixture grammar, it fetches the repository at its tag or branch,
    runs `tree-sitter generate` on the committed `src/grammar.json` at ABI 14

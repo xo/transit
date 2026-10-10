@@ -145,8 +145,8 @@ func TestParseGrammarReadsEveryTestGrammar(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(files) != 70 {
-		t.Fatalf("expected the grammar.json of the 70 test grammars in testdata, found %d", len(files))
+	if len(files) != 71 {
+		t.Fatalf("expected the grammar.json of the 71 test grammars in testdata, found %d", len(files))
 	}
 	for _, f := range files {
 		b, err := os.ReadFile(f)

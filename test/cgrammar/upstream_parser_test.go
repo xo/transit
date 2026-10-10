@@ -1687,3 +1687,27 @@ func TestGrammarThatShouldHangAndNotSegfault(t *testing.T) {
 		<-done
 	}
 }
+
+// TestParsingAfterBalancingTreeThatDependsOnColumn is
+// test_parsing_after_balancing_tree_that_depends_on_column of
+// parser_test.rs.
+func TestParsingAfterBalancingTreeThatDependsOnColumn(t *testing.T) {
+	parser := urParser(t, urTestFixtureLanguage(t, "depends_on_column_repetition"))
+
+	code := []byte("\nax\na")
+	tree := urParse(t, parser, code, nil)
+	urEqual(t, "to_sexp", tree.RootNode().String(),
+		"(document (newline) (word) (tail) (newline) (word))")
+
+	urPerformEdit(t, tree, &code, urEdit{
+		position:      2,
+		deletedLength: 0,
+		insertedText:  []byte("\n"),
+	})
+
+	incremental := urParse(t, parser, code, tree)
+	fresh := urParse(t, parser, code, nil)
+	urEqual(t, "to_sexp", fresh.RootNode().String(),
+		"(document (newline) (word) (newline) (head) (newline) (word))")
+	urEqual(t, "to_sexp", incremental.RootNode().String(), fresh.RootNode().String())
+}

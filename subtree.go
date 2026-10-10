@@ -700,7 +700,7 @@ func (s subtree) summarizeChildren(language *Language) {
 
 	children := s.ptr.children
 	for i, child := range children {
-		if s.ptr.size.extent.row == 0 &&
+		if (i == 0 || s.ptr.size.extent.row == 0) &&
 			child.dependsOnColumn() {
 			s.ptr.dependsOnColumn = true
 		}

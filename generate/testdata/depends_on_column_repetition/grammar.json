@@ -1,0 +1,54 @@
+{
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/grammar.schema.json",
+  "name": "depends_on_column_repetition",
+  "rules": {
+    "document": {
+      "type": "REPEAT",
+      "content": {
+        "type": "CHOICE",
+        "members": [
+          {
+            "type": "SYMBOL",
+            "name": "head"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "tail"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "word"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "newline"
+          }
+        ]
+      }
+    },
+    "word": {
+      "type": "PATTERN",
+      "value": "[a-w]+"
+    },
+    "newline": {
+      "type": "STRING",
+      "value": "\n"
+    }
+  },
+  "extras": [],
+  "conflicts": [],
+  "precedences": [],
+  "externals": [
+    {
+      "type": "SYMBOL",
+      "name": "head"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "tail"
+    }
+  ],
+  "inline": [],
+  "supertypes": [],
+  "reserved": {}
+}
