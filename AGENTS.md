@@ -191,6 +191,7 @@ these files:
 | `internal/corpus/` | the reader of the corpus of a grammar package, of the `tree-sitter.json` of its module and of its `testdata/failing.txt`, for the corpus test and for the example that the Go backend writes (D115). `test.go` ports the parts of `crates/cli/src/test.rs` that read a corpus |
 | `skills_test.go`, `docs_test.go` | the tests of the agent setup and the documents |
 | `upstream_test.go`, `docs/upstream/ledger.tsv` | the ledger of upstream commits and its test (D30) |
+| `upstream.txt` | the upstream commit that transit matches, which each transit commit of phase 6 writes (D116) |
 | `.github/workflows/test.yml`, `.golangci.yml` | CI and the lint configuration (D36) |
 | `skills-lock.json`, `.agents/skills/`, `.claude/skills/` | the agent skills |
 | `docs/` | the plan, the rules, the grammar set, the references for rline and usql, the backlog and the decisions |
