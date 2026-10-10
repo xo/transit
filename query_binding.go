@@ -759,7 +759,8 @@ func (c *QueryCursor) DidExceedMatchLimit() bool {
 // A match whose text predicates fail is left out.
 //
 // Each range of the sequence runs the query from the start. When ctx ends,
-// the sequence ends, so a caller that needs to know reads ctx.Err().
+// the cursor drops the matches in progress and the sequence ends, so a
+// caller that needs to know reads ctx.Err().
 //
 // The Rust binding has a fault, which the port keeps: #any-eq?, #any-not-eq?,
 // #any-match? and #any-not-match? hold when no node of their capture holds
@@ -792,7 +793,9 @@ func (c *QueryCursor) Matches(ctx context.Context, q *Query, n Node, src []byte)
 // from the cursor.
 //
 // Each range of the sequence runs the query from the start. When ctx ends,
-// the sequence ends, so a caller that needs to know reads ctx.Err().
+// the cursor drops the matches in progress. The sequence then gives only the
+// captures of the matches that finished before, and it ends. A caller that
+// needs to know reads ctx.Err().
 //
 // Captures is QueryCursor::captures and QueryCursor::captures_with_options,
 // with the iterator QueryCaptures.

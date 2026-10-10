@@ -5213,6 +5213,128 @@ func TestQueryProgressCallbackLivesAsLongAsMatches(t *testing.T) {
 	}
 }
 
+// The context of uqProgressContext calls the function each time that the
+// cursor reads its Err, as C calls the progress callback.
+func TestQueryCapturesProgressCallbackStopsBehindAnOpenMatch(t *testing.T) {
+	language := uqLanguage(t, "javascript")
+	parser := uqParser(t, language)
+
+	numbers := make([]string, 1000)
+	for i := range numbers {
+		numbers[i] = strconv.Itoa(i)
+	}
+	sourceCode := "[" + strings.Join(numbers, ",") + "];"
+	tree, err := parser.Parse(t.Context(), []byte(sourceCode), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The first pattern stays in progress until the array ends, so every number
+	// capture finishes behind it.
+	query := uqNewQuery(t, language, "(array (number) @first (string)) (number) @number")
+
+	calls := 0
+	ctx := uqProgressContext(func() bool {
+		calls++
+		return true
+	})
+	cursor := transit.NewQueryCursor()
+	captures := 0
+	for range cursor.Captures(ctx, query, tree.RootNode(), []byte(sourceCode)) {
+		captures++
+	}
+
+	if captures >= 1000 {
+		t.Errorf("%d captures, want fewer than 1000", captures)
+	}
+	if calls != 1 {
+		t.Errorf("%d calls of the progress function, want 1", calls)
+	}
+}
+
+func TestQueryCapturesProgressCallbackDiscardsInProgressMatches(t *testing.T) {
+	language := uqLanguage(t, "json")
+	parser := uqParser(t, language)
+
+	// Within each element, the first pattern holds back the second pattern's captures
+	// until the inner array ends. The second pattern then stays in progress, but
+	// definite, until the element itself ends.
+	trues := make([]string, 12)
+	for i := range trues {
+		trues[i] = "true"
+	}
+	element := `[[{"a":1},1,2],` + strings.Join(trues, ",") + "]"
+	elements := make([]string, 50)
+	for i := range elements {
+		elements[i] = element
+	}
+	sourceCode := "[" + strings.Join(elements, ",") + "]"
+	tree, err := parser.Parse(t.Context(), []byte(sourceCode), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	query := uqNewQuery(t, language, `
+        (array (object) @object (string))
+        (array (array (number) @number) "]" @close)
+        (number) @n
+        `)
+
+	for cancelAt := 1; cancelAt <= 20; cancelAt++ {
+		calls := 0
+		ctx := uqProgressContext(func() bool {
+			calls++
+			return calls >= cancelAt
+		})
+		cursor := transit.NewQueryCursor()
+		for m := range cursor.Captures(ctx, query, tree.RootNode(), []byte(sourceCode)) {
+			// Once the callback has asked to stop, only finished matches may be returned.
+			if calls >= cancelAt && m.PatternIndex == 1 && len(m.Captures) != 2 {
+				t.Errorf("cancelled at callback %d: a match of pattern 1 has %d captures, want 2", cancelAt, len(m.Captures))
+			}
+		}
+	}
+}
+
+// Matches restarts the query at each range of its sequence, and the
+// sequence ends when the cursor returns no match. So the Go test pulls once
+// more from the sequence that the cancellation ended, and that pull gives
+// nothing.
+func TestQueryProgressCallbackHaltsForGood(t *testing.T) {
+	language := uqLanguage(t, "javascript")
+	parser := uqParser(t, language)
+
+	sourceCode := strings.Repeat("function foo() {}\n", 1000)
+	tree, err := parser.Parse(t.Context(), []byte(sourceCode), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	query := uqNewQuery(t, language, "(function_declaration) @function")
+
+	stop := true
+	ctx := uqProgressContext(func() bool {
+		return stop
+	})
+	cursor := transit.NewQueryCursor()
+	next, done := iter.Pull(cursor.Matches(ctx, query, tree.RootNode(), []byte(sourceCode)))
+	defer done()
+	count := 0
+	for {
+		if _, ok := next(); !ok {
+			break
+		}
+		count++
+	}
+	if count >= 1000 {
+		t.Errorf("%d matches, want fewer than 1000", count)
+	}
+
+	// Asking the cursor for more after a cancellation does not resume the query.
+	stop = false
+	if _, ok := next(); ok {
+		t.Error("the cursor gave a match after the cancellation")
+	}
+}
+
 func TestQueryExecutionWithPointsCausingUnderflow(t *testing.T) {
 	language := uqLanguage(t, "rust")
 	parser := uqParser(t, language)

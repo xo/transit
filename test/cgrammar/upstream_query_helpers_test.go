@@ -2,6 +2,7 @@ package cgrammar
 
 import (
 	"cmp"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/xo/transit"
 )
@@ -144,6 +146,48 @@ func uqCheckQueryErrorMessage(t *testing.T, language *transit.Language, source, 
 // uqLines joins lines with newlines. It is [...].join("\n").
 func uqLines(lines ...string) string {
 	return strings.Join(lines, "\n")
+}
+
+// uqProgress is a context whose Err calls a function each time, in place of
+// the progress callback of QueryCursorOptions. The cursor reads Err where C
+// calls the callback, so a function that returns true halts the cursor, as a
+// callback that returns ControlFlow::Break does. The Go API has no
+// QueryCursorState, so the function gets no state.
+type uqProgress struct {
+	fn   func() bool
+	once sync.Once
+	done chan struct{}
+}
+
+// uqProgressContext returns a context whose Err calls fn each time.
+func uqProgressContext(fn func() bool) context.Context {
+	return &uqProgress{fn: fn, done: make(chan struct{})}
+}
+
+// Deadline returns no deadline.
+func (c *uqProgress) Deadline() (time.Time, bool) {
+	return time.Time{}, false
+}
+
+// Done returns a channel that closes the first time the function returns
+// true.
+func (c *uqProgress) Done() <-chan struct{} {
+	return c.done
+}
+
+// Err calls the function, and returns context.Canceled when it returns
+// true.
+func (c *uqProgress) Err() error {
+	if c.fn() {
+		c.once.Do(func() { close(c.done) })
+		return context.Canceled
+	}
+	return nil
+}
+
+// Value returns nil.
+func (c *uqProgress) Value(any) any {
+	return nil
 }
 
 // uqParser returns a parser of a language.

@@ -471,6 +471,11 @@ highlighter of upstream removes the match of an injection with
 that gave the match runs, because the next run of the cursor gives the same
 ids to other matches.
 
+When the context of `Matches` or `Captures` ends, the cursor halts, as a
+query cursor halts in C when its progress callback returns true. The cursor
+drops the matches in progress. `Captures` still gives the captures of the
+matches that finished before, and then its sequence ends.
+
 ## From C to Go
 
 The example calls these C functions. Each row names the Go form.

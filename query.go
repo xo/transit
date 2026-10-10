@@ -29,8 +29,9 @@ import (
 //     ts_query__dump_steps.
 //  4. ts_query_cursor_exec_with_options. A context.Context replaces the
 //     progress callback. The methods that advance the cursor take the context,
-//     and they read ctx.Err() where C calls the callback. Go does not record
-//     current_byte_offset, because only the callback reads it.
+//     and they read ctx.Err() where C calls the callback. When ctx ends, the
+//     cursor halts, as C halts when the callback returns true. Go does not
+//     record current_byte_offset, because only the callback reads it.
 //
 // C keeps pointers into the arrays of states. Go keeps indices where an
 // insert can move the states, and takes the pointer again after the insert,
@@ -3662,7 +3663,7 @@ func rangeWithin(a, b *textRange) bool {
 }
 
 // advance is ts_query_cursor__advance. It reads ctx.Err() where C calls the
-// progress callback, and it stops as C stops when the callback returns true.
+// progress callback, and it halts as C halts when the callback returns true.
 //
 // Walk the tree, processing patterns until at least one pattern finishes,
 // If one or more patterns finish, return `true` and store their states in the
@@ -3681,15 +3682,21 @@ func (c *queryCursor) advance(ctx context.Context, stopOnDefiniteStep bool) bool
 			}
 		}
 
+		if didMatch || c.halted {
+			return didMatch
+		}
+
+		// Consult the progress callback every `OP_COUNT_PER_QUERY_CALLBACK_CHECK` operations.
+		// Only iterations that do work are counted.
 		c.operationCount++
 		if c.operationCount == opCountPerQueryCallbackCheck {
 			c.operationCount = 0
-		}
-
-		if didMatch ||
-			c.halted ||
-			(c.operationCount == 0 && ctx.Err() != nil) {
-			return didMatch
+			if ctx.Err() != nil {
+				// Halt the same way reaching the end of the tree does. The next iteration
+				// discards the in-progress states, so only finished matches are returned.
+				c.halted = true
+				continue
+			}
 		}
 
 		// Exit the current node.

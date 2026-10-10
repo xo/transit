@@ -1021,10 +1021,15 @@ func TestQueryCancel(t *testing.T) {
 	if _, _, ok := c.nextCapture(ctx); ok {
 		t.Fatal("a canceled context gives a capture")
 	}
-	// The cursor keeps its place, as C keeps it when the callback stops it.
+	// The cursor halts, as C halts when the callback stops it, and it gives
+	// nothing more until exec starts it again.
+	if m, ok := c.nextMatch(context.Background()); ok {
+		t.Fatalf("after the cancel, the cursor gives the match %v", m)
+	}
+	c.exec(q, tree.RootNode())
 	m, ok := c.nextMatch(context.Background())
 	if !ok || queryMatchString(q, m) != "0: plus=+@601-602" {
-		t.Errorf("after the cancel, the match is %v %t", m, ok)
+		t.Errorf("after exec, the match is %v %t", m, ok)
 	}
 	if _, ok := c.nextMatch(context.Background()); ok {
 		t.Error("the cursor gives a second match")

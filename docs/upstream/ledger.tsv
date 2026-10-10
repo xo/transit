@@ -54,7 +54,7 @@ c9d7450cdc7e2c67429d44df2a92e862ceff2761	2026-10-03	ported	3cb5ecc	perf(generate
 2ef426e10b4fa8189a761025f17548073249c2fc	2026-10-04	ported		fix: track column dependency after failed external scans
 e1566be3a261d97618e09428b9bacd68442afa27	2026-10-04	ported		perf(lib): acquire capture lists from a free stack instead of scanning
 b2f00cb0b5942ff10c45dc77d3a9c7e9c7515da8	2026-10-05	not-applicable		the build script of the Rust binding, which transit does not port
-19084772dfd5c2c417ae9cbfa1815578ace70fae	2026-10-05	pending		port in phase 6: lib/include/tree_sitter/api.h, lib/src/query.c
+19084772dfd5c2c417ae9cbfa1815578ace70fae	2026-10-05	ported		fix(lib): halt the query cursor when the progress callback asks to stop
 0714d5e4ba058703c63493d59b9ee6dadb7d0251	2026-10-05	pending		port in phase 6: lib/src/query.c
 0e0a86b8d4718143cf32c6a80754a9a224cab422	2026-10-05	pending		port in phase 6: crates/cli/src/tests/query_test.rs, the input of test_query_execution_with_timeout
 2f5fa28410b45d98b1b7eb5bde9deaea1b2f7730	2026-10-05	not-applicable		changes only paths that transit does not port: lib/binding_web/lib/tree-sitter.c, lib/binding_web/test/query.test.ts
