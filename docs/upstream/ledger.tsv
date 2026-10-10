@@ -41,15 +41,15 @@ e3c2053c9841032dc956271ae5fd49c787331158	2026-10-03	ported	fff3187	perf(generate
 9f760b04325dbc0d52ed547a03b440831b818286	2026-10-03	ported	0300432	perf(generate): find duplicate productions by hash when flattening
 3e6d2003ad6da93e3ab1671e3576cec3c2611790	2026-10-03	ported	203f579	perf(generate): append ranges past the end of a character set directly
 7d159bc3f93592a1fabc30054aa478644c7137a8	2026-10-03	ported	d84432a	perf(generate): stop searching for a large character set at an exact match
-e4c863e2d12526215663daab736fee3835c8bd9a	2026-10-03	ported		perf(generate): remove character set intersections in one pass
-918bb662b558f5a0e877dc9368fed6d7271306f9	2026-10-03	ported		perf(generate): compare lex states only with the first one kept
-bca909c4151d42a19e8fc8952f6b03a1260f4e18	2026-10-03	ported		perf(generate): intern each parse state's action lists once it's complete
-b83508e08272d0348b62acdbe929331bfdf205dd	2026-10-03	ported		perf(generate): key the minimizer's entries by symbol position
-7379b711ce06e9ad6c6800fc8c7dafe5c14ab018	2026-10-03	ported		perf(generate): store the minimizer's per-state lists in one buffer each
-faacf4ee6f259414e99137d6d6982fd3f96008cb	2026-10-03	ported		refactor(generate): drop the parse table's action list type parameter
-c9d7450cdc7e2c67429d44df2a92e862ceff2761	2026-10-03	ported		perf(generate): store each parse state's terminal entries in a plain list
-5091247754e69084613e48613fe2215c7df8ec68	2026-10-03	ported		perf(generate): store each parse state's non-terminal entries in a plain list
-43e82a2767cf75df4f668752cd884368e21a5ccd	2026-10-03	ported		fix(generate): detect indirect recursion in flattened productions
+e4c863e2d12526215663daab736fee3835c8bd9a	2026-10-03	ported	17a728a	perf(generate): remove character set intersections in one pass
+918bb662b558f5a0e877dc9368fed6d7271306f9	2026-10-03	ported	19ba7f4	perf(generate): compare lex states only with the first one kept
+bca909c4151d42a19e8fc8952f6b03a1260f4e18	2026-10-03	ported	1f681e2	perf(generate): intern each parse state's action lists once it's complete
+b83508e08272d0348b62acdbe929331bfdf205dd	2026-10-03	ported	39ae91f	perf(generate): key the minimizer's entries by symbol position
+7379b711ce06e9ad6c6800fc8c7dafe5c14ab018	2026-10-03	ported	cc40660	perf(generate): store the minimizer's per-state lists in one buffer each
+faacf4ee6f259414e99137d6d6982fd3f96008cb	2026-10-03	ported	38d3846	refactor(generate): drop the parse table's action list type parameter
+c9d7450cdc7e2c67429d44df2a92e862ceff2761	2026-10-03	ported	3cb5ecc	perf(generate): store each parse state's terminal entries in a plain list
+5091247754e69084613e48613fe2215c7df8ec68	2026-10-03	ported	3400538	perf(generate): store each parse state's non-terminal entries in a plain list
+43e82a2767cf75df4f668752cd884368e21a5ccd	2026-10-03	ported	75ddd17	fix(generate): detect indirect recursion in flattened productions
 26123e098422639fe50c9be5a1911bbe49a755c8	2026-10-04	pending		port in phase 6: lib/src/subtree.c, test/fixtures/test_grammars/depends_on_column_repetition/corpus.txt, test/fixtures/test_grammars/depends_on_column_repetition/grammar.js
 2ef426e10b4fa8189a761025f17548073249c2fc	2026-10-04	pending		port in phase 6: lib/src/parser.c, lib/src/subtree.c, lib/src/subtree.h
 e1566be3a261d97618e09428b9bacd68442afa27	2026-10-04	pending		port in phase 6: lib/src/query.c
