@@ -2,6 +2,7 @@ package generate
 
 import (
 	"cmp"
+	"iter"
 	"math/bits"
 	"slices"
 
@@ -51,6 +52,55 @@ func (k minimizeSymbolKey) index() int {
 // symbol is SymbolKey::symbol.
 func (k minimizeSymbolKey) symbol(indexer symbolIndexer) Symbol {
 	return indexer.symbol(k.index())
+}
+
+// minimizeStateLists holds a sorted list for each parse state, all in one
+// buffer.
+//
+// minimizeStateLists is StateLists.
+type minimizeStateLists[T any] struct {
+	items []T
+	// starts holds where the list of each state starts in items, by state
+	// id, then where the last list ends. The list of state i is
+	// items[starts[i]:starts[i+1]].
+	starts []uint32
+}
+
+// collectMinimizeStateLists collects the list that list returns for each
+// state, in the order of the states, and sorts each list by compare.
+//
+// collectMinimizeStateLists is StateLists::collect. Upstream takes an
+// iterator of the lists, and each caller maps the states to their lists, so
+// the Go form takes the states and the map. Upstream sorts with
+// sort_unstable_by_key. The keys of the items of a list are different, so
+// the order is the same in Go.
+func collectMinimizeStateLists[T any](
+	states []ParseState[ActionListID],
+	list func(state *ParseState[ActionListID]) iter.Seq[T],
+	compare func(a, b T) int,
+) minimizeStateLists[T] {
+	starts := make([]uint32, 1, len(states)+1)
+	var items []T
+	for s := range states {
+		start := len(items)
+		items = slices.AppendSeq(items, list(&states[s]))
+		slices.SortFunc(items[start:], compare)
+		starts = append(starts, uint32(len(items)))
+	}
+	shrunk := make([]T, len(items))
+	copy(shrunk, items)
+	return minimizeStateLists[T]{items: shrunk, starts: starts}
+}
+
+// get returns the list of state.
+//
+// get is StateLists::get.
+func (l *minimizeStateLists[T]) get(state *ParseState[ActionListID]) []T {
+	id := int(state.ID)
+	// INVARIANT: collectMinimizeStateLists pushes one offset per state after the leading
+	// 0, so a state of the table has its start at starts[id] and its end at
+	// starts[id+1].
+	return l.items[l.starts[id]:l.starts[id+1]]
 }
 
 // MinimizeParseTable makes the parse table smaller. When optimizations holds
@@ -207,14 +257,14 @@ func (c *minimizeConflictBits) getStateRow(state int) []uint64 {
 type minimizeConflictPass struct {
 	minimizer *minimizer
 	// entryMaps holds each state's terminal entries, sorted by symbol.
-	entryMaps [][]minimizeEntry
+	entryMaps minimizeStateLists[minimizeEntry]
 	bits      *minimizeConflictBits
 	// staticSignatures holds a hash of each state's reserved words and
 	// terminal entries, apart from its shift targets, whose groups change as
 	// groups split.
 	staticSignatures []uint64
 	// shiftMaps holds each state's shift targets, sorted by symbol.
-	shiftMaps [][]minimizeShift
+	shiftMaps *minimizeStateLists[minimizeShift]
 	// kept is scratch for CompatibleWithAll.
 	kept minimizeKeptStates
 }
@@ -223,21 +273,23 @@ type minimizeConflictPass struct {
 // shiftMaps holds each state's shift targets, sorted by symbol.
 //
 // newMinimizeConflictPass is ConflictPass::new.
-func newMinimizeConflictPass(m *minimizer, shiftMaps [][]minimizeShift) *minimizeConflictPass {
+func newMinimizeConflictPass(m *minimizer, shiftMaps *minimizeStateLists[minimizeShift]) *minimizeConflictPass {
 	// Precompute sorted terminal entry references for merge-join in states_conflict.
-	// entry_maps[state_id][i] = (symbol_key, action_list_id). Keys are symbol positions
-	// for easy comparison. Upstream sorts with sort_unstable_by_key.
-	// The keys of the entries of a state are different, so the order is the
-	// same in Go.
-	entryMaps := make([][]minimizeEntry, len(m.parseTable.States))
-	for s := range m.parseTable.States {
-		entries := make([]minimizeEntry, 0, m.parseTable.States[s].TerminalEntries.Len())
-		for sym, id := range m.parseTable.States[s].TerminalEntries.All() {
-			entries = append(entries, minimizeEntry{key: newMinimizeSymbolKey(m.indexer, sym), id: id})
-		}
-		slices.SortFunc(entries, func(a, b minimizeEntry) int { return cmp.Compare(a.key, b.key) })
-		entryMaps[s] = entries
-	}
+	// entry_maps.get(state)[i] = (symbol_key, action_list_id). Keys are symbol positions
+	// for easy comparison.
+	entryMaps := collectMinimizeStateLists(
+		m.parseTable.States,
+		func(state *ParseState[ActionListID]) iter.Seq[minimizeEntry] {
+			return func(yield func(minimizeEntry) bool) {
+				for sym, id := range state.TerminalEntries.All() {
+					if !yield(minimizeEntry{key: newMinimizeSymbolKey(m.indexer, sym), id: id}) {
+						return
+					}
+				}
+			}
+		},
+		func(a, b minimizeEntry) int { return cmp.Compare(a.key, b.key) },
+	)
 
 	// Hash each state's terminal entries once, apart from its shift targets, whose groups
 	// change as groups split.
@@ -246,7 +298,7 @@ func newMinimizeConflictPass(m *minimizer, shiftMaps [][]minimizeShift) *minimiz
 		state := &m.parseTable.States[s]
 		var hasher fxhash.Hasher
 		hasher.Write([]byte(state.ReservedWords.Key()))
-		for _, entry := range entryMaps[state.ID] {
+		for _, entry := range entryMaps.get(state) {
 			hasher.WriteU32(uint32(entry.key))
 			for _, action := range m.parseTable.ActionLists.Get(entry.id) {
 				if action.Kind == ParseActionShift {
@@ -272,13 +324,13 @@ func newMinimizeConflictPass(m *minimizer, shiftMaps [][]minimizeShift) *minimiz
 // hasToken reports whether the state has an entry for key.
 //
 // hasToken is ConflictPass::has_token.
-func (p *minimizeConflictPass) hasToken(stateID ParseStateID, key minimizeSymbolKey) bool {
+func (p *minimizeConflictPass) hasToken(state *ParseState[ActionListID], key minimizeSymbolKey) bool {
 	if index, ok := key.symbol(p.minimizer.indexer).TerminalIndex(); ok {
-		row := p.bits.getStateRow(int(stateID))
+		row := p.bits.getStateRow(int(state.ID))
 		index := int(index)
 		return row[index/64]&(1<<(index%64)) != 0
 	}
-	_, found := slices.BinarySearchFunc(p.entryMaps[stateID], key, func(e minimizeEntry, key minimizeSymbolKey) int {
+	_, found := slices.BinarySearchFunc(p.entryMaps.get(state), key, func(e minimizeEntry, key minimizeSymbolKey) int {
 		return cmp.Compare(e.key, key)
 	})
 	return found
@@ -289,7 +341,7 @@ func (p *minimizeConflictPass) hasToken(stateID ParseStateID, key minimizeSymbol
 //
 // canTake is ConflictPass::can_take.
 func (p *minimizeConflictPass) canTake(target *ParseState[ActionListID], key minimizeSymbolKey) bool {
-	return p.hasToken(target.ID, key) ||
+	return p.hasToken(target, key) ||
 		!p.minimizer.tokenConflicts(target, p.bits, key)
 }
 
@@ -304,7 +356,7 @@ func (p *minimizeConflictPass) compatibleWithMerged(
 	groupIDsByStateID []ParseStateID,
 ) bool {
 	states := p.minimizer.parseTable.States
-	for _, entry := range p.entryMaps[state.ID] {
+	for _, entry := range p.entryMaps.get(state) {
 		key, actionList := entry.key, entry.id
 		token := keptStates.tokens[key.index()]
 		if token.hasActionList &&
@@ -403,9 +455,13 @@ func (k *minimizeKeptStates) clear() {
 // merge merges the entries of the kept states that aren't merged yet.
 //
 // merge is KeptStates::merge.
-func (k *minimizeKeptStates) merge(kept []uint32, entryMaps [][]minimizeEntry) {
+func (k *minimizeKeptStates) merge(
+	kept []uint32,
+	states []ParseState[ActionListID],
+	entryMaps *minimizeStateLists[minimizeEntry],
+) {
 	for _, stateID := range kept[k.mergedCount:] {
-		for _, entry := range entryMaps[stateID] {
+		for _, entry := range entryMaps.get(&states[stateID]) {
 			token := &k.tokens[entry.key.index()]
 			if !token.hasActionList {
 				token.actionList, token.hasActionList = entry.id, true
@@ -449,7 +505,7 @@ func (p *minimizeConflictPass) ShouldSplit(left, right *ParseState[ActionListID]
 		left,
 		right,
 		groupIDsByStateID,
-		p.entryMaps,
+		&p.entryMaps,
 		p.bits,
 	)
 }
@@ -462,7 +518,7 @@ func (p *minimizeConflictPass) ShouldSplit(left, right *ParseState[ActionListID]
 func (p *minimizeConflictPass) Signature(state *ParseState[ActionListID], groupIDsByStateID []ParseStateID) (uint64, bool) {
 	var hasher fxhash.Hasher
 	hasher.WriteU64(p.staticSignatures[state.ID])
-	for _, shift := range p.shiftMaps[state.ID] {
+	for _, shift := range p.shiftMaps.get(state) {
 		hasher.WriteU32(groupIDsByStateID[shift.state])
 	}
 	return hasher.Finish(), true
@@ -475,8 +531,8 @@ func (p *minimizeConflictPass) Signature(state *ParseState[ActionListID], groupI
 //
 // Equivalent is the equivalent of ConflictPass.
 func (p *minimizeConflictPass) Equivalent(left, right *ParseState[ActionListID], groupIDsByStateID []ParseStateID) bool {
-	entries1 := p.entryMaps[left.ID]
-	entries2 := p.entryMaps[right.ID]
+	entries1 := p.entryMaps.get(left)
+	entries2 := p.entryMaps.get(right)
 	actionLists := &p.minimizer.parseTable.ActionLists
 	if !left.ReservedWords.Equal(&right.ReservedWords) || len(entries1) != len(entries2) {
 		return false
@@ -527,7 +583,7 @@ func (p *minimizeConflictPass) StartGroup() {
 // takes the scratch out of the pass while the check reads the rest of it,
 // which Go does not need.
 func (p *minimizeConflictPass) CompatibleWithAll(state *ParseState[ActionListID], kept []uint32, groupIDsByStateID []ParseStateID) bool {
-	p.kept.merge(kept, p.entryMaps)
+	p.kept.merge(kept, p.minimizer.parseTable.States, &p.entryMaps)
 	return p.compatibleWithMerged(&p.kept, state, kept, groupIDsByStateID)
 }
 
@@ -539,32 +595,36 @@ func (p *minimizeConflictPass) CompatibleWithAll(state *ParseState[ActionListID]
 type minimizeSuccessorPass struct {
 	minimizer *minimizer
 	// shiftMaps holds each state's shift targets, sorted by symbol.
-	shiftMaps [][]minimizeShift
+	shiftMaps *minimizeStateLists[minimizeShift]
 	// nonterminalMaps holds each state's nonterminal entries, sorted by
 	// symbol.
-	nonterminalMaps [][]minimizeGoto
+	nonterminalMaps minimizeStateLists[minimizeGoto]
 }
 
 // newMinimizeSuccessorPass returns the successor pass of a minimizer.
 // shiftMaps holds each state's shift targets, sorted by symbol.
 //
 // newMinimizeSuccessorPass is SuccessorPass::new.
-func newMinimizeSuccessorPass(m *minimizer, shiftMaps [][]minimizeShift) *minimizeSuccessorPass {
+func newMinimizeSuccessorPass(m *minimizer, shiftMaps *minimizeStateLists[minimizeShift]) *minimizeSuccessorPass {
 	// Store only the symbol index: all nonterminal entries share the same kind,
 	// so index alone is sufficient for sorting and comparison.
-	nonterminalMaps := make([][]minimizeGoto, len(m.parseTable.States))
-	for s := range m.parseTable.States {
-		entries := make([]minimizeGoto, 0, m.parseTable.States[s].NonterminalEntries.Len())
-		for sym, action := range m.parseTable.States[s].NonterminalEntries.All() {
-			index, ok := sym.NonTerminalIndex()
-			if !ok {
-				panic("generate: a non-terminal entry has a symbol that is not a non-terminal")
+	nonterminalMaps := collectMinimizeStateLists(
+		m.parseTable.States,
+		func(state *ParseState[ActionListID]) iter.Seq[minimizeGoto] {
+			return func(yield func(minimizeGoto) bool) {
+				for sym, action := range state.NonterminalEntries.All() {
+					index, ok := sym.NonTerminalIndex()
+					if !ok {
+						panic("generate: a non-terminal entry has a symbol that is not a non-terminal")
+					}
+					if !yield(minimizeGoto{index: uint32(index), action: action}) {
+						return
+					}
+				}
 			}
-			entries = append(entries, minimizeGoto{index: uint32(index), action: action})
-		}
-		slices.SortFunc(entries, func(a, b minimizeGoto) int { return cmp.Compare(a.index, b.index) })
-		nonterminalMaps[s] = entries
-	}
+		},
+		func(a, b minimizeGoto) int { return cmp.Compare(a.index, b.index) },
+	)
 
 	return &minimizeSuccessorPass{
 		minimizer:       m,
@@ -582,7 +642,7 @@ func (p *minimizeSuccessorPass) ShouldSplit(left, right *ParseState[ActionListID
 		right,
 		groupIDsByStateID,
 		p.shiftMaps,
-		p.nonterminalMaps,
+		&p.nonterminalMaps,
 	)
 }
 
@@ -593,11 +653,11 @@ func (p *minimizeSuccessorPass) ShouldSplit(left, right *ParseState[ActionListID
 // states Equivalent compares, so its value cannot reach the output.
 func (p *minimizeSuccessorPass) Signature(state *ParseState[ActionListID], groupIDsByStateID []ParseStateID) (uint64, bool) {
 	var hasher fxhash.Hasher
-	for _, shift := range p.shiftMaps[state.ID] {
+	for _, shift := range p.shiftMaps.get(state) {
 		hasher.WriteU32(uint32(shift.key))
 		hasher.WriteU32(groupIDsByStateID[shift.state])
 	}
-	for _, g := range p.nonterminalMaps[state.ID] {
+	for _, g := range p.nonterminalMaps.get(state) {
 		hasher.WriteU32(g.index)
 		switch g.action.Kind {
 		case GotoActionGoto:
@@ -616,10 +676,10 @@ func (p *minimizeSuccessorPass) Signature(state *ParseState[ActionListID], group
 //
 // Equivalent is the equivalent of SuccessorPass.
 func (p *minimizeSuccessorPass) Equivalent(left, right *ParseState[ActionListID], groupIDsByStateID []ParseStateID) bool {
-	shifts1 := p.shiftMaps[left.ID]
-	shifts2 := p.shiftMaps[right.ID]
-	gotos1 := p.nonterminalMaps[left.ID]
-	gotos2 := p.nonterminalMaps[right.ID]
+	shifts1 := p.shiftMaps.get(left)
+	shifts2 := p.shiftMaps.get(right)
+	gotos1 := p.nonterminalMaps.get(left)
+	gotos2 := p.nonterminalMaps.get(right)
 	if len(shifts1) != len(shifts2) || len(gotos1) != len(gotos2) {
 		return false
 	}
@@ -863,25 +923,27 @@ func (m *minimizer) mergeCompatibleStates() {
 	// Precompute per-state sorted shift actions, for both passes.
 	// State actions are stable across loop iterations; only group assignments change.
 	// Keys are symbol positions, for single-instruction comparison.
-	// Upstream sorts with sort_unstable_by_key. The keys of the entries of a
-	// state are different, so the order is the same in Go.
-	shiftMaps := make([][]minimizeShift, len(states))
-	for s := range states {
-		var shifts []minimizeShift
-		for sym, id := range states[s].TerminalEntries.All() {
-			actions := m.parseTable.ActionLists.Get(id)
-			if len(actions) == 0 {
-				continue
+	shiftMaps := collectMinimizeStateLists(
+		states,
+		func(state *ParseState[ActionListID]) iter.Seq[minimizeShift] {
+			return func(yield func(minimizeShift) bool) {
+				for sym, id := range state.TerminalEntries.All() {
+					actions := m.parseTable.ActionLists.Get(id)
+					if len(actions) == 0 {
+						continue
+					}
+					if action := actions[len(actions)-1]; action.Kind == ParseActionShift {
+						if !yield(minimizeShift{key: newMinimizeSymbolKey(m.indexer, sym), state: action.State}) {
+							return
+						}
+					}
+				}
 			}
-			if action := actions[len(actions)-1]; action.Kind == ParseActionShift {
-				shifts = append(shifts, minimizeShift{key: newMinimizeSymbolKey(m.indexer, sym), state: action.State})
-			}
-		}
-		slices.SortFunc(shifts, func(a, b minimizeShift) int { return cmp.Compare(a.key, b.key) })
-		shiftMaps[s] = shifts
-	}
+		},
+		func(a, b minimizeShift) int { return cmp.Compare(a.key, b.key) },
+	)
 
-	conflictPass := newMinimizeConflictPass(m, shiftMaps)
+	conflictPass := newMinimizeConflictPass(m, &shiftMaps)
 	SplitStateIDGroups(
 		states,
 		&stateIDsByGroupID,
@@ -891,7 +953,7 @@ func (m *minimizer) mergeCompatibleStates() {
 	)
 	// The rest only looks at successors.
 
-	successorPass := newMinimizeSuccessorPass(m, shiftMaps)
+	successorPass := newMinimizeSuccessorPass(m, &shiftMaps)
 
 	for SplitStateIDGroups(
 		states,
@@ -968,11 +1030,11 @@ func minimizeHashAction(hasher *fxhash.Hasher, action ParseAction) {
 func (m *minimizer) statesConflict(
 	state1, state2 *ParseState[ActionListID],
 	groupIDsByStateID []ParseStateID,
-	entryMaps [][]minimizeEntry,
+	entryMaps *minimizeStateLists[minimizeEntry],
 	conflictBits *minimizeConflictBits,
 ) bool {
-	entries1 := entryMaps[state1.ID]
-	entries2 := entryMaps[state2.ID]
+	entries1 := entryMaps.get(state1)
+	entries2 := entryMaps.get(state2)
 	len1 := len(entries1)
 	len2 := len(entries2)
 	i := 0
@@ -1016,11 +1078,11 @@ func (m *minimizer) statesConflict(
 func (m *minimizer) stateSuccessorsDiffer(
 	state1, state2 *ParseState[ActionListID],
 	groupIDsByStateID []ParseStateID,
-	shiftMaps [][]minimizeShift,
-	nonterminalMaps [][]minimizeGoto,
+	shiftMaps *minimizeStateLists[minimizeShift],
+	nonterminalMaps *minimizeStateLists[minimizeGoto],
 ) bool {
-	shifts1 := shiftMaps[state1.ID]
-	shifts2 := shiftMaps[state2.ID]
+	shifts1 := shiftMaps.get(state1)
+	shifts2 := shiftMaps.get(state2)
 	i := 0
 	j := 0
 	for i < len(shifts1) && j < len(shifts2) {
@@ -1040,8 +1102,8 @@ func (m *minimizer) stateSuccessorsDiffer(
 		}
 	}
 
-	nonterms1 := nonterminalMaps[state1.ID]
-	nonterms2 := nonterminalMaps[state2.ID]
+	nonterms1 := nonterminalMaps.get(state1)
+	nonterms2 := nonterminalMaps.get(state2)
 	i = 0
 	j = 0
 	for i < len(nonterms1) && j < len(nonterms2) {
