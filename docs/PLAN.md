@@ -965,7 +965,11 @@ the answers. Question 85 asked for a cleanup, and no decision records it.
 Phase 6 raised questions 86 and 87, and D116 records the answers. The end of
 phase 6 raised questions 88 to 92, and D117 to D119 record the answers.
 Question 88 asked for a release, and Ken chose to wait, so no decision
-records it. The next question is question 93.
+records it. A check of the grammar updates on 2026-10-11 raised questions
+93 and 94. Ken kept the rules of `GRAMMAR.md`: a grammar from another
+repository moves only to a new release tag, and a fixture grammar stays at
+the tag that `test/fixtures/fixtures.json` of upstream lists. No decision
+records them. The next question is question 95.
 
 No question is open.
 
