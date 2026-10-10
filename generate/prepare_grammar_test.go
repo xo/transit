@@ -134,11 +134,29 @@ func TestValidateIndirectRecursion(t *testing.T) {
 			},
 			[]string{"b", "c", "d", "b"},
 		},
+		{
+			"b -> c -> b, through seq(optional('|'), $.b, repeat(seq('|', $.b)))",
+			func(p *RulePool) []Variable {
+				a := p.Seq([]RuleID{named(p, "b"), leaf(p, ":=")})
+				b := p.Choice([]RuleID{leaf(p, "x"), named(p, "c")})
+				leadingPipe := p.Choice([]RuleID{leaf(p, "|"), p.Blank()})
+				bRef := named(p, "b")
+				item := p.Seq([]RuleID{leaf(p, "|"), named(p, "b")})
+				rest := p.Choice([]RuleID{p.Repeat(item), p.Blank()})
+				c := p.Seq([]RuleID{leadingPipe, bRef, rest})
+				return []Variable{
+					{Name: p.Intern("a"), Root: a},
+					{Name: p.Intern("b"), Root: b},
+					{Name: p.Intern("c"), Root: c},
+				}
+			},
+			[]string{"b", "c", "b"},
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
-			err := validateIndirectRecursion(buildGrammar(test.build))
+			_, err := PrepareGrammar(buildGrammar(test.build), new([]Diagnostic))
 			if test.expected == nil {
 				if err != nil {
 					t.Errorf("expected no error, got: %v", err)

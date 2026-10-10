@@ -87,9 +87,6 @@ func PrepareGrammar(g *InputGrammar, diagnostics *[]Diagnostic) (*PreparedGramma
 	if err := validatePrecedences(g); err != nil {
 		return nil, err
 	}
-	if err := validateIndirectRecursion(g); err != nil {
-		return nil, err
-	}
 
 	internedMeta, err := internSymbols(g, diagnostics)
 	if err != nil {
@@ -110,6 +107,9 @@ func PrepareGrammar(g *InputGrammar, diagnostics *[]Diagnostic) (*PreparedGramma
 	var state flattenState
 	var out ProductionStore
 	if err := flattenGrammar(g, extMeta, &state, &out); err != nil {
+		return nil, err
+	}
+	if err := validateIndirectRecursion(g, &out); err != nil {
 		return nil, err
 	}
 
@@ -133,43 +133,48 @@ func PrepareGrammar(g *InputGrammar, diagnostics *[]Diagnostic) (*PreparedGramma
 // through a chain of rules of one symbol, such as A -> B and B -> A. Such a
 // cycle makes the parser loop.
 //
-// validateIndirectRecursion is validate_indirect_recursion.
-func validateIndirectRecursion(g *InputGrammar) error {
+// validateIndirectRecursion is validate_indirect_recursion. It runs on the
+// flattened productions of g.
+func validateIndirectRecursion(g *InputGrammar, productions *ProductionStore) error {
 	// Upstream keeps the transitions in an IndexMap of BTreeSets, so the
 	// names keep the order of the variables, and the symbols of each name
-	// are sorted by id.
+	// are sorted by id. Upstream zips the variables with VarProds, so it
+	// stops at the shorter of the two.
 	var names []StrID
 	transitions := make(map[StrID][]StrID, len(g.Variables))
-	var stack []RuleID
-	for _, v := range g.Variables {
-		var productions []StrID
-		stack = append(stack[:0], v.Root)
-		for len(stack) > 0 {
-			id := stack[len(stack)-1]
-			stack = stack[:len(stack)-1]
-			n := g.Pool.Node(id)
-			switch n.Kind {
-			case RuleNamedSymbol:
-				// a rule that refers to itself directly makes no loop
-				if n.Str != v.Name {
-					if i, found := slices.BinarySearch(productions, n.Str); !found {
-						productions = slices.Insert(productions, i, n.Str)
-					}
-				}
-			case RuleChoice:
-				stack = append(stack, g.Pool.ChildSlice(n.Children)...)
-			case RuleMetadata:
-				stack = append(stack, n.Child)
+	for i, v := range g.Variables {
+		if i >= len(productions.VarProds) {
+			break
+		}
+		start, end := productions.VarProds[i][0], productions.VarProds[i][1]
+		var symbols []StrID
+		for _, p := range productions.Productions[start:end] {
+			// Only a production containing exactly one nonterminal adds an edge
+			stepStart, stepEnd := p.StepRange()
+			if stepEnd-stepStart != 1 {
+				continue
+			}
+			index, ok := productions.Steps[stepStart].NonTerminalIndex()
+			if !ok {
+				continue
+			}
+			name := g.Variables[index].Name
+			// Rules that *directly* reference themselves don't cause a parsing loop.
+			if name == v.Name {
+				continue
+			}
+			if j, found := slices.BinarySearch(symbols, name); !found {
+				symbols = slices.Insert(symbols, j, name)
 			}
 		}
 		if _, ok := transitions[v.Name]; !ok {
 			names = append(names, v.Name)
 		}
-		transitions[v.Name] = productions
+		transitions[v.Name] = symbols
 	}
 
+	visited := map[StrID]bool{}
 	for _, start := range names {
-		visited := map[StrID]bool{}
 		var path []StrID
 		if first, last, ok := getCycle(start, transitions, visited, &path); ok {
 			symbols := make([]string, 0, last-first+1)
