@@ -262,6 +262,38 @@ func TestCharacterSetIntersectionDifferenceOps(t *testing.T) {
 			rightOnly:    characterSetFromRange('f', 'g'),
 			intersection: CharacterSet{}.AddRange('c', 'e').AddRange('h', 'i'),
 		},
+		// [       L       ]
+		//   [R1]    [R2]
+		{
+			left:         characterSetFromRange('a', 'm'),
+			right:        CharacterSet{}.AddRange('c', 'd').AddRange('h', 'i'),
+			leftOnly:     CharacterSet{}.AddRange('a', 'b').AddRange('e', 'g').AddRange('j', 'm'),
+			rightOnly:    CharacterSet{},
+			intersection: CharacterSet{}.AddRange('c', 'd').AddRange('h', 'i'),
+		},
+		// [L1] [L2] [L3] [L4] [L5]
+		// [R1]      [R2]
+		{
+			left: CharacterSet{}.
+				AddRange('a', 'b').
+				AddRange('d', 'e').
+				AddRange('g', 'h').
+				AddRange('j', 'k').
+				AddRange('m', 'n'),
+			right:        CharacterSet{}.AddRange('a', 'b').AddRange('g', 'h'),
+			leftOnly:     CharacterSet{}.AddRange('d', 'e').AddRange('j', 'k').AddRange('m', 'n'),
+			rightOnly:    CharacterSet{},
+			intersection: CharacterSet{}.AddRange('a', 'b').AddRange('g', 'h'),
+		},
+		// [L1] [ L2 ]
+		//        [R]
+		{
+			left:         CharacterSet{}.AddRange('a', 'b').AddRange('d', 'f'),
+			right:        characterSetFromRange('e', 'f'),
+			leftOnly:     CharacterSet{}.AddRange('a', 'b').AddRange('d', 'd'),
+			rightOnly:    CharacterSet{},
+			intersection: characterSetFromRange('e', 'f'),
+		},
 	}
 	for i, test := range tests {
 		left, right := test.left.Clone(), test.right.Clone()

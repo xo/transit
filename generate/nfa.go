@@ -99,6 +99,68 @@ type NfaTransition struct {
 // charEnd is END.
 const charEnd = unicode.MaxRune + 1
 
+// rangeRewriter rewrites the ranges of a set as it reads them in order. When
+// it finishes, the ranges that it kept replace the ranges that it read.
+//
+// rangeRewriter is RangeRewriter.
+type rangeRewriter struct {
+	// ranges holds the ranges of the set that is rewritten.
+	ranges *[]charRange
+	// kept is the number of ranges that are kept. They are at the front of
+	// ranges.
+	kept int
+	// read is the index of the first range that is not read yet. It is never
+	// less than kept.
+	read int
+}
+
+// newRangeRewriter starts to read at the range with index start, and keeps
+// the ranges before it where they are.
+//
+// newRangeRewriter is RangeRewriter::new.
+func newRangeRewriter(ranges *[]charRange, start int) rangeRewriter {
+	return rangeRewriter{ranges: ranges, kept: start, read: start}
+}
+
+// next returns the next range, and false when no range is left.
+//
+// next is RangeRewriter::next.
+func (w *rangeRewriter) next() (charRange, bool) {
+	if w.read >= len(*w.ranges) {
+		return charRange{}, false
+	}
+	r := (*w.ranges)[w.read]
+	w.read++
+	return r, true
+}
+
+// keep keeps a range, after the ranges that it kept before.
+//
+// keep is RangeRewriter::keep.
+func (w *rangeRewriter) keep(r charRange) {
+	if w.kept < w.read {
+		(*w.ranges)[w.kept] = r
+	} else {
+		// Splitting a range can keep more ranges than were read.
+		*w.ranges = slices.Insert(*w.ranges, w.kept, r)
+		w.read++
+	}
+	w.kept++
+}
+
+// finish keeps current, the range that is partly read, if ok is true, and
+// every range that is not read yet.
+//
+// finish is RangeRewriter::finish.
+func (w *rangeRewriter) finish(current charRange, ok bool) {
+	if ok {
+		w.keep(current)
+	}
+	if w.kept < w.read {
+		*w.ranges = slices.Delete(*w.ranges, w.kept, w.read)
+	}
+}
+
 // CharacterSetFromChar returns the set of one character.
 //
 // CharacterSetFromChar is CharacterSet::from_char.
@@ -201,19 +263,32 @@ func (s *CharacterSet) addIntRange(i int, start, end uint32) int {
 //
 // DoesIntersect is CharacterSet::does_intersect.
 func (s CharacterSet) DoesIntersect(other CharacterSet) bool {
-	i, j := 0, 0
-	for i < len(s.ranges) && j < len(other.ranges) {
-		left, right := s.ranges[i], other.ranges[j]
+	_, _, ok := s.firstOverlap(other)
+	return ok
+}
+
+// firstOverlap returns the index of the first range in s and the index of
+// the first range in other that overlap, and false when no ranges overlap.
+//
+// firstOverlap is CharacterSet::first_overlap.
+func (s CharacterSet) firstOverlap(other CharacterSet) (int, int, bool) {
+	leftIndex, rightIndex := 0, 0
+	for leftIndex < len(s.ranges) && rightIndex < len(other.ranges) {
+		left, right := s.ranges[leftIndex], other.ranges[rightIndex]
 		switch {
 		case left.end <= right.start:
-			i++
+			// [ L ]
+			//     [ R ]
+			leftIndex++
 		case left.start >= right.end:
-			j++
+			//     [ L ]
+			// [ R ]
+			rightIndex++
 		default:
-			return true
+			return leftIndex, rightIndex, true
 		}
 	}
-	return false
+	return 0, 0, false
 }
 
 // RemoveIntersection returns the characters that are in both s and other,
@@ -221,95 +296,66 @@ func (s CharacterSet) DoesIntersect(other CharacterSet) bool {
 //
 // RemoveIntersection is CharacterSet::remove_intersection.
 func (s *CharacterSet) RemoveIntersection(other *CharacterSet) CharacterSet {
+	// The ranges before the first overlap stay where they are.
+	leftStart, rightStart, ok := s.firstOverlap(*other)
+	if !ok {
+		return CharacterSet{}
+	}
 	var intersection []charRange
-	leftI, rightI := 0, 0
-	for leftI < len(s.ranges) && rightI < len(other.ranges) {
-		left := &s.ranges[leftI]
-		right := &other.ranges[rightI]
+	left := newRangeRewriter(&s.ranges, leftStart)
+	right := newRangeRewriter(&other.ranges, rightStart)
+	l, lok := left.next()
+	r, rok := right.next()
+	for lok && rok {
 		switch {
-		case left.start < right.start:
+		case l.end <= r.start:
 			// [ L ]
 			//     [ R ]
-			if left.end <= right.start {
-				leftI++
-				continue
-			}
-			switch {
-			case left.end < right.end:
-				// [ L ]
-				//   [ R ]
-				intersection = append(intersection, charRange{start: right.start, end: left.end})
-				left.end, right.start = right.start, left.end
-				leftI++
-			case left.end == right.end:
-				// [  L  ]
-				//   [ R ]
-				intersection = append(intersection, *right)
-				left.end = right.start
-				other.ranges = slices.Delete(other.ranges, rightI, rightI+1)
-			default:
-				// [   L   ]
-				//   [ R ]
-				intersection = append(intersection, *right)
-				newRange := charRange{start: left.start, end: right.start}
-				left.start = right.end
-				s.ranges = slices.Insert(s.ranges, leftI, newRange)
-				other.ranges = slices.Delete(other.ranges, rightI, rightI+1)
-				leftI++
-			}
-		case left.start == right.start:
-			switch {
-			case left.end < right.end:
-				// [ L ]
-				// [  R  ]
-				intersection = append(intersection, *left)
-				right.start = left.end
-				s.ranges = slices.Delete(s.ranges, leftI, leftI+1)
-			case left.end == right.end:
-				// [ L ]
-				// [ R ]
-				intersection = append(intersection, *left)
-				s.ranges = slices.Delete(s.ranges, leftI, leftI+1)
-				other.ranges = slices.Delete(other.ranges, rightI, rightI+1)
-			default:
-				// [  L  ]
-				// [ R ]
-				intersection = append(intersection, *right)
-				left.start = right.end
-				other.ranges = slices.Delete(other.ranges, rightI, rightI+1)
-			}
-		default:
+			left.keep(l)
+			l, lok = left.next()
+		case r.end <= l.start:
 			//     [ L ]
 			// [ R ]
-			if left.start >= right.end {
-				rightI++
-				continue
+			right.keep(r)
+			r, rok = right.next()
+		default:
+			// The ranges overlap. Either one can start first, or both together, and either
+			// one can end first, or both together. The starts are handled first, then the
+			// ends.
+			//
+			// Up to the later start, the characters are only in the range that starts
+			// first, so that part stays in its set.
+			//
+			// [ L ...            [ L ...
+			//   [ R ...    or  [ R ...
+			if l.start < r.start {
+				left.keep(charRange{start: l.start, end: r.start})
+				l.start = r.start
+			} else if r.start < l.start {
+				right.keep(charRange{start: r.start, end: l.start})
+				r.start = l.start
 			}
-			switch {
-			case left.end < right.end:
-				//   [ L ]
-				// [   R   ]
-				intersection = append(intersection, *left)
-				newRange := charRange{start: right.start, end: left.start}
-				right.start = left.end
-				other.ranges = slices.Insert(other.ranges, rightI, newRange)
-				s.ranges = slices.Delete(s.ranges, leftI, leftI+1)
-				rightI++
-			case left.end == right.end:
-				//   [ L ]
-				// [  R  ]
-				intersection = append(intersection, *left)
-				right.end = left.start
-				s.ranges = slices.Delete(s.ranges, leftI, leftI+1)
-			default:
-				//   [   L   ]
-				// [   R   ]
-				intersection = append(intersection, charRange{start: left.start, end: right.end})
-				left.start, right.end = right.end, left.start
-				rightI++
+
+			// Both ranges now start together, and up to the earlier end, the characters
+			// are in both sets. A range that ends there is used up, so the next range from
+			// its set takes its place, and the rest of the other range is compared with it.
+			//
+			// [ L ]            [ L ]          [  L  ]
+			// [  R  ]    or    [ R ]    or    [ R ]
+			end := min(l.end, r.end)
+			intersection = append(intersection, charRange{start: l.start, end: end})
+			l.start = end
+			r.start = end
+			if l.start == l.end {
+				l, lok = left.next()
+			}
+			if r.start == r.end {
+				r, rok = right.next()
 			}
 		}
 	}
+	left.finish(l, lok)
+	right.finish(r, rok)
 	return CharacterSet{ranges: intersection}
 }
 
