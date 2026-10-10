@@ -20,7 +20,7 @@ e825b75bcf550d3771da7c22526afee336754626	2026-10-01	not-applicable		new clippy l
 69d518277605a1c556d4723680e2c6d011d2aee9	2026-10-02	not-applicable		changes only paths that transit does not port: .github/workflows/backport.yml
 bcd39f41e7f6b5a29d712252524dbbfa4fa8f517	2026-10-02	not-applicable		changes only paths that transit does not port: lib/binding_web/package-lock.json, lib/binding_web/package.json
 20cf25c10f13ed9b8c499dd966b4e7a57bedbf81	2026-10-02	not-applicable		changes only paths that transit does not port: flake.lock
-a5add39b04bb2e12ceae82016829985df593aebc	2026-10-03	pending		port in phase 6: lib/src/parser.c, test/fixtures/test_grammars/error_recovery_loop/corpus.txt, test/fixtures/test_grammars/error_recovery_loop/grammar.js
+a5add39b04bb2e12ceae82016829985df593aebc	2026-10-03	ported		fix(lib): check shifted stack versions during error recovery
 9b9de365078b0c82f8f8d7af175b1a4207c9b4d5	2026-10-03	not-applicable		a bump of wasmtime and of build.zig.zon, which transit does not port (D1)
 fe8d1936509826e755a1a8ce1309fe7a182c2eb0	2026-10-03	not-applicable		a bump of rquickjs, the JavaScript runtime of the upstream tool, which transit does not port
 e0d0db1d373796e2eaf34eb18e340162ed844d72	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/build_parse_table.rs

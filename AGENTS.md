@@ -207,7 +207,7 @@ these files:
 | `generate/backend/go/` | the Go backend, the package `golang` (D26). `render.go` ports `render.rs`, `write.go` writes `parser.go`, `example.go` writes `example_test.go` (D115), and `package.go` writes the files of a grammar package |
 | `generate/internal/fxhash/` | the hash of the Rust crate `rustc-hash` and the order of a small `FxHashSet` of the Rust standard library, where upstream output depends on them |
 | `generate/internal/regexsyntax/` | the port of the Rust crate `regex-syntax`, in the packages `ast`, `hir` and `unicodetables` (D59) |
-| `generate/testdata/` | the golden files of the 69 test grammars, which the harness writes |
+| `generate/testdata/` | the golden files of the 70 test grammars, which the harness writes |
 | `grammars/grammars.json` | the record of every grammar, with the hashes of its golden files (D40) |
 | `grammars/<module>/` | the grammar modules of the 17 fixture grammars, one for each upstream repository, which `docs/GRAMMAR.md` lays out and `README.md` lists. Each package holds its generated `parser.go` and, when the grammar has one, its ported `scanner.go` |
 | `grammars/usql/` | the module and the package `usql` of the usql grammar, which xo writes (D13, D42, D104). It is one language, whose scanner takes the options of a SQL dialect (D101, D102, D108). The module holds `grammar.js`, `src/scanner.c`, which reads the options from the macro `USQL_OPTIONS`, `scanner.go`, its port, and `options.go`, which holds `Options` and `LanguageFor`. `testdata/corpus/` is a copy of `test/corpus/`, `testdata/options/` holds the cases that need options that are not the default, and `testdata/highlight/` holds the highlight tests |

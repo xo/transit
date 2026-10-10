@@ -1329,6 +1329,9 @@ func (p *Parser) doAllPotentialReductions(
 			continue
 		case lookaheadSymbol != 0:
 			p.stack.removeVersion(version)
+			// Removing this version shifts the next reduction version into its slot.
+			// Check that version before advancing.
+			continue
 		}
 
 		if version == startingVersion {

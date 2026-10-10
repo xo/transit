@@ -1613,6 +1613,24 @@ func TestParseOptionsReborrow(t *testing.T) {
 	}
 }
 
+// TestErrorRecoveryChecksVersionsAfterFailedMissingTokenReduction is
+// test_error_recovery_checks_versions_after_failed_missing_token_reduction
+// of parser_test.rs. The progress function stops the parse after 100 calls,
+// so a parser that loops in error recovery fails the test and does not hang.
+func TestErrorRecoveryChecksVersionsAfterFailedMissingTokenReduction(t *testing.T) {
+	parser := urParser(t, urTestFixtureLanguage(t, "error_recovery_loop"))
+
+	input := "<<a/a>{[:aaaaa"
+	progressChecks := 0
+	tree := urParseInputContext(urProgressContext(func() bool {
+		progressChecks++
+		// error recovery should finish without repeating the same stack versions
+		return progressChecks > 100
+	}), t, parser, urBytesInput(input))
+
+	urEqual(t, "root_node().end_byte()", tree.RootNode().EndByte(), len(input))
+}
+
 // urHangEnv is the variable of the environment that makes the test
 // binary run the body of TestGrammarThatShouldHangAndNotSegfault.
 const urHangEnv = "TRANSIT_UR_HANG_TEST"
