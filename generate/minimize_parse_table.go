@@ -15,10 +15,12 @@ import (
 // rule, remove the states that nothing uses, and order the states by size.
 //
 // Upstream writes log lines with debug! when it splits two states, and
-// Minimizer::symbol_name and SymbolKey::symbol exist only for those lines.
-// The generator has no logger yet, so the port leaves out the log lines and
-// the two functions, as build_tables.go does. The functions that take the
-// ids of the states only for the log lines do not take them in Go.
+// Minimizer::log_conflict, Minimizer::symbol_name, SymbolKey::symbol and the
+// enum Conflict exist only for those lines. The generator has no logger yet,
+// so the port leaves out the log lines, the three functions and the enum, as
+// build_tables.go does. entriesConflict, actionListsConflict and
+// tokenConflicts return the Option<Conflict> of upstream as a bool, which
+// is true for Some.
 //
 // The last part of the file ports the unstable sort of the Rust standard
 // library, for the one sort of this file where two elements that compare
@@ -1122,8 +1124,10 @@ func (m *minimizer) stateSuccessorsDiffer(
 // entriesConflict is Minimizer::entries_conflict.
 func (m *minimizer) entriesConflict(id1, id2 ActionListID, groupIDsByStateID []ParseStateID) bool {
 	// To be compatible, entries need to have the same actions.
-	return id1.Index() != id2.Index() &&
-		m.actionListsConflict(id1, id2, groupIDsByStateID)
+	if id1.Index() == id2.Index() {
+		return false
+	}
+	return m.actionListsConflict(id1, id2, groupIDsByStateID)
 }
 
 // actionListsConflict is entriesConflict for entries with different action
