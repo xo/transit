@@ -32,15 +32,15 @@ cd8caa9f316f31a71195419a4b4ca882d28e8309	2026-10-03	ported	dbf1476	perf(generate
 4a09eb30c1e8de5c9998b1ff9e6a6d38ff388f93	2026-10-03	ported	6d8af4f	perf(generate): check a state against all kept states at once when merging
 4c6466d7b31cee51d4a43a17c4bb249a5061712a	2026-10-03	ported	203dd9d	refactor(generate): return why states conflict instead of logging it
 6c9a707cc7d8c2315f343134ef5a19f8e2b4851f	2026-10-03	ported	9fca0e1	perf(generate): find conflict candidates once per state
-6fc649dca0a6fba002ee86a04839465108610f50	2026-10-03	ported		perf(generate): index successor item sets by symbol
-5f9695024dc40c943843bc0e7e359974c38995e0	2026-10-03	ported		perf(generate): reuse reduction infos across states
-da18743c5cc702bc9fd8085c97a69f3e93af8c3d	2026-10-03	ported		perf(generate): build successor item sets without allocating
-70bf7f4b3663947348832f681b2690cccd0c8ba8	2026-10-03	ported		perf(generate): check the end first when inserting into item sets
-e3c2053c9841032dc956271ae5fd49c787331158	2026-10-03	ported		perf(generate): shrink each parse state's maps once it's complete
-52fcc462c93a6fdab7ff085740b3fefb2e0ffd56	2026-10-03	ported		perf(generate): find used variables in one pass when checking productions
-9f760b04325dbc0d52ed547a03b440831b818286	2026-10-03	ported		perf(generate): find duplicate productions by hash when flattening
-3e6d2003ad6da93e3ab1671e3576cec3c2611790	2026-10-03	ported		perf(generate): append ranges past the end of a character set directly
-7d159bc3f93592a1fabc30054aa478644c7137a8	2026-10-03	ported		perf(generate): stop searching for a large character set at an exact match
+6fc649dca0a6fba002ee86a04839465108610f50	2026-10-03	ported	1238c85	perf(generate): index successor item sets by symbol
+5f9695024dc40c943843bc0e7e359974c38995e0	2026-10-03	ported	0849fcd	perf(generate): reuse reduction infos across states
+da18743c5cc702bc9fd8085c97a69f3e93af8c3d	2026-10-03	ported	a8052d1	perf(generate): build successor item sets without allocating
+70bf7f4b3663947348832f681b2690cccd0c8ba8	2026-10-03	ported	cd33e3c	perf(generate): check the end first when inserting into item sets
+e3c2053c9841032dc956271ae5fd49c787331158	2026-10-03	ported	fff3187	perf(generate): shrink each parse state's maps once it's complete
+52fcc462c93a6fdab7ff085740b3fefb2e0ffd56	2026-10-03	ported	efb833a	perf(generate): find used variables in one pass when checking productions
+9f760b04325dbc0d52ed547a03b440831b818286	2026-10-03	ported	0300432	perf(generate): find duplicate productions by hash when flattening
+3e6d2003ad6da93e3ab1671e3576cec3c2611790	2026-10-03	ported	203f579	perf(generate): append ranges past the end of a character set directly
+7d159bc3f93592a1fabc30054aa478644c7137a8	2026-10-03	ported	d84432a	perf(generate): stop searching for a large character set at an exact match
 e4c863e2d12526215663daab736fee3835c8bd9a	2026-10-03	pending		port in phase 6: crates/generate/src/nfa.rs
 918bb662b558f5a0e877dc9368fed6d7271306f9	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/build_lex_table.rs, crates/generate/src/dedup.rs
 bca909c4151d42a19e8fc8952f6b03a1260f4e18	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables.rs, crates/generate/src/build_tables/build_parse_table.rs, crates/generate/src/tables.rs
