@@ -19,11 +19,21 @@ type transitiveClosureAddition struct {
 	info additionInfo
 }
 
-// equal reports whether two additions are equal.
+// transitiveClosureAdditionKey is a value that is the same for two additions
+// exactly when they are equal, so it can be the key of a Go map.
 //
-// equal is the PartialEq of TransitiveClosureAddition.
-func (a *transitiveClosureAddition) equal(other *transitiveClosureAddition) bool {
-	return a.item.Equal(&other.item) && a.info == other.info
+// transitiveClosureAdditionKey is what the Hash of TransitiveClosureAddition
+// hashes.
+type transitiveClosureAdditionKey struct {
+	item ParseItemKey
+	info additionInfo
+}
+
+// key returns the key of the addition.
+//
+// key stands in for the Hash and the PartialEq of TransitiveClosureAddition.
+func (a *transitiveClosureAddition) key() transitiveClosureAdditionKey {
+	return transitiveClosureAdditionKey{item: a.item.Key(), info: a.info}
 }
 
 // additionInfo is a followSetInfo with an interned lookahead set, and with
@@ -64,17 +74,23 @@ type ParseItemSetBuilder struct {
 	lastSets                   map[Symbol]*TokenSet
 	inlines                    *InlinedProductionMap
 	transitiveClosureAdditions [][]transitiveClosureAddition
+	// closureIndices is scratch for TransitiveClosure. It holds the
+	// positions of the entries added so far, by the key of their items.
+	closureIndices map[ParseItemKey]uint32
 }
 
-// findOrPush adds value to vector when vector does not hold it.
+// pushUnique pushes value unless vector already has it. indices holds the
+// positions of vector's elements, by key.
 //
-// findOrPush is find_or_push.
-func findOrPush(vector *[]transitiveClosureAddition, value transitiveClosureAddition) {
-	for i := range *vector {
-		if (*vector)[i].equal(&value) {
-			return
-		}
+// pushUnique is push_unique. Upstream finds a position in a HashTable of
+// positions. The Go form maps the key of each element to its position, and
+// only looks it up.
+func pushUnique(vector *[]transitiveClosureAddition, indices map[transitiveClosureAdditionKey]uint32, value transitiveClosureAddition) {
+	key := value.key()
+	if _, ok := indices[key]; ok {
+		return
 	}
+	indices[key] = uint32(len(*vector))
 	*vector = append(*vector, value)
 }
 
@@ -101,6 +117,7 @@ func NewParseItemSetBuilder(syntaxGrammar *SyntaxGrammar, lexicalGrammar *Lexica
 		KeyMap:                     keyMap,
 		Lookaheads:                 NewLookaheadSetPool(),
 		transitiveClosureAdditions: make([][]transitiveClosureAddition, len(syntaxGrammar.Variables)),
+		closureIndices:             make(map[ParseItemKey]uint32),
 	}
 
 	// For each grammar symbol, populate the FIRST and LAST sets: the set of
@@ -261,6 +278,7 @@ func NewParseItemSetBuilder(syntaxGrammar *SyntaxGrammar, lexicalGrammar *Lexica
 	eofLookaheads.Insert(SymbolEndValue)
 	var stack []followSetStackEntry
 	followSetInfoByNonTerminal := make(map[int]*followSetInfo)
+	additionIndices := make(map[transitiveClosureAdditionKey]uint32)
 	for i := range syntaxGrammar.Variables {
 		// First, build up a map whose keys are all of the non-terminals that can
 		// appear at the beginning of non-terminal `i`, and whose values store
@@ -336,13 +354,14 @@ func NewParseItemSetBuilder(syntaxGrammar *SyntaxGrammar, lexicalGrammar *Lexica
 		// Upstream walks the FxHashMap follow_set_info_by_non_terminal, so its
 		// order is the order of the hash table. The order decides the order of
 		// the additions of i and which number each new lookahead set gets in
-		// the pool. AddItem inserts each addition into a set that keeps its
-		// entries sorted by item, and it joins lookahead sets and takes the
-		// maximum of reserved word sets, which do not depend on the order. So
-		// the order changes only the numbers of the lookahead sets. An id is
-		// canonical, and nothing orders ids or walks the pool to make output,
-		// so the numbers cannot reach the output. Go walks the variables in
-		// order.
+		// the pool. AddItem adds each addition to the closure once, and
+		// TransitiveClosure sorts the closure by item at the end. AddItem
+		// joins lookahead sets and takes the maximum of reserved word sets,
+		// which do not depend on the order. So the order changes only the
+		// numbers of the lookahead sets. An id is canonical, and nothing
+		// orders ids or walks the pool to make output, so the numbers cannot
+		// reach the output. Go walks the variables in order.
+		clear(additionIndices)
 		for _, variableIndex := range slices.Sorted(maps.Keys(followSetInfoByNonTerminal)) {
 			followSetInfo := followSetInfoByNonTerminal[variableIndex]
 			nonTerminal := NonTerminalSymbol(variableIndex)
@@ -375,7 +394,7 @@ func NewParseItemSetBuilder(syntaxGrammar *SyntaxGrammar, lexicalGrammar *Lexica
 							itemInfo.propagatesLookaheads = false
 							itemInfo.containsWord = false
 						}
-						findOrPush(additionsForNonTerminal, transitiveClosureAddition{
+						pushUnique(additionsForNonTerminal, additionIndices, transitiveClosureAddition{
 							item: item.SubstituteProduction(id, keyMap.KeysFor(id)),
 							info: itemInfo,
 						})
@@ -388,7 +407,7 @@ func NewParseItemSetBuilder(syntaxGrammar *SyntaxGrammar, lexicalGrammar *Lexica
 						itemInfo.propagatesLookaheads = false
 						itemInfo.containsWord = false
 					}
-					findOrPush(additionsForNonTerminal, transitiveClosureAddition{
+					pushUnique(additionsForNonTerminal, additionIndices, transitiveClosureAddition{
 						item: item,
 						info: itemInfo,
 					})
@@ -407,6 +426,7 @@ func NewParseItemSetBuilder(syntaxGrammar *SyntaxGrammar, lexicalGrammar *Lexica
 // TransitiveClosure is ParseItemSetBuilder::transitive_closure.
 func (b *ParseItemSetBuilder) TransitiveClosure(itemSet *ParseItemSet) ParseItemSet {
 	var result ParseItemSet
+	clear(b.closureIndices)
 	for i := range itemSet.Entries {
 		entry := &itemSet.Entries[i]
 		if ids, ok := b.inlines.InlinedProdIDs(entry.Item.ProdID, entry.Item.StepIndex); ok {
@@ -421,6 +441,14 @@ func (b *ParseItemSetBuilder) TransitiveClosure(itemSet *ParseItemSet) ParseItem
 			b.addItem(&result, entry)
 		}
 	}
+	// Items are appended as they're first added, so restore the set's order
+	// once at the end.
+	//
+	// Upstream sorts with sort_unstable_by. No two items of a closure are
+	// equal, so the order is the same in Go.
+	slices.SortFunc(result.Entries, func(a, b ParseItemSetEntry) int {
+		return a.Item.Compare(b.Item)
+	})
 	return result
 }
 
@@ -477,6 +505,27 @@ func (b *ParseItemSetBuilder) LastSet(symbol Symbol) *TokenSet {
 	return set
 }
 
+// closureEntry returns the entry for item in a closure being built,
+// appending it if new. The pointer is valid until the next closureEntry.
+//
+// closureEntry is ParseItemSetBuilder::closure_entry. Upstream passes the
+// table of positions as an argument, and the Go method reads
+// closureIndices.
+func (b *ParseItemSetBuilder) closureEntry(set *ParseItemSet, item ParseItem) *ParseItemSetEntry {
+	key := item.Key()
+	index, ok := b.closureIndices[key]
+	if !ok {
+		index = uint32(len(set.Entries))
+		b.closureIndices[key] = index
+		set.Entries = append(set.Entries, ParseItemSetEntry{
+			Item:                     item,
+			Lookaheads:               LookaheadSetPoolEmpty,
+			FollowingReservedWordSet: 0,
+		})
+	}
+	return &set.Entries[index]
+}
+
 // addItem adds an entry to a set, with the additions of the non-terminal
 // after its dot.
 //
@@ -503,7 +552,7 @@ func (b *ParseItemSetBuilder) addItem(set *ParseItemSet, entry *ParseItemSetEntr
 			// Use the pre-computed *additions* to expand the non-terminal.
 			for i := range b.transitiveClosureAdditions[index] {
 				addition := &b.transitiveClosureAdditions[index][i]
-				e := set.Insert(addition.item)
+				e := b.closureEntry(set, addition.item)
 				e.Lookaheads = b.Lookaheads.Union(e.Lookaheads, addition.info.lookaheads)
 
 				if addition.info.containsWord {
@@ -521,7 +570,7 @@ func (b *ParseItemSetBuilder) addItem(set *ParseItemSet, entry *ParseItemSetEntr
 		}
 	}
 
-	e := set.Insert(entry.Item)
+	e := b.closureEntry(set, entry.Item)
 	e.Lookaheads = b.Lookaheads.Union(e.Lookaheads, entry.Lookaheads)
 	e.FollowingReservedWordSet = max(e.FollowingReservedWordSet, entry.FollowingReservedWordSet)
 }
