@@ -18,8 +18,8 @@ import (
 // first state of each class is then compared, and the rest of the class
 // follows it.
 //
-// SplitCriterion is the trait SplitCriterion. SplitFunc gives the default
-// methods of the trait.
+// SplitCriterion is the trait SplitCriterion. Each type that implements it
+// writes the default methods of the trait that it keeps.
 type SplitCriterion[S any] interface {
 	// ShouldSplit reports whether left and right, from the same group, must
 	// be in different groups. This must be symmetric.
@@ -45,42 +45,12 @@ type SplitCriterion[S any] interface {
 	// of kept.
 	//
 	// kept holds the first state of each class that stayed before state, in
-	// order. false is always safe: the states are then compared one at a
-	// time.
+	// order. This is only asked once ShouldSplit found that state can stay
+	// with kept[0]. false is always correct: the states are then compared one
+	// at a time.
 	//
 	// CompatibleWithAll is SplitCriterion::compatible_with_all.
 	CompatibleWithAll(state *S, kept []uint32, groupIDsByStateID []uint32) bool
-}
-
-// SplitFunc lets a function that decides SplitCriterion.ShouldSplit, like
-// the lexer's, be a criterion. It has no classes, so every state is
-// compared.
-//
-// SplitFunc is the impl of SplitCriterion for FnMut(&S, &S, &[u32]) -> bool,
-// with the default methods of the trait.
-type SplitFunc[S any] func(left, right *S, groupIDsByStateID []uint32) bool
-
-// ShouldSplit calls f.
-func (f SplitFunc[S]) ShouldSplit(left, right *S, groupIDsByStateID []uint32) bool {
-	return f(left, right, groupIDsByStateID)
-}
-
-// Signature returns false, because f has no classes.
-func (f SplitFunc[S]) Signature(*S, []uint32) (uint64, bool) {
-	return 0, false
-}
-
-// Equivalent returns false.
-func (f SplitFunc[S]) Equivalent(_, _ *S, _ []uint32) bool {
-	return false
-}
-
-// StartGroup does nothing.
-func (f SplitFunc[S]) StartGroup() {}
-
-// CompatibleWithAll returns false.
-func (f SplitFunc[S]) CompatibleWithAll(*S, []uint32, []uint32) bool {
-	return false
 }
 
 // splitMovedState is a state that does not stay in its group, with the

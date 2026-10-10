@@ -407,7 +407,7 @@ func minimizeLexTable(table *LexTable, parseTable *ParseTable[ActionListID]) {
 		}
 	}
 
-	for SplitStateIDGroups(table.States, &stateIDsByGroupID, groupIDsByStateID, 1, SplitFunc[LexState](lexStatesDiffer)) {
+	for SplitStateIDGroups(table.States, &stateIDsByGroupID, groupIDsByStateID, 1, lexStateSplit{}) {
 	}
 
 	newStates := make([]LexState, 0, len(stateIDsByGroupID))
@@ -456,6 +456,48 @@ func lexStateSignature(isFirst bool, state *LexState) string {
 		buf = append(buf, byte(boolWord(advance.Action.InMainToken)))
 	}
 	return string(buf)
+}
+
+// lexStateSplit separates the lex states whose advance actions lead to
+// different groups.
+//
+// lexStateSplit is LexStateSplit.
+type lexStateSplit struct{}
+
+// ShouldSplit calls lexStatesDiffer.
+//
+// ShouldSplit is the should_split of LexStateSplit.
+func (lexStateSplit) ShouldSplit(left, right *LexState, groupIDsByStateID []LexStateID) bool {
+	return lexStatesDiffer(left, right, groupIDsByStateID)
+}
+
+// Signature returns false, because the lexer sorts no states into classes.
+//
+// Signature is the default signature of SplitCriterion.
+func (lexStateSplit) Signature(*LexState, []LexStateID) (uint64, bool) {
+	return 0, false
+}
+
+// Equivalent returns false.
+//
+// Equivalent is the default equivalent of SplitCriterion.
+func (lexStateSplit) Equivalent(_, _ *LexState, _ []LexStateID) bool {
+	return false
+}
+
+// StartGroup does nothing.
+//
+// StartGroup is the default start_group of SplitCriterion.
+func (lexStateSplit) StartGroup() {}
+
+// CompatibleWithAll returns true. The states of a group have the same
+// advance actions apart from the states they lead to, so states that do not
+// need to be split lead to the same groups. Every kept state leads to the
+// same groups as the first one, and state was just found to as well.
+//
+// CompatibleWithAll is the compatible_with_all of LexStateSplit.
+func (lexStateSplit) CompatibleWithAll(*LexState, []uint32, []LexStateID) bool {
+	return true
 }
 
 // lexStatesDiffer reports whether two states of a group move to different
