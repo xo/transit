@@ -289,7 +289,6 @@ const (
 	DiagnosticUnnecessaryConflicts DiagnosticKind = iota
 	DiagnosticUnaryChoice
 	DiagnosticUnarySeq
-	DiagnosticEmptyStringMatch
 	DiagnosticUnsupportedRegexFlag
 	DiagnosticSupertypeInlined
 )
@@ -303,7 +302,7 @@ const (
 //   - DiagnosticUnnecessaryConflicts: Conflicts.
 //   - DiagnosticUnaryChoice and DiagnosticUnarySeq: Name, which is empty for
 //     a rule with no name.
-//   - DiagnosticEmptyStringMatch and DiagnosticSupertypeInlined: Name.
+//   - DiagnosticSupertypeInlined: Name.
 //   - DiagnosticUnsupportedRegexFlag: Flag and Pattern.
 type Diagnostic struct {
 	Kind      DiagnosticKind
@@ -337,8 +336,6 @@ func (d Diagnostic) String() string {
 		fmt.Fprintf(&b, "rule %s contains a `choice` rule with a single element. this is unnecessary.", nameOrAnonymous(d.Name))
 	case DiagnosticUnarySeq:
 		fmt.Fprintf(&b, "rule %s contains a `seq` rule with a single element. this is unnecessary.", nameOrAnonymous(d.Name))
-	case DiagnosticEmptyStringMatch:
-		fmt.Fprintf(&b, "named extra rule `%s` matches the empty string. inline this to avoid infinite loops while parsing.", d.Name)
 	case DiagnosticUnsupportedRegexFlag:
 		fmt.Fprintf(&b, "unsupported regex flag `%c` in pattern `%s`", d.Flag, d.Pattern)
 	case DiagnosticSupertypeInlined:

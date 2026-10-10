@@ -25,6 +25,21 @@ func (e *IndirectRecursionError) Error() string {
 	return "Grammar contains an indirectly recursive rule: " + strings.Join(e.Symbols, " -> ")
 }
 
+// EmptyStringExtraError is the error of an extra that can match the empty
+// string.
+//
+// EmptyStringExtraError is EmptyStringExtraError.
+type EmptyStringExtraError struct {
+	// Name is the name of the extra.
+	Name string
+}
+
+// Error returns the text of the error.
+func (e *EmptyStringExtraError) Error() string {
+	return "The extra rule `" + e.Name + "` matches the empty string.\n\n" +
+		"Tree-sitter does not support extras that match the empty string.\n"
+}
+
 // UndeclaredPrecedenceError is the error of a named precedence that no list
 // in precedences declares.
 //
@@ -110,6 +125,9 @@ func PrepareGrammar(g *InputGrammar, diagnostics *[]Diagnostic) (*PreparedGramma
 		return nil, err
 	}
 	if err := validateIndirectRecursion(g, &out); err != nil {
+		return nil, err
+	}
+	if err := validateExtras(g, extMeta.extraSymbols, lexicalGrammar, &out); err != nil {
 		return nil, err
 	}
 
@@ -208,6 +226,152 @@ func getCycle(current StrID, transitions map[StrID][]StrID, visited map[StrID]bo
 	}
 	*path = (*path)[:len(*path)-1]
 	return 0, 0, false
+}
+
+// validateExtras returns an error when an extra can match the empty string
+// through internal tokens and rules.
+//
+// validateExtras is validate_extras.
+//
+// Reject extras that can match the empty string through internal tokens and rules.
+// Parsing an extra doesn't change the parse state, so the parser could keep parsing
+// an empty one at the same position.
+func validateExtras(g *InputGrammar, extraSymbols []Symbol, lexicalGrammar *LexicalGrammar, productions *ProductionStore) error {
+	empty := newEmptyMatches(lexicalGrammar, productions)
+	for _, symbol := range extraSymbols {
+		var matchesEmpty bool
+		var name StrID
+		switch symbol.Kind() {
+		case SymbolTerminal:
+			index, _ := symbol.TerminalIndex()
+			matchesEmpty, name = empty.token(int(index)), lexicalGrammar.Variables[index].Name
+		case SymbolNonTerminal:
+			index, _ := symbol.NonTerminalIndex()
+			matchesEmpty, name = empty.rule(int(index)), g.Variables[index].Name
+		case SymbolExternal:
+			// External scanners decide whether a token consumes input, so generation
+			// cannot check them.
+			continue
+		default:
+			// INVARIANT: Token extraction only resolves extras to terminals, non-terminals,
+			// and external tokens.
+			panic("internal error: entered unreachable code")
+		}
+		if matchesEmpty {
+			return &EmptyStringExtraError{Name: g.Pool.Resolve(name)}
+		}
+	}
+	return nil
+}
+
+// emptyMatches finds which tokens and rules can match the empty string, as
+// the extras reach them.
+//
+// emptyMatches is EmptyMatches.
+type emptyMatches struct {
+	lexicalGrammar *LexicalGrammar
+	productions    *ProductionStore
+	// The NFA states reached so far while checking a token
+	reached []uint32
+	// Rules that have been checked, or are being checked
+	checkedRules BitVec
+	// The checked rules that can match the empty string
+	emptyRules BitVec
+	// Rules found not to match while another rule was still being checked
+	provisional []uint32
+	// How many rules are being checked
+	depth uint32
+}
+
+// newEmptyMatches is EmptyMatches::new.
+func newEmptyMatches(lexicalGrammar *LexicalGrammar, productions *ProductionStore) *emptyMatches {
+	return &emptyMatches{
+		lexicalGrammar: lexicalGrammar,
+		productions:    productions,
+	}
+}
+
+// symbol is EmptyMatches::symbol.
+func (e *emptyMatches) symbol(symbol Symbol) bool {
+	switch symbol.Kind() {
+	case SymbolTerminal:
+		index, _ := symbol.TerminalIndex()
+		return e.token(int(index))
+	case SymbolNonTerminal:
+		index, _ := symbol.NonTerminalIndex()
+		return e.rule(int(index))
+	case SymbolExternal:
+		// External token nullability is unknown. Only reject empty matches
+		// established by the internal grammar.
+		return false
+	}
+	// INVARIANT: Flattening never leaves an `End` step in a production, and
+	// `EndOfNonTerminalExtra` only appears in parse table lookaheads.
+	panic("internal error: entered unreachable code")
+}
+
+// token is EmptyMatches::token.
+//
+// Whether the token's NFA can reach an accept state without consuming a character.
+func (e *emptyMatches) token(index int) bool {
+	e.reached = e.reached[:0]
+	e.reached = append(e.reached, e.lexicalGrammar.Variables[index].StartState)
+	for i := 0; i < len(e.reached); i++ {
+		switch state := &e.lexicalGrammar.Nfa.States[e.reached[i]]; state.Kind {
+		case NfaAccept:
+			return true
+		case NfaSplit:
+			for _, next := range [2]uint32{state.Left, state.Right} {
+				if !slices.Contains(e.reached, next) {
+					e.reached = append(e.reached, next)
+				}
+			}
+		case NfaAdvance:
+		}
+	}
+	return false
+}
+
+// rule is EmptyMatches::rule.
+//
+// Whether every step of one of the rule's productions can match the empty string.
+//
+// A rule that's still being checked counts as not matching, which cuts cycles. If it
+// turns out to match, answers found while it was open are dropped and rechecked.
+func (e *emptyMatches) rule(index int) bool {
+	if e.checkedRules.Len() == 0 {
+		rules := len(e.productions.VarProds)
+		e.checkedRules.Resize(rules, false)
+		e.emptyRules.Resize(rules, false)
+	}
+	if checked, _ := e.checkedRules.Get(index); !checked {
+		e.checkedRules.Set(index, true)
+		since := len(e.provisional)
+		e.depth++
+		start, end := e.productions.VarProds[index][0], e.productions.VarProds[index][1]
+		empty := slices.ContainsFunc(e.productions.Productions[start:end], func(p Production) bool {
+			stepStart, stepEnd := p.StepRange()
+			for _, step := range e.productions.Steps[stepStart:stepEnd] {
+				if !e.symbol(step.Symbol()) {
+					return false
+				}
+			}
+			return true
+		})
+		e.depth--
+		if empty {
+			e.emptyRules.Set(index, true)
+			// These may have only failed because this rule was still open
+			for _, rule := range e.provisional[since:] {
+				e.checkedRules.Set(int(rule), false)
+			}
+			e.provisional = e.provisional[:since]
+		} else if e.depth > 0 {
+			e.provisional = append(e.provisional, uint32(index))
+		}
+	}
+	empty, _ := e.emptyRules.Get(index)
+	return empty
 }
 
 // validatePrecedences returns an error when a rule uses a named precedence

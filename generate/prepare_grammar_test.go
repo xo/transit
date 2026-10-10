@@ -171,6 +171,195 @@ func TestValidateIndirectRecursion(t *testing.T) {
 	}
 }
 
+// TestValidateExtras is test_validate_extras in prepare_grammar.rs.
+func TestValidateExtras(t *testing.T) {
+	t.Parallel()
+	// `source: 'a'` followed by `rules`, with `comment` as the only extra
+	grammar := func(rules func(p *RulePool) []Variable) *InputGrammar {
+		g := buildGrammar(func(p *RulePool) []Variable {
+			source := leaf(p, "a")
+			return append([]Variable{{Name: p.Intern("source"), Root: source}}, rules(p)...)
+		})
+		extra := named(g.Pool, "comment")
+		g.ExtraRoots = append(g.ExtraRoots, extra)
+		return g
+	}
+
+	tests := []struct {
+		name         string
+		grammar      *InputGrammar
+		matchesEmpty bool
+	}{
+		{
+			"a token",
+			grammar(func(p *RulePool) []Variable {
+				return []Variable{{Name: p.Intern("comment"), Root: pattern(p, ".*")}}
+			}),
+			true,
+		},
+		{
+			"a non-terminal whose only step is a token",
+			grammar(func(p *RulePool) []Variable {
+				content := pattern(p, ".*")
+				return []Variable{{Name: p.Intern("comment"), Root: p.Seq([]RuleID{content})}}
+			}),
+			true,
+		},
+		{
+			"a non-terminal with an empty production",
+			grammar(func(p *RulePool) []Variable {
+				hash := leaf(p, "#")
+				content := pattern(p, ".*")
+				comment := p.Seq([]RuleID{hash, content})
+				blank := p.Blank()
+				return []Variable{{Name: p.Intern("comment"), Root: p.Choice([]RuleID{comment, blank})}}
+			}),
+			true,
+		},
+		{
+			"a non-terminal that matches it through another one",
+			grammar(func(p *RulePool) []Variable {
+				hashes := pattern(p, "#*")
+				body := named(p, "_body")
+				comment := p.Seq([]RuleID{hashes, body})
+				content := pattern(p, ".*")
+				return []Variable{
+					{Name: p.Intern("comment"), Root: comment},
+					{Name: p.Intern("_body"), Root: p.Seq([]RuleID{content})},
+				}
+			}),
+			true,
+		},
+		{
+			"a non-terminal that matches it through rules that reach each other",
+			grammar(func(p *RulePool) []Variable {
+				hashes := pattern(p, "#*")
+				aRef := named(p, "a")
+				bRef := named(p, "b")
+				bangs := pattern(p, "!*")
+				comment := p.Seq([]RuleID{hashes, aRef, bRef, bangs})
+				bRef2 := named(p, "b")
+				xs := pattern(p, "x*")
+				bXs := p.Seq([]RuleID{bRef2, xs})
+				zs := pattern(p, "z*")
+				a := p.Choice([]RuleID{bXs, zs})
+				aRef2 := named(p, "a")
+				ws := pattern(p, "w*")
+				b := p.Seq([]RuleID{aRef2, ws})
+				return []Variable{
+					{Name: p.Intern("comment"), Root: comment},
+					{Name: p.Intern("a"), Root: a},
+					{Name: p.Intern("b"), Root: b},
+				}
+			}),
+			true,
+		},
+		{
+			"a nullable first token is safe when a later step consumes input",
+			grammar(func(p *RulePool) []Variable {
+				hashes := pattern(p, "#*")
+				hash := leaf(p, "#")
+				return []Variable{{Name: p.Intern("comment"), Root: p.Seq([]RuleID{hashes, hash})}}
+			}),
+			false,
+		},
+		{
+			"a token that has to consume the #",
+			grammar(func(p *RulePool) []Variable {
+				hash := leaf(p, "#")
+				content := pattern(p, ".*")
+				comment := p.Seq([]RuleID{hash, content})
+				return []Variable{{Name: p.Intern("comment"), Root: p.Token(comment)}}
+			}),
+			false,
+		},
+		{
+			"a non-terminal that has to consume the #",
+			grammar(func(p *RulePool) []Variable {
+				hash := leaf(p, "#")
+				content := pattern(p, ".*")
+				return []Variable{{Name: p.Intern("comment"), Root: p.Seq([]RuleID{hash, content})}}
+			}),
+			false,
+		},
+	}
+	for _, test := range tests {
+		_, err := PrepareGrammar(test.grammar, new([]Diagnostic))
+		if !test.matchesEmpty {
+			if err != nil {
+				t.Errorf("%s: expected no error, got: %v", test.name, err)
+			}
+			continue
+		}
+		ee, ok := errors.AsType[*EmptyStringExtraError](err)
+		if !ok || *ee != (EmptyStringExtraError{Name: "comment"}) {
+			t.Errorf("%s: expected the error of the extra comment, got: %v", test.name, err)
+		}
+	}
+}
+
+// TestValidateExtrasWithSharedNullableRules is
+// test_validate_extras_with_shared_nullable_rules in prepare_grammar.rs.
+func TestValidateExtrasWithSharedNullableRules(t *testing.T) {
+	t.Parallel()
+	g := buildGrammar(func(p *RulePool) []Variable {
+		source := leaf(p, "a")
+		hashes := pattern(p, "#*")
+		aRef := named(p, "a")
+		bang := leaf(p, "!")
+		first := p.Seq([]RuleID{hashes, aRef, bang})
+		ats := pattern(p, "@*")
+		bRef := named(p, "b")
+		second := p.Seq([]RuleID{ats, bRef})
+		bRef2 := named(p, "b")
+		xs := pattern(p, "x*")
+		bXs := p.Seq([]RuleID{bRef2, xs})
+		zs := pattern(p, "z*")
+		a := p.Choice([]RuleID{bXs, zs})
+		aRef2 := named(p, "a")
+		ws := pattern(p, "w*")
+		b := p.Seq([]RuleID{aRef2, ws})
+		return []Variable{
+			{Name: p.Intern("source"), Root: source},
+			{Name: p.Intern("first"), Root: first},
+			{Name: p.Intern("second"), Root: second},
+			{Name: p.Intern("a"), Root: a},
+			{Name: p.Intern("b"), Root: b},
+		}
+	})
+	for _, name := range []string{"first", "second"} {
+		extra := named(g.Pool, name)
+		g.ExtraRoots = append(g.ExtraRoots, extra)
+	}
+
+	// Checking the first extra reaches the nullable cycle, but its `!` makes it safe.
+	// The same memo must still identify the second extra as nullable.
+	_, err := PrepareGrammar(g, new([]Diagnostic))
+	ee, ok := errors.AsType[*EmptyStringExtraError](err)
+	if !ok || *ee != (EmptyStringExtraError{Name: "second"}) {
+		t.Errorf("expected the error of the extra second, got: %v", err)
+	}
+}
+
+// TestNullableSyntacticTokensAndAnonymousExtras is
+// test_nullable_syntactic_tokens_and_anonymous_extras in prepare_grammar.rs.
+func TestNullableSyntacticTokensAndAnonymousExtras(t *testing.T) {
+	t.Parallel()
+	g := buildGrammar(func(p *RulePool) []Variable {
+		quote := leaf(p, `"`)
+		content := pattern(p, `[^"]*`)
+		source := p.Seq([]RuleID{quote, content, quote})
+		return []Variable{{Name: p.Intern("source"), Root: source}}
+	})
+	whitespace := pattern(g.Pool, `\s*`)
+	g.ExtraRoots = append(g.ExtraRoots, whitespace)
+
+	// Both tokens can match empty, but neither is shifted as an extra symbol.
+	if _, err := PrepareGrammar(g, new([]Diagnostic)); err != nil {
+		t.Errorf("expected no error, got: %v", err)
+	}
+}
+
 // TestTokenBodySharedWithSyntax is test_token_body_shared_with_syntax in
 // prepare_grammar.rs.
 func TestTokenBodySharedWithSyntax(t *testing.T) {
@@ -403,6 +592,13 @@ func named(pool *RulePool, name string) RuleID {
 // leaf is leaf in prepare_grammar.rs.
 func leaf(pool *RulePool, s string) RuleID {
 	return pool.String(pool.Intern(s))
+}
+
+// pattern returns a pattern with no flags.
+//
+// pattern is pattern in prepare_grammar.rs.
+func pattern(pool *RulePool, value string) RuleID {
+	return pool.Pattern(pool.Intern(value), pool.Intern(""))
 }
 
 // precNamed returns content with a named precedence.

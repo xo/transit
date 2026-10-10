@@ -8,8 +8,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-
-	"github.com/xo/transit/generate/internal/regexsyntax/hir"
 )
 
 // This file ports crates/generate/src/parse_grammar.rs, which reads
@@ -101,7 +99,7 @@ func serializationError(err error) error {
 // extras or externals, or reached from any of these through references.
 //
 // normalize is InputGrammar::normalize.
-func (g *InputGrammar) normalize(diagnostics *[]Diagnostic) {
+func (g *InputGrammar) normalize() {
 	p := g.Pool
 	// Find the used set with a walk from the roots: the start rule, the word,
 	// and the references in extras and externals. A symbol that extras names
@@ -139,29 +137,6 @@ func (g *InputGrammar) normalize(diagnostics *[]Diagnostic) {
 		used[name] = true
 		if root, ok := byName[name]; ok {
 			p.CollectReferencedIDs(root, false, &stack)
-		}
-	}
-
-	for _, v := range g.Variables {
-		if !used[v.Name] {
-			continue
-		}
-		if !slices.ContainsFunc(g.ExtraRoots, func(r RuleID) bool { return p.RuleIsReferenced(r, v.Name, false) }) {
-			continue
-		}
-		inner := v.Root
-		if n := p.Node(v.Root); n.Kind == RuleMetadata {
-			inner = n.Child
-		}
-		var matchesEmpty bool
-		switch n := p.Node(inner); n.Kind {
-		case RuleString:
-			matchesEmpty = p.Resolve(n.Str) == ""
-		case RulePattern:
-			matchesEmpty = regexMatchesEmpty(p.Resolve(n.Str))
-		}
-		if matchesEmpty {
-			*diagnostics = append(*diagnostics, Diagnostic{Kind: DiagnosticEmptyStringMatch, Name: p.Resolve(v.Name)})
 		}
 	}
 
@@ -328,7 +303,7 @@ func ParseGrammar(input []byte, diagnostics *[]Diagnostic) (*InputGrammar, error
 		WordName:            word,
 		PrecedenceOrderings: orderings,
 	}
-	g.normalize(diagnostics)
+	g.normalize()
 	return g, nil
 }
 
@@ -609,52 +584,4 @@ func orderedObject(raw json.RawMessage) ([]objectEntry, error) {
 		entries = append(entries, objectEntry{key: key, value: value})
 	}
 	return entries, nil
-}
-
-// regexMatchesEmpty reports whether a pattern compiles and matches the empty
-// string. It does what Regex::new(pattern).is_ok_and(|r| r.is_match("")) of
-// the Rust crate regex does, and it is not a port of that crate (D59).
-//
-// The crate regex parses and translates a pattern with the defaults of
-// regex-syntax, which hir.Parse uses. The crate also rejects a program over
-// 10 MB, which no pattern of a token comes near. On the empty string a match
-// can start only at 0, where the input has no character before and none
-// after. So an anchor holds, \b does not, \B does, a word start or end does
-// not, and a half word start or end does.
-func regexMatchesEmpty(pattern string) bool {
-	h, err := hir.Parse(pattern)
-	return err == nil && matchesEmptyInput(h)
-}
-
-// matchesEmptyInput reports whether an HIR matches the empty input.
-func matchesEmptyInput(h *hir.Hir) bool {
-	switch k := h.Kind().(type) {
-	case *hir.Empty:
-		return true
-	case *hir.Literal:
-		return len(*k) == 0
-	case *hir.Look:
-		switch *k {
-		case hir.LookWordASCII, hir.LookWordUnicode,
-			hir.LookWordStartASCII, hir.LookWordEndASCII,
-			hir.LookWordStartUnicode, hir.LookWordEndUnicode:
-			return false
-		}
-		return true
-	case *hir.Repetition:
-		return k.Min == 0 || matchesEmptyInput(k.Sub)
-	case *hir.Capture:
-		return matchesEmptyInput(k.Sub)
-	case *hir.Concat:
-		for _, sub := range *k {
-			if !matchesEmptyInput(sub) {
-				return false
-			}
-		}
-		return true
-	case *hir.Alternation:
-		return slices.ContainsFunc(*k, matchesEmptyInput)
-	}
-	// a class matches one character, and the empty input has none
-	return false
 }
