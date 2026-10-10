@@ -32,7 +32,7 @@ var renderPaths = []renderPath{
 	{"reserved word set of a state", regexp.MustCompile(`\.reserved_word_set_id = `)},
 	{"external scanner", regexp.MustCompile(`static const bool ts_external_scanner_states`)},
 	{"external lex state", regexp.MustCompile(`\.external_lex_state = `)},
-	{"pragma for a large lexer", regexp.MustCompile(`#pragma GCC optimize \("O0"\)`)},
+	{"pragma for a large lexer", regexp.MustCompile(`#pragma GCC optimize \("O0", "jump-tables"\)`)},
 	{"ADVANCE_MAP", regexp.MustCompile(`ADVANCE_MAP\(`)},
 	{"SKIP", regexp.MustCompile(`\bSKIP\(`)},
 	{"eof action", regexp.MustCompile(`if \(eof\) ADVANCE\(`)},

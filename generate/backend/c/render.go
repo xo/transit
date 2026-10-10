@@ -419,16 +419,16 @@ func (g *generator) addPragmas() {
 	g.addLinef("#endif")
 	g.addLinef("")
 
-	// Compiling large lexer functions can be very slow. Disabling optimizations
-	// is not ideal, but only a very small fraction of overall parse time is
-	// spent lexing, so the performance impact of this is negligible.
+	// Compiling large lexer functions with optimization can be very slow, so
+	// disable most optimizations for large lexers. GCC 15 and later also
+	// disable jump tables at O0, which makes the lexer much slower at runtime.
 	if len(g.mainLexTable.States) > 300 {
 		g.addLinef("#ifdef _MSC_VER")
 		g.addLinef("#pragma optimize(\"\", off)")
 		g.addLinef("#elif defined(__clang__)")
 		g.addLinef("#pragma clang optimize off")
 		g.addLinef("#elif defined(__GNUC__)")
-		g.addLinef("#pragma GCC optimize (\"O0\")")
+		g.addLinef("#pragma GCC optimize (\"O0\", \"jump-tables\")")
 		g.addLinef("#endif")
 		g.addLinef("")
 	}

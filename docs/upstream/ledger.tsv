@@ -14,7 +14,7 @@ f5a99d6606cf808c0707bc7fd0b16e7dbe092017	2026-09-30	not-applicable		changes only
 a66db75608959e91c7b8cb7e0aa58c691ed2d7fd	2026-10-01	not-applicable		changes only paths that transit does not port: crates/loader/binaryen-version
 3643db144c3788282151fd1340d3b1f46a5a6323	2026-10-01	not-applicable		a bump of wasmtime and of build.zig.zon, which transit does not port (D1)
 436c42ff56b28a2016e88a09683a6cd8dbe04e7a	2026-10-01	not-applicable		changes only paths that transit does not port: .github/workflows/ci.yml, .github/workflows/regex_error_kinds.yml, .github/workflows/wasm_stdlib.yml
-867aa6d14418163560bf89f12c48107098b1ec8f	2026-10-01	pending		port in phase 6: crates/generate/src/render.rs
+867aa6d14418163560bf89f12c48107098b1ec8f	2026-10-01	ported		fix(generate): keep GCC jump tables enabled for large lexers
 e5d5a9d7efa9fb28ced9f9c54c28f085e9fb0c62	2026-10-01	pending		port in phase 6: crates/generate/src/build_tables.rs, crates/generate/src/build_tables/minimize_parse_table.rs, crates/generate/src/generate.rs
 e825b75bcf550d3771da7c22526afee336754626	2026-10-01	pending		port in phase 6: crates/generate/src/prepare_grammar.rs, crates/generate/src/prepare_grammar/flatten_grammar.rs, crates/generate/src/prepare_grammar/intern_symbols.rs
 69d518277605a1c556d4723680e2c6d011d2aee9	2026-10-02	not-applicable		changes only paths that transit does not port: .github/workflows/backport.yml

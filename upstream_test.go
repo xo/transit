@@ -130,8 +130,11 @@ func readLedger(t *testing.T) []ledgerLine {
 			t.Errorf("%s: line %d: %q is not a date in the form YYYY-MM-DD", ledgerPath, n, l.date)
 		case !slices.Contains([]string{statusPorted, statusNotApplicable, statusPending}, l.status):
 			t.Errorf("%s: line %d: the status %q is not ported, not-applicable or pending", ledgerPath, n, l.status)
-		case l.status == statusPorted && l.transit == "":
-			t.Errorf("%s: line %d: %s is ported, and it names no transit commit", ledgerPath, n, l.upstream[:7])
+		// the transit column of a ported line is empty until Ken commits the
+		// port, as "The ledger" in docs/UPSTREAM.md says, because a commit
+		// cannot hold its own hash
+		case l.status == statusPorted && l.note == "":
+			t.Errorf("%s: line %d: %s is ported, and it gives no subject in the note", ledgerPath, n, l.upstream[:7])
 		case l.status != statusPorted && l.note == "":
 			t.Errorf("%s: line %d: %s is %s, and it gives no reason in the note", ledgerPath, n, l.upstream[:7], l.status)
 		}
