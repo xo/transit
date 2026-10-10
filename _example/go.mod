@@ -3,15 +3,15 @@ module github.com/xo/transit/_example
 go 1.27.1
 
 require (
-	github.com/xo/transit v0.3.1
-	github.com/xo/transit/grammars/cql v0.3.1
-	github.com/xo/transit/grammars/mysql v0.3.1
-	github.com/xo/transit/grammars/oracle v0.3.1
-	github.com/xo/transit/grammars/postgres v0.3.1
-	github.com/xo/transit/grammars/sql v0.3.1
-	github.com/xo/transit/grammars/sqlserver v0.3.1
-	github.com/xo/transit/grammars/usql v0.3.1
-	github.com/xo/transit/styles v0.3.1
+	github.com/xo/transit v0.4.0
+	github.com/xo/transit/grammars/cql v0.4.0
+	github.com/xo/transit/grammars/mysql v0.4.0
+	github.com/xo/transit/grammars/oracle v0.4.0
+	github.com/xo/transit/grammars/postgres v0.4.0
+	github.com/xo/transit/grammars/sql v0.4.0
+	github.com/xo/transit/grammars/sqlserver v0.4.0
+	github.com/xo/transit/grammars/usql v0.4.0
+	github.com/xo/transit/styles v0.4.0
 )
 
 replace github.com/xo/transit => ..
