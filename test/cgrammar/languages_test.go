@@ -88,6 +88,7 @@ var goPackageTests = []namedTest{
 	// language_test.go
 	{"TestLookaheadIterator", TestLookaheadIterator},
 	{"TestLookaheadIteratorExhaustion", TestLookaheadIteratorExhaustion},
+	{"TestIDForNodeKindOnlyMatchesTheWholeErrorName", TestIDForNodeKindOnlyMatchesTheWholeErrorName},
 	{"TestSymbolMetadataChecks", TestSymbolMetadataChecks},
 	{"TestSupertypes", TestSupertypes},
 	// upstream_node_test.go

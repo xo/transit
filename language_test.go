@@ -431,9 +431,9 @@ func TestLanguageSymbolForName(t *testing.T) {
 		{"+", true, 0, false},
 		{"ERROR", true, builtinSymError, true},
 		{"ERROR", false, 0, false},
-		// strncmp compares only the length of the name, as in C
-		{"ERR", true, builtinSymError, true},
-		{"", true, builtinSymError, true},
+		// only the whole name finds ERROR
+		{"ERR", true, 0, false},
+		{"", true, 0, false},
 		// a hidden supertype is found, and another hidden symbol is not
 		{"_statement", true, testSymStatement, true},
 		{"program_repeat1", false, 0, false},

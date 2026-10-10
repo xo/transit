@@ -648,12 +648,11 @@ func (l *Language) SymbolName(symbol Symbol) string {
 // reports whether the language has it.
 //
 // SymbolForName is ts_language_symbol_for_name. The C function compares the
-// names with strncmp, so the Go function does too. A named name that is a
-// prefix of "ERROR", such as "ERR", finds the symbol of ERROR, as it does in
-// C.
+// names with strncmp, so the Go function does too. Only the whole named
+// name "ERROR" finds the symbol of ERROR.
 func (l *Language) SymbolForName(name string, named bool) (Symbol, bool) {
 	length := len(name)
-	if named && strncmp(name, "ERROR", length) == 0 {
+	if named && length == 5 && strncmp(name, "ERROR", length) == 0 {
 		return builtinSymError, true
 	}
 	count := uint16(l.SymbolCount())

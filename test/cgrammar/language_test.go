@@ -2,6 +2,7 @@ package cgrammar
 
 import (
 	"context"
+	"math"
 	"slices"
 	"sort"
 	"testing"
@@ -144,6 +145,20 @@ func TestLookaheadIteratorExhaustion(t *testing.T) {
 		}
 		if n := len(slices.Collect(lookahead.Symbols())); n != count {
 			t.Errorf("state %d: %d symbols after ResetState, want %d", state, n, count)
+		}
+	}
+}
+
+// The Rust binding returns 0 for a name that it does not find, and Go
+// returns false, with the symbol 0.
+func TestIDForNodeKindOnlyMatchesTheWholeErrorName(t *testing.T) {
+	language := fixtureGrammar(t, "javascript").Language
+	if got, ok := language.SymbolForName("ERROR", true); got != math.MaxUint16 || !ok {
+		t.Errorf("SymbolForName(%q, true) = %d, %t, want %d, true", "ERROR", got, ok, math.MaxUint16)
+	}
+	for _, name := range []string{"", "E", "ER", "ERR", "ERRO"} {
+		if got, ok := language.SymbolForName(name, true); got != 0 || ok {
+			t.Errorf("SymbolForName(%q, true) = %d, %t, want 0, false", name, got, ok)
 		}
 	}
 }

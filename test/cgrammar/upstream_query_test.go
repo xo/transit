@@ -279,6 +279,13 @@ func TestQueryErrorsOnInvalidSymbols(t *testing.T) {
 		Kind:    transit.QueryErrorField,
 		Message: "\"fakefield\"",
 	})
+	uqCheckQueryError(t, language, "(ERR)", transit.QueryError{
+		Row:     0,
+		Offset:  1,
+		Column:  1,
+		Kind:    transit.QueryErrorNodeType,
+		Message: "\"ERR\"",
+	})
 	uqCheckQueryError(t, language, "(MISS)", transit.QueryError{
 		Row:     0,
 		Offset:  1,
