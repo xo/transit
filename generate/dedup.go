@@ -36,6 +36,20 @@ type SplitCriterion[S any] interface {
 	//
 	// Equivalent is SplitCriterion::equivalent.
 	Equivalent(left, right *S, groupIDsByStateID []uint32) bool
+	// StartGroup is called before a group's states are compared, e.g. to
+	// reset what CompatibleWithAll keeps.
+	//
+	// StartGroup is SplitCriterion::start_group.
+	StartGroup()
+	// CompatibleWithAll reports whether state can stay in its group with all
+	// of kept.
+	//
+	// kept holds the first state of each class that stayed before state, in
+	// order. false is always safe: the states are then compared one at a
+	// time.
+	//
+	// CompatibleWithAll is SplitCriterion::compatible_with_all.
+	CompatibleWithAll(state *S, kept []uint32, groupIDsByStateID []uint32) bool
 }
 
 // SplitFunc lets a function that decides SplitCriterion.ShouldSplit, like
@@ -58,6 +72,14 @@ func (f SplitFunc[S]) Signature(*S, []uint32) (uint64, bool) {
 
 // Equivalent returns false.
 func (f SplitFunc[S]) Equivalent(_, _ *S, _ []uint32) bool {
+	return false
+}
+
+// StartGroup does nothing.
+func (f SplitFunc[S]) StartGroup() {}
+
+// CompatibleWithAll returns false.
+func (f SplitFunc[S]) CompatibleWithAll(*S, []uint32, []uint32) bool {
 	return false
 }
 
@@ -110,13 +132,28 @@ func SplitStateIDGroups[S any](
 		groupClassesClassify(&classes, states, stateIDs, groupIDsByStateID, criterion)
 
 		// A class follows its first state, so compare only those.
+		criterion.StartGroup()
 		kept = kept[:0]
 		splitFrom = splitFrom[:0]
 		for _, stateID := range classes.firstStates {
 			state := &states[stateID]
-			splitter := slices.IndexFunc(kept, func(keptID uint32) bool {
-				return criterion.ShouldSplit(&states[keptID], state, groupIDsByStateID)
-			})
+			// Most states that are split off are split from the first kept state. Past it, one
+			// check against all kept states can save comparing the state with each.
+			splitter := -1
+			if len(kept) > 0 {
+				first, rest := kept[0], kept[1:]
+				switch {
+				case criterion.ShouldSplit(&states[first], state, groupIDsByStateID):
+					splitter = 0
+				case len(rest) == 0 || criterion.CompatibleWithAll(state, kept, groupIDsByStateID):
+				default:
+					if position := slices.IndexFunc(rest, func(keptID uint32) bool {
+						return criterion.ShouldSplit(&states[keptID], state, groupIDsByStateID)
+					}); position >= 0 {
+						splitter = position + 1
+					}
+				}
+			}
 			if splitter < 0 {
 				kept = append(kept, stateID)
 			}

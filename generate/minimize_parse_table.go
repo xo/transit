@@ -71,6 +71,35 @@ func (k minimizeSymbolKey) isTerminal() bool {
 	return k.tag() == uint64(SymbolTerminal)
 }
 
+// tokenIndex returns this token's position among all tokens in
+// minimizeSymbolKey order: external tokens, End, EndOfNonTerminalExtra, then
+// the terminals.
+//
+// tokenIndex is SymbolKey::token_index.
+func (k minimizeSymbolKey) tokenIndex(externalCount int) int {
+	switch k.tag() {
+	case uint64(SymbolExternal):
+		return int(k.index())
+	case uint64(SymbolEnd):
+		return externalCount
+	case uint64(SymbolEndOfNonTerminalExtra):
+		return externalCount + 1
+	case uint64(SymbolTerminal):
+		return externalCount + 2 + int(k.index())
+	default:
+		panic("unreachable")
+	}
+}
+
+// minimizeTokenCount returns how many positions tokenIndex gives out: one
+// per external token, one each for End and EndOfNonTerminalExtra, and one
+// per terminal.
+//
+// minimizeTokenCount is SymbolKey::token_count.
+func minimizeTokenCount(externalCount, terminalCount int) int {
+	return externalCount + 2 + terminalCount
+}
+
 // MinimizeParseTable makes the parse table smaller. When optimizations holds
 // OptLevelMergeStates, it merges the states that are compatible. Then it
 // skips the states that only reduce a unit rule, removes the states that no
@@ -226,6 +255,8 @@ type minimizeConflictPass struct {
 	staticSignatures []uint64
 	// shiftMaps holds each state's shift targets, sorted by symbol.
 	shiftMaps [][]minimizeShift
+	// kept is scratch for CompatibleWithAll.
+	kept minimizeKeptStates
 }
 
 // newMinimizeConflictPass returns the conflict pass of a minimizer.
@@ -274,7 +305,187 @@ func newMinimizeConflictPass(m *minimizer, shiftMaps [][]minimizeShift) *minimiz
 		bits:             newMinimizeConflictBits(m),
 		staticSignatures: staticSignatures,
 		shiftMaps:        shiftMaps,
+		kept: newMinimizeKeptStates(
+			len(m.syntaxGrammar.ExternalTokens),
+			len(m.lexicalGrammar.Variables),
+		),
 	}
+}
+
+// hasToken reports whether the state has an entry for key.
+//
+// hasToken is ConflictPass::has_token.
+func (p *minimizeConflictPass) hasToken(stateID ParseStateID, key minimizeSymbolKey) bool {
+	if key.isTerminal() {
+		row := p.bits.getStateRow(int(stateID))
+		index := int(key.index())
+		return row[index/64]&(1<<(index%64)) != 0
+	}
+	_, found := slices.BinarySearchFunc(p.entryMaps[stateID], key, func(e minimizeEntry, key minimizeSymbolKey) int {
+		return cmp.Compare(e.key, key)
+	})
+	return found
+}
+
+// canTake reports whether key can be added to target, or target already
+// has it.
+//
+// canTake is ConflictPass::can_take.
+func (p *minimizeConflictPass) canTake(target *ParseState[ActionListID], key minimizeSymbolKey) bool {
+	return p.hasToken(target.ID, key) ||
+		!p.minimizer.tokenConflicts(target, p.bits, key)
+}
+
+// compatibleWithMerged is CompatibleWithAll, with the kept states merged
+// into keptStates.
+//
+// compatibleWithMerged is ConflictPass::compatible_with_merged.
+func (p *minimizeConflictPass) compatibleWithMerged(
+	keptStates *minimizeKeptStates,
+	state *ParseState[ActionListID],
+	kept []uint32,
+	groupIDsByStateID []ParseStateID,
+) bool {
+	states := p.minimizer.parseTable.States
+	for _, entry := range p.entryMaps[state.ID] {
+		key, actionList := entry.key, entry.id
+		token := keptStates.tokens[key.tokenIndex(keptStates.externalCount)]
+		if token.hasActionList &&
+			p.minimizer.entriesConflict(token.actionList, actionList, groupIDsByStateID) {
+			return false
+		}
+		if int(token.count) < len(kept) &&
+			!keptStates.addableToAll(key, kept, func(keptID uint32) bool {
+				return p.canTake(&states[keptID], key)
+			}) {
+			return false
+		}
+	}
+	for _, key := range keptStates.mergedTokens {
+		if !p.canTake(state, key) {
+			return false
+		}
+	}
+	return true
+}
+
+// minimizeKeptStates holds what the states kept so far in a group of the
+// conflict pass have in common, to check a state against all of them at
+// once. Kept states never need to be split from each other, so any two agree
+// on every token they share, and one entry per token stands for all of them.
+//
+// minimizeKeptStates is KeptStates. The zero value is KeptStates::default.
+type minimizeKeptStates struct {
+	// tokens holds what the merged states have for each token, by
+	// minimizeSymbolKey.tokenIndex.
+	tokens []minimizeKeptToken
+	// mergedCount is how many of the kept states are merged into tokens.
+	mergedCount int
+	// mergedTokens holds the tokens that some merged state has.
+	mergedTokens []minimizeSymbolKey
+	// checkedTokens holds the tokens that have been checked against kept
+	// states lacking them.
+	checkedTokens []minimizeSymbolKey
+	// externalCount is the number of external tokens, for
+	// minimizeSymbolKey.tokenIndex.
+	externalCount int
+}
+
+// minimizeKeptToken is what the kept states have for a token. See
+// minimizeKeptStates.
+//
+// minimizeKeptToken is KeptToken. The zero value is KeptToken::default.
+// hasActionList is false for the None of action_list.
+type minimizeKeptToken struct {
+	// actionList is the action list of the first merged state with this
+	// token.
+	actionList    ActionListID
+	hasActionList bool
+	// count is how many merged states have this token.
+	count uint32
+	// addable is whether this token can be added to the kept states that
+	// lack it.
+	addable minimizeAddable
+}
+
+// minimizeAddable is whether a token can be added to the kept states that
+// lack it, as far as they've been checked, in order.
+//
+// minimizeAddable is the enum Addable. blocked is true for Blocked: not to
+// one of them. Otherwise it is UpTo(upTo): to each of the first upTo kept
+// states. The zero value is Addable::default, UpTo(0).
+type minimizeAddable struct {
+	upTo    uint32
+	blocked bool
+}
+
+// newMinimizeKeptStates returns the kept states of an empty group.
+//
+// newMinimizeKeptStates is KeptStates::new.
+func newMinimizeKeptStates(externalCount, terminalCount int) minimizeKeptStates {
+	return minimizeKeptStates{
+		tokens:        make([]minimizeKeptToken, minimizeTokenCount(externalCount, terminalCount)),
+		mergedCount:   0,
+		mergedTokens:  nil,
+		checkedTokens: nil,
+		externalCount: externalCount,
+	}
+}
+
+// clear forgets the kept states, for the next group.
+//
+// clear is KeptStates::clear.
+func (k *minimizeKeptStates) clear() {
+	for _, key := range k.mergedTokens {
+		k.tokens[key.tokenIndex(k.externalCount)] = minimizeKeptToken{}
+	}
+	for _, key := range k.checkedTokens {
+		k.tokens[key.tokenIndex(k.externalCount)] = minimizeKeptToken{}
+	}
+	k.mergedTokens = k.mergedTokens[:0]
+	k.checkedTokens = k.checkedTokens[:0]
+	k.mergedCount = 0
+}
+
+// merge merges the entries of the kept states that aren't merged yet.
+//
+// merge is KeptStates::merge.
+func (k *minimizeKeptStates) merge(kept []uint32, entryMaps [][]minimizeEntry) {
+	for _, stateID := range kept[k.mergedCount:] {
+		for _, entry := range entryMaps[stateID] {
+			token := &k.tokens[entry.key.tokenIndex(k.externalCount)]
+			if !token.hasActionList {
+				token.actionList, token.hasActionList = entry.id, true
+				k.mergedTokens = append(k.mergedTokens, entry.key)
+			}
+			token.count++
+		}
+	}
+	k.mergedCount = len(kept)
+}
+
+// addableToAll reports whether key can be added to every kept state that
+// lacks it, asking canTake about each kept state at most once per group: the
+// answer doesn't depend on the state being checked.
+//
+// addableToAll is KeptStates::addable_to_all.
+func (k *minimizeKeptStates) addableToAll(key minimizeSymbolKey, kept []uint32, canTake func(uint32) bool) bool {
+	token := &k.tokens[key.tokenIndex(k.externalCount)]
+	if token.addable.blocked {
+		return false
+	}
+	checked := token.addable.upTo
+	if checked == 0 {
+		k.checkedTokens = append(k.checkedTokens, key)
+	}
+	for _, keptID := range kept[checked:] {
+		if !canTake(keptID) {
+			token.addable = minimizeAddable{blocked: true}
+			return false
+		}
+	}
+	token.addable = minimizeAddable{upTo: uint32(len(kept))}
+	return true
 }
 
 // ShouldSplit reports whether two states conflict.
@@ -344,6 +555,27 @@ func (p *minimizeConflictPass) Equivalent(left, right *ParseState[ActionListID],
 		}
 	}
 	return true
+}
+
+// StartGroup forgets the kept states of the last group.
+//
+// StartGroup is the start_group of ConflictPass.
+func (p *minimizeConflictPass) StartGroup() {
+	p.kept.clear()
+}
+
+// CompatibleWithAll checks state against what the kept states have in
+// common, which covers everything statesConflict compares:
+//   - the tokens state shares with kept states, whose entries all agree.
+//   - state's tokens that some kept state lacks, which must be addable to it.
+//   - the kept states' tokens that state lacks, which must be addable to state.
+//
+// CompatibleWithAll is the compatible_with_all of ConflictPass. Upstream
+// takes the scratch out of the pass while the check reads the rest of it,
+// which Go does not need.
+func (p *minimizeConflictPass) CompatibleWithAll(state *ParseState[ActionListID], kept []uint32, groupIDsByStateID []ParseStateID) bool {
+	p.kept.merge(kept, p.entryMaps)
+	return p.compatibleWithMerged(&p.kept, state, kept, groupIDsByStateID)
 }
 
 // minimizeSuccessorPass is the second pass of mergeCompatibleStates,
@@ -460,6 +692,19 @@ func (p *minimizeSuccessorPass) Equivalent(left, right *ParseState[ActionListID]
 		}
 	}
 	return true
+}
+
+// StartGroup does nothing.
+//
+// StartGroup is the default start_group of SplitCriterion.
+func (p *minimizeSuccessorPass) StartGroup() {}
+
+// CompatibleWithAll returns false, so the states are compared one at a
+// time.
+//
+// CompatibleWithAll is the default compatible_with_all of SplitCriterion.
+func (p *minimizeSuccessorPass) CompatibleWithAll(*ParseState[ActionListID], []uint32, []ParseStateID) bool {
+	return false
 }
 
 // minimizer holds the parse table and what the steps of MinimizeParseTable
@@ -877,9 +1122,15 @@ func (m *minimizer) stateSuccessorsDiffer(
 // entriesConflict is Minimizer::entries_conflict.
 func (m *minimizer) entriesConflict(id1, id2 ActionListID, groupIDsByStateID []ParseStateID) bool {
 	// To be compatible, entries need to have the same actions.
-	if id1.Index() == id2.Index() {
-		return false
-	}
+	return id1.Index() != id2.Index() &&
+		m.actionListsConflict(id1, id2, groupIDsByStateID)
+}
+
+// actionListsConflict is entriesConflict for entries with different action
+// lists.
+//
+// actionListsConflict is Minimizer::action_lists_conflict.
+func (m *minimizer) actionListsConflict(id1, id2 ActionListID, groupIDsByStateID []ParseStateID) bool {
 	actions1 := m.parseTable.ActionLists.Get(id1)
 	actions2 := m.parseTable.ActionLists.Get(id2)
 	if len(actions1) != len(actions2) {
