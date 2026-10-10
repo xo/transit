@@ -962,7 +962,9 @@ func (g *generator) addLexState(state *generate.LexState) []transition {
 		// the additional checks that need to be performed to match this transition.
 		var best *bestLargeCharSet
 		if simplifiedChars.RangeCount() >= generate.LargeCharacterRangeCount {
-			for ix, set := range g.largeCharacterSets {
+			// Prefer the last candidate on ties. Searching backwards lets
+			// us stop as soon as a match needs no additional checks.
+			for ix, set := range slices.Backward(g.largeCharacterSets) {
 				charsCopy.Assign(simplifiedChars)
 				largeSet.Assign(set.Chars)
 				intersection := charsCopy.RemoveIntersection(&largeSet)
@@ -975,11 +977,16 @@ func (g *generator) addLexState(state *generate.LexState) []transition {
 					}
 					if best != nil {
 						bestRangeCount := best.additions.RangeCount() + best.removals.RangeCount()
-						if bestRangeCount < totalRangeCount {
+						// Only a set that needs fewer checks replaces the best one, so on
+						// a tie the set found first wins.
+						if bestRangeCount <= totalRangeCount {
 							continue
 						}
 					}
 					best = &bestLargeCharSet{ix: ix, additions: additions, removals: removals}
+					if totalRangeCount == 0 {
+						break
+					}
 				}
 			}
 		}
