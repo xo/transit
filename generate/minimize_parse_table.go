@@ -15,12 +15,11 @@ import (
 // rule, remove the states that nothing uses, and order the states by size.
 //
 // Upstream writes log lines with debug! when it splits two states, and
-// Minimizer::log_conflict, Minimizer::symbol_name, SymbolKey::symbol and the
-// enum Conflict exist only for those lines. The generator has no logger yet,
-// so the port leaves out the log lines, the three functions and the enum, as
-// build_tables.go does. entriesConflict, actionListsConflict and
-// tokenConflicts return the Option<Conflict> of upstream as a bool, which
-// is true for Some.
+// Minimizer::log_conflict, Minimizer::symbol_name and the enum Conflict exist
+// only for those lines. The generator has no logger yet, so the port leaves
+// out the log lines, the two functions and the enum, as build_tables.go
+// does. entriesConflict, actionListsConflict and tokenConflicts return the
+// Option<Conflict> of upstream as a bool, which is true for Some.
 //
 // The last part of the file ports the unstable sort of the Rust standard
 // library, for the one sort of this file where two elements that compare
@@ -52,6 +51,24 @@ func newMinimizeSymbolKey(sym Symbol) minimizeSymbolKey {
 	return minimizeSymbolKey(sym.packedKey())
 }
 
+// symbol returns the symbol of the key.
+//
+// symbol is SymbolKey::symbol.
+func (k minimizeSymbolKey) symbol() Symbol {
+	switch k.tag() {
+	case uint64(SymbolExternal):
+		return ExternalSymbol(int(k.index()))
+	case uint64(SymbolEnd):
+		return SymbolEndValue
+	case uint64(SymbolEndOfNonTerminalExtra):
+		return SymbolEndOfNonTerminalExtraValue
+	case uint64(SymbolTerminal):
+		return TerminalSymbol(int(k.index()))
+	default:
+		return NonTerminalSymbol(int(k.index()))
+	}
+}
+
 // index returns the index of the symbol.
 //
 // index is SymbolKey::index.
@@ -71,35 +88,6 @@ func (k minimizeSymbolKey) tag() uint64 {
 // isTerminal is SymbolKey::is_terminal.
 func (k minimizeSymbolKey) isTerminal() bool {
 	return k.tag() == uint64(SymbolTerminal)
-}
-
-// tokenIndex returns this token's position among all tokens in
-// minimizeSymbolKey order: external tokens, End, EndOfNonTerminalExtra, then
-// the terminals.
-//
-// tokenIndex is SymbolKey::token_index.
-func (k minimizeSymbolKey) tokenIndex(externalCount int) int {
-	switch k.tag() {
-	case uint64(SymbolExternal):
-		return int(k.index())
-	case uint64(SymbolEnd):
-		return externalCount
-	case uint64(SymbolEndOfNonTerminalExtra):
-		return externalCount + 1
-	case uint64(SymbolTerminal):
-		return externalCount + 2 + int(k.index())
-	default:
-		panic("unreachable")
-	}
-}
-
-// minimizeTokenCount returns how many positions tokenIndex gives out: one
-// per external token, one each for End and EndOfNonTerminalExtra, and one
-// per terminal.
-//
-// minimizeTokenCount is SymbolKey::token_count.
-func minimizeTokenCount(externalCount, terminalCount int) int {
-	return externalCount + 2 + terminalCount
 }
 
 // MinimizeParseTable makes the parse table smaller. When optimizations holds
@@ -307,10 +295,10 @@ func newMinimizeConflictPass(m *minimizer, shiftMaps [][]minimizeShift) *minimiz
 		bits:             newMinimizeConflictBits(m),
 		staticSignatures: staticSignatures,
 		shiftMaps:        shiftMaps,
-		kept: newMinimizeKeptStates(
-			len(m.syntaxGrammar.ExternalTokens),
-			len(m.lexicalGrammar.Variables),
-		),
+		kept: newMinimizeKeptStates(newSymbolIndexer(
+			m.syntaxGrammar,
+			m.lexicalGrammar,
+		)),
 	}
 }
 
@@ -351,7 +339,7 @@ func (p *minimizeConflictPass) compatibleWithMerged(
 	states := p.minimizer.parseTable.States
 	for _, entry := range p.entryMaps[state.ID] {
 		key, actionList := entry.key, entry.id
-		token := keptStates.tokens[key.tokenIndex(keptStates.externalCount)]
+		token := keptStates.tokens[keptStates.indexer.index(key.symbol())]
 		if token.hasActionList &&
 			p.minimizer.entriesConflict(token.actionList, actionList, groupIDsByStateID) {
 			return false
@@ -379,7 +367,7 @@ func (p *minimizeConflictPass) compatibleWithMerged(
 // minimizeKeptStates is KeptStates. The zero value is KeptStates::default.
 type minimizeKeptStates struct {
 	// tokens holds what the merged states have for each token, by
-	// minimizeSymbolKey.tokenIndex.
+	// symbolIndexer.index.
 	tokens []minimizeKeptToken
 	// mergedCount is how many of the kept states are merged into tokens.
 	mergedCount int
@@ -388,9 +376,8 @@ type minimizeKeptStates struct {
 	// checkedTokens holds the tokens that have been checked against kept
 	// states lacking them.
 	checkedTokens []minimizeSymbolKey
-	// externalCount is the number of external tokens, for
-	// minimizeSymbolKey.tokenIndex.
-	externalCount int
+	// indexer gives each token its slot in tokens.
+	indexer symbolIndexer
 }
 
 // minimizeKeptToken is what the kept states have for a token. See
@@ -424,13 +411,13 @@ type minimizeAddable struct {
 // newMinimizeKeptStates returns the kept states of an empty group.
 //
 // newMinimizeKeptStates is KeptStates::new.
-func newMinimizeKeptStates(externalCount, terminalCount int) minimizeKeptStates {
+func newMinimizeKeptStates(indexer symbolIndexer) minimizeKeptStates {
 	return minimizeKeptStates{
-		tokens:        make([]minimizeKeptToken, minimizeTokenCount(externalCount, terminalCount)),
+		tokens:        make([]minimizeKeptToken, indexer.tokenCount()),
 		mergedCount:   0,
 		mergedTokens:  nil,
 		checkedTokens: nil,
-		externalCount: externalCount,
+		indexer:       indexer,
 	}
 }
 
@@ -439,10 +426,10 @@ func newMinimizeKeptStates(externalCount, terminalCount int) minimizeKeptStates 
 // clear is KeptStates::clear.
 func (k *minimizeKeptStates) clear() {
 	for _, key := range k.mergedTokens {
-		k.tokens[key.tokenIndex(k.externalCount)] = minimizeKeptToken{}
+		k.tokens[k.indexer.index(key.symbol())] = minimizeKeptToken{}
 	}
 	for _, key := range k.checkedTokens {
-		k.tokens[key.tokenIndex(k.externalCount)] = minimizeKeptToken{}
+		k.tokens[k.indexer.index(key.symbol())] = minimizeKeptToken{}
 	}
 	k.mergedTokens = k.mergedTokens[:0]
 	k.checkedTokens = k.checkedTokens[:0]
@@ -455,7 +442,7 @@ func (k *minimizeKeptStates) clear() {
 func (k *minimizeKeptStates) merge(kept []uint32, entryMaps [][]minimizeEntry) {
 	for _, stateID := range kept[k.mergedCount:] {
 		for _, entry := range entryMaps[stateID] {
-			token := &k.tokens[entry.key.tokenIndex(k.externalCount)]
+			token := &k.tokens[k.indexer.index(entry.key.symbol())]
 			if !token.hasActionList {
 				token.actionList, token.hasActionList = entry.id, true
 				k.mergedTokens = append(k.mergedTokens, entry.key)
@@ -472,7 +459,7 @@ func (k *minimizeKeptStates) merge(kept []uint32, entryMaps [][]minimizeEntry) {
 //
 // addableToAll is KeptStates::addable_to_all.
 func (k *minimizeKeptStates) addableToAll(key minimizeSymbolKey, kept []uint32, canTake func(uint32) bool) bool {
-	token := &k.tokens[key.tokenIndex(k.externalCount)]
+	token := &k.tokens[k.indexer.index(key.symbol())]
 	if token.addable.blocked {
 		return false
 	}

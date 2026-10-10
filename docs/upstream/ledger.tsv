@@ -32,7 +32,7 @@ cd8caa9f316f31a71195419a4b4ca882d28e8309	2026-10-03	ported	dbf1476	perf(generate
 4a09eb30c1e8de5c9998b1ff9e6a6d38ff388f93	2026-10-03	ported	6d8af4f	perf(generate): check a state against all kept states at once when merging
 4c6466d7b31cee51d4a43a17c4bb249a5061712a	2026-10-03	ported	203dd9d	refactor(generate): return why states conflict instead of logging it
 6c9a707cc7d8c2315f343134ef5a19f8e2b4851f	2026-10-03	ported	9fca0e1	perf(generate): find conflict candidates once per state
-6fc649dca0a6fba002ee86a04839465108610f50	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables.rs, crates/generate/src/build_tables/build_parse_table.rs, crates/generate/src/build_tables/minimize_parse_table.rs
+6fc649dca0a6fba002ee86a04839465108610f50	2026-10-03	ported		perf(generate): index successor item sets by symbol
 5f9695024dc40c943843bc0e7e359974c38995e0	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/build_parse_table.rs
 da18743c5cc702bc9fd8085c97a69f3e93af8c3d	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/build_parse_table.rs
 70bf7f4b3663947348832f681b2690cccd0c8ba8	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/item.rs

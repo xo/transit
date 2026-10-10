@@ -25,6 +25,69 @@ type Tables struct {
 	LargeCharacterSets []LargeCharacterSet
 }
 
+// symbolIndexer gives each of a grammar's symbols a position. Positions
+// follow the order of CompareSymbol:
+//   - external tokens
+//   - SymbolEnd
+//   - SymbolEndOfNonTerminalExtra
+//   - terminals
+//   - non-terminals
+//
+// symbolIndexer is SymbolIndexer.
+type symbolIndexer struct {
+	externalCount    uint32
+	terminalCount    uint32
+	nonTerminalCount uint32
+}
+
+// newSymbolIndexer returns the indexer of a grammar's symbols.
+//
+// newSymbolIndexer is SymbolIndexer::new.
+func newSymbolIndexer(syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGrammar) symbolIndexer {
+	return symbolIndexer{
+		externalCount:    uint32(len(syntaxGrammar.ExternalTokens)),
+		terminalCount:    uint32(len(lexicalGrammar.Variables)),
+		nonTerminalCount: uint32(len(syntaxGrammar.Variables)),
+	}
+}
+
+// index returns this symbol's position.
+//
+// index is SymbolIndexer::index.
+func (s symbolIndexer) index(symbol Symbol) int {
+	var position uint32
+	switch symbol.kind {
+	case SymbolExternal:
+		position = symbol.index
+	case SymbolEnd:
+		position = s.externalCount
+	case SymbolEndOfNonTerminalExtra:
+		position = s.externalCount + 1
+	case SymbolTerminal:
+		position = s.externalCount + 2 + symbol.index
+	case SymbolNonTerminal:
+		position = s.tokenCount() + symbol.index
+	}
+	return int(position)
+}
+
+// tokenCount returns how many positions index gives to tokens only: one
+// per external token, one each for SymbolEnd and
+// SymbolEndOfNonTerminalExtra, and one per terminal.
+//
+// tokenCount is SymbolIndexer::token_count.
+func (s symbolIndexer) tokenCount() uint32 {
+	return s.externalCount + 2 + s.terminalCount
+}
+
+// symbolCount returns how many positions index gives out in total: the
+// tokens, then one per non-terminal.
+//
+// symbolCount is SymbolIndexer::symbol_count.
+func (s symbolIndexer) symbolCount() uint32 {
+	return s.tokenCount() + s.nonTerminalCount
+}
+
 // BuildTables builds the parse table and the lexer tables of a prepared
 // grammar.
 //

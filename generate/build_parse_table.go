@@ -7,6 +7,7 @@ import (
 	"maps"
 	"math"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -250,6 +251,71 @@ type reductionInfo struct {
 	hasNonAssoc   bool
 }
 
+// successorSets holds the item sets of a state's successors, one for each
+// symbol that follows a dot in the state.
+//
+// successorSets is SuccessorSets. A nil set in sets is the None of
+// Option<ParseItemSet>.
+type successorSets struct {
+	// indexer gives each symbol its slot in sets.
+	indexer symbolIndexer
+	// sets holds each symbol's successor item set, by symbolIndexer.index.
+	sets []*ParseItemSet
+	// symbols holds the symbols that have a set in sets, in the order that
+	// their sets were added.
+	symbols []Symbol
+}
+
+// successorSet is a symbol and the item set of its successor.
+//
+// successorSet is (Symbol, ParseItemSet).
+type successorSet struct {
+	symbol  Symbol
+	itemSet *ParseItemSet
+}
+
+// newSuccessorSets returns successor sets with no set.
+//
+// newSuccessorSets is SuccessorSets::new.
+func newSuccessorSets(indexer symbolIndexer) successorSets {
+	return successorSets{
+		indexer: indexer,
+		sets:    make([]*ParseItemSet, indexer.symbolCount()),
+		symbols: nil,
+	}
+}
+
+// itemSet returns the item set of the successor after symbol, and adds it if
+// it is new.
+//
+// itemSet is SuccessorSets::item_set.
+func (s *successorSets) itemSet(symbol Symbol) *ParseItemSet {
+	slot := &s.sets[s.indexer.index(symbol)]
+	if *slot == nil {
+		s.symbols = append(s.symbols, symbol)
+		*slot = &ParseItemSet{}
+	}
+	return *slot
+}
+
+// takeAll takes the sets out in symbol order, and leaves s empty for the
+// next state.
+//
+// takeAll is SuccessorSets::take_all. The symbols are distinct, so the sort
+// gives the order of sort_unstable.
+func (s *successorSets) takeAll() []successorSet {
+	slices.SortFunc(s.symbols, CompareSymbol)
+	result := make([]successorSet, 0, len(s.symbols))
+	for _, symbol := range s.symbols {
+		// INVARIANT: every symbol in symbols has a set
+		slot := &s.sets[s.indexer.index(symbol)]
+		result = append(result, successorSet{symbol: symbol, itemSet: *slot})
+		*slot = nil
+	}
+	s.symbols = s.symbols[:0]
+	return result
+}
+
 // parseStateQueueEntry is a state that waits for its actions.
 //
 // parseStateQueueEntry is ParseStateQueueEntry.
@@ -286,6 +352,9 @@ type parseTableBuilder struct {
 	actualConflicts           map[string][]Symbol
 	parseTable                ParseTable[ParseTableEntry]
 	strPool                   *StrPool
+	// successorSets is scratch for addActions: the successor item sets of
+	// the state that it works on.
+	successorSets successorSets
 	// parseStateQueueHead is the index of the front of parseStateQueue,
 	// which is a VecDeque upstream.
 	parseStateQueueHead int
@@ -593,7 +662,8 @@ func newParseTableBuilder(
 		parseTable: ParseTable[ParseTableEntry]{
 			MaxAliasedProductionLength: 1,
 		},
-		strPool: strPool,
+		strPool:       strPool,
+		successorSets: newSuccessorSets(newSymbolIndexer(syntaxGrammar, lexicalGrammar)),
 	}
 }
 
@@ -772,17 +842,14 @@ func (b *parseTableBuilder) addParseState(
 // the reserved words. It resolves the conflicts that it finds, and returns
 // an error for a conflict that the grammar does not resolve.
 //
-// addActions is ParseTableBuilder::add_actions. Upstream keeps the successor
-// item sets in BTreeMaps, which iterate in the order of the symbols, and the
-// Go loops sort the keys. It only looks up the FxHashMap reductionInfos.
+// addActions is ParseTableBuilder::add_actions. It only looks up the
+// FxHashMap reductionInfos.
 func (b *parseTableBuilder) addActions(
 	precedingSymbols []Symbol,
 	precedingAuxiliaryContext auxiliaryContextID,
 	stateID ParseStateID,
 	itemSet *ParseItemSet,
 ) error {
-	terminalSuccessors := make(map[Symbol]*ParseItemSet)
-	nonTerminalSuccessors := make(map[NonTerminalIndex]*ParseItemSet)
 	var lookaheadsWithConflicts TokenSet
 	reductionInfos := make(map[Symbol]*reductionInfo)
 	var auxiliaryUses []auxiliaryUse
@@ -797,7 +864,6 @@ func (b *parseTableBuilder) addActions(
 		// item into the successor item set.
 		if nextSymbol, ok := item.Symbol(b.syntaxGrammar); ok {
 			successor := item.Successor()
-			var successorSet *ParseItemSet
 			if nonTerminalIndex, ok := nextSymbol.NonTerminalIndex(); ok {
 				index := int(nonTerminalIndex)
 				variable := b.syntaxGrammar.Variables[index]
@@ -822,19 +888,8 @@ func (b *parseTableBuilder) addActions(
 				if variable.IsHidden() && len(b.variableInfo[index].Fields) > 0 {
 					successor.HasPrecedingInheritedFields = true
 				}
-
-				successorSet = nonTerminalSuccessors[nonTerminalIndex]
-				if successorSet == nil {
-					successorSet = &ParseItemSet{}
-					nonTerminalSuccessors[nonTerminalIndex] = successorSet
-				}
-			} else {
-				successorSet = terminalSuccessors[nextSymbol]
-				if successorSet == nil {
-					successorSet = &ParseItemSet{}
-					terminalSuccessors[nextSymbol] = successorSet
-				}
 			}
+			successorSet := b.successorSets.itemSet(nextSymbol)
 			successorEntry := successorSet.Insert(successor)
 			successorEntry.Lookaheads = b.itemSetBuilder.Lookaheads.Union(successorEntry.Lookaheads, entry.Lookaheads)
 			successorEntry.FollowingReservedWordSet = max(successorEntry.FollowingReservedWordSet, entry.FollowingReservedWordSet)
@@ -928,8 +983,15 @@ func (b *parseTableBuilder) addActions(
 	// Having computed the successor item sets for each symbol, add a new
 	// parse state for each of these item sets, and add a corresponding Shift
 	// action to this state.
-	for _, symbol := range slices.SortedFunc(maps.Keys(terminalSuccessors), CompareSymbol) {
-		nextItemSet := terminalSuccessors[symbol]
+	terminalSuccessors := b.successorSets.takeAll()
+	// Non-terminals come last in symbol order.
+	split := sort.Search(len(terminalSuccessors), func(i int) bool {
+		_, ok := terminalSuccessors[i].symbol.NonTerminalIndex()
+		return ok
+	})
+	terminalSuccessors, nonTerminalSuccessors := terminalSuccessors[:split], terminalSuccessors[split:]
+	for _, successor := range terminalSuccessors {
+		symbol, nextItemSet := successor.symbol, successor.itemSet
 		precedingSymbols = append(precedingSymbols, symbol)
 		nextStateID := b.addParseState(precedingSymbols, auxiliaryContext, *nextItemSet)
 		precedingSymbols = precedingSymbols[:len(precedingSymbols)-1]
@@ -946,9 +1008,8 @@ func (b *parseTableBuilder) addActions(
 		})
 	}
 
-	for _, index := range slices.Sorted(maps.Keys(nonTerminalSuccessors)) {
-		nextItemSet := nonTerminalSuccessors[index]
-		symbol := index.Symbol()
+	for _, successor := range nonTerminalSuccessors {
+		symbol, nextItemSet := successor.symbol, successor.itemSet
 		precedingSymbols = append(precedingSymbols, symbol)
 		nextStateID := b.addParseState(precedingSymbols, auxiliaryContext, *nextItemSet)
 		precedingSymbols = precedingSymbols[:len(precedingSymbols)-1]
