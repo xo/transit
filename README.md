@@ -69,7 +69,12 @@ statement (D111). Two sample programs show how rline and usql use transit
 (D53). The option `BeginEndBlocks` of the usql grammar keeps the `BEGIN ...
 END` body of a stored program in one statement (D112). On 2026-10-09 every
 test of these grammars passes in Go, and the sample programs run, and that
-ended phase 5. [docs/PLAN.md](docs/PLAN.md) holds the plan, and the decisions
+ended phase 5.
+
+Phase 6 ports the upstream commits after the base commit, in order (D116).
+On 2026-10-10, phase 6 ported every upstream commit up to `e9930e09`, which
+was the head of the upstream `master` on that day. transit follows upstream
+from there. [docs/PLAN.md](docs/PLAN.md) holds the plan, and the decisions
 record every answer that shapes it.
 
 ## Sample programs

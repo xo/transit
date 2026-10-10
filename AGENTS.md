@@ -44,6 +44,11 @@ The option `BeginEndBlocks` of D112 keeps a `BEGIN ... END` body in one
 statement. On 2026-10-09 the usql grammar and the SQL grammars pass every test
 in Go, and the two sample programs run, and that ended phase 5.
 
+Phase 6 ports the upstream commits after the base commit, in order (D116).
+On 2026-10-10, phase 6 ported every upstream commit up to `e9930e09`, which
+was the head of the upstream `master` on that day. `upstream.txt` names that
+commit, and transit follows upstream from there.
+
 [ts]: https://github.com/tree-sitter/tree-sitter
 
 ## Standing rules

@@ -748,6 +748,10 @@ While phases 1 to 5 run, the base commit does not move unless Ken moves it at
 the end of a phase (D30). The ledger sorts each upstream commit as it
 arrives, so that phase 6 starts with only the commits that transit ports.
 
+On 2026-10-10, phase 6 ported every upstream commit up to `e9930e09`, which
+was the head of the upstream `master` on that day. transit follows upstream
+from there.
+
 ## Following upstream
 
 [`UPSTREAM.md`](UPSTREAM.md) holds the rules. In brief:
