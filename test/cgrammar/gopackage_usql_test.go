@@ -18,8 +18,8 @@ func init() {
 }
 
 // usqlOptionSets are the options of the families of dialects of D101, which
-// had a grammar each before D108, and sets with BeginEndBlocks (D112). The
-// test builds the C scanner once for each of them (D108). The options of
+// had a grammar each before D108, sets with BeginEndBlocks (D112), and sets
+// with Batches. The test builds the C scanner once for each of them (D108). The options of
 // SQL Server and Oracle with BeginEndBlocks are those of standard with
 // BeginEndBlocks, and postgres with BeginEndBlocks reaches the branches of
 // dollar quotes.
@@ -36,6 +36,8 @@ var usqlOptionSets = []struct {
 	{"mysql_blocks", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true}},
 	{"standard_blocks", usql.Options{BlockComments: true, BeginEndBlocks: true}},
 	{"postgres_blocks", usql.Options{DollarQuotes: true, BlockComments: true, BeginEndBlocks: true}},
+	{"cql_batches", usql.Options{DollarQuotes: true, BlockComments: true, SlashComments: true, Batches: true}},
+	{"mysql_blocks_batches", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true, Batches: true}},
 }
 
 // usqlDefine returns the C macro of src/scanner.c of the usql grammar that
@@ -118,6 +120,11 @@ var usqlScannerInputs = []string{
 	":{",
 	":{?",
 	"select :\u540d, :'\u00f1'",
+	"select :'a b' :\"c d\" :'a' :\"b\" :'' :\"\" :' :\" :'a :\"b",
+	"select x:'a b', (:'c')",
+	"\\echo :'a b' :\"c d\" :' :\"",
+	"\\g (a=:'b c' d=:\"e f\" g=:'h' :'i j'=k l=:'m",
+	"\\g (:'a'=b)",
 	// meta commands
 	"\\q",
 	"\\dS+ a \\dtv \\dvt \\dtq \\d+S \\dfnS+",
@@ -140,6 +147,7 @@ var usqlScannerInputs = []string{
 	"\\echo `date` x`y`z `a",
 	"\\echo `",
 	"\\echo ``",
+	"\\echo `a\nselect 1; \\echo ` b\n\\echo `\\p",
 	"\\o |cat \\x",
 	"\\o | ",
 	"\\g |",
@@ -222,6 +230,19 @@ var usqlScannerInputs = []string{
 	"CREATE FUNCTION f RETURN NUMBER IS BEGIN RETURN 1; END; y",
 	"CREATE PROC p AS BEGIN DISTRIBUTED TRANSACTION; TRAN; END; x",
 	"create Procedure P() Begin x; End; y",
+	// the batches of CQL
+	"BEGIN BATCH INSERT x; UPDATE y; APPLY BATCH; z",
+	"begin unlogged batch x; apply batch; Begin Counter Batch y; Apply Batch; z",
+	"BEGIN BATCH x; APPLY; APPLY y; APPLY -- a\n BATCH; z",
+	"BEGIN BATCH x; apply/* a */batch; z",
+	"BEGIN BATCH x; APPLY 'BATCH'; y; APPLY BATCH; z",
+	"BEGIN BATCH x; (APPLY BATCH; y); APPLY BATCH; z",
+	"BEGIN BATCH x; \\g\nselect 1; y",
+	"BEGIN BATCH x;",
+	"BEGIN TRANSACTION; x; BEGIN; y; BEGIN UNLOGGED; z; BEGIN COUNTER x; y",
+	"x; BEGIN BATCH y; APPLY BATCH; BEGIN BATCH",
+	"SELECT 1 BEGIN BATCH x; y",
+	"CREATE PROCEDURE p() BEGIN BATCH x; END; y; BEGIN BATCH z; APPLY BATCH; w",
 }
 
 // TestUsqlScannersMatchC compares the Go scanner of the usql grammar with
@@ -278,7 +299,7 @@ func TestUsqlScannerOptionsDiffer(t *testing.T) {
 
 // TestUsqlScannerDeserializeMatchesC gives random bytes to Deserialize of
 // the Go scanner and of the C scanner of the usql grammar, and compares what
-// Serialize writes after it. Every fifth run gives 9 bytes, the size of the
+// Serialize writes after it. Every fifth run gives 10 bytes, the size of the
 // state. The options do not change the state, so the test uses the default
 // options.
 func TestUsqlScannerDeserializeMatchesC(t *testing.T) {
@@ -290,7 +311,7 @@ func TestUsqlScannerDeserializeMatchesC(t *testing.T) {
 	for i := range 1000 {
 		size := r.IntN(abi.SerializationBufferSize + 1)
 		if i%5 == 0 {
-			size = 9
+			size = 10
 		}
 		in := make([]byte, size)
 		for k := range in {

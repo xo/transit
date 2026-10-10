@@ -10923,7 +10923,7 @@
       "status": "available",
       "golden": {
         "abi14": {
-          "parser_c": "9f2edb9197af25e2be09fb40d912e9d6ed5d26b79af66b50de2a9897b63be9c6",
+          "parser_c": "c27b72c88213072f07129125e0f0e72e9a153491b495fa2dd7c0c0046d65a057",
           "node_types": "8890a72b97de981c9b0825e37d992a79b6e6024916d36976b6369a242f38e570",
           "paths": [
             "field map",
@@ -10940,7 +10940,7 @@
           ]
         },
         "abi15": {
-          "parser_c": "76fcdbf1806c5f949d777902656c8fdf03abce2347b4930913e65d67c8e27eff",
+          "parser_c": "b3ef6b8dc266dd02d440acb364a3c3ca1f61a9d22ae146cddd4dad66118781c2",
           "node_types": "8890a72b97de981c9b0825e37d992a79b6e6024916d36976b6369a242f38e570",
           "paths": [
             "field map",
@@ -10959,7 +10959,7 @@
         }
       },
       "corpus": {
-        "tests": 65,
+        "tests": 67,
         "failures": 0,
         "transit": "same"
       }

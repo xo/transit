@@ -173,7 +173,9 @@ lang := usql.LanguageFor(usql.Options{BlockComments: true, HashComments: true, B
 
 The fields of `usql.Options` are the flags of the type `Syntax` of dbmeta:
 `DollarQuotes`, `BlockComments`, `SlashComments`, `HashComments` and
-`Backticks`.
+`Backticks`. Two more fields are not flags of dbmeta. `BeginEndBlocks` is
+described below. `Batches` keeps a batch of CQL, from `BEGIN BATCH` to
+`APPLY BATCH`, in one statement. It is off by default.
 
 The package `github.com/xo/transit/grammars/mysql` holds the grammar
 `mysql`, which xo writes from the reference manual of MySQL 8.4 (D42, D106).

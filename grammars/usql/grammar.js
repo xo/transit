@@ -61,6 +61,7 @@ module.exports = grammar({
     $._close_single_quote,
     $._close_double_quote,
     $._close_brace,
+    $._variable_check,
     $._error_sentinel,
   ],
 
@@ -74,12 +75,16 @@ module.exports = grammar({
       alias($._semicolon, ';'),
     ),
 
+    // The scanner returns _variable_check, a token with no characters, before
+    // :' and :". Then it knows whether a variable or text and a string come
+    // next.
     _piece: $ => choice(
       $._sql_text,
       $.string,
       $.quoted_identifier,
       $.dollar_string,
       $.variable,
+      $._variable_check,
     ),
 
     meta_command: $ => choice(
@@ -116,14 +121,16 @@ module.exports = grammar({
       $.variable,
       $.backtick_command,
       $.pipe,
+      $._variable_check,
     ),
 
     pipe: $ => seq(alias($._pipe, '|'), optional($.shell_command)),
 
+    // A backtick with no end runs to the end of the line.
     backtick_command: $ => seq(
       alias($._backtick_open, '`'),
       optional(alias($._backtick_text, $.shell_command)),
-      alias($._backtick_close, '`'),
+      optional(alias($._backtick_close, '`')),
     ),
 
     option_list: $ => seq(
@@ -136,6 +143,7 @@ module.exports = grammar({
       field('key', alias($._option_word, $.word)),
       optional(seq(
         alias($._option_equals, '='),
+        optional($._variable_check),
         field('value', choice(
           alias($._option_word, $.word),
           $.string,

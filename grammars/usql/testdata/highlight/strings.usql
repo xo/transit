@@ -1,0 +1,12 @@
+select 'a;b', "c", $$d$$, $tag$e$tag$, E'f\'g';
+     -- ^ string
+            -- ^ string.special
+                 -- ^ string
+                           -- ^ string
+                                     -- ^ string
+                                           -- ^ punctuation.delimiter
+select 1 /* a */ -- b
+       -- ^ comment
+              -- ^ comment
+;
+-- <- punctuation.delimiter

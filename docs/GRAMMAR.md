@@ -312,6 +312,7 @@ the options of the dialect change only its scanner (D108):
 | `scanner.go` | the port of `src/scanner.c` | a person |
 | `options.go` | `Options`, the options of a dialect, and `LanguageFor`, which gives the language with a scanner that reads them | a person |
 | `testdata/options/<name>.txt` | the corpus cases that need options other than the default, which `options_test.go` runs with the options `<name>` | a person |
+| `testdata/highlight/` | the highlight tests, with their assertions in `--` comments | a person |
 
 The upstream tool, the golden harness and the corpus test use the default
 options of `src/scanner.c`: dollar quotes and block comments. A new option

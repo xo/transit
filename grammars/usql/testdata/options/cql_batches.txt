@@ -1,0 +1,90 @@
+================================================================================
+CQL with Batches: a batch is one statement
+================================================================================
+
+BEGIN BATCH
+  INSERT INTO t (a) VALUES (:a);
+  UPDATE t SET b = 'x;y' WHERE a = 1;
+APPLY BATCH;
+select 1;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (variable
+      (variable_name))
+    (string))
+  (statement))
+
+================================================================================
+CQL with Batches: unlogged and counter batches
+================================================================================
+
+begin unlogged batch using timestamp 1
+  insert into t (a) values (1);
+apply batch;
+Begin Counter Batch
+  update c set n = n + 1 where k = 1;
+  update c set n = n - 1 where k = 2;
+Apply Batch;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement))
+
+================================================================================
+CQL with Batches: APPLY alone does not end a batch
+================================================================================
+
+BEGIN BATCH
+  INSERT INTO apply (a) VALUES (1);
+  APPLY; apply -- a comment
+  batch;
+select 2;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (comment))
+  (statement))
+
+================================================================================
+CQL with Batches: a batch that is not finished
+================================================================================
+
+BEGIN BATCH
+  INSERT INTO t (a) VALUES (1);
+\g
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (meta_command
+    (command_name)))
+
+================================================================================
+CQL with Batches: BEGIN that does not start a batch
+================================================================================
+
+BEGIN TRANSACTION;
+select 1; BEGIN; select 2;
+select 3; BEGIN UNLOGGED; select 4;
+create function f() begin select 5; end;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement)
+  (statement)
+  (statement)
+  (statement)
+  (statement)
+  (statement)
+  (statement)
+  (statement))

@@ -24,7 +24,16 @@ package usql
 // statement (D112). It reads the words of the SQL text, outside strings,
 // quoted identifiers and comments. After CREATE ... PROCEDURE, FUNCTION,
 // TRIGGER or EVENT, it counts BEGIN and END, and a ; inside the body does
-// not end the statement. The words that it reads are in keywords below.
+// not end the statement. With the option Batches, it keeps a batch of CQL in
+// one statement. After BEGIN [UNLOGGED | COUNTER] BATCH at the start of a
+// statement, a ; does not end the statement until APPLY BATCH. The words
+// that it reads are in keywords below.
+//
+// After a colon and a quote, the scanner must read the name and the closing
+// quote before it knows whether the colon starts a variable, as :'name', or
+// is text before a string, as :'a b'. A token cannot end before a character
+// that the scanner read for it, so the scanner first returns variableCheck,
+// a token with no characters, and keeps what it found for the next token.
 //
 // The C scanner is the reference (D42). The test module compares the two
 // scanners on every corpus input, with each set of options that it tests.
@@ -71,6 +80,7 @@ const (
 	closeSingleQuote
 	closeDoubleQuote
 	closeBrace
+	variableCheck
 	errorSentinel
 )
 
@@ -99,10 +109,10 @@ const maxWordLength = 16
 
 // serializedSize is SERIALIZED_SIZE, the number of bytes that Serialize
 // writes.
-const serializedSize = 9
+const serializedSize = 10
 
 // block is the C enum Block, the part of a statement that the scanner is
-// in, with the option BeginEndBlocks.
+// in, with the option BeginEndBlocks or Batches.
 type block uint8
 
 const (
@@ -127,6 +137,12 @@ const (
 	blockDeclare
 	// blockBody is inside the body, from BEGIN to its END.
 	blockBody
+	// blockBatchStart is after BEGIN at the start of a statement, with the
+	// option Batches, where UNLOGGED, COUNTER or BATCH can come next.
+	blockBatchStart
+	// blockBatch is inside a batch, from BEGIN ... BATCH to APPLY BATCH. A ;
+	// does not end the statement.
+	blockBatch
 )
 
 // pending is the C enum Pending, a word whose meaning depends on the next
@@ -144,6 +160,24 @@ const (
 	// pendingAs is after IS or AS in blockHeader, which starts declarations
 	// when a word that does not start a statement comes next.
 	pendingAs
+	// pendingApply is after APPLY in blockBatch, which ends the batch when
+	// BATCH comes next.
+	pendingApply
+)
+
+// variable is the C enum Variable, what the scanner found after a colon and
+// a quote, which variableCheck keeps for the next token.
+type variable uint8
+
+const (
+	// variableUnknown is before variableCheck.
+	variableUnknown variable = iota
+	// variableQuoted is a name and a closing quote, so the colon and the
+	// quote are the sigil of a variable.
+	variableQuoted
+	// variableText is no name or no closing quote, so the colon is text, as
+	// psql reads it, and the quote starts a string or a quoted identifier.
+	variableText
 )
 
 // keyword is the C enum Keyword, a word that the scanner reads in SQL text,
@@ -154,12 +188,15 @@ const (
 	kwNone keyword = iota
 	kwAggregate
 	kwAlter
+	kwApply
 	kwAs
+	kwBatch
 	kwBegin
 	kwCall
 	kwCase
 	kwCatch
 	kwConstraint
+	kwCounter
 	kwCreate
 	kwDeclare
 	kwDefiner
@@ -194,6 +231,7 @@ const (
 	kwTransaction
 	kwTrigger
 	kwTry
+	kwUnlogged
 	kwUpdate
 	kwValues
 	kwWhile
@@ -203,14 +241,15 @@ const (
 
 // keywords holds the text of each keyword, in lower case.
 var keywords = [...]string{
-	"", "aggregate", "alter", "as", "begin", "call",
-	"case", "catch", "constraint", "create", "declare", "definer",
-	"delete", "distributed", "editionable", "end", "event", "exec",
-	"execute", "external", "function", "if", "insert", "is",
-	"language", "loop", "merge", "noneditionable", "or", "print",
-	"proc", "procedure", "repeat", "replace", "return", "select",
-	"set", "temp", "temporary", "tran", "transaction", "trigger",
-	"try", "update", "values", "while", "with", "work",
+	"", "aggregate", "alter", "apply", "as", "batch",
+	"begin", "call", "case", "catch", "constraint", "counter",
+	"create", "declare", "definer", "delete", "distributed", "editionable",
+	"end", "event", "exec", "execute", "external", "function",
+	"if", "insert", "is", "language", "loop", "merge",
+	"noneditionable", "or", "print", "proc", "procedure", "repeat",
+	"replace", "return", "select", "set", "temp", "temporary",
+	"tran", "transaction", "trigger", "try", "unlogged", "update",
+	"values", "while", "with", "work",
 }
 
 // sqlWord is the C struct Word, the word of SQL text that the scanner
@@ -245,10 +284,12 @@ type scanner struct {
 	command uint8
 	// block is the block of the statement, pending its pending word, and
 	// level the number of blocks of the body that are open. They stay 0
-	// without the option BeginEndBlocks.
+	// without the options BeginEndBlocks and Batches.
 	block   block
 	pending pending
 	level   uint8
+	// variable is what variableCheck found for the next token.
+	variable variable
 }
 
 // command is the C struct Command, a meta command of usql, from
@@ -614,13 +655,13 @@ func (s *scanner) resolvePending() {
 
 // endsStatement is ends_statement. It reports whether a ; outside
 // parentheses ends the statement. It is not the end inside the
-// declarations or the body of a stored program.
+// declarations or the body of a stored program, or inside a batch.
 func (s *scanner) endsStatement(opts Options) bool {
-	if !opts.BeginEndBlocks {
+	if !opts.BeginEndBlocks && !opts.Batches {
 		return true
 	}
 	s.resolvePending()
-	return s.block != blockDeclare && s.block != blockBody
+	return s.block != blockDeclare && s.block != blockBody && s.block != blockBatch
 }
 
 // scanString is scan_string. It notes a string in SQL text. After IS or AS,
@@ -658,8 +699,8 @@ func isStatementWord(kw keyword) bool {
 }
 
 // scanKeyword is scan_keyword. It changes the state of the blocks for the
-// word kw of SQL text.
-func (s *scanner) scanKeyword(kw keyword) {
+// word kw of SQL text, with the options of the dialect.
+func (s *scanner) scanKeyword(kw keyword, opts Options) {
 	p := s.pending
 	s.pending = pendingNone
 	switch p {
@@ -687,12 +728,20 @@ func (s *scanner) scanKeyword(kw keyword) {
 		if kw != kwBegin {
 			s.block = blockDeclare
 		}
+	case pendingApply:
+		if kw == kwBatch {
+			s.block = blockNone
+			return
+		}
 	}
 	switch s.block {
 	case blockStart:
-		if kw == kwCreate {
+		switch {
+		case kw == kwCreate && opts.BeginEndBlocks:
 			s.block = blockCreate
-		} else {
+		case kw == kwBegin && opts.Batches:
+			s.block = blockBatchStart
+		default:
 			s.block = blockNone
 		}
 	case blockNone:
@@ -744,6 +793,17 @@ func (s *scanner) scanKeyword(kw keyword) {
 		case kwCase:
 			s.openBlock()
 		}
+	case blockBatchStart:
+		if kw == kwBatch {
+			s.block = blockBatch
+		} else if kw != kwUnlogged && kw != kwCounter {
+			// a transaction, or a statement that is not a batch
+			s.block = blockNone
+		}
+	case blockBatch:
+		if kw == kwApply {
+			s.pending = pendingApply
+		}
 	}
 }
 
@@ -772,9 +832,9 @@ func addWordChar(w *sqlWord, c int32) {
 
 // endWord is end_word. It ends the word w at the character c, which is not
 // in a word, and gives the word to scanKeyword.
-func (s *scanner) endWord(w *sqlWord, c int32) {
+func (s *scanner) endWord(w *sqlWord, c int32, opts Options) {
 	if w.n > 0 && !w.spoiled {
-		s.scanKeyword(keywordOf(w))
+		s.scanKeyword(keywordOf(w), opts)
 	}
 	w.n = 0
 	w.spoiled = c == '.' || c == '@' || c == '$' || c == '#' || c == '['
@@ -782,17 +842,23 @@ func (s *scanner) endWord(w *sqlWord, c int32) {
 
 // scanVariableStart is scan_variable_start. It scans from the colon of a
 // variable. It returns the sigil when a valid variable follows. Else the
-// colon is text in the context ctx. After :' or :" with no valid name and
-// closing quote, the quote opens a string or a quoted identifier, and the
-// token holds the colon too.
-func (s *scanner) scanVariableStart(lexer *abi.Lexer, opts Options, ctx context, line bool) bool {
+// colon is text in the context ctx. After :' or :", it first returns
+// variableCheck, with no characters, and keeps what it found for the next
+// token: the sigil, or the colon as text when no valid name and closing
+// quote follow. Then the quote opens a string or a quoted identifier, as
+// psql reads it. In a list of options, the colon and the quoted text are one
+// word instead.
+func (s *scanner) scanVariableStart(lexer *abi.Lexer, validSymbols []bool, opts Options, ctx context) bool {
+	v := s.variable
+	s.variable = variableUnknown
+	lexer.MarkEnd()
 	advance(lexer)
 	c := lexer.Lookahead
 	if c == ':' {
 		// :: is a cast
 		advance(lexer)
 		lexer.MarkEnd()
-		return s.scanText(lexer, opts, ctx, true, ':')
+		return s.scanText(lexer, validSymbols, opts, ctx, true, ':')
 	}
 	if isVariableChar(c) {
 		lexer.MarkEnd()
@@ -800,14 +866,9 @@ func (s *scanner) scanVariableStart(lexer *abi.Lexer, opts Options, ctx context,
 		return true
 	}
 	if c == '\'' || c == '"' {
-		advance(lexer)
-		lexer.MarkEnd()
-		n := 0
-		for isVariableChar(lexer.Lookahead) && !lexer.EOF() {
+		if v == variableQuoted {
 			advance(lexer)
-			n++
-		}
-		if n > 0 && lexer.Lookahead == c {
+			lexer.MarkEnd()
 			if c == '\'' {
 				lexer.ResultSymbol = sigilSingleQuote
 			} else {
@@ -815,13 +876,31 @@ func (s *scanner) scanVariableStart(lexer *abi.Lexer, opts Options, ctx context,
 			}
 			return true
 		}
-		scanQuotedRest(lexer, c, line)
-		if c == '\'' {
-			lexer.ResultSymbol = stringToken
-		} else {
-			lexer.ResultSymbol = quotedIdentifier
+		if v == variableUnknown && validSymbols[variableCheck] {
+			advance(lexer)
+			n := 0
+			for isVariableChar(lexer.Lookahead) && !lexer.EOF() {
+				advance(lexer)
+				n++
+			}
+			if n > 0 && lexer.Lookahead == c {
+				s.variable = variableQuoted
+			} else {
+				s.variable = variableText
+			}
+			lexer.ResultSymbol = variableCheck
+			return true
 		}
-		return true
+		lexer.MarkEnd()
+		if ctx == contextOption {
+			// in a list of options, the colon and the quoted text are one word
+			advance(lexer)
+			scanQuotedRest(lexer, c, true)
+			lexer.ResultSymbol = optionWord
+			return true
+		}
+		// the colon is text, and the quote ends it
+		return s.scanText(lexer, validSymbols, opts, ctx, true, ':')
 	}
 	if c == '{' {
 		advance(lexer)
@@ -843,20 +922,20 @@ func (s *scanner) scanVariableStart(lexer *abi.Lexer, opts Options, ctx context,
 		}
 		// the characters are text
 		lexer.MarkEnd()
-		return s.scanText(lexer, opts, ctx, true, last)
+		return s.scanText(lexer, validSymbols, opts, ctx, true, last)
 	}
 	lexer.MarkEnd()
-	return s.scanText(lexer, opts, ctx, true, ':')
+	return s.scanText(lexer, validSymbols, opts, ctx, true, ':')
 }
 
 // scanText is scan_text. It scans a run of plain text in the context ctx:
 // SQL text, a word of an argument, or a word of a list of options. content
 // is true when the token already holds text, and prev is the last character
 // of that text. The token ends at its last character that is not white
-// space. With the option BeginEndBlocks, scanText reads the words of SQL
-// text.
-func (s *scanner) scanText(lexer *abi.Lexer, opts Options, ctx context, content bool, prev int32) bool {
-	blocks := ctx == contextSQL && opts.BeginEndBlocks
+// space. With the option BeginEndBlocks or Batches, scanText reads the words
+// of SQL text.
+func (s *scanner) scanText(lexer *abi.Lexer, validSymbols []bool, opts Options, ctx context, content bool, prev int32) bool {
+	blocks := ctx == contextSQL && (opts.BeginEndBlocks || opts.Batches)
 	var w sqlWord
 	for !lexer.EOF() {
 		c := lexer.Lookahead
@@ -864,7 +943,7 @@ func (s *scanner) scanText(lexer *abi.Lexer, opts Options, ctx context, content 
 			if isWordChar(&w, c) {
 				addWordChar(&w, c)
 			} else {
-				s.endWord(&w, c)
+				s.endWord(&w, c, opts)
 			}
 		}
 		if ctx != contextSQL {
@@ -951,7 +1030,7 @@ func (s *scanner) scanText(lexer *abi.Lexer, opts Options, ctx context, content 
 		}
 		if c == ':' {
 			if !content {
-				return s.scanVariableStart(lexer, opts, ctx, ctx != contextSQL)
+				return s.scanVariableStart(lexer, validSymbols, opts, ctx)
 			}
 			advance(lexer)
 			d := lexer.Lookahead
@@ -986,7 +1065,7 @@ func (s *scanner) scanText(lexer *abi.Lexer, opts Options, ctx context, content 
 		prev = c
 	}
 	if blocks {
-		s.endWord(&w, 0)
+		s.endWord(&w, 0, opts)
 	}
 	if !content {
 		return false
@@ -1149,7 +1228,7 @@ func (s *scanner) scanArguments(lexer *abi.Lexer, validSymbols []bool, opts Opti
 	if ctx == contextArgument && !validSymbols[word] {
 		return false
 	}
-	return s.scanText(lexer, opts, ctx, false, 0)
+	return s.scanText(lexer, validSymbols, opts, ctx, false, 0)
 }
 
 // scanSQL is scan_sql. It scans a token of SQL, or the name of a meta
@@ -1169,7 +1248,7 @@ func (s *scanner) scanSQL(lexer *abi.Lexer, validSymbols []bool, opts Options) b
 			prev := lexer.Lookahead
 			advance(lexer)
 			lexer.MarkEnd()
-			return s.scanText(lexer, opts, contextSQL, true, prev)
+			return s.scanText(lexer, validSymbols, opts, contextSQL, true, prev)
 		}
 		return s.scanCommandName(lexer, validSymbols)
 	}
@@ -1187,7 +1266,7 @@ func (s *scanner) scanSQL(lexer *abi.Lexer, validSymbols []bool, opts Options) b
 	if c == '"' || (c == '`' && opts.Backticks) {
 		return scanQuoted(lexer, quotedIdentifier, false)
 	}
-	return s.scanText(lexer, opts, contextSQL, false, 0)
+	return s.scanText(lexer, validSymbols, opts, contextSQL, false, 0)
 }
 
 // newScanner returns a new scanner with the default options.
@@ -1196,7 +1275,7 @@ func (s *scanner) scanSQL(lexer *abi.Lexer, validSymbols []bool, opts Options) b
 func newScanner() *scanner { return &scanner{options: defaultOptions} }
 
 // Serialize writes the depth in its first 4 bytes, in little-endian order,
-// then base, command, block, pending and level.
+// then base, command, block, pending, level and variable.
 //
 // Serialize is tree_sitter_usql_external_scanner_serialize.
 func (s *scanner) Serialize(buffer []byte) int {
@@ -1206,6 +1285,7 @@ func (s *scanner) Serialize(buffer []byte) int {
 	buffer[6] = byte(s.block)
 	buffer[7] = byte(s.pending)
 	buffer[8] = s.level
+	buffer[9] = byte(s.variable)
 	return serializedSize
 }
 
@@ -1217,6 +1297,7 @@ func (s *scanner) Deserialize(buffer []byte) {
 	s.depth = 0
 	s.base = 0
 	s.command = 0
+	s.variable = variableUnknown
 	s.resetBlocks()
 	if len(buffer) == serializedSize {
 		s.depth = binary.LittleEndian.Uint32(buffer)
@@ -1225,6 +1306,7 @@ func (s *scanner) Deserialize(buffer []byte) {
 		s.block = block(buffer[6])
 		s.pending = pending(buffer[7])
 		s.level = buffer[8]
+		s.variable = variable(buffer[9])
 	}
 }
 
@@ -1233,6 +1315,10 @@ func (s *scanner) Deserialize(buffer []byte) {
 // Scan is tree_sitter_usql_external_scanner_scan.
 func (s *scanner) Scan(lexer *abi.Lexer, validSymbols []bool) bool {
 	opts := s.options
+	if lexer.Lookahead != ':' {
+		// variableCheck keeps what it found only for the colon after it
+		s.variable = variableUnknown
+	}
 	if validSymbols[errorSentinel] {
 		// In the recovery from an error every token is valid, so the text is
 		// read as SQL.
@@ -1280,17 +1366,20 @@ func (s *scanner) Scan(lexer *abi.Lexer, validSymbols []bool) bool {
 			lexer.ResultSymbol = backtickClose
 			return true
 		}
-		if !validSymbols[backtickText] {
-			return false
+		if validSymbols[backtickText] {
+			n := 0
+			for !lexer.EOF() && lexer.Lookahead != '`' && !isNewline(lexer.Lookahead) {
+				advance(lexer)
+				n++
+			}
+			if n > 0 {
+				lexer.MarkEnd()
+				lexer.ResultSymbol = backtickText
+				return true
+			}
 		}
-		n := 0
-		for !lexer.EOF() && lexer.Lookahead != '`' && !isNewline(lexer.Lookahead) {
-			advance(lexer)
-			n++
-		}
-		lexer.MarkEnd()
-		lexer.ResultSymbol = backtickText
-		return n > 0
+		// a backtick with no end runs to the end of the line, which ends the
+		// arguments
 	}
 	if validSymbols[commandEnd] || validSymbols[optionClose] || validSymbols[optionWord] ||
 		validSymbols[optionEquals] {

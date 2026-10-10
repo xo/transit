@@ -352,15 +352,23 @@ A command in backticks
 
 ================================================================================
 A command in backticks with no end
-:error
 ================================================================================
 
 \echo `date
+\echo `
 select 1;
 
 --------------------------------------------------------------------------------
 
-
+(source_file
+  (meta_command
+    (command_name)
+    (backtick_command
+      (shell_command)))
+  (meta_command
+    (command_name)
+    (backtick_command))
+  (statement))
 
 ================================================================================
 The separator

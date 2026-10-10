@@ -21,7 +21,16 @@
 // statement (D112). It reads the words of the SQL text, outside strings,
 // quoted identifiers and comments. After CREATE ... PROCEDURE, FUNCTION,
 // TRIGGER or EVENT, it counts BEGIN and END, and a ; inside the body does
-// not end the statement. The words that it reads are in keywords below.
+// not end the statement. With USQL_BATCHES, it keeps a batch of CQL in one
+// statement. After BEGIN [UNLOGGED | COUNTER] BATCH at the start of a
+// statement, a ; does not end the statement until APPLY BATCH. The words
+// that it reads are in keywords below.
+//
+// After a colon and a quote, the scanner must read the name and the closing
+// quote before it knows whether the colon starts a variable, as :'name', or
+// is text before a string, as :'a b'. A token cannot end before a character
+// that the scanner read for it, so the scanner first returns VARIABLE_CHECK,
+// a token with no characters, and keeps what it found for the next token.
 
 #include "tree_sitter/alloc.h"
 #include "tree_sitter/parser.h"
@@ -38,6 +47,7 @@
 #define USQL_HASH_COMMENTS 8   // # starts a comment
 #define USQL_BACKTICKS 16      // `...` is a quoted identifier
 #define USQL_BEGIN_END_BLOCKS 32 // BEGIN ... END of a stored program is in one statement
+#define USQL_BATCHES 64          // BEGIN BATCH ... APPLY BATCH of CQL is in one statement
 
 // The options of the scanner. The default is dollar quotes and block
 // comments, the options of PostgreSQL. The upstream tool and the golden
@@ -79,6 +89,7 @@ enum TokenType {
   CLOSE_SINGLE_QUOTE,
   CLOSE_DOUBLE_QUOTE,
   CLOSE_BRACE,
+  VARIABLE_CHECK,
   ERROR_SENTINEL,
 };
 
@@ -102,10 +113,10 @@ enum Context {
 
 // The number of bytes that tree_sitter_usql_external_scanner_serialize
 // writes.
-#define SERIALIZED_SIZE 9
+#define SERIALIZED_SIZE 10
 
 // Block is the part of a statement that the scanner is in, with the option
-// USQL_BEGIN_END_BLOCKS.
+// USQL_BEGIN_END_BLOCKS or USQL_BATCHES.
 enum Block {
   // BLOCK_START is before the first word of the statement.
   BLOCK_START,
@@ -128,6 +139,12 @@ enum Block {
   BLOCK_DECLARE,
   // BLOCK_BODY is inside the body, from BEGIN to its END.
   BLOCK_BODY,
+  // BLOCK_BATCH_START is after BEGIN at the start of a statement, with
+  // USQL_BATCHES, where UNLOGGED, COUNTER or BATCH can come next.
+  BLOCK_BATCH_START,
+  // BLOCK_BATCH is inside a batch, from BEGIN ... BATCH to APPLY BATCH. A ;
+  // does not end the statement.
+  BLOCK_BATCH,
 };
 
 // Pending is a word whose meaning depends on the next word.
@@ -142,6 +159,22 @@ enum Pending {
   // PENDING_AS is after IS or AS in BLOCK_HEADER, which starts declarations
   // when a word that does not start a statement comes next.
   PENDING_AS,
+  // PENDING_APPLY is after APPLY in BLOCK_BATCH, which ends the batch when
+  // BATCH comes next.
+  PENDING_APPLY,
+};
+
+// Variable is what the scanner found after a colon and a quote, which
+// VARIABLE_CHECK keeps for the next token.
+enum Variable {
+  // VARIABLE_UNKNOWN is before VARIABLE_CHECK.
+  VARIABLE_UNKNOWN,
+  // VARIABLE_QUOTED is a name and a closing quote, so the colon and the
+  // quote are the sigil of a variable.
+  VARIABLE_QUOTED,
+  // VARIABLE_TEXT is no name or no closing quote, so the colon is text, as
+  // psql reads it, and the quote starts a string or a quoted identifier.
+  VARIABLE_TEXT,
 };
 
 // Keyword is a word that the scanner reads in SQL text, or KW_NONE for any
@@ -150,12 +183,15 @@ enum Keyword {
   KW_NONE,
   KW_AGGREGATE,
   KW_ALTER,
+  KW_APPLY,
   KW_AS,
+  KW_BATCH,
   KW_BEGIN,
   KW_CALL,
   KW_CASE,
   KW_CATCH,
   KW_CONSTRAINT,
+  KW_COUNTER,
   KW_CREATE,
   KW_DECLARE,
   KW_DEFINER,
@@ -190,6 +226,7 @@ enum Keyword {
   KW_TRANSACTION,
   KW_TRIGGER,
   KW_TRY,
+  KW_UNLOGGED,
   KW_UPDATE,
   KW_VALUES,
   KW_WHILE,
@@ -199,14 +236,15 @@ enum Keyword {
 
 // keywords holds the text of each Keyword, in lower case.
 static const char *const keywords[] = {
-    "", "aggregate", "alter", "as", "begin", "call",
-    "case", "catch", "constraint", "create", "declare", "definer",
-    "delete", "distributed", "editionable", "end", "event", "exec",
-    "execute", "external", "function", "if", "insert", "is",
-    "language", "loop", "merge", "noneditionable", "or", "print",
-    "proc", "procedure", "repeat", "replace", "return", "select",
-    "set", "temp", "temporary", "tran", "transaction", "trigger",
-    "try", "update", "values", "while", "with", "work",
+    "", "aggregate", "alter", "apply", "as", "batch",
+    "begin", "call", "case", "catch", "constraint", "counter",
+    "create", "declare", "definer", "delete", "distributed", "editionable",
+    "end", "event", "exec", "execute", "external", "function",
+    "if", "insert", "is", "language", "loop", "merge",
+    "noneditionable", "or", "print", "proc", "procedure", "repeat",
+    "replace", "return", "select", "set", "temp", "temporary",
+    "tran", "transaction", "trigger", "try", "unlogged", "update",
+    "values", "while", "with", "work",
 };
 
 // Word is the word of SQL text that the scanner reads, in lower case.
@@ -234,10 +272,13 @@ typedef struct {
   uint8_t command;
   // block is the enum Block of the statement, pending its enum Pending, and
   // level the number of blocks of the body that are open. They stay 0
-  // without USQL_BEGIN_END_BLOCKS.
+  // without USQL_BEGIN_END_BLOCKS and USQL_BATCHES.
   uint8_t block;
   uint8_t pending;
   uint8_t level;
+  // variable is the enum Variable that VARIABLE_CHECK found for the next
+  // token.
+  uint8_t variable;
 } Scanner;
 
 // Command is a meta command of usql, from metacmd/descs.go of usql.
@@ -600,13 +641,13 @@ static void resolve_pending(Scanner *s) {
 
 // ends_statement reports whether a ; outside parentheses ends the
 // statement. It is not the end inside the declarations or the body of a
-// stored program.
+// stored program, or inside a batch.
 static bool ends_statement(Scanner *s, int options) {
-  if (!(options & USQL_BEGIN_END_BLOCKS)) {
+  if (!(options & (USQL_BEGIN_END_BLOCKS | USQL_BATCHES))) {
     return true;
   }
   resolve_pending(s);
-  return s->block != BLOCK_DECLARE && s->block != BLOCK_BODY;
+  return s->block != BLOCK_DECLARE && s->block != BLOCK_BODY && s->block != BLOCK_BATCH;
 }
 
 // scan_string notes a string in SQL text. After IS or AS, a string is the
@@ -655,8 +696,8 @@ static bool is_statement_word(enum Keyword kw) {
 }
 
 // scan_keyword changes the state of the blocks for the word kw of SQL
-// text.
-static void scan_keyword(Scanner *s, enum Keyword kw) {
+// text, with the options of the dialect.
+static void scan_keyword(Scanner *s, enum Keyword kw, int options) {
   enum Pending pending = (enum Pending)s->pending;
   s->pending = PENDING_NONE;
   switch (pending) {
@@ -688,10 +729,22 @@ static void scan_keyword(Scanner *s, enum Keyword kw) {
       s->block = BLOCK_DECLARE;
     }
     break;
+  case PENDING_APPLY:
+    if (kw == KW_BATCH) {
+      s->block = BLOCK_NONE;
+      return;
+    }
+    break;
   }
   switch ((enum Block)s->block) {
   case BLOCK_START:
-    s->block = kw == KW_CREATE ? BLOCK_CREATE : BLOCK_NONE;
+    if (kw == KW_CREATE && (options & USQL_BEGIN_END_BLOCKS)) {
+      s->block = BLOCK_CREATE;
+    } else if (kw == KW_BEGIN && (options & USQL_BATCHES)) {
+      s->block = BLOCK_BATCH_START;
+    } else {
+      s->block = BLOCK_NONE;
+    }
     break;
   case BLOCK_NONE:
     break;
@@ -761,6 +814,19 @@ static void scan_keyword(Scanner *s, enum Keyword kw) {
       open_block(s);
     }
     break;
+  case BLOCK_BATCH_START:
+    if (kw == KW_BATCH) {
+      s->block = BLOCK_BATCH;
+    } else if (kw != KW_UNLOGGED && kw != KW_COUNTER) {
+      // a transaction, or a statement that is not a batch
+      s->block = BLOCK_NONE;
+    }
+    break;
+  case BLOCK_BATCH:
+    if (kw == KW_APPLY) {
+      s->pending = PENDING_APPLY;
+    }
+    break;
   }
 }
 
@@ -789,31 +855,36 @@ static void add_word_char(Word *w, int32_t c) {
 
 // end_word ends the word w at the character c, which is not in a word, and
 // gives the word to scan_keyword.
-static void end_word(Scanner *s, Word *w, int32_t c) {
+static void end_word(Scanner *s, Word *w, int32_t c, int options) {
   if (w->n > 0 && !w->spoiled) {
-    scan_keyword(s, keyword_of(w));
+    scan_keyword(s, keyword_of(w), options);
   }
   w->n = 0;
   w->spoiled = c == '.' || c == '@' || c == '$' || c == '#' || c == '[';
 }
 
-static bool scan_text(Scanner *s, TSLexer *lexer, int options, enum Context ctx, bool content,
-                      int32_t prev);
+static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int options,
+                      enum Context ctx, bool content, int32_t prev);
 
 // scan_variable_start scans from the colon of a variable. It returns the
 // sigil when a valid variable follows. Else the colon is text in the
-// context ctx. After :' or :" with no valid name and closing quote, the
-// quote opens a string or a quoted identifier, and the token holds the colon
-// too.
-static bool scan_variable_start(Scanner *s, TSLexer *lexer, int options, enum Context ctx,
-                                bool line) {
+// context ctx. After :' or :", it first returns VARIABLE_CHECK, with no
+// characters, and keeps what it found for the next token: the sigil, or the
+// colon as text when no valid name and closing quote follow. Then the quote
+// opens a string or a quoted identifier, as psql reads it. In a list of
+// options, the colon and the quoted text are one word instead.
+static bool scan_variable_start(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int options,
+                                enum Context ctx) {
+  enum Variable variable = (enum Variable)s->variable;
+  s->variable = VARIABLE_UNKNOWN;
+  lexer->mark_end(lexer);
   advance(lexer);
   int32_t c = lexer->lookahead;
   if (c == ':') {
     // :: is a cast
     advance(lexer);
     lexer->mark_end(lexer);
-    return scan_text(s, lexer, options, ctx, true, ':');
+    return scan_text(s, lexer, valid_symbols, options, ctx, true, ':');
   }
   if (is_variable_char(c)) {
     lexer->mark_end(lexer);
@@ -821,20 +892,33 @@ static bool scan_variable_start(Scanner *s, TSLexer *lexer, int options, enum Co
     return true;
   }
   if (c == '\'' || c == '"') {
-    advance(lexer);
-    lexer->mark_end(lexer);
-    unsigned n = 0;
-    while (is_variable_char(lexer->lookahead) && !lexer->eof(lexer)) {
+    if (variable == VARIABLE_QUOTED) {
       advance(lexer);
-      n++;
-    }
-    if (n > 0 && lexer->lookahead == c) {
+      lexer->mark_end(lexer);
       lexer->result_symbol = c == '\'' ? SIGIL_SINGLE_QUOTE : SIGIL_DOUBLE_QUOTE;
       return true;
     }
-    scan_quoted_rest(lexer, c, line);
-    lexer->result_symbol = c == '\'' ? STRING : QUOTED_IDENTIFIER;
-    return true;
+    if (variable == VARIABLE_UNKNOWN && valid_symbols[VARIABLE_CHECK]) {
+      advance(lexer);
+      unsigned n = 0;
+      while (is_variable_char(lexer->lookahead) && !lexer->eof(lexer)) {
+        advance(lexer);
+        n++;
+      }
+      s->variable = n > 0 && lexer->lookahead == c ? VARIABLE_QUOTED : VARIABLE_TEXT;
+      lexer->result_symbol = VARIABLE_CHECK;
+      return true;
+    }
+    lexer->mark_end(lexer);
+    if (ctx == CONTEXT_OPTION) {
+      // in a list of options, the colon and the quoted text are one word
+      advance(lexer);
+      scan_quoted_rest(lexer, c, true);
+      lexer->result_symbol = OPTION_WORD;
+      return true;
+    }
+    // the colon is text, and the quote ends it
+    return scan_text(s, lexer, valid_symbols, options, ctx, true, ':');
   }
   if (c == '{') {
     advance(lexer);
@@ -856,20 +940,21 @@ static bool scan_variable_start(Scanner *s, TSLexer *lexer, int options, enum Co
     }
     // the characters are text
     lexer->mark_end(lexer);
-    return scan_text(s, lexer, options, ctx, true, last);
+    return scan_text(s, lexer, valid_symbols, options, ctx, true, last);
   }
   lexer->mark_end(lexer);
-  return scan_text(s, lexer, options, ctx, true, ':');
+  return scan_text(s, lexer, valid_symbols, options, ctx, true, ':');
 }
 
 // scan_text scans a run of plain text in the context ctx: SQL text, a word
 // of an argument, or a word of a list of options. content is true when the
 // token already holds text, and prev is the last character of that text.
 // The token ends at its last character that is not white space. With
-// USQL_BEGIN_END_BLOCKS, scan_text reads the words of SQL text.
-static bool scan_text(Scanner *s, TSLexer *lexer, int options, enum Context ctx, bool content,
-                      int32_t prev) {
-  bool blocks = ctx == CONTEXT_SQL && (options & USQL_BEGIN_END_BLOCKS);
+// USQL_BEGIN_END_BLOCKS or USQL_BATCHES, scan_text reads the words of SQL
+// text.
+static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int options,
+                      enum Context ctx, bool content, int32_t prev) {
+  bool blocks = ctx == CONTEXT_SQL && (options & (USQL_BEGIN_END_BLOCKS | USQL_BATCHES));
   Word w = {{0}, 0, false};
   for (;;) {
     if (lexer->eof(lexer)) {
@@ -880,7 +965,7 @@ static bool scan_text(Scanner *s, TSLexer *lexer, int options, enum Context ctx,
       if (is_word_char(&w, c)) {
         add_word_char(&w, c);
       } else {
-        end_word(s, &w, c);
+        end_word(s, &w, c, options);
       }
     }
     if (ctx != CONTEXT_SQL) {
@@ -961,7 +1046,7 @@ static bool scan_text(Scanner *s, TSLexer *lexer, int options, enum Context ctx,
     }
     if (c == ':') {
       if (!content) {
-        return scan_variable_start(s, lexer, options, ctx, ctx != CONTEXT_SQL);
+        return scan_variable_start(s, lexer, valid_symbols, options, ctx);
       }
       advance(lexer);
       int32_t d = lexer->lookahead;
@@ -996,7 +1081,7 @@ static bool scan_text(Scanner *s, TSLexer *lexer, int options, enum Context ctx,
     prev = c;
   }
   if (blocks) {
-    end_word(s, &w, 0);
+    end_word(s, &w, 0, options);
   }
   if (!content) {
     return false;
@@ -1151,7 +1236,7 @@ static bool scan_arguments(Scanner *s, TSLexer *lexer, const bool *valid_symbols
   if (ctx == CONTEXT_ARGUMENT && !valid_symbols[WORD]) {
     return false;
   }
-  return scan_text(s, lexer, options, ctx, false, 0);
+  return scan_text(s, lexer, valid_symbols, options, ctx, false, 0);
 }
 
 // scan_sql scans a token of SQL, or the name of a meta command.
@@ -1170,7 +1255,7 @@ static bool scan_sql(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int 
       int32_t prev = lexer->lookahead;
       advance(lexer);
       lexer->mark_end(lexer);
-      return scan_text(s, lexer, options, CONTEXT_SQL, true, prev);
+      return scan_text(s, lexer, valid_symbols, options, CONTEXT_SQL, true, prev);
     }
     return scan_command_name(s, lexer, valid_symbols);
   }
@@ -1188,7 +1273,7 @@ static bool scan_sql(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int 
   if (c == '"' || (c == '`' && (options & USQL_BACKTICKS))) {
     return scan_quoted(lexer, QUOTED_IDENTIFIER, false);
   }
-  return scan_text(s, lexer, options, CONTEXT_SQL, false, 0);
+  return scan_text(s, lexer, valid_symbols, options, CONTEXT_SQL, false, 0);
 }
 
 void *tree_sitter_usql_external_scanner_create(void) { return ts_calloc(1, sizeof(Scanner)); }
@@ -1196,7 +1281,7 @@ void *tree_sitter_usql_external_scanner_create(void) { return ts_calloc(1, sizeo
 void tree_sitter_usql_external_scanner_destroy(void *payload) { ts_free(payload); }
 
 // tree_sitter_usql_external_scanner_serialize writes the depth in its first
-// 4 bytes, then base, command, block, pending and level.
+// 4 bytes, then base, command, block, pending, level and variable.
 unsigned tree_sitter_usql_external_scanner_serialize(void *payload, char *buffer) {
   Scanner *s = (Scanner *)payload;
   memcpy(buffer, &s->depth, sizeof(s->depth));
@@ -1205,6 +1290,7 @@ unsigned tree_sitter_usql_external_scanner_serialize(void *payload, char *buffer
   buffer[6] = (char)s->block;
   buffer[7] = (char)s->pending;
   buffer[8] = (char)s->level;
+  buffer[9] = (char)s->variable;
   return SERIALIZED_SIZE;
 }
 
@@ -1216,6 +1302,7 @@ void tree_sitter_usql_external_scanner_deserialize(void *payload, const char *bu
   s->depth = 0;
   s->base = 0;
   s->command = 0;
+  s->variable = VARIABLE_UNKNOWN;
   reset_blocks(s);
   if (length == SERIALIZED_SIZE) {
     memcpy(&s->depth, buffer, sizeof(s->depth));
@@ -1224,6 +1311,7 @@ void tree_sitter_usql_external_scanner_deserialize(void *payload, const char *bu
     s->block = (uint8_t)buffer[6];
     s->pending = (uint8_t)buffer[7];
     s->level = (uint8_t)buffer[8];
+    s->variable = (uint8_t)buffer[9];
   }
 }
 
@@ -1232,6 +1320,10 @@ void tree_sitter_usql_external_scanner_deserialize(void *payload, const char *bu
 bool tree_sitter_usql_external_scanner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols) {
   Scanner *s = (Scanner *)payload;
   int options = USQL_OPTIONS;
+  if (lexer->lookahead != ':') {
+    // VARIABLE_CHECK keeps what it found only for the colon after it
+    s->variable = VARIABLE_UNKNOWN;
+  }
   if (valid_symbols[ERROR_SENTINEL]) {
     // In the recovery from an error every token is valid, so the text is
     // read as SQL.
@@ -1279,17 +1371,20 @@ bool tree_sitter_usql_external_scanner_scan(void *payload, TSLexer *lexer, const
       lexer->result_symbol = BACKTICK_CLOSE;
       return true;
     }
-    if (!valid_symbols[BACKTICK_TEXT]) {
-      return false;
+    if (valid_symbols[BACKTICK_TEXT]) {
+      unsigned n = 0;
+      while (!lexer->eof(lexer) && lexer->lookahead != '`' && !is_newline(lexer->lookahead)) {
+        advance(lexer);
+        n++;
+      }
+      if (n > 0) {
+        lexer->mark_end(lexer);
+        lexer->result_symbol = BACKTICK_TEXT;
+        return true;
+      }
     }
-    unsigned n = 0;
-    while (!lexer->eof(lexer) && lexer->lookahead != '`' && !is_newline(lexer->lookahead)) {
-      advance(lexer);
-      n++;
-    }
-    lexer->mark_end(lexer);
-    lexer->result_symbol = BACKTICK_TEXT;
-    return n > 0;
+    // a backtick with no end runs to the end of the line, which ends the
+    // arguments
   }
   if (valid_symbols[COMMAND_END] || valid_symbols[OPTION_CLOSE] || valid_symbols[OPTION_WORD] ||
       valid_symbols[OPTION_EQUALS]) {

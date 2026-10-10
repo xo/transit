@@ -38,9 +38,10 @@ type Dialect struct {
 // dialects are the dialects that the flag -dialect chooses from. The
 // options are those of the syntax of each dialect in dbmeta. MySQL, Oracle
 // and SQL Server also turn on BeginEndBlocks, so that a stored program is
-// one statement (D112).
+// one statement (D112). CQL also turns on Batches, so that a batch is one
+// statement.
 var dialects = []Dialect{
-	{"cql", usql.Options{DollarQuotes: true, BlockComments: true, SlashComments: true}, cql.Language, cql.Queries, cql.Keywords},
+	{"cql", usql.Options{DollarQuotes: true, BlockComments: true, SlashComments: true, Batches: true}, cql.Language, cql.Queries, cql.Keywords},
 	{"generic", usql.Options{BlockComments: true}, sql.Language, sql.Queries, sql.Keywords},
 	{"mysql", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true}, mysql.Language, mysql.Queries, mysql.Keywords},
 	{"oracle", usql.Options{BlockComments: true, BeginEndBlocks: true}, oracle.Language, oracle.Queries, oracle.Keywords},

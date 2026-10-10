@@ -788,8 +788,8 @@ writes this API in `options.go`, beside the generated files:
 package usql
 
 // Options are the options of the syntax of a SQL dialect that the external
-// scanner reads. Each field but BeginEndBlocks is a flag of the type Syntax
-// of dbmeta, with the same name.
+// scanner reads. Each field but BeginEndBlocks and Batches is a flag of the
+// type Syntax of dbmeta, with the same name.
 type Options struct {
 	DollarQuotes  bool // $tag$ ... $tag$ and $$ ... $$ are a string
 	BlockComments bool // /* ... */ is a comment
@@ -798,6 +798,7 @@ type Options struct {
 	Backticks     bool // `...` is a quoted identifier
 
 	BeginEndBlocks bool // a stored program with BEGIN ... END is one statement
+	Batches        bool // a batch of CQL, BEGIN BATCH ... APPLY BATCH, is one statement
 }
 
 // LanguageFor returns the language with an external scanner that reads
@@ -819,6 +820,10 @@ on, a statement that starts with `CREATE ... PROCEDURE`, `FUNCTION`,
 `TRIGGER` or `EVENT` keeps its `BEGIN ... END` body, and a `;` inside the
 body does not end the statement. `docs/USQL.md` says which words the
 scanner reads.
+
+`Batches` keeps a batch of CQL in one statement, and it is off by default.
+With it on, a statement that starts with `BEGIN BATCH`, `BEGIN UNLOGGED
+BATCH` or `BEGIN COUNTER BATCH` runs to the first `;` after `APPLY BATCH`.
 
 ## The module styles
 

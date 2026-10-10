@@ -8,8 +8,8 @@ import (
 )
 
 // Options are the options of the syntax of a SQL dialect that the external
-// scanner reads (D108). Each field but BeginEndBlocks is a flag of the
-// type Syntax of dbmeta, with the same name. With the zero value, none of
+// scanner reads (D108). Each field but BeginEndBlocks and Batches is a flag
+// of the type Syntax of dbmeta, with the same name. With the zero value, none of
 // these texts is a string or a comment, and a ; outside parentheses always
 // ends a statement. A comment that starts with -- is a comment with every
 // set of options.
@@ -33,6 +33,11 @@ type Options struct {
 	// TRIGGER or EVENT, the scanner counts BEGIN and END, and a ; inside
 	// the body does not end the statement. It is not a flag of dbmeta.
 	BeginEndBlocks bool
+	// Batches keeps a batch of CQL in one statement. After BEGIN BATCH,
+	// BEGIN UNLOGGED BATCH or BEGIN COUNTER BATCH at the start of a
+	// statement, a ; does not end the statement until APPLY BATCH. It is not
+	// a flag of dbmeta.
+	Batches bool
 }
 
 // defaultOptions are the options of Language, and of src/scanner.c when the

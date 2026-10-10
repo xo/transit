@@ -52,9 +52,10 @@ change transit from usql.
    and `Backticks`. `usql.Language` has dollar quotes and block comments,
    the options of PostgreSQL. A comment that starts with `--` is a comment
    with every set of options.
-10. `usql.Options` has one more option, `BeginEndBlocks`, which keeps the
-    `BEGIN ... END` body of a stored program in one statement (D112). It is
-    off by default. "Dialects" below says more.
+10. `usql.Options` has two more options. `BeginEndBlocks` keeps the
+    `BEGIN ... END` body of a stored program in one statement (D112).
+    `Batches` keeps a batch of CQL, from `BEGIN BATCH` to `APPLY BATCH`, in
+    one statement. They are off by default. "Dialects" below says more.
 
 ## What usql will replace
 
@@ -158,7 +159,7 @@ for the flag `-dialect`, with these options of `usql.Options`:
 | `mysql` | `github.com/xo/transit/grammars/mysql` | `BlockComments`, `HashComments`, `Backticks`, `BeginEndBlocks` |
 | `sqlserver` | `github.com/xo/transit/grammars/sqlserver` | `BlockComments`, `BeginEndBlocks` |
 | `oracle` | `github.com/xo/transit/grammars/oracle` | `BlockComments`, `BeginEndBlocks` |
-| `cql` | `github.com/xo/transit/grammars/cql` | `DollarQuotes`, `BlockComments`, `SlashComments` |
+| `cql` | `github.com/xo/transit/grammars/cql` | `DollarQuotes`, `BlockComments`, `SlashComments`, `Batches` |
 | `generic` | `github.com/xo/transit/grammars/sql` | `BlockComments` |
 
 usql keeps this match itself. The repositories of `sqlserver`, `oracle` and
@@ -216,7 +217,21 @@ The option does not cover these texts:
    `END IF @a = 1`. The scanner reads it as the end of an `IF` or a
    `WHILE`, so the block stays open. A T-SQL `;WITH` right after `BEGIN`
    makes that `BEGIN` a transaction.
-6. `BEGIN BATCH ... APPLY BATCH` of CQL.
+
+A batch of CQL holds semicolons too. usql collects a batch from
+`BEGIN BATCH` to `APPLY BATCH` today. With the option `Batches` on, the
+usql grammar keeps the batch in one statement. It is off by default, and
+usql turns it on for CQL. These rules hold:
+
+1. The statement must start with `BEGIN BATCH`, `BEGIN UNLOGGED BATCH` or
+   `BEGIN COUNTER BATCH`, in any case.
+2. In the batch, a `;` does not end the statement. `APPLY BATCH` ends the
+   batch, and the first `;` after it ends the statement.
+3. A `BEGIN` that `BATCH`, `UNLOGGED` or `COUNTER` does not follow starts a
+   statement that is not a batch.
+4. The scanner reads the words outside strings, quoted identifiers and
+   comments, as it does for `BeginEndBlocks`. A meta command ends the
+   statement, as it ends any statement.
 
 ## What usql must not do
 

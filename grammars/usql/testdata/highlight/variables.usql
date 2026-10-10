@@ -1,0 +1,22 @@
+select :name, :'name', :"name", :{?name};
+    -- ^ punctuation.special
+      -- ^ variable
+           -- ^ punctuation.special
+              -- ^ variable
+                 -- ^ punctuation.special
+                    -- ^ punctuation.special
+                       -- ^ variable
+                          -- ^ punctuation.special
+                             -- ^ punctuation.special
+                                 -- ^ variable
+                                    -- ^ punctuation.special
+                                     -- ^ punctuation.delimiter
+select :'a b', :"c d", x::int;
+     -- ^ string
+         -- ^ string
+             -- ^ string.special
+\echo :'a b' :'c'
+   -- ^ variable.parameter
+    -- ^ string
+          -- ^ punctuation.special
+            -- ^ variable

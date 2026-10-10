@@ -1,0 +1,35 @@
+\dt+ public.*
+-- <- function.builtin
+-- ^ keyword.modifier
+  -- ^ variable.parameter
+\g (format=csv header) | grep x
+-- <- function.builtin
+-- ^ punctuation.bracket
+   -- ^ property
+       -- ^ operator
+         -- ^ string.special
+             -- ^ property
+                  -- ^ punctuation.bracket
+                    -- ^ punctuation.special
+                      -- ^ embedded
+\! ls -l
+-- <- function.builtin
+-- ^ embedded
+\echo `date` 'a b' "c"
+-- <- function.builtin
+   -- ^ punctuation.special
+     -- ^ embedded
+        -- ^ punctuation.special
+           -- ^ string
+                 -- ^ string.special
+\echo `date
+   -- ^ punctuation.special
+     -- ^ embedded
+\echo 'abc
+     -- ^ string
+\set x 1 \\ select 1;
+-- <- function.builtin
+  -- ^ variable.parameter
+    -- ^ variable.parameter
+      -- ^ function.builtin
+                 -- ^ punctuation.delimiter
