@@ -2,7 +2,6 @@ package generate
 
 import (
 	"cmp"
-	"math"
 	"math/bits"
 	"slices"
 
@@ -25,69 +24,33 @@ import (
 // library, for the one sort of this file where two elements that compare
 // equal can reach the output.
 
-// minimizeSymbolKey is a Symbol packed into a uint64 for a fast comparison of
-// the keys of a sort.
-//
-// Layout: the high 32 bits are the kind, and the low 32 bits are the index.
-// This keeps the order of CompareSymbol (kind first, then index) as a single
-// integer comparison, and halves each entry's size vs storing a full
-// (Symbol, _) tuple.
+// minimizeSymbolKey is the position of a Symbol from symbolIndexer.index.
+// Positions follow the order of CompareSymbol, so keys sort like their
+// symbols.
 //
 // minimizeSymbolKey is SymbolKey.
-type minimizeSymbolKey uint64
-
-// The parts of a minimizeSymbolKey.
-const (
-	// minimizeKeyTagShift is KEY_TAG_SHIFT.
-	minimizeKeyTagShift = 32
-	// minimizeKeyIndexMask is KEY_INDEX_MASK.
-	minimizeKeyIndexMask uint64 = math.MaxUint32
-)
+type minimizeSymbolKey uint32
 
 // newMinimizeSymbolKey returns the key of a symbol.
 //
 // newMinimizeSymbolKey is SymbolKey::new.
-func newMinimizeSymbolKey(sym Symbol) minimizeSymbolKey {
-	return minimizeSymbolKey(sym.packedKey())
+func newMinimizeSymbolKey(indexer symbolIndexer, symbol Symbol) minimizeSymbolKey {
+	return minimizeSymbolKey(indexer.index(symbol))
+}
+
+// index returns the position of the key, to index a table by
+// symbolIndexer.index.
+//
+// index is SymbolKey::index.
+func (k minimizeSymbolKey) index() int {
+	return int(k)
 }
 
 // symbol returns the symbol of the key.
 //
 // symbol is SymbolKey::symbol.
-func (k minimizeSymbolKey) symbol() Symbol {
-	switch k.tag() {
-	case uint64(SymbolExternal):
-		return ExternalSymbol(int(k.index()))
-	case uint64(SymbolEnd):
-		return SymbolEndValue
-	case uint64(SymbolEndOfNonTerminalExtra):
-		return SymbolEndOfNonTerminalExtraValue
-	case uint64(SymbolTerminal):
-		return TerminalSymbol(int(k.index()))
-	default:
-		return NonTerminalSymbol(int(k.index()))
-	}
-}
-
-// index returns the index of the symbol.
-//
-// index is SymbolKey::index.
-func (k minimizeSymbolKey) index() uint32 {
-	return uint32(uint64(k) & minimizeKeyIndexMask)
-}
-
-// tag returns the kind of the symbol.
-//
-// tag is SymbolKey::tag.
-func (k minimizeSymbolKey) tag() uint64 {
-	return uint64(k) >> minimizeKeyTagShift
-}
-
-// isTerminal reports whether the symbol is a terminal.
-//
-// isTerminal is SymbolKey::is_terminal.
-func (k minimizeSymbolKey) isTerminal() bool {
-	return k.tag() == uint64(SymbolTerminal)
+func (k minimizeSymbolKey) symbol(indexer symbolIndexer) Symbol {
+	return indexer.symbol(k.index())
 }
 
 // MinimizeParseTable makes the parse table smaller. When optimizations holds
@@ -111,6 +74,7 @@ func MinimizeParseTable(
 		parseTable:       parseTable,
 		syntaxGrammar:    syntaxGrammar,
 		lexicalGrammar:   lexicalGrammar,
+		indexer:          newSymbolIndexer(syntaxGrammar, lexicalGrammar),
 		tokenConflictMap: tokenConflictMap,
 		keywords:         keywords,
 		simpleAliases:    simpleAliases,
@@ -129,7 +93,7 @@ func MinimizeParseTable(
 // row i spans [i*rowWords, (i+1)*rowWords).
 //
 // minimizeConflictBits is ConflictBits. hasWordToken is false for the None
-// of wordToken.
+// of the word token.
 type minimizeConflictBits struct {
 	rowWords int
 	// stateTerminals holds, for each state, the terminals that have entries.
@@ -141,10 +105,12 @@ type minimizeConflictBits struct {
 	keywords []uint64
 	// internalExternal holds the tokens that are also external tokens.
 	internalExternal []uint64
-	// wordToken is the grammar's word token, packed with the same ordering key
-	// as entries.
-	wordToken    minimizeSymbolKey
-	hasWordToken bool
+	// wordToken and wordTokenIndex are the grammar's word token, as a key and
+	// as its bit in a row, if it is a terminal. An external word token has no
+	// keywords (see identifyKeywords).
+	wordToken      minimizeSymbolKey
+	wordTokenIndex int
+	hasWordToken   bool
 }
 
 // newMinimizeConflictBits returns the bit sets of the states, the tokens
@@ -206,10 +172,14 @@ func newMinimizeConflictBits(m *minimizer) *minimizeConflictBits {
 		conflictRows:     conflictRows,
 		keywords:         keywords,
 		internalExternal: internalExternal,
-		hasWordToken:     m.syntaxGrammar.HasWordToken,
 	}
 	if m.syntaxGrammar.HasWordToken {
-		conflictBits.wordToken = newMinimizeSymbolKey(m.syntaxGrammar.WordToken)
+		word := m.syntaxGrammar.WordToken
+		if index, ok := word.TerminalIndex(); ok {
+			conflictBits.wordToken = newMinimizeSymbolKey(m.indexer, word)
+			conflictBits.wordTokenIndex = int(index)
+			conflictBits.hasWordToken = true
+		}
 	}
 	return conflictBits
 }
@@ -255,15 +225,15 @@ type minimizeConflictPass struct {
 // newMinimizeConflictPass is ConflictPass::new.
 func newMinimizeConflictPass(m *minimizer, shiftMaps [][]minimizeShift) *minimizeConflictPass {
 	// Precompute sorted terminal entry references for merge-join in states_conflict.
-	// entry_maps[state_id][i] = (symbol_key, action_list_id). Keys are packed u64s
-	// (symbol_key) for easy comparison. Upstream sorts with sort_unstable_by_key.
+	// entry_maps[state_id][i] = (symbol_key, action_list_id). Keys are symbol positions
+	// for easy comparison. Upstream sorts with sort_unstable_by_key.
 	// The keys of the entries of a state are different, so the order is the
 	// same in Go.
 	entryMaps := make([][]minimizeEntry, len(m.parseTable.States))
 	for s := range m.parseTable.States {
 		entries := make([]minimizeEntry, 0, m.parseTable.States[s].TerminalEntries.Len())
 		for sym, id := range m.parseTable.States[s].TerminalEntries.All() {
-			entries = append(entries, minimizeEntry{key: newMinimizeSymbolKey(sym), id: id})
+			entries = append(entries, minimizeEntry{key: newMinimizeSymbolKey(m.indexer, sym), id: id})
 		}
 		slices.SortFunc(entries, func(a, b minimizeEntry) int { return cmp.Compare(a.key, b.key) })
 		entryMaps[s] = entries
@@ -277,7 +247,7 @@ func newMinimizeConflictPass(m *minimizer, shiftMaps [][]minimizeShift) *minimiz
 		var hasher fxhash.Hasher
 		hasher.Write([]byte(state.ReservedWords.Key()))
 		for _, entry := range entryMaps[state.ID] {
-			hasher.WriteU64(uint64(entry.key))
+			hasher.WriteU32(uint32(entry.key))
 			for _, action := range m.parseTable.ActionLists.Get(entry.id) {
 				if action.Kind == ParseActionShift {
 					hasher.WriteU8(uint8(boolWord(action.IsRepetition)))
@@ -295,10 +265,7 @@ func newMinimizeConflictPass(m *minimizer, shiftMaps [][]minimizeShift) *minimiz
 		bits:             newMinimizeConflictBits(m),
 		staticSignatures: staticSignatures,
 		shiftMaps:        shiftMaps,
-		kept: newMinimizeKeptStates(newSymbolIndexer(
-			m.syntaxGrammar,
-			m.lexicalGrammar,
-		)),
+		kept:             newMinimizeKeptStates(m.indexer),
 	}
 }
 
@@ -306,9 +273,9 @@ func newMinimizeConflictPass(m *minimizer, shiftMaps [][]minimizeShift) *minimiz
 //
 // hasToken is ConflictPass::has_token.
 func (p *minimizeConflictPass) hasToken(stateID ParseStateID, key minimizeSymbolKey) bool {
-	if key.isTerminal() {
+	if index, ok := key.symbol(p.minimizer.indexer).TerminalIndex(); ok {
 		row := p.bits.getStateRow(int(stateID))
-		index := int(key.index())
+		index := int(index)
 		return row[index/64]&(1<<(index%64)) != 0
 	}
 	_, found := slices.BinarySearchFunc(p.entryMaps[stateID], key, func(e minimizeEntry, key minimizeSymbolKey) int {
@@ -339,7 +306,7 @@ func (p *minimizeConflictPass) compatibleWithMerged(
 	states := p.minimizer.parseTable.States
 	for _, entry := range p.entryMaps[state.ID] {
 		key, actionList := entry.key, entry.id
-		token := keptStates.tokens[keptStates.indexer.index(key.symbol())]
+		token := keptStates.tokens[key.index()]
 		if token.hasActionList &&
 			p.minimizer.entriesConflict(token.actionList, actionList, groupIDsByStateID) {
 			return false
@@ -376,8 +343,6 @@ type minimizeKeptStates struct {
 	// checkedTokens holds the tokens that have been checked against kept
 	// states lacking them.
 	checkedTokens []minimizeSymbolKey
-	// indexer gives each token its slot in tokens.
-	indexer symbolIndexer
 }
 
 // minimizeKeptToken is what the kept states have for a token. See
@@ -417,7 +382,6 @@ func newMinimizeKeptStates(indexer symbolIndexer) minimizeKeptStates {
 		mergedCount:   0,
 		mergedTokens:  nil,
 		checkedTokens: nil,
-		indexer:       indexer,
 	}
 }
 
@@ -426,10 +390,10 @@ func newMinimizeKeptStates(indexer symbolIndexer) minimizeKeptStates {
 // clear is KeptStates::clear.
 func (k *minimizeKeptStates) clear() {
 	for _, key := range k.mergedTokens {
-		k.tokens[k.indexer.index(key.symbol())] = minimizeKeptToken{}
+		k.tokens[key.index()] = minimizeKeptToken{}
 	}
 	for _, key := range k.checkedTokens {
-		k.tokens[k.indexer.index(key.symbol())] = minimizeKeptToken{}
+		k.tokens[key.index()] = minimizeKeptToken{}
 	}
 	k.mergedTokens = k.mergedTokens[:0]
 	k.checkedTokens = k.checkedTokens[:0]
@@ -442,7 +406,7 @@ func (k *minimizeKeptStates) clear() {
 func (k *minimizeKeptStates) merge(kept []uint32, entryMaps [][]minimizeEntry) {
 	for _, stateID := range kept[k.mergedCount:] {
 		for _, entry := range entryMaps[stateID] {
-			token := &k.tokens[k.indexer.index(entry.key.symbol())]
+			token := &k.tokens[entry.key.index()]
 			if !token.hasActionList {
 				token.actionList, token.hasActionList = entry.id, true
 				k.mergedTokens = append(k.mergedTokens, entry.key)
@@ -459,7 +423,7 @@ func (k *minimizeKeptStates) merge(kept []uint32, entryMaps [][]minimizeEntry) {
 //
 // addableToAll is KeptStates::addable_to_all.
 func (k *minimizeKeptStates) addableToAll(key minimizeSymbolKey, kept []uint32, canTake func(uint32) bool) bool {
-	token := &k.tokens[k.indexer.index(key.symbol())]
+	token := &k.tokens[key.index()]
 	if token.addable.blocked {
 		return false
 	}
@@ -630,7 +594,7 @@ func (p *minimizeSuccessorPass) ShouldSplit(left, right *ParseState[ActionListID
 func (p *minimizeSuccessorPass) Signature(state *ParseState[ActionListID], groupIDsByStateID []ParseStateID) (uint64, bool) {
 	var hasher fxhash.Hasher
 	for _, shift := range p.shiftMaps[state.ID] {
-		hasher.WriteU64(uint64(shift.key))
+		hasher.WriteU32(uint32(shift.key))
 		hasher.WriteU32(groupIDsByStateID[shift.state])
 	}
 	for _, g := range p.nonterminalMaps[state.ID] {
@@ -702,9 +666,11 @@ func (p *minimizeSuccessorPass) CompatibleWithAll(*ParseState[ActionListID], []u
 // minimizer is Minimizer. strPool is used only by the log lines of
 // upstream.
 type minimizer struct {
-	parseTable       *ParseTable[ActionListID]
-	syntaxGrammar    *SyntaxGrammar
-	lexicalGrammar   *LexicalGrammar
+	parseTable     *ParseTable[ActionListID]
+	syntaxGrammar  *SyntaxGrammar
+	lexicalGrammar *LexicalGrammar
+	// indexer gives each symbol its minimizeSymbolKey.
+	indexer          symbolIndexer
 	tokenConflictMap *TokenConflictMap
 	keywords         *TokenSet
 	simpleAliases    AliasMap
@@ -896,7 +862,7 @@ func (m *minimizer) mergeCompatibleStates() {
 
 	// Precompute per-state sorted shift actions, for both passes.
 	// State actions are stable across loop iterations; only group assignments change.
-	// Keys are packed u64s (symbol_key) for single-instruction comparison.
+	// Keys are symbol positions, for single-instruction comparison.
 	// Upstream sorts with sort_unstable_by_key. The keys of the entries of a
 	// state are different, so the order is the same in Go.
 	shiftMaps := make([][]minimizeShift, len(states))
@@ -908,7 +874,7 @@ func (m *minimizer) mergeCompatibleStates() {
 				continue
 			}
 			if action := actions[len(actions)-1]; action.Kind == ParseActionShift {
-				shifts = append(shifts, minimizeShift{key: newMinimizeSymbolKey(sym), state: action.State})
+				shifts = append(shifts, minimizeShift{key: newMinimizeSymbolKey(m.indexer, sym), state: action.State})
 			}
 		}
 		slices.SortFunc(shifts, func(a, b minimizeShift) int { return cmp.Compare(a.key, b.key) })
@@ -1152,20 +1118,21 @@ func (m *minimizer) actionListsConflict(id1, id2 ActionListID, groupIDsByStateID
 //
 // tokenConflicts is Minimizer::token_conflicts.
 func (m *minimizer) tokenConflicts(rightState *ParseState[ActionListID], conflictBits *minimizeConflictBits, newToken minimizeSymbolKey) bool {
-	newTokenIsTerminal := newToken.isTerminal()
 	var newTokenIndex int
-	switch newToken.tag() {
-	case uint64(SymbolEndOfNonTerminalExtra):
+	var newTokenIsTerminal bool
+	symbol := newToken.symbol(m.indexer)
+	switch symbol.Kind() {
+	case SymbolEndOfNonTerminalExtra:
 		return true
 	// Do not add external tokens, as they could conflict lexically with
 	// any of the state's existing lookahead tokens.
-	case uint64(SymbolExternal):
+	case SymbolExternal:
 		return true
-	case uint64(SymbolEnd):
-		newTokenIndex = 0
-	case uint64(SymbolTerminal):
-		newTokenIndex = int(newToken.index())
-	default:
+	case SymbolEnd:
+		newTokenIndex, newTokenIsTerminal = 0, false
+	case SymbolTerminal:
+		newTokenIndex, newTokenIsTerminal = int(symbol.index), true
+	case SymbolNonTerminal:
 		panic("generate: a terminal entry has a non-terminal symbol")
 	}
 
@@ -1203,9 +1170,8 @@ func (m *minimizer) tokenConflicts(rightState *ParseState[ActionListID], conflic
 	for w, rowWord := range row {
 		candidates := rightTerminalBits[w] & rowWord
 		if newTokenIsKeyword && conflictBits.hasWordToken {
-			word := conflictBits.wordToken
-			if word.isTerminal() && int(word.index())/64 == w {
-				candidates &^= 1 << (word.index() % 64)
+			if word := conflictBits.wordTokenIndex; word/64 == w {
+				candidates &^= 1 << (word % 64)
 			}
 		}
 		if newTokenIsWord {

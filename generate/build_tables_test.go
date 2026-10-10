@@ -146,3 +146,36 @@ func cLexStates(c, function string) int {
 	end := strings.Index(c[start:], "\n}\n")
 	return len(regexp.MustCompile(`(?m)^    case \d+:`).FindAllString(c[start:start+end], -1))
 }
+
+// TestSymbolIndexerSymbolInvertsIndex checks that symbolIndexer.symbol gives
+// back the symbol of each position, and that the positions follow the order
+// of CompareSymbol. It is not an upstream test.
+func TestSymbolIndexerSymbolInvertsIndex(t *testing.T) {
+	t.Parallel()
+	indexer := symbolIndexer{externalCount: 2, terminalCount: 3, nonTerminalCount: 2}
+	symbols := []Symbol{
+		ExternalSymbol(0),
+		ExternalSymbol(1),
+		SymbolEndValue,
+		SymbolEndOfNonTerminalExtraValue,
+		TerminalSymbol(0),
+		TerminalSymbol(1),
+		TerminalSymbol(2),
+		NonTerminalSymbol(0),
+		NonTerminalSymbol(1),
+	}
+	if !slices.IsSortedFunc(symbols, CompareSymbol) {
+		t.Fatal("the symbols of the test are not in the order of CompareSymbol")
+	}
+	if n := int(indexer.symbolCount()); n != len(symbols) {
+		t.Fatalf("symbolCount: got %d, want %d", n, len(symbols))
+	}
+	for i, symbol := range symbols {
+		if index := indexer.index(symbol); index != i {
+			t.Errorf("index(%v): got %d, want %d", symbol, index, i)
+		}
+		if got := indexer.symbol(i); got != symbol {
+			t.Errorf("symbol(%d): got %v, want %v", i, got, symbol)
+		}
+	}
+}

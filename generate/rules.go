@@ -196,7 +196,9 @@ func (s Symbol) NonTerminalIndex() (NonTerminalIndex, bool) {
 // packedKey returns the kind and the index in one number, which orders as
 // CompareSymbol does.
 //
-// packedKey is Symbol::packed_key.
+// packedKey was Symbol::packed_key, which upstream removed when the
+// minimizer stopped using it. The Go form keeps it for CompareSymbol and for
+// the keys of Go maps.
 func (s Symbol) packedKey() uint64 {
 	return uint64(s.kind)<<32 | uint64(s.index)
 }

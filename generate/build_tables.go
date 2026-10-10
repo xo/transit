@@ -71,6 +71,25 @@ func (s symbolIndexer) index(symbol Symbol) int {
 	return int(position)
 }
 
+// symbol returns the symbol at a position, the inverse of index.
+//
+// symbol is SymbolIndexer::symbol.
+func (s symbolIndexer) symbol(index int) Symbol {
+	position := uint32(index)
+	switch {
+	case position < s.externalCount:
+		return ExternalSymbol(index)
+	case position == s.externalCount:
+		return SymbolEndValue
+	case position == s.externalCount+1:
+		return SymbolEndOfNonTerminalExtraValue
+	case position < s.tokenCount():
+		return TerminalSymbol(int(position - s.externalCount - 2))
+	default:
+		return NonTerminalSymbol(int(position - s.tokenCount()))
+	}
+}
+
 // tokenCount returns how many positions index gives to tokens only: one
 // per external token, one each for SymbolEnd and
 // SymbolEndOfNonTerminalExtra, and one per terminal.
