@@ -18,6 +18,200 @@ import (
 // builder of the LR(1) parse table, with the resolution of conflicts and the
 // errors that it reports.
 
+// auxiliaryContextID is an index into auxiliarySymbolContexts.contexts, plus
+// one.
+//
+// auxiliaryContextID is AuxiliaryContextId, whose NonZeroU32 is 1-based.
+// The zero auxiliaryContextID is the None of Option<AuxiliaryContextId>.
+type auxiliaryContextID uint32
+
+// auxiliaryContextIDFromIndex is the inverse of index.
+//
+// auxiliaryContextIDFromIndex is AuxiliaryContextId::from_index.
+func auxiliaryContextIDFromIndex(index int) auxiliaryContextID {
+	return auxiliaryContextID(uint32(index) + 1)
+}
+
+// index returns the dense 0-based index of the id. Ids are 1-based.
+//
+// index is AuxiliaryContextId::index.
+func (id auxiliaryContextID) index() int {
+	return int(id) - 1
+}
+
+// auxiliaryParentSetID is an index into auxiliarySymbolContexts.parentSets.
+//
+// auxiliaryParentSetID is AuxiliaryParentSetId.
+type auxiliaryParentSetID uint32
+
+// auxiliarySymbolContexts holds, for conflict reporting, the auxiliary
+// (repeat) symbols in progress along the path to each parse state, and their
+// parents: the non-auxiliary rules that were using them. Auxiliary symbols
+// can't be named in the grammar's `conflicts`, so a conflict inside a repeat
+// rule is reported in terms of its parents.
+//
+// A state's context only holds the auxiliary symbols at a dot in that state,
+// and links to its predecessor: the context of the state that first led to
+// it. Successor states share a context, and a lookup follows the
+// predecessors back to the most recent state that used the symbol.
+//
+// auxiliarySymbolContexts is AuxiliarySymbolContexts. The zero value is
+// AuxiliarySymbolContexts::default. Upstream finds the id of a parent set
+// in a HashTable of ids. The Go form maps the key of each parent set to its
+// id, and only looks it up.
+type auxiliarySymbolContexts struct {
+	// contexts is indexed by auxiliaryContextID.index.
+	contexts []auxiliaryContext
+	// entries holds every context's (auxiliary symbol, parent set) pairs.
+	entries []auxiliaryContextEntry
+	// parentSymbols holds the symbols of every distinct parent set,
+	// concatenated in intern order.
+	parentSymbols []Symbol
+	// parentSets holds each parent set's slice of parentSymbols, indexed by
+	// auxiliaryParentSetID.
+	parentSets []auxiliaryParentSet
+	// parentSetIDs holds the auxiliaryParentSetIDs of every distinct parent
+	// set, by the buildParseSymbolsKey of its symbols.
+	parentSetIDs map[string]auxiliaryParentSetID
+}
+
+// auxiliaryContextEntry is an auxiliary symbol of a context, with its parent
+// set.
+//
+// auxiliaryContextEntry is (NonTerminalIndex, AuxiliaryParentSetId).
+type auxiliaryContextEntry struct {
+	symbol    NonTerminalIndex
+	parentSet auxiliaryParentSetID
+}
+
+// auxiliaryContext is one state's slice of auxiliarySymbolContexts.entries,
+// and its predecessor.
+//
+// auxiliaryContext is AuxiliaryContext.
+type auxiliaryContext struct {
+	predecessor auxiliaryContextID
+	start       uint32
+	len         uint32
+}
+
+// auxiliaryParentSet is one parent set's slice of
+// auxiliarySymbolContexts.parentSymbols.
+//
+// auxiliaryParentSet is AuxiliaryParentSet.
+type auxiliaryParentSet struct {
+	start uint32
+	len   uint32
+}
+
+// auxiliaryUse pairs an auxiliary symbol at a dot in a state with the rule of
+// an item that uses it.
+//
+// auxiliaryUse is (NonTerminalIndex, NonTerminalIndex).
+type auxiliaryUse struct {
+	symbol NonTerminalIndex
+	parent NonTerminalIndex
+}
+
+// compareAuxiliaryUse orders two uses by the symbol and then by the parent.
+//
+// compareAuxiliaryUse is the Ord of (NonTerminalIndex, NonTerminalIndex).
+func compareAuxiliaryUse(a, b auxiliaryUse) int {
+	if c := cmp.Compare(a.symbol, b.symbol); c != 0 {
+		return c
+	}
+	return cmp.Compare(a.parent, b.parent)
+}
+
+// push adds the context of a state whose predecessor is predecessor. uses
+// pairs each auxiliary symbol at a dot in the state with the rule of an item
+// using it. Auxiliary rules aren't parents, but a symbol used only by
+// auxiliary rules still gets an (empty) entry, which hides any earlier one.
+//
+// push is AuxiliarySymbolContexts::push. Upstream sorts with sort_unstable.
+// Two uses that compare equal are the same value, so the order is the same
+// in Go.
+func (c *auxiliarySymbolContexts) push(grammar *SyntaxGrammar, predecessor auxiliaryContextID, uses []auxiliaryUse) auxiliaryContextID {
+	if len(uses) == 0 {
+		return predecessor
+	}
+	slices.SortFunc(uses, compareAuxiliaryUse)
+	uses = slices.Compact(uses)
+	start := uint32(len(c.entries))
+	var parents []Symbol
+	for len(uses) > 0 {
+		n := 1
+		for n < len(uses) && uses[n].symbol == uses[0].symbol {
+			n++
+		}
+		group := uses[:n]
+		uses = uses[n:]
+		parents = parents[:0]
+		for _, use := range group {
+			if !grammar.Variables[use.parent].IsAuxiliary() {
+				parents = append(parents, use.parent.Symbol())
+			}
+		}
+		parentSet := c.intern(parents)
+		symbol := group[0].symbol
+		c.entries = append(c.entries, auxiliaryContextEntry{symbol: symbol, parentSet: parentSet})
+	}
+	id := auxiliaryContextIDFromIndex(len(c.contexts))
+	c.contexts = append(c.contexts, auxiliaryContext{
+		predecessor: predecessor,
+		start:       start,
+		len:         uint32(len(c.entries)) - start,
+	})
+	return id
+}
+
+// parents returns the parents of symbol in the most recent state that had
+// it at a dot, along the path to the state whose context is context. It
+// returns false when no state along the path had it.
+//
+// parents is AuxiliarySymbolContexts::parents.
+func (c *auxiliarySymbolContexts) parents(context auxiliaryContextID, symbol NonTerminalIndex) ([]Symbol, bool) {
+	for context != 0 {
+		ctx := c.contexts[context.index()]
+		entries := c.entries[ctx.start : ctx.start+ctx.len]
+		for _, entry := range entries {
+			if entry.symbol == symbol {
+				return c.parentSet(entry.parentSet), true
+			}
+		}
+		context = ctx.predecessor
+	}
+	return nil, false
+}
+
+// intern returns the id of the parent set parents, interning it if it's new.
+//
+// intern is AuxiliarySymbolContexts::intern.
+func (c *auxiliarySymbolContexts) intern(parents []Symbol) auxiliaryParentSetID {
+	key := buildParseSymbolsKey(parents)
+	if id, ok := c.parentSetIDs[key]; ok {
+		return id
+	}
+	if c.parentSetIDs == nil {
+		c.parentSetIDs = make(map[string]auxiliaryParentSetID)
+	}
+	id := auxiliaryParentSetID(len(c.parentSets))
+	c.parentSets = append(c.parentSets, auxiliaryParentSet{
+		start: uint32(len(c.parentSymbols)),
+		len:   uint32(len(parents)),
+	})
+	c.parentSymbols = append(c.parentSymbols, parents...)
+	c.parentSetIDs[key] = id
+	return id
+}
+
+// parentSet returns the symbols of a parent set.
+//
+// parentSet is AuxiliarySymbolContexts::parent_set.
+func (c *auxiliarySymbolContexts) parentSet(id auxiliaryParentSetID) []Symbol {
+	set := c.parentSets[id]
+	return c.parentSymbols[set.start : set.start+set.len : set.start+set.len]
+}
+
 // ParseStateInfo is what the builder of the parse table knows about each
 // state, for the report of the states of a symbol.
 //
@@ -42,22 +236,6 @@ func (i *ParseStateInfo) ItemSet(id ParseStateID) *ParseItemSet {
 	return &i.itemSetsByIDs[id]
 }
 
-// auxiliarySymbolInfo is an auxiliary symbol, with the visible symbols whose
-// rules use it at the point where it starts.
-//
-// auxiliarySymbolInfo is AuxiliarySymbolInfo.
-type auxiliarySymbolInfo struct {
-	auxiliarySymbol Symbol
-	parentSymbols   []Symbol
-}
-
-// equal reports whether two infos are the same.
-//
-// equal is the PartialEq of AuxiliarySymbolInfo.
-func (a *auxiliarySymbolInfo) equal(other *auxiliarySymbolInfo) bool {
-	return a.auxiliarySymbol == other.auxiliarySymbol && slices.Equal(a.parentSymbols, other.parentSymbols)
-}
-
 // reductionInfo is what the builder knows about the reduce actions of a
 // state for one lookahead: their precedence, their symbols in order, and
 // their associativities.
@@ -77,7 +255,7 @@ type reductionInfo struct {
 // parseStateQueueEntry is ParseStateQueueEntry.
 type parseStateQueueEntry struct {
 	stateID                   ParseStateID
-	precedingAuxiliarySymbols []auxiliarySymbolInfo
+	precedingAuxiliaryContext auxiliaryContextID
 }
 
 // buildParseNoProductionInfoID marks a production that has no production
@@ -103,6 +281,7 @@ type parseTableBuilder struct {
 	precedingSymbolsByID      [][]Symbol
 	productionInfoIDsByProdID []ProductionInfoID
 	parseStateQueue           []parseStateQueueEntry
+	auxiliaryContexts         auxiliarySymbolContexts
 	nonTerminalExtraStates    []buildParseExtraState
 	actualConflicts           map[string][]Symbol
 	parseTable                ParseTable[ParseTableEntry]
@@ -439,11 +618,11 @@ func (b *parseTableBuilder) build(diagnostics *[]Diagnostic) (ParseTable[ParseTa
 	b.parseTable.ProductionInfos = append(b.parseTable.ProductionInfos, ProductionInfo{})
 
 	// Add the error state at index 0.
-	b.addParseState(nil, nil, ParseItemSet{})
+	b.addParseState(nil, 0, ParseItemSet{})
 
 	// Add the starting state at index 1.
 	endLookaheads := b.itemSetBuilder.Lookaheads.Singleton(SymbolEndValue)
-	b.addParseState(nil, nil, ParseItemSet{
+	b.addParseState(nil, 0, ParseItemSet{
 		Entries: []ParseItemSetEntry{{
 			Item:                     StartParseItem(b.itemSetBuilder.KeyMap),
 			Lookaheads:               endLookaheads,
@@ -495,7 +674,7 @@ func (b *parseTableBuilder) build(diagnostics *[]Diagnostic) (ParseTable[ParseTa
 
 		// Add the parse state, and *then* push the terminal and the state id into the
 		// list of nonterminal extra states
-		stateID := b.addParseState(nil, nil, *itemSet)
+		stateID := b.addParseState(nil, 0, *itemSet)
 		b.nonTerminalExtraStates = append(b.nonTerminalExtraStates, buildParseExtraState{terminal: terminal, stateID: stateID})
 	}
 
@@ -510,7 +689,7 @@ func (b *parseTableBuilder) build(diagnostics *[]Diagnostic) (ParseTable[ParseTa
 
 		if err := b.addActions(
 			slices.Clone(b.precedingSymbolsByID[entry.stateID]),
-			entry.precedingAuxiliarySymbols,
+			entry.precedingAuxiliaryContext,
 			entry.stateID,
 			&itemSet,
 		); err != nil {
@@ -549,7 +728,7 @@ func (b *parseTableBuilder) build(diagnostics *[]Diagnostic) (ParseTable[ParseTa
 // addParseState is ParseTableBuilder::add_parse_state.
 func (b *parseTableBuilder) addParseState(
 	precedingSymbols []Symbol,
-	precedingAuxiliarySymbols []auxiliarySymbolInfo,
+	precedingAuxiliaryContext auxiliaryContextID,
 	itemSet ParseItemSet,
 ) ParseStateID {
 	key := itemSet.Key()
@@ -581,7 +760,7 @@ func (b *parseTableBuilder) addParseState(
 	})
 	b.parseStateQueue = append(b.parseStateQueue, parseStateQueueEntry{
 		stateID:                   stateID,
-		precedingAuxiliarySymbols: slices.Clone(precedingAuxiliarySymbols),
+		precedingAuxiliaryContext: precedingAuxiliaryContext,
 	})
 	b.stateIDsByItemSet[key] = stateID
 	b.itemSets = append(b.itemSets, itemSet)
@@ -595,11 +774,10 @@ func (b *parseTableBuilder) addParseState(
 //
 // addActions is ParseTableBuilder::add_actions. Upstream keeps the successor
 // item sets in BTreeMaps, which iterate in the order of the symbols, and the
-// Go loops sort the keys. It only looks up the FxHashMaps reductionInfos and
-// auxNodeInfo.
+// Go loops sort the keys. It only looks up the FxHashMap reductionInfos.
 func (b *parseTableBuilder) addActions(
 	precedingSymbols []Symbol,
-	precedingAuxiliarySymbols []auxiliarySymbolInfo,
+	precedingAuxiliaryContext auxiliaryContextID,
 	stateID ParseStateID,
 	itemSet *ParseItemSet,
 ) error {
@@ -607,10 +785,7 @@ func (b *parseTableBuilder) addActions(
 	nonTerminalSuccessors := make(map[NonTerminalIndex]*ParseItemSet)
 	var lookaheadsWithConflicts TokenSet
 	reductionInfos := make(map[Symbol]*reductionInfo)
-
-	// `get_auxiliary_node_info` scans every entry in `item_set`, and the same auxiliary
-	// symbol typically appears across many entries in a state. Memoize per symbol.
-	auxNodeInfo := make(map[NonTerminalIndex]auxiliarySymbolInfo)
+	var auxiliaryUses []auxiliaryUse
 
 	// Each item in the item set contributes to either or a Shift action or a Reduce
 	// action in this state.
@@ -631,12 +806,8 @@ func (b *parseTableBuilder) addActions(
 				// used within visible symbols. This information may be needed later
 				// for conflict resolution.
 				if variable.IsAuxiliary() {
-					info, ok := auxNodeInfo[nonTerminalIndex]
-					if !ok {
-						info = b.getAuxiliaryNodeInfo(itemSet, nextSymbol)
-						auxNodeInfo[nonTerminalIndex] = info
-					}
-					precedingAuxiliarySymbols = append(precedingAuxiliarySymbols, info)
+					parent := NonTerminalIndex(item.VariableIndex)
+					auxiliaryUses = append(auxiliaryUses, auxiliaryUse{symbol: nonTerminalIndex, parent: parent})
 				}
 
 				// For most parse items, the symbols associated with the preceding children
@@ -748,9 +919,11 @@ func (b *parseTableBuilder) addActions(
 		}
 	}
 
-	precedingAuxiliarySymbols = slices.CompactFunc(precedingAuxiliarySymbols, func(a, b auxiliarySymbolInfo) bool {
-		return a.equal(&b)
-	})
+	auxiliaryContext := b.auxiliaryContexts.push(
+		b.syntaxGrammar,
+		precedingAuxiliaryContext,
+		auxiliaryUses,
+	)
 
 	// Having computed the successor item sets for each symbol, add a new
 	// parse state for each of these item sets, and add a corresponding Shift
@@ -758,7 +931,7 @@ func (b *parseTableBuilder) addActions(
 	for _, symbol := range slices.SortedFunc(maps.Keys(terminalSuccessors), CompareSymbol) {
 		nextItemSet := terminalSuccessors[symbol]
 		precedingSymbols = append(precedingSymbols, symbol)
-		nextStateID := b.addParseState(precedingSymbols, precedingAuxiliarySymbols, *nextItemSet)
+		nextStateID := b.addParseState(precedingSymbols, auxiliaryContext, *nextItemSet)
 		precedingSymbols = precedingSymbols[:len(precedingSymbols)-1]
 
 		entries := &b.parseTable.States[stateID].TerminalEntries
@@ -777,7 +950,7 @@ func (b *parseTableBuilder) addActions(
 		nextItemSet := nonTerminalSuccessors[index]
 		symbol := index.Symbol()
 		precedingSymbols = append(precedingSymbols, symbol)
-		nextStateID := b.addParseState(precedingSymbols, precedingAuxiliarySymbols, *nextItemSet)
+		nextStateID := b.addParseState(precedingSymbols, auxiliaryContext, *nextItemSet)
 		precedingSymbols = precedingSymbols[:len(precedingSymbols)-1]
 		b.parseTable.States[stateID].NonterminalEntries.Insert(symbol, GotoAction{Kind: GotoActionGoto, State: nextStateID})
 	}
@@ -792,7 +965,7 @@ func (b *parseTableBuilder) addActions(
 		if !ok {
 			panic("generate: a conflicting lookahead has no reduction info")
 		}
-		if err := b.handleConflict(itemSet, stateID, precedingSymbols, precedingAuxiliarySymbols, symbol, info); err != nil {
+		if err := b.handleConflict(itemSet, stateID, precedingSymbols, auxiliaryContext, symbol, info); err != nil {
 			return err
 		}
 	}
@@ -932,7 +1105,7 @@ func (b *parseTableBuilder) handleConflict(
 	itemSet *ParseItemSet,
 	stateID ParseStateID,
 	precedingSymbols []Symbol,
-	precedingAuxiliarySymbols []auxiliarySymbolInfo,
+	auxiliaryContext auxiliaryContextID,
 	conflictingLookahead Symbol,
 	reductionInfo *reductionInfo,
 ) error {
@@ -1056,17 +1229,14 @@ func (b *parseTableBuilder) handleConflict(
 	for _, item := range conflictingItems {
 		symbol := NonTerminalSymbol(int(item.VariableIndex))
 		if b.syntaxGrammar.Variables[item.VariableIndex].IsAuxiliary() {
-			found := false
-			for i := len(precedingAuxiliarySymbols) - 1; i >= 0; i-- {
-				if info := &precedingAuxiliarySymbols[i]; info.auxiliarySymbol == symbol {
-					actualConflict = append(actualConflict, info.parentSymbols...)
-					found = true
-					break
-				}
-			}
-			if !found {
+			parents, ok := b.auxiliaryContexts.parents(
+				auxiliaryContext,
+				NonTerminalIndex(item.VariableIndex),
+			)
+			if !ok {
 				panic("generate: an auxiliary symbol of a conflict has no parent symbols")
 			}
+			actualConflict = append(actualConflict, parents...)
 		} else {
 			actualConflict = append(actualConflict, symbol)
 		}
@@ -1258,27 +1428,6 @@ func buildParseComparePrecedence(
 		}
 	}
 	return 0
-}
-
-// getAuxiliaryNodeInfo returns an auxiliary symbol, with the symbols of the
-// items of the set that are not auxiliary and have the symbol after the
-// dot.
-//
-// getAuxiliaryNodeInfo is ParseTableBuilder::get_auxiliary_node_info.
-func (b *parseTableBuilder) getAuxiliaryNodeInfo(itemSet *ParseItemSet, symbol Symbol) auxiliarySymbolInfo {
-	var parentSymbols []Symbol
-	for i := range itemSet.Entries {
-		item := &itemSet.Entries[i].Item
-		variableIndex := int(item.VariableIndex)
-		if s, ok := item.Symbol(b.syntaxGrammar); ok && s == symbol &&
-			!b.syntaxGrammar.Variables[variableIndex].IsAuxiliary() {
-			parentSymbols = append(parentSymbols, NonTerminalSymbol(variableIndex))
-		}
-	}
-	return auxiliarySymbolInfo{
-		auxiliarySymbol: symbol,
-		parentSymbols:   parentSymbols,
-	}
 }
 
 // getProductionID returns the id of the production info of an item: the

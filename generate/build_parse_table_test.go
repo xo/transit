@@ -8,8 +8,9 @@ import (
 	"testing"
 )
 
-// This file tests build_parse_table.go. build_parse_table.rs has no tests
-// upstream, so these tests compare the port with the golden files.
+// This file tests build_parse_table.go. TestAuxiliaryContextLookup ports the
+// one test of build_parse_table.rs. The other tests compare the port with
+// the golden files.
 
 // builtParseTableForTest is what buildParseTableForTest returns: the
 // prepared grammar, the item set builder, and the results of
@@ -180,5 +181,58 @@ func TestParseTableBuilderErrorText(t *testing.T) {
 	d := Diagnostic{Kind: DiagnosticUnnecessaryConflicts, Conflicts: [][]string{{"a", "b"}, {"c"}}}
 	if expected, actual := "unnecessary conflicts:\n  `a`, `b`\n  `c`", d.String(); actual != expected {
 		t.Errorf("expected %q, got %q", expected, actual)
+	}
+}
+
+// TestAuxiliaryContextLookup is test_auxiliary_context_lookup.
+func TestAuxiliaryContextLookup(t *testing.T) {
+	//   source_file: $ => seq(repeat('x'), $.block),
+	//   block: $ => seq('{', repeat('y'), '}', repeat('x')),
+	variable := func(kind VariableType) SyntaxVariable {
+		return SyntaxVariable{Name: EmptyStrID, Kind: kind}
+	}
+	grammar := &SyntaxGrammar{
+		Variables: []SyntaxVariable{
+			variable(VariableNamed),
+			variable(VariableNamed),
+			variable(VariableAuxiliary),
+			variable(VariableAuxiliary),
+		},
+	}
+	sourceFile, block, xRepeat, yRepeat := NonTerminalIndex(0), NonTerminalIndex(1), NonTerminalIndex(2), NonTerminalIndex(3)
+
+	// The contexts of three states along one path through the grammar:
+	//
+	//   source_file: • repeat('x') block
+	//   block: '{' • repeat('y') '}' repeat('x')
+	//   block: '{' repeat('y') '}' • repeat('x')
+	var contexts auxiliarySymbolContexts
+	first := contexts.push(grammar, 0, []auxiliaryUse{{xRepeat, sourceFile}})
+	second := contexts.push(grammar, first, []auxiliaryUse{{yRepeat, block}})
+	third := contexts.push(grammar, second, []auxiliaryUse{{xRepeat, block}})
+
+	tests := []struct {
+		name     string
+		context  auxiliaryContextID
+		symbol   NonTerminalIndex
+		expected []Symbol
+		ok       bool
+	}{
+		// The nearest context has the symbol.
+		{"nearest", second, yRepeat, []Symbol{block.Symbol()}, true},
+		// Only a predecessor has it.
+		{"predecessor", second, xRepeat, []Symbol{sourceFile.Symbol()}, true},
+		// A more recent entry hides an earlier one.
+		{"hidden", third, xRepeat, []Symbol{block.Symbol()}, true},
+		// Nothing along the path recorded it.
+		{"none", first, yRepeat, nil, false},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actual, ok := contexts.parents(test.context, test.symbol)
+			if ok != test.ok || !slices.Equal(actual, test.expected) {
+				t.Errorf("expected %v, %t, got %v, %t", test.expected, test.ok, actual, ok)
+			}
+		})
 	}
 }

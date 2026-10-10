@@ -23,7 +23,7 @@ bcd39f41e7f6b5a29d712252524dbbfa4fa8f517	2026-10-02	not-applicable	6d1e476	chang
 a5add39b04bb2e12ceae82016829985df593aebc	2026-10-03	ported	f60c63f	fix(lib): check shifted stack versions during error recovery
 9b9de365078b0c82f8f8d7af175b1a4207c9b4d5	2026-10-03	not-applicable	e45fc39	a bump of wasmtime and of build.zig.zon, which transit does not port (D1)
 fe8d1936509826e755a1a8ce1309fe7a182c2eb0	2026-10-03	not-applicable	e45fc39	a bump of rquickjs, the JavaScript runtime of the upstream tool, which transit does not port
-e0d0db1d373796e2eaf34eb18e340162ed844d72	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/build_parse_table.rs
+e0d0db1d373796e2eaf34eb18e340162ed844d72	2026-10-03	ported		perf(generate): share auxiliary symbol contexts between parse states
 cd8caa9f316f31a71195419a4b4ca882d28e8309	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/item_set_builder.rs
 80bd4075e0744eb97f39c3be50af213c25ffc3d2	2026-10-03	pending		port in phase 6: crates/generate/src/bitvec.rs, crates/generate/src/build_tables/item_set_builder.rs
 23b0e7dcb1d5b2d2649ec0022938ac894431329f	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/coincident_tokens.rs
