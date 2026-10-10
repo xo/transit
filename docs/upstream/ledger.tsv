@@ -56,7 +56,7 @@ e1566be3a261d97618e09428b9bacd68442afa27	2026-10-04	ported		perf(lib): acquire c
 b2f00cb0b5942ff10c45dc77d3a9c7e9c7515da8	2026-10-05	not-applicable		the build script of the Rust binding, which transit does not port
 19084772dfd5c2c417ae9cbfa1815578ace70fae	2026-10-05	ported		fix(lib): halt the query cursor when the progress callback asks to stop
 0714d5e4ba058703c63493d59b9ee6dadb7d0251	2026-10-05	ported		fix(lib): charge query cursor work for the states it visits
-0e0a86b8d4718143cf32c6a80754a9a224cab422	2026-10-05	pending		port in phase 6: crates/cli/src/tests/query_test.rs, the input of test_query_execution_with_timeout
+0e0a86b8d4718143cf32c6a80754a9a224cab422	2026-10-05	ported		fix(test): give the query timeout tests room to time out
 2f5fa28410b45d98b1b7eb5bde9deaea1b2f7730	2026-10-05	not-applicable		changes only paths that transit does not port: lib/binding_web/lib/tree-sitter.c, lib/binding_web/test/query.test.ts
 752c612a1359f00e4c113593837a0c1e880214e3	2026-10-05	not-applicable		the CLI and the dependency list of crates, which transit does not port
 d7d4713b6d557567926a8eef8cd36b064bac9d55	2026-10-07	not-applicable		changes only paths that transit does not port: crates/cli/src/templates/index.js

@@ -5157,7 +5157,8 @@ func TestQueryExecutionWithTimeout(t *testing.T) {
 	language := uqLanguage(t, "javascript")
 	parser := uqParser(t, language)
 
-	sourceCode := strings.Repeat("function foo() { while (true) { } }\n", 1000)
+	count := 10_000
+	sourceCode := strings.Repeat("function foo() { while (true) { } }\n", count)
 	tree, err := parser.Parse(t.Context(), []byte(sourceCode), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -5171,16 +5172,16 @@ func TestQueryExecutionWithTimeout(t *testing.T) {
 	for range cursor.Matches(ctx, query, tree.RootNode(), []byte(sourceCode)) {
 		matches++
 	}
-	if matches >= 1000 {
-		t.Errorf("%d matches before the deadline, want fewer than 1000", matches)
+	if matches >= count {
+		t.Errorf("%d matches before the deadline, want fewer than %d", matches, count)
 	}
 
 	matches = 0
 	for range cursor.Matches(t.Context(), query, tree.RootNode(), []byte(sourceCode)) {
 		matches++
 	}
-	if matches != 1000 {
-		t.Errorf("%d matches, want 1000", matches)
+	if matches != count {
+		t.Errorf("%d matches, want %d", matches, count)
 	}
 }
 
