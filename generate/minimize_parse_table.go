@@ -5,6 +5,8 @@ import (
 	"math"
 	"math/bits"
 	"slices"
+
+	"github.com/xo/transit/generate/internal/fxhash"
 )
 
 // This file ports crates/generate/src/build_tables/minimize_parse_table.rs:
@@ -140,6 +142,180 @@ func (c *minimizeConflictBits) getConflictRow(token int) []uint64 {
 func (c *minimizeConflictBits) getStateRow(state int) []uint64 {
 	base := state * c.rowWords
 	return c.stateTerminals[base : base+c.rowWords]
+}
+
+// minimizeConflictPass is the first pass of mergeCompatibleStates: it splits
+// states whose terminal entries can't be merged.
+//
+// minimizeConflictPass is ConflictPass.
+type minimizeConflictPass struct {
+	minimizer *minimizer
+	// entryMaps holds each state's terminal entries, sorted by symbol.
+	entryMaps [][]minimizeEntry
+	bits      *minimizeConflictBits
+	// staticSignatures holds a hash of each state's reserved words and
+	// terminal entries, apart from its shift targets, whose groups change as
+	// groups split.
+	staticSignatures []uint64
+	// shiftMaps holds each state's shift targets, sorted by symbol.
+	shiftMaps [][]minimizeShift
+}
+
+// ShouldSplit reports whether two states conflict.
+//
+// ShouldSplit is the should_split of ConflictPass.
+func (p *minimizeConflictPass) ShouldSplit(left, right *ParseState[ActionListID], groupIDsByStateID []ParseStateID) bool {
+	return p.minimizer.statesConflict(
+		left,
+		right,
+		groupIDsByStateID,
+		p.entryMaps,
+		p.bits,
+	)
+}
+
+// Signature returns a hash of the static signature of a state and of the
+// groups of its shift targets.
+//
+// Signature is the signature of ConflictPass. The hash only narrows which
+// states Equivalent compares, so its value cannot reach the output.
+func (p *minimizeConflictPass) Signature(state *ParseState[ActionListID], groupIDsByStateID []ParseStateID) (uint64, bool) {
+	var hasher fxhash.Hasher
+	hasher.WriteU64(p.staticSignatures[state.ID])
+	for _, shift := range p.shiftMaps[state.ID] {
+		hasher.WriteU32(groupIDsByStateID[shift.state])
+	}
+	return hasher.Finish(), true
+}
+
+// Equivalent reports whether two states have the same reserved words and
+// terminal entries, with shift targets compared by group. Then
+// statesConflict never separates them, and separates either from exactly
+// the same states.
+//
+// Equivalent is the equivalent of ConflictPass.
+func (p *minimizeConflictPass) Equivalent(left, right *ParseState[ActionListID], groupIDsByStateID []ParseStateID) bool {
+	entries1 := p.entryMaps[left.ID]
+	entries2 := p.entryMaps[right.ID]
+	actionLists := &p.minimizer.parseTable.ActionLists
+	if !left.ReservedWords.Equal(&right.ReservedWords) || len(entries1) != len(entries2) {
+		return false
+	}
+	for i := range entries1 {
+		key1, id1 := entries1[i].key, entries1[i].id
+		key2, id2 := entries2[i].key, entries2[i].id
+		if key1 != key2 {
+			return false
+		}
+		if id1.Index() == id2.Index() {
+			continue
+		}
+		actions1 := actionLists.Get(id1)
+		actions2 := actionLists.Get(id2)
+		if len(actions1) != len(actions2) {
+			return false
+		}
+		for j := range actions1 {
+			action1, action2 := actions1[j], actions2[j]
+			if action1.Kind == ParseActionShift && action2.Kind == ParseActionShift {
+				if groupIDsByStateID[action1.State] != groupIDsByStateID[action2.State] ||
+					action1.IsRepetition != action2.IsRepetition {
+					return false
+				}
+			} else if action1 != action2 {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// minimizeSuccessorPass is the second pass of mergeCompatibleStates,
+// repeated until nothing splits: it splits states whose successors are in
+// different groups.
+//
+// minimizeSuccessorPass is SuccessorPass.
+type minimizeSuccessorPass struct {
+	minimizer *minimizer
+	// shiftMaps holds each state's shift targets, sorted by symbol.
+	shiftMaps [][]minimizeShift
+	// nonterminalMaps holds each state's nonterminal entries, sorted by
+	// symbol.
+	nonterminalMaps [][]minimizeGoto
+}
+
+// ShouldSplit reports whether the successors of two states differ.
+//
+// ShouldSplit is the should_split of SuccessorPass.
+func (p *minimizeSuccessorPass) ShouldSplit(left, right *ParseState[ActionListID], groupIDsByStateID []ParseStateID) bool {
+	return p.minimizer.stateSuccessorsDiffer(
+		left,
+		right,
+		groupIDsByStateID,
+		p.shiftMaps,
+		p.nonterminalMaps,
+	)
+}
+
+// Signature returns a hash of the symbols of the shifts and the gotos of a
+// state, with the groups of their successors.
+//
+// Signature is the signature of SuccessorPass. The hash only narrows which
+// states Equivalent compares, so its value cannot reach the output.
+func (p *minimizeSuccessorPass) Signature(state *ParseState[ActionListID], groupIDsByStateID []ParseStateID) (uint64, bool) {
+	var hasher fxhash.Hasher
+	for _, shift := range p.shiftMaps[state.ID] {
+		hasher.WriteU64(uint64(shift.key))
+		hasher.WriteU32(groupIDsByStateID[shift.state])
+	}
+	for _, g := range p.nonterminalMaps[state.ID] {
+		hasher.WriteU32(g.index)
+		switch g.action.Kind {
+		case GotoActionGoto:
+			hasher.WriteUsize(1)
+			hasher.WriteU32(groupIDsByStateID[g.action.State])
+		case GotoActionShiftExtra:
+			hasher.WriteUsize(0)
+		}
+	}
+	return hasher.Finish(), true
+}
+
+// Equivalent reports whether two states shift and go to on the same
+// symbols, with successors in the same groups. Then stateSuccessorsDiffer
+// never separates them, and separates either from exactly the same states.
+//
+// Equivalent is the equivalent of SuccessorPass.
+func (p *minimizeSuccessorPass) Equivalent(left, right *ParseState[ActionListID], groupIDsByStateID []ParseStateID) bool {
+	shifts1 := p.shiftMaps[left.ID]
+	shifts2 := p.shiftMaps[right.ID]
+	gotos1 := p.nonterminalMaps[left.ID]
+	gotos2 := p.nonterminalMaps[right.ID]
+	if len(shifts1) != len(shifts2) || len(gotos1) != len(gotos2) {
+		return false
+	}
+	for i := range shifts1 {
+		if shifts1[i].key != shifts2[i].key ||
+			groupIDsByStateID[shifts1[i].state] != groupIDsByStateID[shifts2[i].state] {
+			return false
+		}
+	}
+	for i := range gotos1 {
+		action1, action2 := gotos1[i].action, gotos2[i].action
+		if gotos1[i].index != gotos2[i].index {
+			return false
+		}
+		switch {
+		case action1.Kind == GotoActionGoto && action2.Kind == GotoActionGoto:
+			if groupIDsByStateID[action1.State] != groupIDsByStateID[action2.State] {
+				return false
+			}
+		case action1.Kind == GotoActionShiftExtra && action2.Kind == GotoActionShiftExtra:
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // minimizer holds the parse table and what the steps of MinimizeParseTable
@@ -415,16 +591,6 @@ func (m *minimizer) mergeCompatibleStates() {
 		conflictBits.wordToken = newMinimizeSymbolKey(m.syntaxGrammar.WordToken)
 	}
 
-	SplitStateIDGroups(
-		states,
-		&stateIDsByGroupID,
-		groupIDsByStateID,
-		0,
-		func(left, right *ParseState[ActionListID], groups []ParseStateID) bool {
-			return m.statesConflict(left, right, groups, entryMaps, conflictBits)
-		},
-	)
-
 	// Precompute per-state sorted shift actions and nonterminal goto actions.
 	// State actions are stable across loop iterations; only group assignments change.
 	// Keys are packed u64s (symbol_key) for single-instruction comparison.
@@ -446,6 +612,42 @@ func (m *minimizer) mergeCompatibleStates() {
 		shiftMaps[s] = shifts
 	}
 
+	// Hash each state's terminal entries once, apart from its shift targets, whose groups
+	// change as groups split.
+	staticSignatures := make([]uint64, len(states))
+	for s := range states {
+		state := &states[s]
+		var hasher fxhash.Hasher
+		hasher.Write([]byte(state.ReservedWords.Key()))
+		for _, entry := range entryMaps[state.ID] {
+			hasher.WriteU64(uint64(entry.key))
+			for _, action := range m.parseTable.ActionLists.Get(entry.id) {
+				if action.Kind == ParseActionShift {
+					hasher.WriteU8(uint8(boolWord(action.IsRepetition)))
+				} else {
+					minimizeHashAction(&hasher, action)
+				}
+			}
+		}
+		staticSignatures[s] = hasher.Finish()
+	}
+
+	conflictPass := &minimizeConflictPass{
+		minimizer:        m,
+		entryMaps:        entryMaps,
+		bits:             conflictBits,
+		staticSignatures: staticSignatures,
+		shiftMaps:        shiftMaps,
+	}
+	SplitStateIDGroups(
+		states,
+		&stateIDsByGroupID,
+		groupIDsByStateID,
+		0,
+		conflictPass,
+	)
+	// The rest only looks at successors.
+
 	// Store only the symbol index: all nonterminal entries share the same kind,
 	// so index alone is sufficient for sorting and comparison.
 	nonterminalMaps := make([][]minimizeGoto, len(states))
@@ -462,14 +664,18 @@ func (m *minimizer) mergeCompatibleStates() {
 		nonterminalMaps[s] = entries
 	}
 
+	successorPass := &minimizeSuccessorPass{
+		minimizer:       m,
+		shiftMaps:       shiftMaps,
+		nonterminalMaps: nonterminalMaps,
+	}
+
 	for SplitStateIDGroups(
 		states,
 		&stateIDsByGroupID,
 		groupIDsByStateID,
 		0,
-		func(left, right *ParseState[ActionListID], groups []ParseStateID) bool {
-			return m.stateSuccessorsDiffer(left, right, groups, shiftMaps, nonterminalMaps)
-		},
+		successorPass,
 	) {
 	}
 
@@ -514,6 +720,21 @@ func (m *minimizer) mergeCompatibleStates() {
 	RemapTerminalReferences(m.parseTable, func(stateID ParseStateID) ParseStateID {
 		return groupIDsByStateID[stateID]
 	})
+}
+
+// minimizeHashAction adds an action to a hash.
+//
+// minimizeHashAction is the derived Hash of ParseAction, which only the
+// signatures of mergeCompatibleStates read. Their values cannot reach the
+// output, so the Go form only has to give equal actions equal hashes.
+func minimizeHashAction(hasher *fxhash.Hasher, action ParseAction) {
+	hasher.WriteU8(uint8(action.Kind))
+	hasher.WriteU32(action.State)
+	hasher.WriteU8(uint8(boolWord(action.IsRepetition)))
+	hasher.WriteU64(action.Symbol.packedKey())
+	hasher.WriteU16(action.ChildCount)
+	hasher.WriteU32(uint32(action.DynamicPrecedence))
+	hasher.WriteU16(action.ProductionID)
 }
 
 // statesConflict reports whether two states cannot be merged: an entry that

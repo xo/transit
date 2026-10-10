@@ -407,7 +407,7 @@ func minimizeLexTable(table *LexTable, parseTable *ParseTable[ActionListID]) {
 		}
 	}
 
-	for SplitStateIDGroups(table.States, &stateIDsByGroupID, groupIDsByStateID, 1, lexStatesDiffer) {
+	for SplitStateIDGroups(table.States, &stateIDsByGroupID, groupIDsByStateID, 1, SplitFunc[LexState](lexStatesDiffer)) {
 	}
 
 	newStates := make([]LexState, 0, len(stateIDsByGroupID))
