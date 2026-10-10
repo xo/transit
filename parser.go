@@ -608,6 +608,7 @@ func (p *Parser) lex(
 			p.lexer.start()
 			p.externalScannerDeserialize(externalToken)
 			foundToken = p.externalScannerScan(lexMode.ExternalLexState)
+			calledGetColumn = calledGetColumn || p.lexer.didGetColumn
 			lookaheadEndByte = p.lexer.finish(lookaheadEndByte)
 
 			if foundToken {
@@ -644,7 +645,6 @@ func (p *Parser) lex(
 
 			if foundToken {
 				foundExternalToken = true
-				calledGetColumn = p.lexer.didGetColumn
 				break
 			}
 

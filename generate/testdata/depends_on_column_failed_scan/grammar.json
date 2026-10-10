@@ -1,0 +1,54 @@
+{
+  "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/grammar.schema.json",
+  "name": "depends_on_column_failed_scan",
+  "rules": {
+    "document": {
+      "type": "REPEAT",
+      "content": {
+        "type": "CHOICE",
+        "members": [
+          {
+            "type": "SYMBOL",
+            "name": "head"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "tail"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "letter"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "newline"
+          }
+        ]
+      }
+    },
+    "tail": {
+      "type": "STRING",
+      "value": "x"
+    },
+    "letter": {
+      "type": "STRING",
+      "value": "a"
+    },
+    "newline": {
+      "type": "STRING",
+      "value": "\n"
+    }
+  },
+  "extras": [],
+  "conflicts": [],
+  "precedences": [],
+  "externals": [
+    {
+      "type": "SYMBOL",
+      "name": "head"
+    }
+  ],
+  "inline": [],
+  "supertypes": [],
+  "reserved": {}
+}

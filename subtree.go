@@ -33,7 +33,7 @@ import (
 // C stores a small leaf inline, in the Subtree value itself. A Go node has
 // no inline form (D62), but the inline form of C changes what a leaf keeps:
 // the size of an inline leaf has no column of its own, and an inline leaf has
-// no depends_on_column. So a Go node that C would store inline has isInline,
+// fewer flags. So a Go node that C would store inline has isInline,
 // and it keeps only what the inline form keeps. C copies an inline leaf as a
 // value, and Go shares the node, so ts_subtree_make_mut copies an inline
 // node before a change (D64).
@@ -494,9 +494,9 @@ const (
 )
 
 // newLeaf is ts_subtree_new_leaf. A leaf that C stores inline keeps only
-// what SubtreeInlineData keeps: the size has the column size.bytes, and
-// dependsOnColumn is false. C allocates nothing for an inline leaf, and Go
-// takes a node from the pool for both kinds of leaf.
+// what SubtreeInlineData keeps: the size has the column size.bytes, and a
+// flag that SubtreeInlineData does not have is false. C allocates nothing for
+// an inline leaf, and Go takes a node from the pool for both kinds of leaf.
 func newLeaf(
 	pool *subtreePool, symbol Symbol, padding, size length,
 	lookaheadBytes uint32, parseState StateID,
@@ -514,18 +514,19 @@ func newLeaf(
 	data.refCount.Store(1)
 	if isInline {
 		data.heapFields = heapFields{
-			parseState:     parseState,
-			symbol:         symbol,
-			padding:        padding,
-			size:           length{size.bytes, point{0, size.bytes}},
-			lookaheadBytes: lookaheadBytes,
-			visible:        metadata.Visible,
-			named:          metadata.Named,
-			extra:          extra,
-			hasChanges:     false,
-			isMissing:      false,
-			isKeyword:      isKeyword,
-			isInline:       true,
+			parseState:      parseState,
+			symbol:          symbol,
+			padding:         padding,
+			size:            length{size.bytes, point{0, size.bytes}},
+			lookaheadBytes:  lookaheadBytes,
+			visible:         metadata.Visible,
+			named:           metadata.Named,
+			extra:           extra,
+			hasChanges:      false,
+			isMissing:       false,
+			isKeyword:       isKeyword,
+			dependsOnColumn: dependsOnColumn,
+			isInline:        true,
 		}
 		return subtree{data}
 	}
@@ -1069,7 +1070,7 @@ func (s subtree) edit(inputEdit InputEdit, pool *subtreePool) subtree {
 					fragileRight:      false,
 					hasChanges:        false,
 					hasExternalTokens: false,
-					dependsOnColumn:   false,
+					dependsOnColumn:   data.dependsOnColumn,
 					isMissing:         data.isMissing,
 					isKeyword:         data.isKeyword,
 				}

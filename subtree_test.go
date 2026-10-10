@@ -43,8 +43,8 @@ func TestNewLeafInline(t *testing.T) {
 	if s.size() != ln(4) || s.padding() != ln(2) {
 		t.Errorf("the inline leaf has the size %v and the padding %v", s.size(), s.padding())
 	}
-	if s.dependsOnColumn() {
-		t.Error("an inline leaf depends on the column")
+	if !s.dependsOnColumn() {
+		t.Error("an inline leaf does not keep dependsOnColumn")
 	}
 	if !s.isKeyword() || !s.visible() || !s.named() || s.extra() || s.parseState() != 7 || s.lookaheadBytes() != 3 {
 		t.Errorf("the inline leaf has the fields %+v", s.ptr.heapFields)
@@ -422,6 +422,12 @@ func TestEditOfAnInlineLeaf(t *testing.T) {
 	large := s.edit(InputEdit{StartByte: 2, OldEndByte: 2, NewEndByte: 3, StartPoint: Point{0, 2}, OldEndPoint: Point{0, 2}, NewEndPoint: Point{1, 0}}, &pool)
 	if large.ptr.isInline || large.size() != (length{3, point{1, 1}}) || !large.hasChanges() || large.ptr.refCount.Load() != 1 {
 		t.Errorf("the large edit gave %+v with the count %d", large.ptr.heapFields, large.ptr.refCount.Load())
+	}
+	// a leaf that leaves the inline form keeps dependsOnColumn
+	column := newLeaf(&pool, testSymIdentifier, ln(1), ln(2), 1, 7, false, true, false, l)
+	moved := column.edit(InputEdit{StartByte: 2, OldEndByte: 2, NewEndByte: 3, StartPoint: Point{0, 2}, OldEndPoint: Point{0, 2}, NewEndPoint: Point{1, 0}}, &pool)
+	if moved.ptr.isInline || !moved.dependsOnColumn() {
+		t.Errorf("the large edit of a leaf that depends on the column gave %+v", moved.ptr.heapFields)
 	}
 }
 

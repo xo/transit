@@ -508,6 +508,28 @@ func TestParsingAfterEditingTreeThatDependsOnColumnPosition(t *testing.T) {
 	urSlice(t, "strings_read", recorder.stringsRead(), []string{"\n\n  x"})
 }
 
+// TestParsingAfterFailedExternalScanThatDependsOnColumn is
+// test_parsing_after_failed_external_scan_that_depends_on_column of
+// parser_test.rs.
+func TestParsingAfterFailedExternalScanThatDependsOnColumn(t *testing.T) {
+	parser := urParser(t, urTestFixtureLanguage(t, "depends_on_column_failed_scan"))
+
+	code := []byte("ax")
+	tree := urParse(t, parser, code, nil)
+	urEqual(t, "to_sexp", tree.RootNode().String(), "(document (letter) (tail))")
+
+	urPerformEdit(t, tree, &code, urEdit{
+		position:      0,
+		deletedLength: 1,
+		insertedText:  []byte("\n"),
+	})
+
+	incremental := urParse(t, parser, code, tree)
+	fresh := urParse(t, parser, code, nil)
+	urEqual(t, "to_sexp", fresh.RootNode().String(), "(document (newline) (head))")
+	urEqual(t, "to_sexp", incremental.RootNode().String(), fresh.RootNode().String())
+}
+
 func TestParsingAfterDetectingErrorInTheMiddleOfAStringToken(t *testing.T) {
 	parser := urParser(t, fixtureGrammar(t, "python").Language)
 

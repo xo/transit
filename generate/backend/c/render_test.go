@@ -46,8 +46,8 @@ func TestRenderOnEveryTestGrammar(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(files) != 71 {
-		t.Fatalf("expected the grammar.json of the 71 test grammars in testdata, found %d", len(files))
+	if len(files) != 72 {
+		t.Fatalf("expected the grammar.json of the 72 test grammars in testdata, found %d", len(files))
 	}
 	matched, rejected := 0, 0
 	for _, f := range files {
@@ -96,8 +96,8 @@ func TestRenderOnEveryTestGrammar(t *testing.T) {
 		}
 	}
 	t.Logf("%d of %d parser.c and node-types.json pairs match, and %d runs are rejected with the golden error", matched, 3*len(files)-rejected, rejected)
-	if matched != 3*59 || rejected != 3*12 {
-		t.Errorf("expected 177 matches and 36 rejections, got: %d and %d", matched, rejected)
+	if matched != 3*60 || rejected != 3*12 {
+		t.Errorf("expected 180 matches and 36 rejections, got: %d and %d", matched, rejected)
 	}
 }
 

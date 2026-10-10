@@ -1,0 +1,46 @@
+[
+  {
+    "type": "document",
+    "named": true,
+    "root": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "head",
+          "named": true
+        },
+        {
+          "type": "letter",
+          "named": true
+        },
+        {
+          "type": "newline",
+          "named": true
+        },
+        {
+          "type": "tail",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "head",
+    "named": true
+  },
+  {
+    "type": "letter",
+    "named": true
+  },
+  {
+    "type": "newline",
+    "named": true
+  },
+  {
+    "type": "tail",
+    "named": true
+  }
+]
