@@ -1,1 +1,69 @@
 upstream	date	status	transit	note
+a5ca8e03cd4d253db037a9d9612bd45e6f5211a5	2026-09-29	not-applicable		changes only paths that transit does not port: .github/workflows/backport.yml
+790e6ad9c5a26dfcf96785fe4c9cc7ad6e24d6d5	2026-09-29	not-applicable		changes only paths that transit does not port: lib/binding_web/package-lock.json, lib/binding_web/package.json
+6cdbc721fe9ab03bf9f7a73af65432d30382c21a	2026-09-30	not-applicable		changes only paths that transit does not port: .github/dependabot.yml
+b658557976850ebe042c795555f1193ad3d131a0	2026-09-30	not-applicable		changes only paths that transit does not port: flake.lock
+f76942db49eead41ad42af271b27a4d94140b48a	2026-09-30	not-applicable		changes only paths that transit does not port: crates/xtask/src/check_regex_error_kinds.rs
+fc6fc791513024606c94e1c311276d2c126c64d3	2026-09-30	not-applicable		changes only paths that transit does not port: .github/workflows/regex_error_kinds.yml
+a336e9d419d89c88a676c716f8c09c1d3b1d5f5a	2026-09-30	not-applicable		a bump of Cargo.lock, which transit does not port
+3ec6d374cd2b4ef0380dfe73e1c0c80ec16dceed	2026-09-30	not-applicable		changes only paths that transit does not port: flake.lock
+f5a99d6606cf808c0707bc7fd0b16e7dbe092017	2026-09-30	not-applicable		changes only paths that transit does not port: lib/binding_web/package-lock.json, lib/binding_web/package.json
+46bb9eda5188107af02cb6b8814aed3bd8e5c366	2026-09-30	not-applicable		changes only paths that transit does not port: .github/workflows/build.yml
+94162b7fc4e1f56e0bd3dcc9e9d0a843428b3650	2026-09-30	not-applicable		changes only paths that transit does not port: lib/binding_web/package-lock.json
+0b1cc6843e4b397eae758e93022cbed569623e46	2026-09-30	not-applicable		changes only paths that transit does not port: crates/cli/eslint/package-lock.json
+a66db75608959e91c7b8cb7e0aa58c691ed2d7fd	2026-10-01	not-applicable		changes only paths that transit does not port: crates/loader/binaryen-version
+3643db144c3788282151fd1340d3b1f46a5a6323	2026-10-01	not-applicable		a bump of wasmtime and of build.zig.zon, which transit does not port (D1)
+436c42ff56b28a2016e88a09683a6cd8dbe04e7a	2026-10-01	not-applicable		changes only paths that transit does not port: .github/workflows/ci.yml, .github/workflows/regex_error_kinds.yml, .github/workflows/wasm_stdlib.yml
+867aa6d14418163560bf89f12c48107098b1ec8f	2026-10-01	pending		port in phase 6: crates/generate/src/render.rs
+e5d5a9d7efa9fb28ced9f9c54c28f085e9fb0c62	2026-10-01	pending		port in phase 6: crates/generate/src/build_tables.rs, crates/generate/src/build_tables/minimize_parse_table.rs, crates/generate/src/generate.rs
+e825b75bcf550d3771da7c22526afee336754626	2026-10-01	pending		port in phase 6: crates/generate/src/prepare_grammar.rs, crates/generate/src/prepare_grammar/flatten_grammar.rs, crates/generate/src/prepare_grammar/intern_symbols.rs
+69d518277605a1c556d4723680e2c6d011d2aee9	2026-10-02	not-applicable		changes only paths that transit does not port: .github/workflows/backport.yml
+bcd39f41e7f6b5a29d712252524dbbfa4fa8f517	2026-10-02	not-applicable		changes only paths that transit does not port: lib/binding_web/package-lock.json, lib/binding_web/package.json
+20cf25c10f13ed9b8c499dd966b4e7a57bedbf81	2026-10-02	not-applicable		changes only paths that transit does not port: flake.lock
+a5add39b04bb2e12ceae82016829985df593aebc	2026-10-03	pending		port in phase 6: lib/src/parser.c, test/fixtures/test_grammars/error_recovery_loop/corpus.txt, test/fixtures/test_grammars/error_recovery_loop/grammar.js
+9b9de365078b0c82f8f8d7af175b1a4207c9b4d5	2026-10-03	not-applicable		a bump of wasmtime and of build.zig.zon, which transit does not port (D1)
+fe8d1936509826e755a1a8ce1309fe7a182c2eb0	2026-10-03	not-applicable		a bump of rquickjs, the JavaScript runtime of the upstream tool, which transit does not port
+e0d0db1d373796e2eaf34eb18e340162ed844d72	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/build_parse_table.rs
+cd8caa9f316f31a71195419a4b4ca882d28e8309	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/item_set_builder.rs
+80bd4075e0744eb97f39c3be50af213c25ffc3d2	2026-10-03	pending		port in phase 6: crates/generate/src/bitvec.rs, crates/generate/src/build_tables/item_set_builder.rs
+23b0e7dcb1d5b2d2649ec0022938ac894431329f	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/coincident_tokens.rs
+801c9626955e8d27cfecc232cec4e34a7168c77d	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/build_lex_table.rs, crates/generate/src/build_tables/minimize_parse_table.rs, crates/generate/src/dedup.rs
+11cad57fdfef22b400abac1da2a8db6d9add473c	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/minimize_parse_table.rs
+4a09eb30c1e8de5c9998b1ff9e6a6d38ff388f93	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/minimize_parse_table.rs, crates/generate/src/dedup.rs
+4c6466d7b31cee51d4a43a17c4bb249a5061712a	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/minimize_parse_table.rs
+6c9a707cc7d8c2315f343134ef5a19f8e2b4851f	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/build_parse_table.rs
+6fc649dca0a6fba002ee86a04839465108610f50	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables.rs, crates/generate/src/build_tables/build_parse_table.rs, crates/generate/src/build_tables/minimize_parse_table.rs
+5f9695024dc40c943843bc0e7e359974c38995e0	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/build_parse_table.rs
+da18743c5cc702bc9fd8085c97a69f3e93af8c3d	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/build_parse_table.rs
+70bf7f4b3663947348832f681b2690cccd0c8ba8	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/item.rs
+e3c2053c9841032dc956271ae5fd49c787331158	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/build_parse_table.rs
+52fcc462c93a6fdab7ff085740b3fefb2e0ffd56	2026-10-03	pending		port in phase 6: crates/generate/src/prepare_grammar/flatten_grammar.rs
+9f760b04325dbc0d52ed547a03b440831b818286	2026-10-03	pending		port in phase 6: crates/generate/src/grammars.rs, crates/generate/src/prepare_grammar/flatten_grammar.rs
+3e6d2003ad6da93e3ab1671e3576cec3c2611790	2026-10-03	pending		port in phase 6: crates/generate/src/nfa.rs
+7d159bc3f93592a1fabc30054aa478644c7137a8	2026-10-03	pending		port in phase 6: crates/generate/src/render.rs
+e4c863e2d12526215663daab736fee3835c8bd9a	2026-10-03	pending		port in phase 6: crates/generate/src/nfa.rs
+918bb662b558f5a0e877dc9368fed6d7271306f9	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/build_lex_table.rs, crates/generate/src/dedup.rs
+bca909c4151d42a19e8fc8952f6b03a1260f4e18	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables.rs, crates/generate/src/build_tables/build_parse_table.rs, crates/generate/src/tables.rs
+b83508e08272d0348b62acdbe929331bfdf205dd	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables.rs, crates/generate/src/build_tables/minimize_parse_table.rs, crates/generate/src/rules.rs
+7379b711ce06e9ad6c6800fc8c7dafe5c14ab018	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/minimize_parse_table.rs
+faacf4ee6f259414e99137d6d6982fd3f96008cb	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/coincident_tokens.rs, crates/generate/src/tables.rs
+c9d7450cdc7e2c67429d44df2a92e862ceff2761	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables.rs, crates/generate/src/build_tables/build_parse_table.rs, crates/generate/src/build_tables/coincident_tokens.rs
+5091247754e69084613e48613fe2215c7df8ec68	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/build_parse_table.rs, crates/generate/src/build_tables/minimize_parse_table.rs, crates/generate/src/render.rs
+43e82a2767cf75df4f668752cd884368e21a5ccd	2026-10-03	pending		port in phase 6: crates/generate/src/prepare_grammar.rs
+26123e098422639fe50c9be5a1911bbe49a755c8	2026-10-04	pending		port in phase 6: lib/src/subtree.c, test/fixtures/test_grammars/depends_on_column_repetition/corpus.txt, test/fixtures/test_grammars/depends_on_column_repetition/grammar.js
+2ef426e10b4fa8189a761025f17548073249c2fc	2026-10-04	pending		port in phase 6: lib/src/parser.c, lib/src/subtree.c, lib/src/subtree.h
+e1566be3a261d97618e09428b9bacd68442afa27	2026-10-04	pending		port in phase 6: lib/src/query.c
+b2f00cb0b5942ff10c45dc77d3a9c7e9c7515da8	2026-10-05	not-applicable		the build script of the Rust binding, which transit does not port
+19084772dfd5c2c417ae9cbfa1815578ace70fae	2026-10-05	pending		port in phase 6: lib/include/tree_sitter/api.h, lib/src/query.c
+0714d5e4ba058703c63493d59b9ee6dadb7d0251	2026-10-05	pending		port in phase 6: lib/src/query.c
+0e0a86b8d4718143cf32c6a80754a9a224cab422	2026-10-05	pending		port in phase 6: crates/cli/src/tests/query_test.rs, the input of test_query_execution_with_timeout
+2f5fa28410b45d98b1b7eb5bde9deaea1b2f7730	2026-10-05	not-applicable		changes only paths that transit does not port: lib/binding_web/lib/tree-sitter.c, lib/binding_web/test/query.test.ts
+752c612a1359f00e4c113593837a0c1e880214e3	2026-10-05	not-applicable		the CLI and the dependency list of crates, which transit does not port
+d7d4713b6d557567926a8eef8cd36b064bac9d55	2026-10-07	not-applicable		changes only paths that transit does not port: crates/cli/src/templates/index.js
+3b36eaf81217b1f5d95b1a537431c421e79b371f	2026-10-07	not-applicable		changes only paths that transit does not port: crates/cli/src/init.rs, crates/cli/src/templates/index.js
+06c3c267b88d81f6febbc66da7bfea2861bf33e4	2026-10-07	not-applicable		changes only paths that transit does not port: crates/cli/src/init.rs, crates/cli/src/templates/binding_test.js
+8261cea5e5098ad4b88f234dbaa224a916a34af3	2026-10-07	not-applicable		changes only paths that transit does not port: crates/cli/src/init.rs, crates/cli/src/templates/index.js
+004c2452c429c876c7607fa3344a744a286fabd8	2026-10-08	pending		port in phase 6: crates/generate/src/generate.rs, crates/generate/src/parse_grammar.rs, crates/generate/src/prepare_grammar.rs
+6278dc13c751e0293c16fa28dbc6135083008b7d	2026-10-09	not-applicable		changes only paths that transit does not port: lib/binding_web/package-lock.json
+fcb3fde8edce7d88227d164e3658004cd481d43e	2026-10-09	pending		port in phase 6: crates/cli/src/test.rs
+e9930e0915685efb98a9d325b8f23dfdb9e99559	2026-10-09	pending		port in phase 6: lib/src/language.c

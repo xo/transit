@@ -1,6 +1,6 @@
 # D30. The base commit, and how the gap to upstream stays small
 
-Status: Decided.
+Status: Decided, amended by D116.
 
 Ken decided on 2026-09-29, answering questions 1, 13 and 35:
 

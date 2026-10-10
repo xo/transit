@@ -48,7 +48,7 @@ An open question is not a decision. It goes at the end of
 | [D27](D027-predicates-and-injections-are-ported.md) | Query predicates and injections are ported | Decided, amends D7 |
 | [D28](D028-transit-can-add-an-api-that-upstream-lacks.md) | transit can add an API that upstream does not have | Decided |
 | [D29](D029-the-subtree-form-is-chosen-by-a-benchmark.md) | The Go form of a subtree is chosen by a benchmark | Decided |
-| [D30](D030-the-base-commit-and-the-upstream-ledger.md) | The base commit, and how the gap to upstream stays small | Decided |
+| [D30](D030-the-base-commit-and-the-upstream-ledger.md) | The base commit, and how the gap to upstream stays small | Decided, amended by D116 |
 | [D31](D031-the-go-backend-output-is-chosen-by-measurement.md) | The form of the Go tables is chosen by measurement, and grammar packages embed their queries | Decided, amended by D47 |
 | [D32](D032-a-chroma-module-maps-captures-to-token-types.md) | A chroma module maps capture names to chroma token types | Decided, amends D14 and D15, amended by D48, superseded by D65 |
 | [D33](D033-the-license-names-2026-and-upstream.md) | The license names 2026, and keeps the upstream notice | Decided |
@@ -134,3 +134,4 @@ An open question is not a decision. It goes at the end of
 | [D113](D113-xo-writes-the-highlight-queries-that-upstream-lacks.md) | xo writes the highlight queries that upstream lacks | Decided |
 | [D114](D114-usql-language-has-the-options-of-postgres.md) | usql.Language has the options of PostgreSQL | Decided, amends D108 |
 | [D115](D115-each-grammar-package-has-a-generated-example.md) | Each grammar package has a generated example | Decided, amends D53 |
+| [D116](D116-phase-6-ports-upstream-in-strict-order.md) | Phase 6 ports upstream in strict order | Decided, amends D30 |
