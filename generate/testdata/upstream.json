@@ -1,5 +1,5 @@
 {
   "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
   "tool": "tree-sitter 0.28.0",
-  "upstream": "867aa6d14418163560bf89f12c48107098b1ec8f"
+  "upstream": "e5d5a9d7efa9fb28ced9f9c54c28f085e9fb0c62"
 }

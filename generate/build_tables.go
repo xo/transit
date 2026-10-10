@@ -205,7 +205,7 @@ func populateUsedSymbols(parseTable *ParseTable[ParseTableEntry], syntaxGrammar 
 		// symbol of a subtree can change to the word token without moving
 		// the subtree to the heap. See
 		// https://github.com/tree-sitter/tree-sitter/issues/258.
-		if syntaxGrammar.HasWordToken && wordTokenHasIndex(syntaxGrammar.WordToken, i) {
+		if syntaxGrammar.HasWordToken && syntaxGrammar.WordToken == TerminalSymbol(i) {
 			parseTable.Symbols = slices.Insert(parseTable.Symbols, 1, TerminalSymbol(i))
 		} else {
 			parseTable.Symbols = append(parseTable.Symbols, TerminalSymbol(i))
@@ -221,17 +221,6 @@ func populateUsedSymbols(parseTable *ParseTable[ParseTableEntry], syntaxGrammar 
 			parseTable.Symbols = append(parseTable.Symbols, NonTerminalSymbol(i))
 		}
 	}
-}
-
-// wordTokenHasIndex reports whether the word token is the external token or
-// the terminal with index i. Upstream compares the index of either kind with
-// i, and so does the port.
-func wordTokenHasIndex(t Symbol, i int) bool {
-	switch t.Kind() {
-	case SymbolExternal, SymbolTerminal:
-		return int(t.index) == i
-	}
-	return false
 }
 
 // populateExternalLexStates gives each parse state the number of its set of
@@ -282,14 +271,14 @@ func populateExternalLexStates(parseTable *ParseTable[ActionListID], syntaxGramm
 //
 // identifyKeywords is identify_keywords.
 func identifyKeywords(lexicalGrammar *LexicalGrammar, wordToken Symbol, hasWordToken bool, tokenConflictMap *TokenConflictMap, coincidentTokenIndex *CoincidentTokenIndex) TokenSet {
-	if !hasWordToken {
-		return TokenSet{}
-	}
-
 	var wordTokenIndex int
-	switch wordToken.Kind() {
-	case SymbolExternal, SymbolTerminal:
+	switch {
+	case hasWordToken && wordToken.Kind() == SymbolTerminal:
 		wordTokenIndex = int(wordToken.index)
+	// An external token has no lexical rule to compare with keywords.
+	case !hasWordToken || wordToken.Kind() == SymbolExternal:
+		return TokenSet{}
+	// INVARIANT: Token extraction rejects a non-terminal word token.
 	default:
 		panic("internal error: entered unreachable code")
 	}

@@ -68,6 +68,41 @@ func TestParserHeaderInSync(t *testing.T) {
 	}
 }
 
+// TestExternalWordTokenOutsideTerminalRange is
+// test_external_word_token_outside_terminal_range in generate.rs.
+func TestExternalWordTokenOutsideTerminalRange(t *testing.T) {
+	t.Parallel()
+	grammarJSON := `{
+		"name": "external_word_token_out_of_bounds",
+		"word": "ext_word",
+		"rules": {
+			"program": {"type": "REPEAT", "content": {"type": "SYMBOL", "name": "item"}},
+			"item": {"type": "CHOICE", "members": [
+				{"type": "SEQ", "members": [
+					{"type": "STRING", "value": "{"},
+					{"type": "SYMBOL", "name": "ext_word"},
+					{"type": "SYMBOL", "name": "ext_a"}
+				]},
+				{"type": "SEQ", "members": [
+					{"type": "STRING", "value": "let"},
+					{"type": "SYMBOL", "name": "ext_word"},
+					{"type": "SYMBOL", "name": "ext_b"}
+				]}
+			]}
+		},
+		"externals": [
+			{"type": "SYMBOL", "name": "ext_a"},
+			{"type": "SYMBOL", "name": "ext_b"},
+			{"type": "SYMBOL", "name": "ext_word"}
+		]
+	}`
+
+	// An external word token must not index the internal terminal table.
+	if _, _, err := ParserForGrammar([]byte(grammarJSON), nil, OptLevelMergeStates, fakeBackend{}, new([]Diagnostic)); err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+}
+
 // TestParserInDirectoryWritesTheFilesOfUpstream generates a test grammar in a
 // folder, and compares the files with the golden files and the headers.
 func TestParserInDirectoryWritesTheFilesOfUpstream(t *testing.T) {

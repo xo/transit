@@ -3,7 +3,7 @@
 // that test the transit generator, and it records what the tool writes. The
 // C backend of transit must write the same files (D8).
 //
-// For each of the 68 test grammars of upstream, it keeps grammar.json, and
+// For each of the 69 test grammars of upstream, it keeps grammar.json, and
 // parser.c and node-types.json at ABI 15, at ABI 14, and at ABI 15 with the
 // merge of parse states off, in generate/testdata (D19, D40). For each real
 // grammar, it keeps the SHA-256 of parser.c and node-types.json at ABI 14 and

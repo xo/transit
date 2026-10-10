@@ -62,13 +62,6 @@ func (k minimizeSymbolKey) tag() uint64 {
 	return uint64(k) >> minimizeKeyTagShift
 }
 
-// isExternal reports whether the symbol is an external token.
-//
-// isExternal is SymbolKey::is_external.
-func (k minimizeSymbolKey) isExternal() bool {
-	return k.tag() == uint64(SymbolExternal)
-}
-
 // isTerminal reports whether the symbol is a terminal.
 //
 // isTerminal is SymbolKey::is_terminal.
@@ -725,7 +718,7 @@ func (m *minimizer) tokenConflicts(rightState *ParseState[ActionListID], conflic
 		candidates := rightTerminalBits[w] & rowWord
 		if newTokenIsKeyword && conflictBits.hasWordToken {
 			word := conflictBits.wordToken
-			if (word.isExternal() || word.isTerminal()) && int(word.index())/64 == w {
+			if word.isTerminal() && int(word.index())/64 == w {
 				candidates &^= 1 << (word.index() % 64)
 			}
 		}
