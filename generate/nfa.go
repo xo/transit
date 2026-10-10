@@ -170,6 +170,11 @@ func (s *CharacterSet) Assign(other CharacterSet) {
 //
 // addIntRange is CharacterSet::add_int_range.
 func (s *CharacterSet) addIntRange(i int, start, end uint32) int {
+	// Regex character classes provide sorted, disjoint ranges.
+	if n := len(s.ranges); n == 0 || s.ranges[n-1].end < start {
+		s.ranges = append(s.ranges, charRange{start: start, end: end})
+		return n
+	}
 	for i < len(s.ranges) {
 		r := &s.ranges[i]
 		if r.start > end {

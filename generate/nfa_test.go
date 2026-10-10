@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"testing"
+	"unicode"
 )
 
 // characterSetFromRange returns the set of the characters from first to last,
@@ -57,6 +58,32 @@ func TestAddingRanges(t *testing.T) {
 	set = CharacterSet{}.AddRange('c', 'f').AddRange('i', 'l').AddRange('n', 'r')
 	set = set.AddRange('d', 'o')
 	expectSet(t, set, CharacterSet{}.AddRange('c', 'r'))
+}
+
+// TestAddingSortedRanges is test_adding_sorted_ranges in nfa.rs.
+func TestAddingSortedRanges(t *testing.T) {
+	t.Parallel()
+	expected := make([]charRange, 4096)
+	for i := range expected {
+		expected[i] = charRange{start: uint32(4 * i), end: uint32(4*i + 2)}
+	}
+	set := CharacterSet{}
+	for _, r := range expected {
+		set = set.AddRange(rune(r.start), rune(r.end-1))
+	}
+	if !slices.Equal(set.ranges, expected) {
+		t.Fatalf("got %d ranges %v, want %d ranges", len(set.ranges), set.ranges, len(expected))
+	}
+
+	// A touching range must still merge with the tail, not be appended.
+	end := expected[len(expected)-1].end
+	set = set.AddRange(rune(end), unicode.MaxRune)
+	if got := set.RangeCount(); got != len(expected) {
+		t.Errorf("RangeCount: got %d, want %d", got, len(expected))
+	}
+	if got := set.ranges[len(set.ranges)-1].end; got != charEnd {
+		t.Errorf("end of the last range: got %d, want %d", got, charEnd)
+	}
 }
 
 // TestAddingSets is test_adding_sets in nfa.rs.
