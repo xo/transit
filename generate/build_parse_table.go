@@ -303,7 +303,16 @@ type successorSets struct {
 	// symbols holds the symbols that have a set in sets, in the order that
 	// their sets were added.
 	symbols []Symbol
+	// pool holds empty item sets to build successors in, so that most
+	// successors do not allocate.
+	pool []*ParseItemSet
 }
+
+// successorSetsMaxPooledCapacity is the capacity of the largest item set
+// that pool keeps.
+//
+// successorSetsMaxPooledCapacity is SuccessorSets::MAX_POOLED_CAPACITY.
+const successorSetsMaxPooledCapacity = 256
 
 // successorSet is a symbol and the item set of its successor.
 //
@@ -321,6 +330,7 @@ func newSuccessorSets(indexer symbolIndexer) successorSets {
 		indexer: indexer,
 		sets:    make([]*ParseItemSet, indexer.symbolCount()),
 		symbols: nil,
+		pool:    nil,
 	}
 }
 
@@ -332,7 +342,12 @@ func (s *successorSets) itemSet(symbol Symbol) *ParseItemSet {
 	slot := &s.sets[s.indexer.index(symbol)]
 	if *slot == nil {
 		s.symbols = append(s.symbols, symbol)
-		*slot = &ParseItemSet{}
+		if n := len(s.pool); n > 0 {
+			*slot = s.pool[n-1]
+			s.pool = s.pool[:n-1]
+		} else {
+			*slot = &ParseItemSet{}
+		}
 	}
 	return *slot
 }
@@ -353,6 +368,18 @@ func (s *successorSets) takeAll() []successorSet {
 	}
 	s.symbols = s.symbols[:0]
 	return result
+}
+
+// recycle takes back the sets from takeAll, to build later successors in.
+//
+// recycle is SuccessorSets::recycle.
+func (s *successorSets) recycle(sets []successorSet) {
+	for _, set := range sets {
+		if cap(set.itemSet.Entries) <= successorSetsMaxPooledCapacity {
+			set.itemSet.Entries = set.itemSet.Entries[:0]
+			s.pool = append(s.pool, set.itemSet)
+		}
+	}
 }
 
 // parseStateQueueEntry is a state that waits for its actions.
@@ -732,11 +759,11 @@ func (b *parseTableBuilder) build(diagnostics *[]Diagnostic) (ParseTable[ParseTa
 	b.parseTable.ProductionInfos = append(b.parseTable.ProductionInfos, ProductionInfo{})
 
 	// Add the error state at index 0.
-	b.addParseState(nil, 0, ParseItemSet{})
+	b.addParseState(nil, 0, &ParseItemSet{})
 
 	// Add the starting state at index 1.
 	endLookaheads := b.itemSetBuilder.Lookaheads.Singleton(SymbolEndValue)
-	b.addParseState(nil, 0, ParseItemSet{
+	b.addParseState(nil, 0, &ParseItemSet{
 		Entries: []ParseItemSetEntry{{
 			Item:                     StartParseItem(b.itemSetBuilder.KeyMap),
 			Lookaheads:               endLookaheads,
@@ -788,7 +815,7 @@ func (b *parseTableBuilder) build(diagnostics *[]Diagnostic) (ParseTable[ParseTa
 
 		// Add the parse state, and *then* push the terminal and the state id into the
 		// list of nonterminal extra states
-		stateID := b.addParseState(nil, 0, *itemSet)
+		stateID := b.addParseState(nil, 0, itemSet)
 		b.nonTerminalExtraStates = append(b.nonTerminalExtraStates, buildParseExtraState{terminal: terminal, stateID: stateID})
 	}
 
@@ -843,8 +870,10 @@ func (b *parseTableBuilder) build(diagnostics *[]Diagnostic) (ParseTable[ParseTa
 func (b *parseTableBuilder) addParseState(
 	precedingSymbols []Symbol,
 	precedingAuxiliaryContext auxiliaryContextID,
-	itemSet ParseItemSet,
+	itemSet *ParseItemSet,
 ) ParseStateID {
+	// Compute the key of the item set once, for both the lookup and a
+	// possible insert.
 	key := itemSet.Key()
 	// If an equivalent item set has already been processed, then return
 	// the existing parse state index.
@@ -877,7 +906,7 @@ func (b *parseTableBuilder) addParseState(
 		precedingAuxiliaryContext: precedingAuxiliaryContext,
 	})
 	b.stateIDsByItemSet[key] = stateID
-	b.itemSets = append(b.itemSets, itemSet)
+	b.itemSets = append(b.itemSets, ParseItemSet{Entries: slices.Clone(itemSet.Entries)})
 	return stateID
 }
 
@@ -1024,17 +1053,17 @@ func (b *parseTableBuilder) addActions(
 	// Having computed the successor item sets for each symbol, add a new
 	// parse state for each of these item sets, and add a corresponding Shift
 	// action to this state.
-	terminalSuccessors := b.successorSets.takeAll()
+	successors := b.successorSets.takeAll()
 	// Non-terminals come last in symbol order.
-	split := sort.Search(len(terminalSuccessors), func(i int) bool {
-		_, ok := terminalSuccessors[i].symbol.NonTerminalIndex()
+	split := sort.Search(len(successors), func(i int) bool {
+		_, ok := successors[i].symbol.NonTerminalIndex()
 		return ok
 	})
-	terminalSuccessors, nonTerminalSuccessors := terminalSuccessors[:split], terminalSuccessors[split:]
+	terminalSuccessors, nonTerminalSuccessors := successors[:split], successors[split:]
 	for _, successor := range terminalSuccessors {
 		symbol, nextItemSet := successor.symbol, successor.itemSet
 		precedingSymbols = append(precedingSymbols, symbol)
-		nextStateID := b.addParseState(precedingSymbols, auxiliaryContext, *nextItemSet)
+		nextStateID := b.addParseState(precedingSymbols, auxiliaryContext, nextItemSet)
 		precedingSymbols = precedingSymbols[:len(precedingSymbols)-1]
 
 		entries := &b.parseTable.States[stateID].TerminalEntries
@@ -1052,10 +1081,11 @@ func (b *parseTableBuilder) addActions(
 	for _, successor := range nonTerminalSuccessors {
 		symbol, nextItemSet := successor.symbol, successor.itemSet
 		precedingSymbols = append(precedingSymbols, symbol)
-		nextStateID := b.addParseState(precedingSymbols, auxiliaryContext, *nextItemSet)
+		nextStateID := b.addParseState(precedingSymbols, auxiliaryContext, nextItemSet)
 		precedingSymbols = precedingSymbols[:len(precedingSymbols)-1]
 		b.parseTable.States[stateID].NonterminalEntries.Insert(symbol, GotoAction{Kind: GotoActionGoto, State: nextStateID})
 	}
+	b.successorSets.recycle(successors)
 
 	// For any symbol with multiple actions, perform conflict resolution.
 	// This will either
