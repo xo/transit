@@ -35,7 +35,7 @@ cd8caa9f316f31a71195419a4b4ca882d28e8309	2026-10-03	ported	dbf1476	perf(generate
 6fc649dca0a6fba002ee86a04839465108610f50	2026-10-03	ported		perf(generate): index successor item sets by symbol
 5f9695024dc40c943843bc0e7e359974c38995e0	2026-10-03	ported		perf(generate): reuse reduction infos across states
 da18743c5cc702bc9fd8085c97a69f3e93af8c3d	2026-10-03	ported		perf(generate): build successor item sets without allocating
-70bf7f4b3663947348832f681b2690cccd0c8ba8	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/item.rs
+70bf7f4b3663947348832f681b2690cccd0c8ba8	2026-10-03	ported		perf(generate): check the end first when inserting into item sets
 e3c2053c9841032dc956271ae5fd49c787331158	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/build_parse_table.rs
 52fcc462c93a6fdab7ff085740b3fefb2e0ffd56	2026-10-03	pending		port in phase 6: crates/generate/src/prepare_grammar/flatten_grammar.rs
 9f760b04325dbc0d52ed547a03b440831b818286	2026-10-03	pending		port in phase 6: crates/generate/src/grammars.rs, crates/generate/src/prepare_grammar/flatten_grammar.rs

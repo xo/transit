@@ -656,17 +656,32 @@ func (i *ParseItem) dotKeys() DotKeys {
 //
 // Insert is ParseItemSet::insert.
 func (s *ParseItemSet) Insert(item ParseItem) *ParseItemSetEntry {
-	i, found := slices.BinarySearchFunc(s.Entries, item, func(e ParseItemSetEntry, item ParseItem) int {
-		return e.Item.Compare(item)
-	})
-	if !found {
-		s.Entries = slices.Insert(s.Entries, i, ParseItemSetEntry{
-			Item:                     item,
-			Lookaheads:               LookaheadSetPoolEmpty,
-			FollowingReservedWordSet: 0,
+	// Entries is sorted with no duplicates, so an item that sorts after the last entry
+	// belongs at the end, which is where the binary search would put it.
+	//
+	// Checking the end first pays off because items mostly arrive in order: addActions
+	// builds each successor set by advancing a sorted closure's items past the same symbol.
+	// Items are ordered by step index, then rule, then their content at the dot. Advancing
+	// adds one to every step index and keeps every rule, so only items of the same rule at
+	// the same step can change places.
+	var index int
+	if n := len(s.Entries); n == 0 || s.Entries[n-1].Item.Compare(item) < 0 {
+		index = n
+	} else {
+		i, found := slices.BinarySearchFunc(s.Entries, item, func(e ParseItemSetEntry, item ParseItem) int {
+			return e.Item.Compare(item)
 		})
+		if found {
+			return &s.Entries[i]
+		}
+		index = i
 	}
-	return &s.Entries[i]
+	s.Entries = slices.Insert(s.Entries, index, ParseItemSetEntry{
+		Item:                     item,
+		Lookaheads:               LookaheadSetPoolEmpty,
+		FollowingReservedWordSet: 0,
+	})
+	return &s.Entries[index]
 }
 
 // Core returns the items of the set, without their lookaheads.
