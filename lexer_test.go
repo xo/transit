@@ -534,6 +534,7 @@ func TestLexerStrings(t *testing.T) {
 		"UTF-8":    EncodingUTF8,
 		"UTF-16LE": EncodingUTF16LE,
 		"UTF-16BE": EncodingUTF16BE,
+		"custom":   encodingCustom,
 		"unknown":  Encoding(9),
 		"parse":    LogParse,
 		"lex":      LogLex,

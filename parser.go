@@ -23,7 +23,7 @@ import (
 // which only the store sets, are not ported (D1). ts_parser_delete frees
 // memory. TSParseState holds the values for the progress callback.
 // ts_parser_parse_with_options and ts_parser_parse_string_encoding are
-// ParseInput with a context (docs/API.md).
+// ParseInput and ParseCustomEncoding with a context (docs/API.md).
 
 // The costs of the error recovery, and the error state.
 const (
@@ -92,8 +92,8 @@ const (
 	// ErrLanguageMismatch is the error of a parse with an old tree of
 	// another language.
 	ErrLanguageMismatch Error = "old tree has another language"
-	// ErrInvalidInput is the error of a parse with no input or with an
-	// encoding that the runtime does not know.
+	// ErrInvalidInput is the error of a parse with no input, with an
+	// encoding that the runtime does not know, or with no decode function.
 	ErrInvalidInput Error = "invalid input"
 )
 
@@ -2243,18 +2243,44 @@ func (p *Parser) Reset() {
 // state, and the next call goes on from the same point with the same input,
 // unless Reset or SetLanguage is called first.
 //
-// ParseInput is ts_parser_parse.
+// ParseInput is ts_parser_parse with a TSInput in the encoding enc.
 func (p *Parser) ParseInput(ctx context.Context, in Input, enc Encoding, old *Tree) (*Tree, error) {
+	return p.parse(ctx, input{read: in, encoding: enc}, old)
+}
+
+// ParseCustomEncoding parses the text that in gives, in an encoding that
+// the runtime does not know. The parser calls decode to read each
+// character. decode gets the text from the character to the end of the
+// chunk, and it returns the code point and the number of bytes that the
+// character takes. It returns -1 as the code point when the text is not
+// valid. ParseInput holds the rest of the rules.
+//
+// ParseCustomEncoding is Parser::parse_custom_encoding of the Rust binding,
+// with ts_parser_parse and TSInputEncodingCustom.
+func (p *Parser) ParseCustomEncoding(ctx context.Context, in Input, decode func(b []byte) (rune, int), old *Tree) (*Tree, error) {
+	custom := input{read: in, encoding: encodingCustom}
+	if decode != nil {
+		custom.decode = func(b []byte) (uint32, int32) {
+			c, n := decode(b)
+			return uint32(n), c
+		}
+	}
+	return p.parse(ctx, custom, old)
+}
+
+// parse is ts_parser_parse.
+func (p *Parser) parse(ctx context.Context, in input, old *Tree) (*Tree, error) {
 	switch {
 	case p.language == nil:
 		return nil, ErrNoLanguage
-	case in == nil || enc < EncodingUTF8 || enc > EncodingUTF16BE:
+	case in.read == nil || in.encoding < EncodingUTF8 || in.encoding > encodingCustom ||
+		in.encoding == encodingCustom && in.decode == nil:
 		return nil, ErrInvalidInput
 	case old != nil && old.language != p.language:
 		return nil, ErrLanguageMismatch
 	}
 
-	p.lexer.setInput(input{read: in, encoding: enc})
+	p.lexer.setInput(in)
 	p.includedRangeDifferences = p.includedRangeDifferences[:0]
 	p.includedRangeDifferenceIndex = 0
 

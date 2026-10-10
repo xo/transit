@@ -57,25 +57,7 @@ memory goes, and compare it with the upstream tool.
 `test/cgrammar` compares the Go trees with the C trees at ABI 15 only. Compare
 them at ABI 14 too, from the `src/parser.c` of each grammar. The files
 `upstream_*_test.go` there port the tests of `crates/cli/src/tests` of
-upstream (D35). The tests that the Go API has no form for are listed below.
-
-### Choose whether some upstream tests get a Go form
-
-Some tests of `crates/cli/src/tests` test a part of the Rust binding that the
-Go API does not have, so they skip or are not ported:
-
-1. `test_decode_utf32`, `test_decode_cp1252`, `test_decode_macintosh` and
-   `test_decode_utf24le` of `parser_test.rs` give the parser a decode
-   function. `docs/API.md` gives `ts_parser_parse_with_options` no Go form.
-2. `test_edit_point` and `test_edit_range` of `node_test.rs` test
-   `ts_point_edit` and `ts_range_edit`. `docs/API.md` says that these become
-   methods if a consumer needs them.
-3. `Query::deep_clone` calls `ts_query_copy`, and `TestQueryDeepClone` tests
-   it. `docs/API.md` gives `ts_query_copy` no Go form (D24). The test skips.
-
-Ken chooses in the review of `docs/API.md` whether to keep this. If a part
-gets a Go form, add it to the runtime, and port its tests or remove their
-`t.Skip`.
+upstream (D35).
 
 ### Support the Neovim dialect when the tier 1 grammars need it
 
@@ -93,13 +75,6 @@ query files of each grammar in the cache, and that fails when a table of
 `NEOVIM.md` or a mark [N] of `CANDIDATES.md` differs from the scan. Until the
 check exists, step 8 of "Steps to add a grammar to the set" in
 [`GRAMMAR.md`](GRAMMAR.md) keeps them current by hand.
-
-### Run the comparison with C in a nightly job
-
-The tests of `test/cgrammar` skip in CI, because CI has no checkout of
-upstream and no cache of grammars. The nightly tier of D36 can check out
-upstream at the base commit, fetch the fixture grammars with the golden
-harness, and run the test module. On 2026-09-29 Ken chose to wait with it.
 
 ### Compare the decoders with the C decoders
 

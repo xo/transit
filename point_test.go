@@ -63,3 +63,35 @@ func TestPointConversion(t *testing.T) {
 		t.Errorf("internal() of a Point past 32 bits = %v, want it cut", got)
 	}
 }
+
+func TestInputEditEditPoint(t *testing.T) {
+	// an edit that replaces the bytes 4 to 6, on row 0, with the bytes 4 to 9,
+	// which end on row 1
+	e := InputEdit{
+		StartByte:   4,
+		OldEndByte:  6,
+		NewEndByte:  9,
+		StartPoint:  Point{0, 4},
+		OldEndPoint: Point{0, 6},
+		NewEndPoint: Point{1, 2},
+	}
+	tests := []struct {
+		name      string
+		p         Point
+		b         int
+		wantPoint Point
+		wantByte  int
+	}{
+		{"before the edit", Point{0, 3}, 3, Point{0, 3}, 3},
+		{"at the start of the edit", Point{0, 4}, 4, Point{0, 4}, 4},
+		{"in the edit", Point{0, 5}, 5, Point{1, 2}, 9},
+		{"after the edit", Point{0, 8}, 8, Point{1, 4}, 11},
+	}
+	for _, test := range tests {
+		p, b := test.p, test.b
+		e.EditPoint(&p, &b)
+		if p != test.wantPoint || b != test.wantByte {
+			t.Errorf("%s: EditPoint gives %v and %d, want %v and %d", test.name, p, b, test.wantPoint, test.wantByte)
+		}
+	}
+}

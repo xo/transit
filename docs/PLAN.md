@@ -5,7 +5,7 @@ This document holds the plan for `github.com/xo/transit`. The decisions are in
 
 This plan was written on 2026-09-29, before any code existed (D3). Ken
 answered its open questions on that date, and later ones as they came. The
-decisions D1 to D116 record the answers and the other choices of Ken. A part
+decisions D1 to D119 record the answers and the other choices of Ken. A part
 of this plan that names a decision follows it. A new question
 goes at the end of this document until Ken answers it.
 
@@ -595,10 +595,16 @@ runs in three tiers:
 
 1. On each push: the tests and the lint of the root module, the test module,
    each grammar module, the module `styles` and the sample programs (D109).
-   The comparisons with C skip, because CI has no checkout of upstream.
-2. Each night: every grammar, at both ABI versions, with the corpus of each C
-   output. This tier waits ([`BACKLOG.md`](BACKLOG.md)).
-3. Each week: the long fuzz tests. This tier waits too.
+   The comparisons with C skip, because this tier has no checkout of
+   upstream.
+2. Each night: `.github/workflows/nightly.yml` checks out upstream at the
+   commit in `upstream.txt`, fetches the fixture grammars with the golden
+   harness, and runs the tests of the test module, so that `test/cgrammar`
+   compares the Go runtime with the C runtime (D118). A test that needs a
+   grammar that is not a fixture grammar still skips. Every grammar at both
+   ABI versions, with the corpus of each C output, comes in the same workflow
+   when the runner has the time and the memory for it.
+3. Each week: the long fuzz tests. This tier waits.
 
 ## The gate for the Go backend
 
@@ -955,9 +961,11 @@ questions 56 to 58, and D59, D60 and D66 record the answers. Phase 3 raised
 questions 59 to 63, and D63, D64, D70, D72 and D74 record the answers.
 Phase 4 raised questions 64 to 72, and D97 to D102 record the answers.
 Phase 5 raised questions 73 to 85, and D106, D107 and D109 to D115 record
-the answers. Question 85 asked for a cleanup, and no decision records it. Phase 6 raised
-questions 86 and 87, and D116 records the answers. The next question is
-question 88.
+the answers. Question 85 asked for a cleanup, and no decision records it.
+Phase 6 raised questions 86 and 87, and D116 records the answers. The end of
+phase 6 raised questions 88 to 92, and D117 to D119 record the answers.
+Question 88 asked for a release, and Ken chose to wait, so no decision
+records it. The next question is question 93.
 
 No question is open.
 

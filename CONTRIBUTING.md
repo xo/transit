@@ -68,6 +68,12 @@ person. The root `.gitignore` ignores it.
 Run the commands under "Before you stage" in [`AGENTS.md`](AGENTS.md). Then
 stage the change for review. Ken commits.
 
+CI runs the same commands on each push, in `.github/workflows/test.yml`.
+There, the comparisons with the C runtime skip, because CI has no checkout of
+upstream. Each night, `.github/workflows/nightly.yml` checks out upstream,
+fetches the fixture grammars with the golden harness and runs the test
+module, so that the comparisons run (D118).
+
 ## Releases
 
 Ken makes each release. Each module has tags of its own (D43, D99). To

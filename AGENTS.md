@@ -99,8 +99,8 @@ A bare number, such as D3, names a decision of this repository, in
 `docs/decisions/`. A decision of another repository names that repository,
 such as dbmeta D110. An open question has a number, and it is at the end of
 `docs/PLAN.md` until Ken answers it. The numbers do not repeat: questions 1
-to 87 are answered, no question is open, and the next question is question
-88.
+to 92 are answered, no question is open, and the next question is question
+93.
 
 ## Hard rules
 
@@ -197,7 +197,8 @@ these files:
 | `skills_test.go`, `docs_test.go` | the tests of the agent setup and the documents |
 | `upstream_test.go`, `docs/upstream/ledger.tsv` | the ledger of upstream commits and its test (D30) |
 | `upstream.txt` | the upstream commit that transit matches, which each transit commit of phase 6 writes (D116) |
-| `.github/workflows/test.yml`, `.golangci.yml` | CI and the lint configuration (D36) |
+| `.github/workflows/test.yml`, `.golangci.yml` | CI on each push and the lint configuration (D36) |
+| `.github/workflows/nightly.yml` | the nightly tier of CI, which checks out upstream, fetches the fixture grammars with the golden harness and runs the test module, so that `test/cgrammar` compares the Go runtime with the C runtime (D118) |
 | `skills-lock.json`, `.agents/skills/`, `.claude/skills/` | the agent skills |
 | `docs/` | the plan, the rules, the grammar set, the references for rline and usql, the backlog and the decisions |
 | `_samples/example/` | the working C example and its build script (D10) |

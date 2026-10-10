@@ -1,6 +1,6 @@
 # D36. CI comes with the first package, runs in tiers, and runs on linux/amd64
 
-Status: Decided.
+Status: Decided, amended by D118.
 
 Ken decided on 2026-09-29, answering questions 16 and 34:
 

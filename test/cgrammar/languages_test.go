@@ -146,6 +146,10 @@ var goPackageTests = []namedTest{
 	{"TestParsingWithANewlyIncludedRange", TestParsingWithANewlyIncludedRange},
 	{"TestParseStackRecursiveMergeErrorCostCalculationBug", TestParseStackRecursiveMergeErrorCostCalculationBug},
 	{"TestParsingByHaltingAtOffset", TestParsingByHaltingAtOffset},
+	{"TestDecodeUTF32", TestDecodeUTF32},
+	{"TestDecodeCP1252", TestDecodeCP1252},
+	{"TestDecodeMacintosh", TestDecodeMacintosh},
+	{"TestDecodeUTF24LE", TestDecodeUTF24LE},
 	{"TestParseOptionsReborrow", TestParseOptionsReborrow},
 	// upstream_pathological_test.go
 	{"TestPathologicalExample1", TestPathologicalExample1},

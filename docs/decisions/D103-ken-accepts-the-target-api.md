@@ -1,6 +1,6 @@
 # D103. Ken accepts the target API
 
-Status: Decided.
+Status: Decided, amended by D119.
 
 Ken accepted `docs/API.md` on 2026-10-01, after he tried the example of rline
 in `example/transit` of rline. The example highlights the text as the user

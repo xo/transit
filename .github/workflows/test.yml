@@ -1,8 +1,8 @@
 # CI for transit (D36). It runs on linux/amd64 only.
 #
-# This is the push tier. The nightly tier (every grammar at both ABI versions)
-# and the weekly tier (the long fuzz tests) come when there is something for
-# them to run. See docs/PLAN.md, under CI.
+# This is the push tier. The nightly tier is nightly.yml (D118). The weekly
+# tier (the long fuzz tests) comes when there is something for it to run. See
+# docs/PLAN.md, under CI.
 on: [push, pull_request]
 name: Test
 jobs:

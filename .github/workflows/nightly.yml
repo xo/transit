@@ -1,0 +1,76 @@
+# The nightly tier of CI for transit (D36, D118). It runs on linux/amd64 only.
+#
+# The push tier in test.yml has no checkout of upstream and no cache of
+# grammars, so the tests of test/cgrammar skip there. This workflow checks out
+# upstream at the commit in upstream.txt, fetches the fixture grammars with the
+# golden harness, and runs the tests of the test module, so that test/cgrammar
+# compares the Go runtime with the C runtime.
+on:
+  schedule:
+  - cron: '17 3 * * *'
+  workflow_dispatch:
+name: Nightly
+jobs:
+  compare:
+    name: Compare with C
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: Read the upstream commit
+      id: upstream
+      run: echo "commit=$(cat upstream.txt)" >> "$GITHUB_OUTPUT"
+    - name: Checkout upstream
+      # the golden harness and test/cgrammar read the checkout in tree-sitter/
+      # (D4), at the commit in upstream.txt (D116)
+      uses: actions/checkout@v4
+      with:
+        repository: tree-sitter/tree-sitter
+        ref: ${{ steps.upstream.outputs.commit }}
+        path: tree-sitter
+    - name: Install Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: go.mod
+    - name: Install Rust
+      # cargo builds the upstream tool for the golden harness and the Rust
+      # oracle of inject (D71). The runner has rustup and a C compiler
+      run: rustup toolchain install stable --profile minimal && rustup default stable
+    - name: Cache the Rust builds
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          tree-sitter/target
+        key: cargo-${{ hashFiles('upstream.txt', 'test/injectoracle/Cargo.lock') }}
+    - name: Cache the grammars
+      # the cache folder of transit holds the grammars that the harness
+      # fetches, and the C runtime, the C grammars and the oracle that
+      # test/cgrammar builds
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/transit
+        key: transit-${{ hashFiles('upstream.txt', 'grammars/grammars.json') }}
+    - name: Fetch the fixture grammars
+      working-directory: test
+      run: go run ./cmd/golden -set fixtures -j 2
+    - name: Restore the record of the grammars
+      # the harness also writes the hashes of the fixture grammars to
+      # grammars/grammars.json, with the version of rustc. The tests read the
+      # committed file
+      run: git checkout -- grammars
+    - name: Fetch the crates of the oracle
+      # test/cgrammar builds the oracle with cargo build --offline
+      run: cargo fetch --locked --manifest-path test/injectoracle/Cargo.toml
+    - name: Test module
+      # TestCommittedCaptures reads the highlight queries of every grammar of
+      # the set, and it fails when the cache holds only the fixture grammars.
+      # The other tests skip a grammar that the cache does not hold.
+      #
+      # With the fixture grammars, the run with -race took 4.7 GB and 2
+      # minutes on 2026-10-10, so it fits a runner of 16 GB (D109). With every
+      # grammar of the cache, the race run took 12.4 GB, so a run of more
+      # grammars must measure again
+      working-directory: test
+      run: go test -race -count=1 -timeout 120m -skip TestCommittedCaptures ./...

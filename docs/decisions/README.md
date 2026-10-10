@@ -54,7 +54,7 @@ An open question is not a decision. It goes at the end of
 | [D33](D033-the-license-names-2026-and-upstream.md) | The license names 2026, and keeps the upstream notice | Decided |
 | [D34](D034-gotreesitter-is-read-and-not-copied.md) | gotreesitter can be read, and no code is copied from it | Decided |
 | [D35](D035-every-upstream-test-of-the-ported-parts-is-ported.md) | Every upstream test of the ported parts is ported | Decided |
-| [D36](D036-ci-runs-in-tiers-on-linux-amd64.md) | CI comes with the first package, runs in tiers, and runs on linux/amd64 | Decided |
+| [D36](D036-ci-runs-in-tiers-on-linux-amd64.md) | CI comes with the first package, runs in tiers, and runs on linux/amd64 | Decided, amended by D118 |
 | [D37](D037-the-speed-targets.md) | The speed targets are proposed, and phase 3 confirms them | Decided, amended by D47, D91 and D97 |
 | [D38](D038-unicode-tables-are-an-input-of-the-generator.md) | The generator uses Go's Unicode tables, and takes them as an input | Decided, amended by D60 |
 | [D39](D039-scanner-character-functions-use-go-unicode.md) | Scanner character functions use Go's unicode package | Decided, amended by D46 |
@@ -121,7 +121,7 @@ An open question is not a decision. It goes at the end of
 | [D100](D100-three-choices-for-the-hand-made-styles.md) | Three choices for the hand-made styles | Decided, amends D98 |
 | [D101](D101-the-usql-grammar-has-one-grammar-for-each-family-of-dialects.md) | The usql grammar has one grammar for each family of dialects | Decided, amends D13, amended by D105 and D108 |
 | [D102](D102-the-shape-of-the-usql-grammar.md) | The shape of the usql grammar | Decided, amended by D105 |
-| [D103](D103-ken-accepts-the-target-api.md) | Ken accepts the target API | Decided |
+| [D103](D103-ken-accepts-the-target-api.md) | Ken accepts the target API | Decided, amended by D119 |
 | [D104](D104-a-grammar-that-xo-writes-lives-in-grammars.md) | A grammar that xo writes lives in grammars | Decided, amends D42 |
 | [D105](D105-ken-accepts-the-usql-grammar.md) | Ken accepts the usql grammar | Decided, amends D101 and D102, amended by D108 |
 | [D106](D106-the-grammars-of-phase-5.md) | The grammars of phase 5 | Decided, amends D42, amended by D107 |
@@ -135,3 +135,6 @@ An open question is not a decision. It goes at the end of
 | [D114](D114-usql-language-has-the-options-of-postgres.md) | usql.Language has the options of PostgreSQL | Decided, amends D108 |
 | [D115](D115-each-grammar-package-has-a-generated-example.md) | Each grammar package has a generated example | Decided, amends D53 |
 | [D116](D116-phase-6-ports-upstream-in-strict-order.md) | Phase 6 ports upstream in strict order | Decided, amends D30 |
+| [D117](D117-transit-follows-upstream-on-request.md) | transit follows upstream on request | Decided |
+| [D118](D118-the-nightly-tier-of-ci-starts.md) | The nightly tier of CI starts | Decided, amends D36 |
+| [D119](D119-the-go-api-gets-the-forms-that-upstream-tests-need.md) | The Go API gets the forms that the upstream tests need | Decided, amends D103 |

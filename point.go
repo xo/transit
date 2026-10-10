@@ -5,7 +5,8 @@ import "math"
 // This file ports lib/src/point.h and lib/src/point.c, and the type TSPoint
 // of lib/include/tree_sitter/api.h. The runtime computes with point, which
 // keeps the widths of TSPoint, and the exported API uses Point, which counts
-// with int (D25).
+// with int (D25). InputEdit.EditPoint is InputEdit::edit_point of the Rust
+// binding, which calls ts_point_edit (D119).
 
 // Point is a position as a row and a column. Both count from zero, and the
 // column counts bytes.
@@ -103,4 +104,15 @@ func pointEdit(pt point, byteOffset uint32, edit InputEdit) (point, uint32) {
 	}
 
 	return startPoint, startByte
+}
+
+// EditPoint changes a point and its byte offset so that they stay at the
+// same place in the text after the edit e. It needs no tree and no node.
+//
+// EditPoint is InputEdit::edit_point of the Rust binding, with
+// ts_point_edit.
+func (e InputEdit) EditPoint(p *Point, byteOffset *int) {
+	pt, b := pointEdit(p.internal(), uint32(*byteOffset), e)
+	*p = pt.public()
+	*byteOffset = int(b)
 }

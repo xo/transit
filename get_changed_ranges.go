@@ -8,7 +8,8 @@ import "math"
 // TSRangeArray is a slice of textRange. The function iterator_print_state
 // and the output of DEBUG_GET_CHANGED_RANGES are off in upstream, and they
 // have no Go form. The type Iterator of C is changedRangesIterator, and its
-// functions are its methods.
+// functions are its methods. InputEdit.EditRange is InputEdit::edit_range
+// of the Rust binding, which calls ts_range_edit (D119).
 
 // rangeArrayAdd is ts_range_array_add.
 func rangeArrayAdd(self *[]textRange, start, end length) {
@@ -149,6 +150,17 @@ func (r *textRange) edit(edit InputEdit) {
 		r.startByte = startByte
 		r.startPoint = startPoint
 	}
+}
+
+// EditRange changes a range so that it stays at the same place in the text
+// after the edit e. It needs no tree and no node.
+//
+// EditRange is InputEdit::edit_range of the Rust binding, with
+// ts_range_edit.
+func (e InputEdit) EditRange(r *Range) {
+	tr := r.internal()
+	tr.edit(e)
+	*r = tr.public()
 }
 
 // changedRangesIterator is Iterator. It holds a copy of a TreeCursor, which

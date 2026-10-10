@@ -21,8 +21,7 @@ import (
 // query.go in the same way.
 //
 // These parts have no Go form. The TextProvider of Rust is the text of the
-// tree, a []byte. Query::deep_clone copies a query with ts_query_copy, which
-// Go does not port. The StreamingIterator of QueryMatches and QueryCaptures
+// tree, a []byte. The StreamingIterator of QueryMatches and QueryCaptures
 // is an iter.Seq and an iter.Seq2, and the options with a progress callback
 // are the context of Matches and Captures (D25).
 //
@@ -648,6 +647,21 @@ func (q *Query) DisableCapture(name string) {
 // DisablePattern is Query::disable_pattern.
 func (q *Query) DisablePattern(index int) {
 	q.ptr.disablePattern(uint32(index))
+}
+
+// Copy returns a copy of the query. A query is safe to share between
+// goroutines without a copy. Copy is for a query that DisablePattern or
+// DisableCapture changes apart from q.
+//
+// Copy is Query::deep_clone, with ts_query_copy. Its name follows
+// ts_query_copy, as Tree.Copy follows ts_tree_copy.
+func (q *Query) Copy() *Query {
+	c, err := queryFromRawParts(q.ptr.copy(), "")
+	if err != nil {
+		// The predicates of q compiled once, so they compile again.
+		panic(err)
+	}
+	return c
 }
 
 // IsPatternRooted reports whether a pattern has a single root node.

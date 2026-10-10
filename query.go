@@ -22,12 +22,10 @@ import (
 //     (D24). capture_quantifiers_new, symbol_table_new and
 //     query_analysis__new return empty values, and the zero value of the Go
 //     type is the same value.
-//  2. ts_query_copy copies a query so that two threads can each own one. A Go
-//     query is safe to share between goroutines (D52).
-//  3. The debug output of DEBUG_ANALYZE_QUERY, DEBUG_EXECUTE_QUERY and
+//  2. The debug output of DEBUG_ANALYZE_QUERY, DEBUG_EXECUTE_QUERY and
 //     DEBUG_QUERY_STEPS, which upstream compiles out, and
 //     ts_query__dump_steps.
-//  4. ts_query_cursor_exec_with_options. A context.Context replaces the
+//  3. ts_query_cursor_exec_with_options. A context.Context replaces the
 //     progress callback. The methods that advance the cursor take the context,
 //     and they read ctx.Err() where C calls the callback. When ctx ends, the
 //     cursor halts, as C halts when the callback returns true. Go does not
@@ -3026,6 +3024,39 @@ func newQuery(language *Language, source string) (q *query, errorOffset uint32, 
 
 	q.stringBuffer = nil
 	return q, 0, QueryErrorNone
+}
+
+// copy is ts_query_copy. The copy shares no memory with q, so that
+// disableCapture and disablePattern change only one of them. The language
+// has no reference count in Go, so both share it (D24).
+func (q *query) copy() *query {
+	c := &query{
+		captures: symbolTable{
+			characters: slices.Clone(q.captures.characters),
+			slices:     slices.Clone(q.captures.slices),
+		},
+		predicateValues: symbolTable{
+			characters: slices.Clone(q.predicateValues.characters),
+			slices:     slices.Clone(q.predicateValues.slices),
+		},
+		language:                          q.language,
+		wildcardRootPatternCount:          q.wildcardRootPatternCount,
+		steps:                             slices.Clone(q.steps),
+		patternMap:                        slices.Clone(q.patternMap),
+		predicateSteps:                    slices.Clone(q.predicateSteps),
+		patterns:                          slices.Clone(q.patterns),
+		stepOffsets:                       slices.Clone(q.stepOffsets),
+		negatedFields:                     slices.Clone(q.negatedFields),
+		stringBuffer:                      slices.Clone(q.stringBuffer),
+		repeatSymbolsWithRootlessPatterns: slices.Clone(q.repeatSymbolsWithRootlessPatterns),
+	}
+
+	c.captureQuantifiers = make([]captureQuantifierList, len(q.captureQuantifiers))
+	for i, src := range q.captureQuantifiers {
+		c.captureQuantifiers[i] = slices.Clone(src)
+	}
+
+	return c
 }
 
 // patternCount is ts_query_pattern_count.

@@ -21,8 +21,8 @@ import (
 // methods.
 //
 // These parts have no Go form. ts_lexer_delete frees memory.
-// TSInputEncodingCustom and the member decode of TSInput are not in the API
-// of docs/API.md, so the lexer decodes only the three encodings of Encoding.
+// TSInputEncodingCustom is the unexported encodingCustom, because only
+// Parser.ParseCustomEncoding gives the member decode of TSInput.
 
 // Range is a range of the text, in bytes and in points.
 //
@@ -85,6 +85,9 @@ const (
 	EncodingUTF16LE
 	// EncodingUTF16BE is TSInputEncodingUTF16BE.
 	EncodingUTF16BE
+	// encodingCustom is TSInputEncodingCustom. The member decode of the
+	// input decodes the text.
+	encodingCustom
 )
 
 // String returns the name of the encoding.
@@ -96,14 +99,18 @@ func (e Encoding) String() string {
 		return "UTF-16LE"
 	case EncodingUTF16BE:
 		return "UTF-16BE"
+	case encodingCustom:
+		return "custom"
 	}
 	return unknownName
 }
 
-// input is TSInput: the text and its encoding.
+// input is TSInput: the text and its encoding. decode is TSDecodeFunction,
+// and only the encoding encodingCustom uses it.
 type input struct {
 	read     Input
 	encoding Encoding
+	decode   func([]byte) (uint32, int32)
 }
 
 // LogType says whether a log message comes from the parser or the lexer.
@@ -387,12 +394,14 @@ func (l *lexer) getChunk() {
 // decode returns the decoder of the encoding of the input.
 func (l *lexer) decode() func([]byte) (uint32, int32) {
 	switch l.input.encoding {
+	case EncodingUTF8:
+		return decodeUTF8
 	case EncodingUTF16LE:
 		return decodeUTF16LE
 	case EncodingUTF16BE:
 		return decodeUTF16BE
 	}
-	return decodeUTF8
+	return l.input.decode
 }
 
 // getLookahead is ts_lexer__get_lookahead.

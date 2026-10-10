@@ -3862,8 +3862,6 @@ func TestQueryDisablePattern(t *testing.T) {
 }
 
 func TestQueryDeepClone(t *testing.T) {
-	t.Skip("the Go API has no form of Query::deep_clone")
-
 	language := uqLanguage(t, "javascript")
 	querySource := `
                 (function_declaration
@@ -3873,9 +3871,7 @@ func TestQueryDeepClone(t *testing.T) {
             `
 	query := uqNewQuery(t, language, querySource)
 
-	// The Rust test calls query.deep_clone() here. A second compile of the
-	// same source stands in for the clone, so that the rest compiles.
-	clone := uqNewQuery(t, language, querySource)
+	clone := query.Copy()
 	clone.DisablePattern(1)
 
 	source := "function foo() { return 1; }"

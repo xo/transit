@@ -116,6 +116,29 @@ func TestRangesEdit(t *testing.T) {
 	}
 }
 
+func TestInputEditEditRange(t *testing.T) {
+	// an edit that replaces the bytes 4 to 6 with the bytes 4 to 9
+	edit := InputEdit{
+		StartByte: 4, OldEndByte: 6, NewEndByte: 9,
+		StartPoint: Point{Column: 4}, OldEndPoint: Point{Column: 6}, NewEndPoint: Point{Column: 9},
+	}
+	for _, test := range []struct {
+		name string
+		r    Range
+		want Range
+	}{
+		{"after the edit", Range{7, 10, Point{0, 7}, Point{0, 10}}, Range{10, 13, Point{0, 10}, Point{0, 13}}},
+		{"around the edit", Range{2, 8, Point{0, 2}, Point{0, 8}}, Range{2, 11, Point{0, 2}, Point{0, 11}}},
+		{"to the end", defaultRange.public(), defaultRange.public()},
+	} {
+		got := test.r
+		edit.EditRange(&got)
+		if got != test.want {
+			t.Errorf("%s: EditRange gives %+v, want %+v", test.name, got, test.want)
+		}
+	}
+}
+
 // rangesTree returns a tree of the test language for "a + b", with sizes
 // of its three leaves.
 func rangesTree(l *Language, sizes [3]uint32, included []textRange) *Tree {

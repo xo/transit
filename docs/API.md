@@ -129,6 +129,9 @@ type InputEdit struct {
 	NewEndPoint Point
 }
 
+func (e InputEdit) EditPoint(p *Point, byteOffset *int)
+func (e InputEdit) EditRange(r *Range)
+
 // Language is the tables of one grammar. A grammar package returns it. It is
 // safe to share between goroutines.
 type Language struct{ /* unexported */ }
@@ -196,6 +199,7 @@ func (p *Parser) SetLogger(fn func(LogType, string))
 func (p *Parser) PrintDotGraphs(w io.Writer)
 func (p *Parser) Parse(ctx context.Context, src []byte, old *Tree) (*Tree, error)
 func (p *Parser) ParseInput(ctx context.Context, in Input, enc Encoding, old *Tree) (*Tree, error)
+func (p *Parser) ParseCustomEncoding(ctx context.Context, in Input, decode func(b []byte) (rune, int), old *Tree) (*Tree, error)
 func (p *Parser) Reset()
 
 // Input gives the text in chunks, as TSInput does.
@@ -327,6 +331,7 @@ func (q *Query) IsPatternNonLocal(pattern int) bool
 func (q *Query) IsPatternGuaranteedAtStep(offset int) bool
 func (q *Query) DisablePattern(pattern int)
 func (q *Query) DisableCapture(name string)
+func (q *Query) Copy() *Query
 
 // QueryError says where a query fails to compile.
 type QueryError struct {
@@ -463,7 +468,17 @@ case. A parse whose context ends keeps its state, as a parse whose progress
 callback stops does in C, and the next parse goes on from it.
 
 `Parse` returns the error of its context when the context ends, wrapped with
-`%w`. `Captures` gives each match with the index of the capture in the match,
+`%w`. `ParseCustomEncoding` reads a text in an encoding that the runtime does
+not know. The parser calls `decode` for each character, with the text from
+the character to the end of the chunk. `decode` returns the code point and
+the number of bytes of the character, and it returns -1 as the code point
+when the text is not valid. A nil `decode` gives `ErrInvalidInput`.
+`(*Query).Copy` gives a query that `DisablePattern` and `DisableCapture`
+change apart from the first one. `EditPoint` and `EditRange` change a point
+and its byte offset, or a range, so that they stay at the same place in the
+text after an edit, with no tree and no node. D119 adds these four.
+
+`Captures` gives each match with the index of the capture in the match,
 in the order of the text, which is the order that highlighting needs. The
 highlighter of upstream removes the match of an injection with
 `QueryMatch::remove` while it reads the captures. The package `inject` calls
@@ -514,19 +529,27 @@ The example calls these C functions. Each row names the Go form.
 | `ts_lookahead_iterator_new`, `_next`, `_current_symbol_name` | `(*Language).LookaheadIterator`, `Names` |
 | `ts_language_name`, `ts_language_abi_version` | `(*Language).Name`, `ABIVersion` |
 
+The example does not call these C functions. D119 gives them a Go form, so
+that the tests of upstream that use them are ported:
+
+| C | Go |
+| --- | --- |
+| `ts_parser_parse` with `TSInputEncodingCustom` and a `decode` function | `(*Parser).ParseCustomEncoding(ctx, in, decode, old)`, which is `parse_custom_encoding` of the Rust binding |
+| `ts_query_copy` | `(*Query).Copy`, which is `deep_clone` of the Rust binding |
+| `ts_point_edit` | `InputEdit.EditPoint(&p, &byteOffset)`, which is `edit_point` of the Rust binding |
+| `ts_range_edit` | `InputEdit.EditRange(&r)`, which is `edit_range` of the Rust binding |
+
 These upstream functions have no Go form:
 
 1. The functions that free memory or count references: each `_delete` other
-   than `ts_tree_delete`, `ts_language_copy`, `ts_query_copy` and
-   `ts_set_allocator` (D24, D91).
+   than `ts_tree_delete`, `ts_language_copy` and `ts_set_allocator` (D24,
+   D91).
 2. The WebAssembly functions: `ts_language_is_wasm`, `ts_parser_set_wasm_store`,
    `ts_parser_take_wasm_store` and each `ts_wasm_store_` function (D1).
 3. `ts_node_is_null`, because a lookup returns a `bool` with the node.
 4. `ts_parser_parse_string_encoding` and `ts_parser_parse_with_options`, whose
-   jobs `ParseInput` and the context do.
-5. `ts_point_edit` and `ts_range_edit`, which become methods of `Point` and
-   `Range` if a consumer needs them.
-6. `ts_language_is_parseable`, which a language that Go generated always is.
+   jobs `ParseInput`, `ParseCustomEncoding` and the context do.
+5. `ts_language_is_parseable`, which a language that Go generated always is.
 
 ## The API that upstream does not have
 

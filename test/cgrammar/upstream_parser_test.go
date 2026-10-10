@@ -32,9 +32,9 @@ import (
 // place of it. The attribute retry is urRetry, and allocations::record is
 // dropped, because Go has no allocator to count.
 //
-// transit has no custom decode function (TSInputEncodingCustom), so
-// test_decode_utf32, test_decode_cp1252, test_decode_macintosh and
-// test_decode_utf24le are not ported.
+// The crate encoding_rs is not a package of Go, so test_decode_cp1252 and
+// test_decode_macintosh encode the one character of their text that is not
+// ASCII by hand.
 
 // urRustSexp is the tree that three tests expect for "pub fn foo() {...}"
 // with an integer literal in the body.
@@ -1496,6 +1496,83 @@ func urParseInputContext(ctx context.Context, t *testing.T, parser *transit.Pars
 		t.Fatal(err)
 	}
 	return tree
+}
+
+// urDecodeText is the text of the four tests of a custom decode function.
+const urDecodeText = "pub fn foo() { println!(\"€50\"); }"
+
+// urDecodeSexp is the tree that the four tests of a custom decode function
+// expect.
+const urDecodeSexp = "(source_file (function_item (visibility_modifier) name: (identifier) parameters: (parameters) body: (block (expression_statement (macro_invocation macro: (identifier) (token_tree (string_literal (string_content))))))))"
+
+// urParseCustomEncoding parses the bytes text of urDecodeText with the
+// rust grammar and the decode function decode, and compares the tree with
+// urDecodeSexp.
+func urParseCustomEncoding(t *testing.T, text []byte, decode func([]byte) (rune, int)) {
+	t.Helper()
+	parser := urParser(t, fixtureGrammar(t, "rust").Language)
+	tree, err := parser.ParseCustomEncoding(context.Background(), urBytesInput(text), decode, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	urEqual(t, "to_sexp", tree.RootNode().String(), urDecodeSexp)
+}
+
+// urSingleByteDecode is the decoder of test_decode_cp1252 and
+// test_decode_macintosh. It returns each byte as its code point.
+func urSingleByteDecode(b []byte) (rune, int) {
+	if len(b) == 0 {
+		return 0, 0
+	}
+	return rune(b[0]), 1
+}
+
+func TestDecodeUTF32(t *testing.T) {
+	// The Rust test makes the text with u32cstr!, in the byte order of the
+	// machine.
+	var text []byte
+	for _, c := range urDecodeText {
+		text = binary.NativeEndian.AppendUint32(text, uint32(c))
+	}
+
+	urParseCustomEncoding(t, text, func(b []byte) (rune, int) {
+		if len(b) >= 4 {
+			return rune(binary.NativeEndian.Uint32(b)), 4
+		}
+		return 0, 0
+	})
+}
+
+func TestDecodeCP1252(t *testing.T) {
+	// The Rust test encodes the text with WINDOWS_1252 of the crate
+	// encoding_rs. The euro sign is the only character that is not ASCII,
+	// and Windows-1252 encodes it as 0x80.
+	text := bytes.ReplaceAll([]byte(urDecodeText), []byte("€"), []byte{0x80})
+
+	urParseCustomEncoding(t, text, urSingleByteDecode)
+}
+
+func TestDecodeMacintosh(t *testing.T) {
+	// The Rust test encodes the text with MACINTOSH of the crate
+	// encoding_rs. The euro sign is the only character that is not ASCII,
+	// and Mac OS Roman encodes it as 0xDB.
+	text := bytes.ReplaceAll([]byte(urDecodeText), []byte("€"), []byte{0xDB})
+
+	urParseCustomEncoding(t, text, urSingleByteDecode)
+}
+
+func TestDecodeUTF24LE(t *testing.T) {
+	var text []byte
+	for _, c := range urDecodeText {
+		text = append(text, byte(c&0xFF), byte((c>>8)&0xFF), byte((c>>16)&0xFF))
+	}
+
+	urParseCustomEncoding(t, text, func(b []byte) (rune, int) {
+		if len(b) >= 3 {
+			return rune(binary.LittleEndian.Uint32([]byte{b[0], b[1], b[2], 0})), 3
+		}
+		return 0, 0
+	})
 }
 
 // urGenerate is generate_parser with the generator of transit.

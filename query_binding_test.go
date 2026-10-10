@@ -377,6 +377,23 @@ func TestQueryBindingDisable(t *testing.T) {
 	}
 }
 
+func TestQueryBindingCopy(t *testing.T) {
+	q := queryBindingNew(t, `(identifier) @a "+" @b`)
+	want := queryBindingMatches(q, NewQueryCursor())
+	c := q.Copy()
+	c.DisablePattern(1)
+	c.DisableCapture("a")
+	if got := queryBindingMatches(c, NewQueryCursor()); len(got) != 6 || got[0] != "0: " {
+		t.Errorf("the matches of the copy are %q", got)
+	}
+	if got := queryBindingMatches(q, NewQueryCursor()); !slices.Equal(got, want) {
+		t.Errorf("after a change of the copy, the matches of the query are %q, want %q", got, want)
+	}
+	if !slices.Equal(c.CaptureNames(), q.CaptureNames()) {
+		t.Errorf("CaptureNames() of the copy = %q, want %q", c.CaptureNames(), q.CaptureNames())
+	}
+}
+
 func TestQueryBindingCursorSettings(t *testing.T) {
 	q := queryBindingNew(t, `(identifier) @id`)
 	c := NewQueryCursor()

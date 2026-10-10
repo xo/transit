@@ -13,9 +13,7 @@ import (
 )
 
 // This file ports crates/cli/src/tests/node_test.rs of upstream (D35). A
-// comparison of two nodes uses Node.Equal (D68). The Go API does not have
-// InputEdit::edit_point and InputEdit::edit_range of the Rust binding, so
-// test_edit_point and test_edit_range are not ported.
+// comparison of two nodes uses Node.Equal (D68).
 
 const urJSONExample = `
 
@@ -674,6 +672,88 @@ func TestNodeIsError(t *testing.T) {
 	child := must(rootNode.Child(0))
 	urEqual(t, "child.kind", child.Kind(), "ERROR")
 	urEqual(t, "child.is_error", child.IsError(), true)
+}
+
+func TestEditPoint(t *testing.T) {
+	edit := transit.InputEdit{
+		StartByte:   5,
+		OldEndByte:  5,
+		NewEndByte:  10,
+		StartPoint:  urPoint(0, 5),
+		OldEndPoint: urPoint(0, 5),
+		NewEndPoint: urPoint(0, 10),
+	}
+
+	// Point after edit
+	point := urPoint(0, 8)
+	byteOffset := 8
+	edit.EditPoint(&point, &byteOffset)
+	urEqual(t, "point", point, urPoint(0, 13))
+	urEqual(t, "byte", byteOffset, 13)
+
+	// Point before edit
+	point = urPoint(0, 2)
+	byteOffset = 2
+	edit.EditPoint(&point, &byteOffset)
+	urEqual(t, "point", point, urPoint(0, 2))
+	urEqual(t, "byte", byteOffset, 2)
+
+	// Point at edit start
+	point = urPoint(0, 5)
+	byteOffset = 5
+	edit.EditPoint(&point, &byteOffset)
+	urEqual(t, "point", point, urPoint(0, 10))
+	urEqual(t, "byte", byteOffset, 10)
+}
+
+func TestEditRange(t *testing.T) {
+	edit := transit.InputEdit{
+		StartByte:   10,
+		OldEndByte:  15,
+		NewEndByte:  20,
+		StartPoint:  urPoint(1, 0),
+		OldEndPoint: urPoint(1, 5),
+		NewEndPoint: urPoint(2, 0),
+	}
+
+	// Range after edit
+	r := transit.Range{
+		StartByte:  20,
+		EndByte:    25,
+		StartPoint: urPoint(2, 0),
+		EndPoint:   urPoint(2, 5),
+	}
+	edit.EditRange(&r)
+	urEqual(t, "range.start_byte", r.StartByte, 25)
+	urEqual(t, "range.end_byte", r.EndByte, 30)
+	urEqual(t, "range.start_point", r.StartPoint, urPoint(3, 0))
+	urEqual(t, "range.end_point", r.EndPoint, urPoint(3, 5))
+
+	// Range before edit
+	r = transit.Range{
+		StartByte:  5,
+		EndByte:    8,
+		StartPoint: urPoint(0, 5),
+		EndPoint:   urPoint(0, 8),
+	}
+	edit.EditRange(&r)
+	urEqual(t, "range.start_byte", r.StartByte, 5)
+	urEqual(t, "range.end_byte", r.EndByte, 8)
+	urEqual(t, "range.start_point", r.StartPoint, urPoint(0, 5))
+	urEqual(t, "range.end_point", r.EndPoint, urPoint(0, 8))
+
+	// Range overlapping edit
+	r = transit.Range{
+		StartByte:  8,
+		EndByte:    12,
+		StartPoint: urPoint(0, 8),
+		EndPoint:   urPoint(1, 2),
+	}
+	edit.EditRange(&r)
+	urEqual(t, "range.start_byte", r.StartByte, 8)
+	urEqual(t, "range.end_byte", r.EndByte, 10)
+	urEqual(t, "range.start_point", r.StartPoint, urPoint(0, 8))
+	urEqual(t, "range.end_point", r.EndPoint, urPoint(1, 0))
 }
 
 func TestNodeSexp(t *testing.T) {
