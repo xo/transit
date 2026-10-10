@@ -838,3 +838,26 @@ func (m *IndexMap[K, V]) Clone() IndexMap[K, V] {
 		indices: maps.Clone(m.indices),
 	}
 }
+
+// ShrinkToFit gives back the capacity that the map grew into, and keeps its
+// entries and their order. A pointer that a method returned into the map is
+// not valid after ShrinkToFit.
+//
+// ShrinkToFit is IndexMap::shrink_to_fit. A Go map does not shrink, so
+// ShrinkToFit makes the map of indices again, with room for the entries
+// only.
+func (m *IndexMap[K, V]) ShrinkToFit() {
+	if len(m.keys) == 0 {
+		*m = IndexMap[K, V]{}
+		return
+	}
+	keys := make([]K, len(m.keys))
+	copy(keys, m.keys)
+	values := make([]V, len(m.values))
+	copy(values, m.values)
+	indices := make(map[K]int, len(keys))
+	for i, k := range keys {
+		indices[k] = i
+	}
+	*m = IndexMap[K, V]{keys: keys, values: values, indices: indices}
+}

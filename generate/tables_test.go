@@ -71,6 +71,21 @@ func TestIndexMapOrder(t *testing.T) {
 		t.Error("GetIndex(4): got true, want false")
 	}
 
+	s := m.Clone()
+	s.ShrinkToFit()
+	if keys := slices.Collect(s.Keys()); !slices.Equal(keys, wantKeys) {
+		t.Errorf("keys after ShrinkToFit: got %v, want %v", keys, wantKeys)
+	}
+	if v, ok := s.Get(SymbolEndValue); !ok || v != 12 {
+		t.Errorf("Get after ShrinkToFit: got %d, %t, want 12, true", v, ok)
+	}
+	var empty IndexMap[Symbol, int]
+	empty.ShrinkToFit()
+	empty.Insert(TerminalSymbol(0), 1)
+	if empty.Len() != 1 {
+		t.Errorf("Len after ShrinkToFit of an empty map and an insert: got %d, want 1", empty.Len())
+	}
+
 	c := m.Clone()
 	c.Insert(TerminalSymbol(9), 9)
 	if m.Len() != 4 || c.Len() != 5 || m.ContainsKey(TerminalSymbol(9)) {

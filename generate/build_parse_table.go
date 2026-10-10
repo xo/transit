@@ -1196,6 +1196,11 @@ func (b *parseTableBuilder) addActions(
 		}
 	}
 
+	// Every state stays in the table until minimization, so give back the capacity its
+	// maps grew into now that they're complete.
+	state.TerminalEntries.ShrinkToFit()
+	state.NonterminalEntries.ShrinkToFit()
+
 	return nil
 }
 
