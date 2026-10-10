@@ -1,28 +1,28 @@
 upstream	date	status	transit	note
-a5ca8e03cd4d253db037a9d9612bd45e6f5211a5	2026-09-29	not-applicable		changes only paths that transit does not port: .github/workflows/backport.yml
-790e6ad9c5a26dfcf96785fe4c9cc7ad6e24d6d5	2026-09-29	not-applicable		changes only paths that transit does not port: lib/binding_web/package-lock.json, lib/binding_web/package.json
-6cdbc721fe9ab03bf9f7a73af65432d30382c21a	2026-09-30	not-applicable		changes only paths that transit does not port: .github/dependabot.yml
-b658557976850ebe042c795555f1193ad3d131a0	2026-09-30	not-applicable		changes only paths that transit does not port: flake.lock
-f76942db49eead41ad42af271b27a4d94140b48a	2026-09-30	not-applicable		changes only paths that transit does not port: crates/xtask/src/check_regex_error_kinds.rs
-fc6fc791513024606c94e1c311276d2c126c64d3	2026-09-30	not-applicable		changes only paths that transit does not port: .github/workflows/regex_error_kinds.yml
-a336e9d419d89c88a676c716f8c09c1d3b1d5f5a	2026-09-30	not-applicable		a bump of Cargo.lock, which transit does not port
-3ec6d374cd2b4ef0380dfe73e1c0c80ec16dceed	2026-09-30	not-applicable		changes only paths that transit does not port: flake.lock
-f5a99d6606cf808c0707bc7fd0b16e7dbe092017	2026-09-30	not-applicable		changes only paths that transit does not port: lib/binding_web/package-lock.json, lib/binding_web/package.json
-46bb9eda5188107af02cb6b8814aed3bd8e5c366	2026-09-30	not-applicable		changes only paths that transit does not port: .github/workflows/build.yml
-94162b7fc4e1f56e0bd3dcc9e9d0a843428b3650	2026-09-30	not-applicable		changes only paths that transit does not port: lib/binding_web/package-lock.json
-0b1cc6843e4b397eae758e93022cbed569623e46	2026-09-30	not-applicable		changes only paths that transit does not port: crates/cli/eslint/package-lock.json
-a66db75608959e91c7b8cb7e0aa58c691ed2d7fd	2026-10-01	not-applicable		changes only paths that transit does not port: crates/loader/binaryen-version
-3643db144c3788282151fd1340d3b1f46a5a6323	2026-10-01	not-applicable		a bump of wasmtime and of build.zig.zon, which transit does not port (D1)
-436c42ff56b28a2016e88a09683a6cd8dbe04e7a	2026-10-01	not-applicable		changes only paths that transit does not port: .github/workflows/ci.yml, .github/workflows/regex_error_kinds.yml, .github/workflows/wasm_stdlib.yml
-867aa6d14418163560bf89f12c48107098b1ec8f	2026-10-01	ported		fix(generate): keep GCC jump tables enabled for large lexers
-e5d5a9d7efa9fb28ced9f9c54c28f085e9fb0c62	2026-10-01	ported		fix(generate): exclude external word tokens from keyword extraction
-e825b75bcf550d3771da7c22526afee336754626	2026-10-01	not-applicable		new clippy lints: the Rust tests of the generator use assert_eq! in place of is_empty, and a test helper of the CLI drops an else block, which changes no Go code or test
-69d518277605a1c556d4723680e2c6d011d2aee9	2026-10-02	not-applicable		changes only paths that transit does not port: .github/workflows/backport.yml
-bcd39f41e7f6b5a29d712252524dbbfa4fa8f517	2026-10-02	not-applicable		changes only paths that transit does not port: lib/binding_web/package-lock.json, lib/binding_web/package.json
-20cf25c10f13ed9b8c499dd966b4e7a57bedbf81	2026-10-02	not-applicable		changes only paths that transit does not port: flake.lock
-a5add39b04bb2e12ceae82016829985df593aebc	2026-10-03	ported		fix(lib): check shifted stack versions during error recovery
-9b9de365078b0c82f8f8d7af175b1a4207c9b4d5	2026-10-03	not-applicable		a bump of wasmtime and of build.zig.zon, which transit does not port (D1)
-fe8d1936509826e755a1a8ce1309fe7a182c2eb0	2026-10-03	not-applicable		a bump of rquickjs, the JavaScript runtime of the upstream tool, which transit does not port
+a5ca8e03cd4d253db037a9d9612bd45e6f5211a5	2026-09-29	not-applicable	434e05f	changes only paths that transit does not port: .github/workflows/backport.yml
+790e6ad9c5a26dfcf96785fe4c9cc7ad6e24d6d5	2026-09-29	not-applicable	434e05f	changes only paths that transit does not port: lib/binding_web/package-lock.json, lib/binding_web/package.json
+6cdbc721fe9ab03bf9f7a73af65432d30382c21a	2026-09-30	not-applicable	434e05f	changes only paths that transit does not port: .github/dependabot.yml
+b658557976850ebe042c795555f1193ad3d131a0	2026-09-30	not-applicable	434e05f	changes only paths that transit does not port: flake.lock
+f76942db49eead41ad42af271b27a4d94140b48a	2026-09-30	not-applicable	434e05f	changes only paths that transit does not port: crates/xtask/src/check_regex_error_kinds.rs
+fc6fc791513024606c94e1c311276d2c126c64d3	2026-09-30	not-applicable	434e05f	changes only paths that transit does not port: .github/workflows/regex_error_kinds.yml
+a336e9d419d89c88a676c716f8c09c1d3b1d5f5a	2026-09-30	not-applicable	434e05f	a bump of Cargo.lock, which transit does not port
+3ec6d374cd2b4ef0380dfe73e1c0c80ec16dceed	2026-09-30	not-applicable	434e05f	changes only paths that transit does not port: flake.lock
+f5a99d6606cf808c0707bc7fd0b16e7dbe092017	2026-09-30	not-applicable	434e05f	changes only paths that transit does not port: lib/binding_web/package-lock.json, lib/binding_web/package.json
+46bb9eda5188107af02cb6b8814aed3bd8e5c366	2026-09-30	not-applicable	434e05f	changes only paths that transit does not port: .github/workflows/build.yml
+94162b7fc4e1f56e0bd3dcc9e9d0a843428b3650	2026-09-30	not-applicable	434e05f	changes only paths that transit does not port: lib/binding_web/package-lock.json
+0b1cc6843e4b397eae758e93022cbed569623e46	2026-09-30	not-applicable	434e05f	changes only paths that transit does not port: crates/cli/eslint/package-lock.json
+a66db75608959e91c7b8cb7e0aa58c691ed2d7fd	2026-10-01	not-applicable	434e05f	changes only paths that transit does not port: crates/loader/binaryen-version
+3643db144c3788282151fd1340d3b1f46a5a6323	2026-10-01	not-applicable	434e05f	a bump of wasmtime and of build.zig.zon, which transit does not port (D1)
+436c42ff56b28a2016e88a09683a6cd8dbe04e7a	2026-10-01	not-applicable	434e05f	changes only paths that transit does not port: .github/workflows/ci.yml, .github/workflows/regex_error_kinds.yml, .github/workflows/wasm_stdlib.yml
+867aa6d14418163560bf89f12c48107098b1ec8f	2026-10-01	ported	0659a88	fix(generate): keep GCC jump tables enabled for large lexers
+e5d5a9d7efa9fb28ced9f9c54c28f085e9fb0c62	2026-10-01	ported	4ef39cb	fix(generate): exclude external word tokens from keyword extraction
+e825b75bcf550d3771da7c22526afee336754626	2026-10-01	not-applicable	6d1e476	new clippy lints: the Rust tests of the generator use assert_eq! in place of is_empty, and a test helper of the CLI drops an else block, which changes no Go code or test
+69d518277605a1c556d4723680e2c6d011d2aee9	2026-10-02	not-applicable	6d1e476	changes only paths that transit does not port: .github/workflows/backport.yml
+bcd39f41e7f6b5a29d712252524dbbfa4fa8f517	2026-10-02	not-applicable	6d1e476	changes only paths that transit does not port: lib/binding_web/package-lock.json, lib/binding_web/package.json
+20cf25c10f13ed9b8c499dd966b4e7a57bedbf81	2026-10-02	not-applicable	6d1e476	changes only paths that transit does not port: flake.lock
+a5add39b04bb2e12ceae82016829985df593aebc	2026-10-03	ported	f60c63f	fix(lib): check shifted stack versions during error recovery
+9b9de365078b0c82f8f8d7af175b1a4207c9b4d5	2026-10-03	not-applicable	e45fc39	a bump of wasmtime and of build.zig.zon, which transit does not port (D1)
+fe8d1936509826e755a1a8ce1309fe7a182c2eb0	2026-10-03	not-applicable	e45fc39	a bump of rquickjs, the JavaScript runtime of the upstream tool, which transit does not port
 e0d0db1d373796e2eaf34eb18e340162ed844d72	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/build_parse_table.rs
 cd8caa9f316f31a71195419a4b4ca882d28e8309	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/item_set_builder.rs
 80bd4075e0744eb97f39c3be50af213c25ffc3d2	2026-10-03	pending		port in phase 6: crates/generate/src/bitvec.rs, crates/generate/src/build_tables/item_set_builder.rs
