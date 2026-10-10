@@ -1,5 +1,5 @@
 {
-  "upstream": "4c6466d7b31cee51d4a43a17c4bb249a5061712a",
+  "upstream": "6c9a707cc7d8c2315f343134ef5a19f8e2b4851f",
   "tool": "tree-sitter 0.28.0",
   "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
   "grammars": [

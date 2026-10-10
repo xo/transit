@@ -960,13 +960,23 @@ func (b *parseTableBuilder) addActions(
 	// * choose one action over the others using precedence or associativity
 	// * keep multiple actions if this conflict has been whitelisted in the grammar
 	// * fail, terminating the parser generation process
-	for symbol := range lookaheadsWithConflicts.All() {
-		info, ok := reductionInfos[symbol]
-		if !ok {
-			panic("generate: a conflicting lookahead has no reduction info")
+	if !lookaheadsWithConflicts.IsEmpty() {
+		// Only fnished items and items past their first step can take part in a
+		// conflict. Most of a closure is neither, so find those items once per state.
+		var candidates []*ParseItemSetEntry
+		for i := range itemSet.Entries {
+			if entry := &itemSet.Entries[i]; entry.Item.StepIndex > 0 || entry.Item.IsDone() {
+				candidates = append(candidates, entry)
+			}
 		}
-		if err := b.handleConflict(itemSet, stateID, precedingSymbols, auxiliaryContext, symbol, info); err != nil {
-			return err
+		for symbol := range lookaheadsWithConflicts.All() {
+			info, ok := reductionInfos[symbol]
+			if !ok {
+				panic("generate: a conflicting lookahead has no reduction info")
+			}
+			if err := b.handleConflict(candidates, stateID, precedingSymbols, auxiliaryContext, symbol, info); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -1096,13 +1106,14 @@ type buildParsePrecedenceSymbol struct {
 // handleConflict resolves the conflict of a state for a lookahead, with the
 // precedences and the associativities of the items, or with the conflicts
 // that the grammar expects. It returns an error when it cannot resolve the
-// conflict.
+// conflict. candidates holds the entries of the state whose items are done
+// or past their first step, in order.
 //
 // handleConflict is ParseTableBuilder::handle_conflict. Upstream keeps the
 // conflicting items in a BTreeSet, which the Go form keeps as a slice
 // sorted by the Ord of ParseItem, with no two items that compare equal.
 func (b *parseTableBuilder) handleConflict(
-	itemSet *ParseItemSet,
+	candidates []*ParseItemSetEntry,
 	stateID ParseStateID,
 	precedingSymbols []Symbol,
 	auxiliaryContext auxiliaryContextID,
@@ -1128,8 +1139,7 @@ func (b *parseTableBuilder) handleConflict(
 			conflictingItems = slices.Insert(conflictingItems, i, item)
 		}
 	}
-	for i := range itemSet.Entries {
-		e := &itemSet.Entries[i]
+	for _, e := range candidates {
 		item := &e.Item
 		if step, ok := item.Step(b.syntaxGrammar); ok {
 			if item.StepIndex > 0 && b.itemSetBuilder.FirstSet(step.Symbol()).Contains(conflictingLookahead) {
