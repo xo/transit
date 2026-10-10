@@ -974,9 +974,9 @@ func (m *minimizer) mergeCompatibleStates() {
 
 	// Create a list of new parse states: one state for each group of old states.
 	newStates := make([]ParseState, 0, len(stateIDsByGroupID))
-	// Scratch for merging: the position of each token's entry in the new state, by
+	// Scratch for merging: the position of each symbol's entry in the new state, by
 	// `SymbolIndexer::index`. -1 is None.
-	positions := make([]int, m.indexer.tokenCount())
+	positions := make([]int, m.indexer.symbolCount())
 	for i := range positions {
 		positions[i] = -1
 	}
@@ -984,11 +984,8 @@ func (m *minimizer) mergeCompatibleStates() {
 		// Initialize the new state based on the first old state in the group.
 		parseState := states[stateIDs[0]]
 		states[stateIDs[0]] = ParseState{}
-		position := 0
-		for symbol := range parseState.TerminalEntries.Keys() {
-			positions[m.indexer.index(symbol)] = position
-			position++
-		}
+		minimizeSetPositions(&parseState.TerminalEntries, positions, m.indexer)
+		minimizeSetPositions(&parseState.NonterminalEntries, positions, m.indexer)
 
 		// Extend the new state with all of the actions from the other old states
 		// in the group.
@@ -997,20 +994,8 @@ func (m *minimizer) mergeCompatibleStates() {
 			states[stateID] = ParseState{}
 
 			parseState.HasEOFGatedReduce = parseState.HasEOFGatedReduce || otherParseState.HasEOFGatedReduce
-			// A token the new state already has keeps its place and takes the other state's
-			// action list.
-			for symbol, id := range otherParseState.TerminalEntries.All() {
-				position := &positions[m.indexer.index(symbol)]
-				if *position >= 0 {
-					// INVARIANT: `positions` only holds positions of the new state's entries.
-					_, entryID, _ := parseState.TerminalEntries.GetIndexMut(*position)
-					*entryID = id
-				} else {
-					*position = parseState.TerminalEntries.Len()
-					parseState.TerminalEntries.Push(symbol, id)
-				}
-			}
-			parseState.NonterminalEntries.Extend(otherParseState.NonterminalEntries.All())
+			minimizeMergeEntries(&parseState.TerminalEntries, &otherParseState.TerminalEntries, positions, m.indexer)
+			minimizeMergeEntries(&parseState.NonterminalEntries, &otherParseState.NonterminalEntries, positions, m.indexer)
 			parseState.ReservedWords.InsertAll(&otherParseState.ReservedWords)
 			for symbol := range parseState.TerminalEntries.Keys() {
 				parseState.ReservedWords.Remove(symbol)
@@ -1018,6 +1003,9 @@ func (m *minimizer) mergeCompatibleStates() {
 		}
 
 		for symbol := range parseState.TerminalEntries.Keys() {
+			positions[m.indexer.index(symbol)] = -1
+		}
+		for symbol := range parseState.NonterminalEntries.Keys() {
 			positions[m.indexer.index(symbol)] = -1
 		}
 
@@ -1862,5 +1850,37 @@ func minimizeBidirectionalMerge(v, dst []int, isLess func(a, b int) bool) {
 	// user-provided comparison function fails to implement a strict weak ordering.
 	if left != leftEnd || right != rightEnd {
 		panic("user-provided comparison function does not correctly implement a total order")
+	}
+}
+
+// minimizeSetPositions records the position of the symbol of each entry in
+// positions, by symbolIndexer.index.
+//
+// minimizeSetPositions is set_positions.
+func minimizeSetPositions[V any](entries *ParseStateEntries[V], positions []int, indexer symbolIndexer) {
+	position := 0
+	for symbol := range entries.Keys() {
+		positions[indexer.index(symbol)] = position
+		position++
+	}
+}
+
+// minimizeMergeEntries merges other into entries like IndexMap.Extend: a
+// symbol that entries has keeps its place and takes the value of other, and
+// the rest are added in order. positions holds the position of the symbol of
+// each entry of entries, by symbolIndexer.index, and -1 for no entry.
+//
+// minimizeMergeEntries is merge_entries.
+func minimizeMergeEntries[V any](entries, other *ParseStateEntries[V], positions []int, indexer symbolIndexer) {
+	for symbol, value := range other.All() {
+		position := &positions[indexer.index(symbol)]
+		if *position >= 0 {
+			// INVARIANT: `positions` only holds positions of `entries`' entries.
+			_, entry, _ := entries.GetIndexMut(*position)
+			*entry = value
+		} else {
+			*position = entries.Len()
+			entries.Push(symbol, value)
+		}
 	}
 }

@@ -326,50 +326,63 @@ type ParseTableEntry struct {
 	Reusable bool
 }
 
-// TerminalEntries holds the terminal entries of a parse state: the action
-// list for each lookahead, in the order in which the entries were added. The
-// zero TerminalEntries is empty and ready to use.
+// ParseStateEntries holds the entries of a parse state, one for each
+// symbol, in the order in which they were added. The zero ParseStateEntries
+// is empty and ready to use.
 //
-// TerminalEntries is TerminalEntries, a Vec<(Symbol, ActionListId)>.
-type TerminalEntries struct {
-	entries []terminalEntry
+// ParseStateEntries is ParseStateEntries, a Vec<(Symbol, V)>.
+type ParseStateEntries[V any] struct {
+	entries []parseStateEntry[V]
 }
 
-// terminalEntry is a lookahead and its action list.
+// parseStateEntry is a symbol and its value.
 //
-// terminalEntry is (Symbol, ActionListId).
-type terminalEntry struct {
+// parseStateEntry is (Symbol, V).
+type parseStateEntry[V any] struct {
 	symbol Symbol
-	id     ActionListID
+	value  V
 }
+
+// TerminalEntries holds the terminal entries of a parse state: the action
+// list for each lookahead.
+//
+// TerminalEntries is TerminalEntries.
+type TerminalEntries = ParseStateEntries[ActionListID]
+
+// NonterminalEntries holds the non-terminal entries of a parse state: what
+// to do after a reduction to each non-terminal.
+//
+// NonterminalEntries is NonterminalEntries.
+type NonterminalEntries = ParseStateEntries[GotoAction]
 
 // Len returns the number of entries.
 //
-// Len is TerminalEntries::len.
-func (t *TerminalEntries) Len() int {
-	return len(t.entries)
+// Len is ParseStateEntries::len.
+func (e *ParseStateEntries[V]) Len() int {
+	return len(e.entries)
 }
 
-// All returns each symbol and its action list, in order.
+// All returns each symbol and its value, in order.
 //
-// All is TerminalEntries::iter, and the IntoIterator of TerminalEntries.
-func (t *TerminalEntries) All() iter.Seq2[Symbol, ActionListID] {
-	return func(yield func(Symbol, ActionListID) bool) {
-		for _, e := range t.entries {
-			if !yield(e.symbol, e.id) {
+// All is ParseStateEntries::iter, and the IntoIterator of
+// ParseStateEntries.
+func (e *ParseStateEntries[V]) All() iter.Seq2[Symbol, V] {
+	return func(yield func(Symbol, V) bool) {
+		for _, entry := range e.entries {
+			if !yield(entry.symbol, entry.value) {
 				return
 			}
 		}
 	}
 }
 
-// AllMut returns each symbol and a pointer to its action list, in order.
+// AllMut returns each symbol and a pointer to its value, in order.
 //
-// AllMut is TerminalEntries::iter_mut.
-func (t *TerminalEntries) AllMut() iter.Seq2[Symbol, *ActionListID] {
-	return func(yield func(Symbol, *ActionListID) bool) {
-		for i := range t.entries {
-			if !yield(t.entries[i].symbol, &t.entries[i].id) {
+// AllMut is ParseStateEntries::iter_mut.
+func (e *ParseStateEntries[V]) AllMut() iter.Seq2[Symbol, *V] {
+	return func(yield func(Symbol, *V) bool) {
+		for i := range e.entries {
+			if !yield(e.entries[i].symbol, &e.entries[i].value) {
 				return
 			}
 		}
@@ -378,118 +391,148 @@ func (t *TerminalEntries) AllMut() iter.Seq2[Symbol, *ActionListID] {
 
 // Keys returns each symbol, in order.
 //
-// Keys is TerminalEntries::keys.
-func (t *TerminalEntries) Keys() iter.Seq[Symbol] {
+// Keys is ParseStateEntries::keys.
+func (e *ParseStateEntries[V]) Keys() iter.Seq[Symbol] {
 	return func(yield func(Symbol) bool) {
-		for _, e := range t.entries {
-			if !yield(e.symbol) {
+		for _, entry := range e.entries {
+			if !yield(entry.symbol) {
 				return
 			}
 		}
 	}
 }
 
-// Values returns each action list, in order.
+// Values returns each value, in order.
 //
-// Values is TerminalEntries::values.
-func (t *TerminalEntries) Values() iter.Seq[ActionListID] {
-	return func(yield func(ActionListID) bool) {
-		for _, e := range t.entries {
-			if !yield(e.id) {
+// Values is ParseStateEntries::values.
+func (e *ParseStateEntries[V]) Values() iter.Seq[V] {
+	return func(yield func(V) bool) {
+		for _, entry := range e.entries {
+			if !yield(entry.value) {
 				return
 			}
 		}
 	}
 }
 
-// ValuesMut returns a pointer to each action list, in order.
+// ValuesMut returns a pointer to each value, in order.
 //
-// ValuesMut is TerminalEntries::values_mut.
-func (t *TerminalEntries) ValuesMut() iter.Seq[*ActionListID] {
-	return func(yield func(*ActionListID) bool) {
-		for i := range t.entries {
-			if !yield(&t.entries[i].id) {
+// ValuesMut is ParseStateEntries::values_mut.
+func (e *ParseStateEntries[V]) ValuesMut() iter.Seq[*V] {
+	return func(yield func(*V) bool) {
+		for i := range e.entries {
+			if !yield(&e.entries[i].value) {
 				return
 			}
 		}
 	}
 }
 
-// GetIndex returns the symbol and the action list at an index, and false
-// when the index is not before Len.
+// Get returns the value of symbol, and false when there is no entry for
+// symbol.
 //
-// GetIndex is TerminalEntries::get_index.
-func (t *TerminalEntries) GetIndex(i int) (Symbol, ActionListID, bool) {
-	if i < 0 || i >= len(t.entries) {
-		return Symbol{}, 0, false
+// Get is ParseStateEntries::get.
+func (e *ParseStateEntries[V]) Get(symbol Symbol) (V, bool) {
+	for _, entry := range e.entries {
+		if entry.symbol == symbol {
+			return entry.value, true
+		}
 	}
-	return t.entries[i].symbol, t.entries[i].id, true
+	var zero V
+	return zero, false
 }
 
-// GetIndexMut returns the symbol and a pointer to the action list at an
-// index, and false when the index is not before Len.
+// GetIndex returns the symbol and the value at an index, and false when the
+// index is not before Len.
 //
-// GetIndexMut is TerminalEntries::get_index_mut.
-func (t *TerminalEntries) GetIndexMut(i int) (Symbol, *ActionListID, bool) {
-	if i < 0 || i >= len(t.entries) {
+// GetIndex is ParseStateEntries::get_index.
+func (e *ParseStateEntries[V]) GetIndex(i int) (Symbol, V, bool) {
+	if i < 0 || i >= len(e.entries) {
+		var zero V
+		return Symbol{}, zero, false
+	}
+	return e.entries[i].symbol, e.entries[i].value, true
+}
+
+// GetIndexMut returns the symbol and a pointer to the value at an index, and
+// false when the index is not before Len.
+//
+// GetIndexMut is ParseStateEntries::get_index_mut.
+func (e *ParseStateEntries[V]) GetIndexMut(i int) (Symbol, *V, bool) {
+	if i < 0 || i >= len(e.entries) {
 		return Symbol{}, nil, false
 	}
-	return t.entries[i].symbol, &t.entries[i].id, true
+	return e.entries[i].symbol, &e.entries[i].value, true
 }
 
 // ContainsKey reports whether there is an entry for symbol.
 //
-// ContainsKey is TerminalEntries::contains_key.
-func (t *TerminalEntries) ContainsKey(symbol Symbol) bool {
-	for _, e := range t.entries {
-		if e.symbol == symbol {
+// ContainsKey is ParseStateEntries::contains_key.
+func (e *ParseStateEntries[V]) ContainsKey(symbol Symbol) bool {
+	for _, entry := range e.entries {
+		if entry.symbol == symbol {
 			return true
 		}
 	}
 	return false
 }
 
-// Insert sets the action list for symbol. An entry that exists keeps its
-// place.
+// Insert sets the value for symbol. An entry that exists keeps its place.
 //
-// Insert is TerminalEntries::insert.
-func (t *TerminalEntries) Insert(symbol Symbol, id ActionListID) {
-	for i := range t.entries {
-		if t.entries[i].symbol == symbol {
-			t.entries[i].id = id
+// Insert is ParseStateEntries::insert.
+func (e *ParseStateEntries[V]) Insert(symbol Symbol, value V) {
+	for i := range e.entries {
+		if e.entries[i].symbol == symbol {
+			e.entries[i].value = value
 			return
 		}
 	}
-	t.entries = append(t.entries, terminalEntry{symbol: symbol, id: id})
+	e.entries = append(e.entries, parseStateEntry[V]{symbol: symbol, value: value})
 }
 
 // InsertIfMissing adds an entry for symbol, unless there is one.
 //
-// InsertIfMissing is TerminalEntries::insert_if_missing.
-func (t *TerminalEntries) InsertIfMissing(symbol Symbol, id ActionListID) {
-	if !t.ContainsKey(symbol) {
-		t.entries = append(t.entries, terminalEntry{symbol: symbol, id: id})
+// InsertIfMissing is ParseStateEntries::insert_if_missing.
+func (e *ParseStateEntries[V]) InsertIfMissing(symbol Symbol, value V) {
+	if !e.ContainsKey(symbol) {
+		e.entries = append(e.entries, parseStateEntry[V]{symbol: symbol, value: value})
 	}
 }
 
 // Push adds an entry for symbol, which must not have one yet.
 //
-// Push is TerminalEntries::push. Upstream checks the symbol only with
+// Push is ParseStateEntries::push. Upstream checks the symbol only with
 // debug_assert.
-func (t *TerminalEntries) Push(symbol Symbol, id ActionListID) {
-	t.entries = append(t.entries, terminalEntry{symbol: symbol, id: id})
+func (e *ParseStateEntries[V]) Push(symbol Symbol, value V) {
+	e.entries = append(e.entries, parseStateEntry[V]{symbol: symbol, value: value})
 }
 
 // ReserveExact makes room for additional more entries, with no spare
 // capacity.
 //
-// ReserveExact is TerminalEntries::reserve_exact.
-func (t *TerminalEntries) ReserveExact(additional int) {
-	if n := len(t.entries) + additional; cap(t.entries) < n {
-		entries := make([]terminalEntry, len(t.entries), n)
-		copy(entries, t.entries)
-		t.entries = entries
+// ReserveExact is ParseStateEntries::reserve_exact.
+func (e *ParseStateEntries[V]) ReserveExact(additional int) {
+	if n := len(e.entries) + additional; cap(e.entries) < n {
+		entries := make([]parseStateEntry[V], len(e.entries), n)
+		copy(entries, e.entries)
+		e.entries = entries
 	}
+}
+
+// ShrinkToFit gives back the capacity that the entries grew into.
+//
+// ShrinkToFit is ParseStateEntries::shrink_to_fit.
+func (e *ParseStateEntries[V]) ShrinkToFit() {
+	if len(e.entries) == cap(e.entries) {
+		return
+	}
+	if len(e.entries) == 0 {
+		e.entries = nil
+		return
+	}
+	entries := make([]parseStateEntry[V], len(e.entries))
+	copy(entries, e.entries)
+	e.entries = entries
 }
 
 // ParseState is a state of the parse table.
@@ -500,7 +543,7 @@ func (t *TerminalEntries) ReserveExact(additional int) {
 type ParseState struct {
 	ID                 ParseStateID
 	TerminalEntries    TerminalEntries
-	NonterminalEntries IndexMap[Symbol, GotoAction]
+	NonterminalEntries NonterminalEntries
 	ReservedWords      TokenSet
 	LexStateID         LexStateID
 	ExternalLexStateID LexStateID
@@ -692,20 +735,24 @@ func (s *ParseState) ReferencedStates(pool *ActionListPool) iter.Seq[ParseStateI
 // UpdateNonterminalReferences is ParseState::update_nonterminal_references.
 func (s *ParseState) UpdateNonterminalReferences(f func(ParseStateID, *ParseState) ParseStateID) {
 	type update struct {
-		symbol   Symbol
+		index    int
 		newState ParseStateID
 	}
 	var updates []update
-	for symbol, action := range s.NonterminalEntries.All() {
+	index := 0
+	for _, action := range s.NonterminalEntries.All() {
 		if action.Kind == GotoActionGoto {
 			result := f(action.State, s)
 			if result != action.State {
-				updates = append(updates, update{symbol: symbol, newState: result})
+				updates = append(updates, update{index: index, newState: result})
 			}
 		}
+		index++
 	}
 	for _, u := range updates {
-		s.NonterminalEntries.Insert(u.symbol, GotoAction{Kind: GotoActionGoto, State: u.newState})
+		// INVARIANT: `index` came from enumerating these entries.
+		_, action, _ := s.NonterminalEntries.GetIndexMut(u.index)
+		*action = GotoAction{Kind: GotoActionGoto, State: u.newState}
 	}
 }
 

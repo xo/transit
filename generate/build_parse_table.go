@@ -1091,7 +1091,7 @@ func (b *parseTableBuilder) addActions(
 		precedingSymbols = append(precedingSymbols, symbol)
 		nextStateID := b.addParseState(precedingSymbols, auxiliaryContext, nextItemSet)
 		precedingSymbols = precedingSymbols[:len(precedingSymbols)-1]
-		b.parseTable.States[stateID].NonterminalEntries.Insert(symbol, GotoAction{Kind: GotoActionGoto, State: nextStateID})
+		b.parseTable.States[stateID].NonterminalEntries.Push(symbol, GotoAction{Kind: GotoActionGoto, State: nextStateID})
 	}
 	b.successorSets.recycle(successors)
 
