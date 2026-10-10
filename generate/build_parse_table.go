@@ -251,6 +251,45 @@ type reductionInfo struct {
 	hasNonAssoc   bool
 }
 
+// clear resets r to the zero reductionInfo, and keeps the buffer of
+// symbols.
+//
+// clear is ReductionInfo::clear.
+func (r *reductionInfo) clear() {
+	*r = reductionInfo{symbols: r.symbols[:0]}
+}
+
+// reductionInfos holds the reductions on each lookahead of the state that
+// addActions works on.
+//
+// reductionInfos is ReductionInfos.
+type reductionInfos struct {
+	// indexer gives each lookahead its slot in infos.
+	indexer symbolIndexer
+	// infos holds each lookahead's reductions, by symbolIndexer.index. Only
+	// the lookaheads with a reduction in the current state are up to date:
+	// addActions clears a lookahead's info at its first reduction in each
+	// state.
+	infos []reductionInfo
+}
+
+// newReductionInfos returns the reduction infos of a grammar.
+//
+// newReductionInfos is ReductionInfos::new.
+func newReductionInfos(indexer symbolIndexer) reductionInfos {
+	return reductionInfos{
+		indexer: indexer,
+		infos:   make([]reductionInfo, indexer.tokenCount()),
+	}
+}
+
+// get returns the reductions on lookahead. The caller can update them.
+//
+// get is ReductionInfos::get and ReductionInfos::get_mut.
+func (r *reductionInfos) get(lookahead Symbol) *reductionInfo {
+	return &r.infos[r.indexer.index(lookahead)]
+}
+
 // successorSets holds the item sets of a state's successors, one for each
 // symbol that follows a dot in the state.
 //
@@ -355,6 +394,9 @@ type parseTableBuilder struct {
 	// successorSets is scratch for addActions: the successor item sets of
 	// the state that it works on.
 	successorSets successorSets
+	// reductionInfos is scratch for addActions: the reductions on each
+	// lookahead of the state that it works on.
+	reductionInfos reductionInfos
 	// parseStateQueueHead is the index of the front of parseStateQueue,
 	// which is a VecDeque upstream.
 	parseStateQueueHead int
@@ -650,6 +692,7 @@ func newParseTableBuilder(
 	for _, conflict := range syntaxGrammar.ExpectedConflicts {
 		actualConflicts[buildParseSymbolsKey(conflict)] = slices.Clone(conflict)
 	}
+	symbolIndexer := newSymbolIndexer(syntaxGrammar, lexicalGrammar)
 	return &parseTableBuilder{
 		syntaxGrammar:             syntaxGrammar,
 		lexicalGrammar:            lexicalGrammar,
@@ -662,8 +705,9 @@ func newParseTableBuilder(
 		parseTable: ParseTable[ParseTableEntry]{
 			MaxAliasedProductionLength: 1,
 		},
-		strPool:       strPool,
-		successorSets: newSuccessorSets(newSymbolIndexer(syntaxGrammar, lexicalGrammar)),
+		strPool:        strPool,
+		successorSets:  newSuccessorSets(symbolIndexer),
+		reductionInfos: newReductionInfos(symbolIndexer),
 	}
 }
 
@@ -842,8 +886,7 @@ func (b *parseTableBuilder) addParseState(
 // the reserved words. It resolves the conflicts that it finds, and returns
 // an error for a conflict that the grammar does not resolve.
 //
-// addActions is ParseTableBuilder::add_actions. It only looks up the
-// FxHashMap reductionInfos.
+// addActions is ParseTableBuilder::add_actions.
 func (b *parseTableBuilder) addActions(
 	precedingSymbols []Symbol,
 	precedingAuxiliaryContext auxiliaryContextID,
@@ -851,7 +894,6 @@ func (b *parseTableBuilder) addActions(
 	itemSet *ParseItemSet,
 ) error {
 	var lookaheadsWithConflicts TokenSet
-	reductionInfos := make(map[Symbol]*reductionInfo)
 	var auxiliaryUses []auxiliaryUse
 
 	// Each item in the item set contributes to either or a Shift action or a Reduce
@@ -927,16 +969,15 @@ func (b *parseTableBuilder) addActions(
 				continue
 			}
 			tableEntry := b.parseTable.States[stateID].TerminalEntries.GetOrInsertFunc(lookahead, NewParseTableEntry)
-			info := reductionInfos[lookahead]
-			if info == nil {
-				info = &reductionInfo{}
-				reductionInfos[lookahead] = info
-			}
+			info := b.reductionInfos.get(lookahead)
 
 			// While inserting Reduce actions, eagerly resolve conflicts related
 			// to precedence: avoid inserting lower-precedence reductions, and
 			// clear the action list when inserting higher-precedence reductions.
 			if len(tableEntry.Actions) == 0 {
+				// This is the lookahead's first reduction in this state, so its info is
+				// still from an earlier state.
+				info.clear()
 				tableEntry.Actions.Push(action)
 			} else {
 				switch buildParseComparePrecedence(b.syntaxGrammar, precedence, []Symbol{symbol}, info.precedence, info.symbols) {
@@ -944,7 +985,7 @@ func (b *parseTableBuilder) addActions(
 					tableEntry.Actions.Clear()
 					tableEntry.Actions.Push(action)
 					lookaheadsWithConflicts.Remove(lookahead)
-					*info = reductionInfo{}
+					info.clear()
 				// Two items that reduce identically build the same tree, so
 				// there is nothing for the user to resolve. Precedence is
 				// still compared first, because an item that only repeats an
@@ -1031,11 +1072,7 @@ func (b *parseTableBuilder) addActions(
 			}
 		}
 		for symbol := range lookaheadsWithConflicts.All() {
-			info, ok := reductionInfos[symbol]
-			if !ok {
-				panic("generate: a conflicting lookahead has no reduction info")
-			}
-			if err := b.handleConflict(candidates, stateID, precedingSymbols, auxiliaryContext, symbol, info); err != nil {
+			if err := b.handleConflict(candidates, stateID, precedingSymbols, auxiliaryContext, symbol); err != nil {
 				return err
 			}
 		}
@@ -1179,9 +1216,9 @@ func (b *parseTableBuilder) handleConflict(
 	precedingSymbols []Symbol,
 	auxiliaryContext auxiliaryContextID,
 	conflictingLookahead Symbol,
-	reductionInfo *reductionInfo,
 ) error {
 	entry := b.parseTable.States[stateID].TerminalEntries.GetMut(conflictingLookahead)
+	reductionInfo := b.reductionInfos.get(conflictingLookahead)
 
 	// Determine which items in the set conflict with each other, and the
 	// precedences associated with SHIFT vs REDUCE actions. There won't
