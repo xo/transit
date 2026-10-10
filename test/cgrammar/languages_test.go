@@ -266,6 +266,7 @@ var goPackageTests = []namedTest{
 	{"TestQueryCapturesProgressCallbackStopsBehindAnOpenMatch", TestQueryCapturesProgressCallbackStopsBehindAnOpenMatch},
 	{"TestQueryCapturesProgressCallbackDiscardsInProgressMatches", TestQueryCapturesProgressCallbackDiscardsInProgressMatches},
 	{"TestQueryProgressCallbackHaltsForGood", TestQueryProgressCallbackHaltsForGood},
+	{"TestQueryProgressCallbackKeepsUpWithInProgressStates", TestQueryProgressCallbackKeepsUpWithInProgressStates},
 	{"TestQueryExecutionWithPointsCausingUnderflow", TestQueryExecutionWithPointsCausingUnderflow},
 	{"TestWildcardBehaviorBeforeAnchor", TestWildcardBehaviorBeforeAnchor},
 	{"TestPatternAlternativesFollowLastChildConstraint", TestPatternAlternativesFollowLastChildConstraint},

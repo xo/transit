@@ -1000,11 +1000,11 @@ func TestQueryDisable(t *testing.T) {
 }
 
 func TestQueryCancel(t *testing.T) {
-	// A tree of 300 identifiers and a "+" at the end.
+	// A tree of 1000 identifiers and a "+" at the end.
 	l := testLanguage(15)
 	pool := newSubtreePool(0)
 	var children subtreeArray
-	for range 300 {
+	for range 1000 {
 		children = append(children, leaf(&pool, l, testSymIdentifier, 1, 1))
 	}
 	children = append(children, leaf(&pool, l, testSymPlus, 1, 1))
@@ -1028,15 +1028,15 @@ func TestQueryCancel(t *testing.T) {
 	}
 	c.exec(q, tree.RootNode())
 	m, ok := c.nextMatch(context.Background())
-	if !ok || queryMatchString(q, m) != "0: plus=+@601-602" {
+	if !ok || queryMatchString(q, m) != "0: plus=+@2001-2002" {
 		t.Errorf("after exec, the match is %v %t", m, ok)
 	}
 	if _, ok := c.nextMatch(context.Background()); ok {
 		t.Error("the cursor gives a second match")
 	}
 
-	// The cursor reads the context once in 100 operations, so a small tree
-	// gives its match before the cursor reads it.
+	// The cursor reads the context once it has done 1000 units of work, so a
+	// small tree gives its match before the cursor reads it.
 	q = queryNew(t, `(identifier) @a`)
 	c.exec(q, treeSample(l).RootNode())
 	if _, ok := c.nextMatch(ctx); !ok {

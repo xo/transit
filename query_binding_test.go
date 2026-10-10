@@ -201,15 +201,15 @@ func TestQueryBindingRemove(t *testing.T) {
 func TestQueryBindingCancel(t *testing.T) {
 	l := testLanguage(15)
 	pool := newSubtreePool(0)
-	tree := newTree(repetition(&pool, l, 300), l, nil)
-	src := []byte(strings.Repeat("x", 300))
+	tree := newTree(repetition(&pool, l, 1000), l, nil)
+	src := []byte(strings.Repeat("x", 1000))
 	q := queryBindingNew(t, `(identifier) @id`)
 	all := 0
 	for range NewQueryCursor().Matches(context.Background(), q, tree.RootNode(), src) {
 		all++
 	}
-	if all != 300 {
-		t.Fatalf("the query gave %d matches, want 300", all)
+	if all != 1000 {
+		t.Fatalf("the query gave %d matches, want 1000", all)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
@@ -217,8 +217,8 @@ func TestQueryBindingCancel(t *testing.T) {
 	for range NewQueryCursor().Matches(ctx, q, tree.RootNode(), src) {
 		n++
 	}
-	// the cursor reads the context once in each 100 operations, so it can
-	// give a few matches before it stops
+	// the cursor reads the context once it has done 1000 units of work, so it
+	// can give a few matches before it stops
 	if n >= all {
 		t.Errorf("a canceled context gave all %d matches", n)
 	}

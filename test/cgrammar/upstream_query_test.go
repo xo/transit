@@ -5335,6 +5335,40 @@ func TestQueryProgressCallbackHaltsForGood(t *testing.T) {
 	}
 }
 
+func TestQueryProgressCallbackKeepsUpWithInProgressStates(t *testing.T) {
+	language := uqLanguage(t, "javascript")
+	parser := uqParser(t, language)
+
+	depth := 1000
+	sourceCode := strings.Repeat("[", depth) + strings.Repeat("]", depth) + ";"
+	tree, err := parser.Parse(t.Context(), []byte(sourceCode), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// No array has a string, so every enclosing array keeps a state in
+	// progress, and the cursor visits all of them at every node it steps over.
+	query := uqNewQuery(t, language, "(array (string) @string)")
+
+	calls := 0
+	ctx := uqProgressContext(func() bool {
+		calls++
+		return false
+	})
+	cursor := transit.NewQueryCursor()
+	matches := 0
+	for range cursor.Matches(ctx, query, tree.RootNode(), []byte(sourceCode)) {
+		matches++
+	}
+
+	if matches != 0 {
+		t.Errorf("%d matches, want 0", matches)
+	}
+	if calls <= depth {
+		t.Errorf("%d calls for %d nested arrays", calls, depth)
+	}
+}
+
 func TestQueryExecutionWithPointsCausingUnderflow(t *testing.T) {
 	language := uqLanguage(t, "rust")
 	parser := uqParser(t, language)

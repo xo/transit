@@ -545,7 +545,7 @@ type queryCursor struct {
 	containingRange        textRange
 	nextStateID            uint32
 	nextFinishedStateID    uint32
-	operationCount         uint32
+	workCount              uint32
 	onVisibleNode          bool
 	ascending              bool
 	halted                 bool
@@ -568,8 +568,12 @@ const (
 	captureListNone uint32 = math.MaxUint32
 	// wildcardSymbol is WILDCARD_SYMBOL.
 	wildcardSymbol Symbol = 0
-	// opCountPerQueryCallbackCheck is OP_COUNT_PER_QUERY_CALLBACK_CHECK.
-	opCountPerQueryCallbackCheck = 100
+	// workPerQueryCallbackCheck is WORK_PER_QUERY_CALLBACK_CHECK.
+	//
+	// The cursor calls the progress callback once it has done this much work.
+	// Entering or leaving a node costs one, plus one for each in-progress state,
+	// because every step visits all of them.
+	workPerQueryCallbackCheck = 1000
 )
 
 // Stream
@@ -3184,8 +3188,8 @@ func newQueryCursor() *queryCursor {
 			startByte:  0,
 			endByte:    math.MaxUint32,
 		},
-		maxStartDepth:  math.MaxUint32,
-		operationCount: 0,
+		maxStartDepth: math.MaxUint32,
+		workCount:     0,
 	}
 }
 
@@ -3219,7 +3223,7 @@ func (c *queryCursor) exec(query *query, node Node) {
 	c.halted = false
 	c.query = query
 	c.exceededMatchLimit = false
-	c.operationCount = 0
+	c.workCount = 0
 }
 
 // setByteRange is ts_query_cursor_set_byte_range.
@@ -3686,11 +3690,11 @@ func (c *queryCursor) advance(ctx context.Context, stopOnDefiniteStep bool) bool
 			return didMatch
 		}
 
-		// Consult the progress callback every `OP_COUNT_PER_QUERY_CALLBACK_CHECK` operations.
-		// Only iterations that do work are counted.
-		c.operationCount++
-		if c.operationCount == opCountPerQueryCallbackCheck {
-			c.operationCount = 0
+		// Consult the progress callback after a bounded amount of work.
+		// Only iterations that do work are charged.
+		c.workCount += 1 + uint32(len(c.states))
+		if c.workCount >= workPerQueryCallbackCheck {
+			c.workCount = 0
 			if ctx.Err() != nil {
 				// Halt the same way reaching the end of the tree does. The next iteration
 				// discards the in-progress states, so only finished matches are returned.
