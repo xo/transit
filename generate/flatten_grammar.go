@@ -363,12 +363,19 @@ func flattenGrammar(g *InputGrammar, meta *extractedGrammarMeta, st *flattenStat
 //
 // flattenCheck is check in flatten_grammar.rs.
 func flattenCheck(g *InputGrammar, meta *extractedGrammarMeta, out *ProductionStore) error {
+	// Which variables appear in some production, by index. A step naming a non-terminal
+	// that has no variable (as in some hand-built test grammars) uses none of them.
+	used := make([]bool, len(out.VarProds))
+	for _, step := range out.Steps {
+		if index, ok := step.Symbol().NonTerminalIndex(); ok && int(index) < len(used) {
+			used[index] = true
+		}
+	}
 	for i, prods := range out.VarProds {
 		symbol := NonTerminalSymbol(i)
-		used := slices.ContainsFunc(out.Steps, func(s ProductionStep) bool { return s.Symbol() == symbol })
 		inlined := slices.Contains(meta.inline, symbol)
 		for _, p := range out.Productions[prods[0]:prods[1]] {
-			if used && p.StepsLen == 0 && !p.RequiresEOFLookahead {
+			if used[i] && p.StepsLen == 0 && !p.RequiresEOFLookahead {
 				return &FlattenGrammarError{Kind: FlattenGrammarEmptyString, Name: g.Pool.Resolve(g.Variables[i].Name)}
 			}
 			start, end := p.StepRange()
