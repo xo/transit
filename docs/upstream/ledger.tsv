@@ -25,7 +25,7 @@ a5add39b04bb2e12ceae82016829985df593aebc	2026-10-03	ported	f60c63f	fix(lib): che
 fe8d1936509826e755a1a8ce1309fe7a182c2eb0	2026-10-03	not-applicable	e45fc39	a bump of rquickjs, the JavaScript runtime of the upstream tool, which transit does not port
 e0d0db1d373796e2eaf34eb18e340162ed844d72	2026-10-03	ported		perf(generate): share auxiliary symbol contexts between parse states
 cd8caa9f316f31a71195419a4b4ca882d28e8309	2026-10-03	ported		perf(generate): stop sorted-inserting every item into closures
-80bd4075e0744eb97f39c3be50af213c25ffc3d2	2026-10-03	pending		port in phase 6: crates/generate/src/bitvec.rs, crates/generate/src/build_tables/item_set_builder.rs
+80bd4075e0744eb97f39c3be50af213c25ffc3d2	2026-10-03	ported		perf(generate): find and order closure additions by precomputed rank
 23b0e7dcb1d5b2d2649ec0022938ac894431329f	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/coincident_tokens.rs
 801c9626955e8d27cfecc232cec4e34a7168c77d	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/build_lex_table.rs, crates/generate/src/build_tables/minimize_parse_table.rs, crates/generate/src/dedup.rs
 11cad57fdfef22b400abac1da2a8db6d9add473c	2026-10-03	pending		port in phase 6: crates/generate/src/build_tables/minimize_parse_table.rs

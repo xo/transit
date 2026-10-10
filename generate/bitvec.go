@@ -140,6 +140,13 @@ func (b *BitVec) Pop() (bool, bool) {
 	return val, true
 }
 
+// UnsetAll unsets every bit, keeping the length.
+//
+// UnsetAll is BitVec::unset_all.
+func (b *BitVec) UnsetAll() {
+	clear(b.words[:b.wordsInUse()])
+}
+
 // InsertAll sets each bit that is set in other, word by word, and reports
 // whether any bit was new.
 //

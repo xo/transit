@@ -1,6 +1,8 @@
 package generate
 
 import (
+	"cmp"
+	"iter"
 	"maps"
 	"slices"
 )
@@ -17,23 +19,33 @@ import (
 type transitiveClosureAddition struct {
 	item ParseItem
 	info additionInfo
+	// rank is item's rank, which locates its entry in a closure.
+	rank firstStepRank
 }
 
-// transitiveClosureAdditionKey is a value that is the same for two additions
-// exactly when they are equal, so it can be the key of a Go map.
+// itemAddition is an addition before it has a rank: an item, with its
+// lookahead information.
 //
-// transitiveClosureAdditionKey is what the Hash of TransitiveClosureAddition
-// hashes.
-type transitiveClosureAdditionKey struct {
+// itemAddition is (ParseItem, AdditionInfo).
+type itemAddition struct {
+	item ParseItem
+	info additionInfo
+}
+
+// itemAdditionKey is a value that is the same for two additions exactly when
+// they are equal, so it can be the key of a Go map.
+//
+// itemAdditionKey is what the Hash of (ParseItem, AdditionInfo) hashes.
+type itemAdditionKey struct {
 	item ParseItemKey
 	info additionInfo
 }
 
 // key returns the key of the addition.
 //
-// key stands in for the Hash and the PartialEq of TransitiveClosureAddition.
-func (a *transitiveClosureAddition) key() transitiveClosureAdditionKey {
-	return transitiveClosureAdditionKey{item: a.item.Key(), info: a.info}
+// key stands in for the Hash and the PartialEq of (ParseItem, AdditionInfo).
+func (a *itemAddition) key() itemAdditionKey {
+	return itemAdditionKey{item: a.item.Key(), info: a.info}
 }
 
 // additionInfo is a followSetInfo with an interned lookahead set, and with
@@ -74,9 +86,8 @@ type ParseItemSetBuilder struct {
 	lastSets                   map[Symbol]*TokenSet
 	inlines                    *InlinedProductionMap
 	transitiveClosureAdditions [][]transitiveClosureAddition
-	// closureIndices is scratch for TransitiveClosure. It holds the
-	// positions of the entries added so far, by the key of their items.
-	closureIndices map[ParseItemKey]uint32
+	// closureScratch is scratch for TransitiveClosure.
+	closureScratch closureEntries
 }
 
 // pushUnique pushes value unless vector already has it. indices holds the
@@ -85,13 +96,249 @@ type ParseItemSetBuilder struct {
 // pushUnique is push_unique. Upstream finds a position in a HashTable of
 // positions. The Go form maps the key of each element to its position, and
 // only looks it up.
-func pushUnique(vector *[]transitiveClosureAddition, indices map[transitiveClosureAdditionKey]uint32, value transitiveClosureAddition) {
+func pushUnique(vector *[]itemAddition, indices map[itemAdditionKey]uint32, value itemAddition) {
 	key := value.key()
 	if _, ok := indices[key]; ok {
 		return
 	}
 	indices[key] = uint32(len(*vector))
 	*vector = append(*vector, value)
+}
+
+// firstStepRank is an item's position among all the items that a closure
+// can hold at their first step (StepIndex 0), in item order. See
+// firstStepRanks.
+//
+// firstStepRank is FirstStepRank.
+type firstStepRank uint32
+
+// index returns the rank as an index.
+//
+// index is FirstStepRank::index.
+func (r firstStepRank) index() int {
+	return int(r)
+}
+
+// firstStepKey is everything that ParseItem's Equal and Compare compare
+// between items at their first step, which have nothing before their dot.
+// The fields are declared in the order that Compare compares them, so
+// compareFirstStepKey orders keys the way Compare orders their items.
+//
+// firstStepKey is FirstStepKey.
+type firstStepKey struct {
+	variableIndex uint32
+	// cmp is Keys[0].Cmp.
+	cmp uint32
+}
+
+// newFirstStepKey returns the key of an item at its first step.
+//
+// newFirstStepKey is FirstStepKey::new.
+func newFirstStepKey(item *ParseItem) firstStepKey {
+	// INVARIANT: only items at their first step are ranked
+	if item.StepIndex != 0 || item.HasPrecedingInheritedFields {
+		panic("generate: a ranked item is past its first step")
+	}
+	return firstStepKey{
+		variableIndex: item.VariableIndex,
+		cmp:           item.Keys[0].Cmp,
+	}
+}
+
+// compareFirstStepKey orders two keys by the variable index and then by cmp.
+//
+// compareFirstStepKey is the derived Ord of FirstStepKey.
+func compareFirstStepKey(a, b firstStepKey) int {
+	if c := cmp.Compare(a.variableIndex, b.variableIndex); c != 0 {
+		return c
+	}
+	return cmp.Compare(a.cmp, b.cmp)
+}
+
+// firstStepRanks holds the firstStepRank of every item that a closure can
+// hold at its first step, by key.
+//
+// firstStepRanks is FirstStepRanks. Upstream keeps the ranks in an
+// FxHashMap, and only looks it up.
+type firstStepRanks struct {
+	ranks map[firstStepKey]firstStepRank
+}
+
+// newFirstStepRanks ranks items, which are all at their first step.
+//
+// newFirstStepRanks is FirstStepRanks::new. Upstream sorts with
+// sort_unstable. Two keys that compare equal are the same value, so the
+// order is the same in Go.
+func newFirstStepRanks(items iter.Seq[ParseItem]) firstStepRanks {
+	var keys []firstStepKey
+	for item := range items {
+		keys = append(keys, newFirstStepKey(&item))
+	}
+	slices.SortFunc(keys, compareFirstStepKey)
+	keys = slices.Compact(keys)
+	ranks := make(map[firstStepKey]firstStepRank, len(keys))
+	for rank, key := range keys {
+		ranks[key] = firstStepRank(rank)
+	}
+	return firstStepRanks{ranks: ranks}
+}
+
+// len returns the number of ranks.
+//
+// len is FirstStepRanks::len.
+func (r *firstStepRanks) len() int {
+	return len(r.ranks)
+}
+
+// rank returns the rank of item, which must be one of the items these were
+// built from.
+//
+// rank is FirstStepRanks::rank.
+func (r *firstStepRanks) rank(item *ParseItem) firstStepRank {
+	// INVARIANT: every item at its first step has a rank
+	rank, ok := r.ranks[newFirstStepKey(item)]
+	if !ok {
+		panic("generate: an item at its first step has no rank")
+	}
+	return rank
+}
+
+// closureEntries holds the entries of a closure while
+// ParseItemSetBuilder.TransitiveClosure builds it: found by item as they're
+// added, and taken out in item order once it's complete.
+//
+// Items are ordered by StepIndex first, so the items at their first step
+// come before all the others. Most of a closure's items are at their first
+// step, and each of those has a firstStepRank and a slot for its entry. The
+// rest are kernel items past their first step, which are found by key and
+// sorted.
+//
+// closureEntries is ClosureEntries. The zero value is
+// ClosureEntries::default. Upstream holds each slot of firstStep as an
+// Option, and the Go form holds the entry, which is in use exactly when its
+// bit of occupied is set. Upstream finds a position of later in a HashTable
+// of positions. The Go form maps the key of each item to its position, and
+// only looks it up.
+type closureEntries struct {
+	// ranks holds the rank of every item that can be in firstStep.
+	ranks firstStepRanks
+	// firstStep holds the entry of each first-step item in the closure, by
+	// rank.
+	firstStep []ParseItemSetEntry
+	// occupied holds the ranks that have an entry in firstStep, to find
+	// those without scanning it.
+	occupied BitVec
+	// firstStepLen is the number of entries in firstStep.
+	firstStepLen int
+	// later holds the entries of the items past their first step, in the
+	// order they were added.
+	later []ParseItemSetEntry
+	// laterIndices holds the positions of later's entries, by the key of
+	// their items.
+	laterIndices map[ParseItemKey]uint32
+}
+
+// newClosureEntries returns the entries of an empty closure, for items with
+// the given ranks.
+//
+// newClosureEntries is ClosureEntries::new.
+func newClosureEntries(ranks firstStepRanks) closureEntries {
+	var occupied BitVec
+	occupied.Resize(ranks.len(), false)
+	return closureEntries{
+		firstStep:    make([]ParseItemSetEntry, ranks.len()),
+		ranks:        ranks,
+		occupied:     occupied,
+		firstStepLen: 0,
+		later:        nil,
+		laterIndices: make(map[ParseItemKey]uint32),
+	}
+}
+
+// additionEntry returns the entry of addition's item, added if it's new.
+//
+// additionEntry is ClosureEntries::addition_entry.
+func (c *closureEntries) additionEntry(addition *transitiveClosureAddition) *ParseItemSetEntry {
+	return c.firstStepEntry(addition.rank, addition.item)
+}
+
+// kernelEntry returns the entry of item, from the closure's kernel, added if
+// it's new. The pointer is valid until the next kernelEntry.
+//
+// kernelEntry is ClosureEntries::kernel_entry.
+func (c *closureEntries) kernelEntry(item ParseItem) *ParseItemSetEntry {
+	// A kernel's items are past their first step, except for the start item.
+	if item.StepIndex == 0 {
+		rank := c.ranks.rank(&item)
+		return c.firstStepEntry(rank, item)
+	}
+	return c.laterEntry(item)
+}
+
+// firstStepEntry returns the entry of item, which is at its first step and
+// has the given rank, added if it's new.
+//
+// firstStepEntry is ClosureEntries::first_step_entry.
+func (c *closureEntries) firstStepEntry(rank firstStepRank, item ParseItem) *ParseItemSetEntry {
+	slot := &c.firstStep[rank.index()]
+	if occupied, _ := c.occupied.Get(rank.index()); !occupied {
+		c.occupied.Set(rank.index(), true)
+		c.firstStepLen++
+		*slot = closureNewEntry(item)
+	}
+	return slot
+}
+
+// laterEntry returns the entry of item, which is past its first step, added
+// if it's new. The pointer is valid until the next laterEntry.
+//
+// laterEntry is ClosureEntries::later_entry.
+func (c *closureEntries) laterEntry(item ParseItem) *ParseItemSetEntry {
+	key := item.Key()
+	index, ok := c.laterIndices[key]
+	if !ok {
+		index = uint32(len(c.later))
+		c.laterIndices[key] = index
+		c.later = append(c.later, closureNewEntry(item))
+	}
+	return &c.later[index]
+}
+
+// closureNewEntry returns an entry for item, with no lookaheads yet.
+//
+// closureNewEntry is ClosureEntries::new_entry.
+func closureNewEntry(item ParseItem) ParseItemSetEntry {
+	return ParseItemSetEntry{
+		Item:                     item,
+		Lookaheads:               LookaheadSetPoolEmpty,
+		FollowingReservedWordSet: 0,
+	}
+}
+
+// takeItemSet takes the entries out in item order, leaving c empty for the
+// next closure.
+//
+// takeItemSet is ClosureEntries::take_item_set. Upstream sorts with
+// sort_unstable_by. No two items of a closure are equal, so the order is the
+// same in Go.
+func (c *closureEntries) takeItemSet() ParseItemSet {
+	entries := make([]ParseItemSetEntry, 0, c.firstStepLen+len(c.later))
+	for rank := range setBits(c.occupied.Words()) {
+		// INVARIANT: occupied ranks have entries
+		entries = append(entries, c.firstStep[rank])
+		c.firstStep[rank] = ParseItemSetEntry{}
+	}
+	c.occupied.UnsetAll()
+	c.firstStepLen = 0
+	// Past their first step, these all come after the entries above.
+	slices.SortFunc(c.later, func(a, b ParseItemSetEntry) int {
+		return a.Item.Compare(b.Item)
+	})
+	entries = append(entries, c.later...)
+	clear(c.later)
+	c.later = c.later[:0]
+	clear(c.laterIndices)
+	return ParseItemSet{Entries: entries}
 }
 
 // followSetStackEntry is an entry of the stack of NewParseItemSetBuilder.
@@ -116,8 +363,8 @@ func NewParseItemSetBuilder(syntaxGrammar *SyntaxGrammar, lexicalGrammar *Lexica
 		inlines:                    inlines,
 		KeyMap:                     keyMap,
 		Lookaheads:                 NewLookaheadSetPool(),
-		transitiveClosureAdditions: make([][]transitiveClosureAddition, len(syntaxGrammar.Variables)),
-		closureIndices:             make(map[ParseItemKey]uint32),
+		transitiveClosureAdditions: nil,
+		closureScratch:             closureEntries{},
 	}
 
 	// For each grammar symbol, populate the FIRST and LAST sets: the set of
@@ -278,8 +525,10 @@ func NewParseItemSetBuilder(syntaxGrammar *SyntaxGrammar, lexicalGrammar *Lexica
 	eofLookaheads.Insert(SymbolEndValue)
 	var stack []followSetStackEntry
 	followSetInfoByNonTerminal := make(map[int]*followSetInfo)
-	additionIndices := make(map[transitiveClosureAdditionKey]uint32)
-	for i := range syntaxGrammar.Variables {
+	additions := make([][]itemAddition, len(syntaxGrammar.Variables))
+	additionIndices := make(map[itemAdditionKey]uint32)
+	for i := range additions {
+		additionsForNonTerminal := &additions[i]
 		// First, build up a map whose keys are all of the non-terminals that can
 		// appear at the beginning of non-terminal `i`, and whose values store
 		// information about the tokens that can follow those non-terminals.
@@ -374,7 +623,6 @@ func NewParseItemSetBuilder(syntaxGrammar *SyntaxGrammar, lexicalGrammar *Lexica
 				propagatesLookaheads: followSetInfo.propagatesLookaheads,
 				containsWord:         syntaxGrammar.HasWordToken && followSetInfo.lookaheads.Contains(syntaxGrammar.WordToken),
 			}
-			additionsForNonTerminal := &result.transitiveClosureAdditions[i]
 			start, end := syntaxGrammar.VariableProdIDs(variableIndex)
 			for prodID := start; prodID < end; prodID++ {
 				item := ParseItem{
@@ -394,7 +642,7 @@ func NewParseItemSetBuilder(syntaxGrammar *SyntaxGrammar, lexicalGrammar *Lexica
 							itemInfo.propagatesLookaheads = false
 							itemInfo.containsWord = false
 						}
-						pushUnique(additionsForNonTerminal, additionIndices, transitiveClosureAddition{
+						pushUnique(additionsForNonTerminal, additionIndices, itemAddition{
 							item: item.SubstituteProduction(id, keyMap.KeysFor(id)),
 							info: itemInfo,
 						})
@@ -407,7 +655,7 @@ func NewParseItemSetBuilder(syntaxGrammar *SyntaxGrammar, lexicalGrammar *Lexica
 						itemInfo.propagatesLookaheads = false
 						itemInfo.containsWord = false
 					}
-					pushUnique(additionsForNonTerminal, additionIndices, transitiveClosureAddition{
+					pushUnique(additionsForNonTerminal, additionIndices, itemAddition{
 						item: item,
 						info: itemInfo,
 					})
@@ -415,6 +663,31 @@ func NewParseItemSetBuilder(syntaxGrammar *SyntaxGrammar, lexicalGrammar *Lexica
 			}
 		}
 	}
+
+	// Besides these additions, the only item a closure holds at its first step is the start
+	// item, in the start state's kernel.
+	ranks := newFirstStepRanks(func(yield func(ParseItem) bool) {
+		for _, additionsForNonTerminal := range additions {
+			for _, addition := range additionsForNonTerminal {
+				if !yield(addition.item) {
+					return
+				}
+			}
+		}
+		yield(StartParseItem(keyMap))
+	})
+	result.transitiveClosureAdditions = make([][]transitiveClosureAddition, len(additions))
+	for i, additionsForNonTerminal := range additions {
+		result.transitiveClosureAdditions[i] = make([]transitiveClosureAddition, len(additionsForNonTerminal))
+		for j, addition := range additionsForNonTerminal {
+			result.transitiveClosureAdditions[i][j] = transitiveClosureAddition{
+				item: addition.item,
+				info: addition.info,
+				rank: ranks.rank(&addition.item),
+			}
+		}
+	}
+	result.closureScratch = newClosureEntries(ranks)
 
 	return result
 }
@@ -425,31 +698,22 @@ func NewParseItemSetBuilder(syntaxGrammar *SyntaxGrammar, lexicalGrammar *Lexica
 //
 // TransitiveClosure is ParseItemSetBuilder::transitive_closure.
 func (b *ParseItemSetBuilder) TransitiveClosure(itemSet *ParseItemSet) ParseItemSet {
-	var result ParseItemSet
-	clear(b.closureIndices)
 	for i := range itemSet.Entries {
 		entry := &itemSet.Entries[i]
 		if ids, ok := b.inlines.InlinedProdIDs(entry.Item.ProdID, entry.Item.StepIndex); ok {
 			for _, id := range ids {
-				b.addItem(&result, &ParseItemSetEntry{
+				b.addItem(&ParseItemSetEntry{
 					Item:                     entry.Item.SubstituteProduction(id, b.KeyMap.KeysFor(id)),
 					Lookaheads:               entry.Lookaheads,
 					FollowingReservedWordSet: entry.FollowingReservedWordSet,
 				})
 			}
 		} else {
-			b.addItem(&result, entry)
+			b.addItem(entry)
 		}
 	}
-	// Items are appended as they're first added, so restore the set's order
-	// once at the end.
-	//
-	// Upstream sorts with sort_unstable_by. No two items of a closure are
-	// equal, so the order is the same in Go.
-	slices.SortFunc(result.Entries, func(a, b ParseItemSetEntry) int {
-		return a.Item.Compare(b.Item)
-	})
-	return result
+
+	return b.closureScratch.takeItemSet()
 }
 
 // FirstSet returns the FIRST set of a symbol. It panics when the builder has
@@ -505,32 +769,11 @@ func (b *ParseItemSetBuilder) LastSet(symbol Symbol) *TokenSet {
 	return set
 }
 
-// closureEntry returns the entry for item in a closure being built,
-// appending it if new. The pointer is valid until the next closureEntry.
-//
-// closureEntry is ParseItemSetBuilder::closure_entry. Upstream passes the
-// table of positions as an argument, and the Go method reads
-// closureIndices.
-func (b *ParseItemSetBuilder) closureEntry(set *ParseItemSet, item ParseItem) *ParseItemSetEntry {
-	key := item.Key()
-	index, ok := b.closureIndices[key]
-	if !ok {
-		index = uint32(len(set.Entries))
-		b.closureIndices[key] = index
-		set.Entries = append(set.Entries, ParseItemSetEntry{
-			Item:                     item,
-			Lookaheads:               LookaheadSetPoolEmpty,
-			FollowingReservedWordSet: 0,
-		})
-	}
-	return &set.Entries[index]
-}
-
 // addItem adds an entry to a set, with the additions of the non-terminal
 // after its dot.
 //
 // addItem is ParseItemSetBuilder::add_item.
-func (b *ParseItemSetBuilder) addItem(set *ParseItemSet, entry *ParseItemSetEntry) {
+func (b *ParseItemSetBuilder) addItem(entry *ParseItemSetEntry) {
 	if step, ok := entry.Item.Step(b.syntaxGrammar); ok {
 		if index, ok := step.NonTerminalIndex(); ok {
 			successor := entry.Item.Successor()
@@ -552,7 +795,7 @@ func (b *ParseItemSetBuilder) addItem(set *ParseItemSet, entry *ParseItemSetEntr
 			// Use the pre-computed *additions* to expand the non-terminal.
 			for i := range b.transitiveClosureAdditions[index] {
 				addition := &b.transitiveClosureAdditions[index][i]
-				e := b.closureEntry(set, addition.item)
+				e := b.closureScratch.additionEntry(addition)
 				e.Lookaheads = b.Lookaheads.Union(e.Lookaheads, addition.info.lookaheads)
 
 				if addition.info.containsWord {
@@ -570,7 +813,7 @@ func (b *ParseItemSetBuilder) addItem(set *ParseItemSet, entry *ParseItemSetEntr
 		}
 	}
 
-	e := b.closureEntry(set, entry.Item)
+	e := b.closureScratch.kernelEntry(entry.Item)
 	e.Lookaheads = b.Lookaheads.Union(e.Lookaheads, entry.Lookaheads)
 	e.FollowingReservedWordSet = max(e.FollowingReservedWordSet, entry.FollowingReservedWordSet)
 }
