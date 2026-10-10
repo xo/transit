@@ -28,6 +28,11 @@ logger yet, so the port leaves them out. The generator logs with `log/slog`
 `report_state_info` and `--report-states-for-rule`. Some functions of
 `build_lex_table.go` then take the `StrPool` again, as upstream does.
 
+Since 4c6466d7 of upstream, the checks of `minimize_parse_table.rs` return
+an `Option<Conflict>`, and only `log_conflict` reads it. The Go checks
+return a bool, because nothing reads the conflict yet. Port `Conflict` and
+`log_conflict` with the logger.
+
 ## The runtime
 
 ### Compare the highlight test with the upstream tool
