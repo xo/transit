@@ -16,7 +16,7 @@ a66db75608959e91c7b8cb7e0aa58c691ed2d7fd	2026-10-01	not-applicable		changes only
 436c42ff56b28a2016e88a09683a6cd8dbe04e7a	2026-10-01	not-applicable		changes only paths that transit does not port: .github/workflows/ci.yml, .github/workflows/regex_error_kinds.yml, .github/workflows/wasm_stdlib.yml
 867aa6d14418163560bf89f12c48107098b1ec8f	2026-10-01	ported		fix(generate): keep GCC jump tables enabled for large lexers
 e5d5a9d7efa9fb28ced9f9c54c28f085e9fb0c62	2026-10-01	ported		fix(generate): exclude external word tokens from keyword extraction
-e825b75bcf550d3771da7c22526afee336754626	2026-10-01	pending		port in phase 6: crates/generate/src/prepare_grammar.rs, crates/generate/src/prepare_grammar/flatten_grammar.rs, crates/generate/src/prepare_grammar/intern_symbols.rs
+e825b75bcf550d3771da7c22526afee336754626	2026-10-01	not-applicable		new clippy lints: the Rust tests of the generator use assert_eq! in place of is_empty, and a test helper of the CLI drops an else block, which changes no Go code or test
 69d518277605a1c556d4723680e2c6d011d2aee9	2026-10-02	not-applicable		changes only paths that transit does not port: .github/workflows/backport.yml
 bcd39f41e7f6b5a29d712252524dbbfa4fa8f517	2026-10-02	not-applicable		changes only paths that transit does not port: lib/binding_web/package-lock.json, lib/binding_web/package.json
 20cf25c10f13ed9b8c499dd966b4e7a57bedbf81	2026-10-02	not-applicable		changes only paths that transit does not port: flake.lock
