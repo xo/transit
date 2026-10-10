@@ -18,7 +18,7 @@ import (
 type builtParseTableForTest struct {
 	prepared    *PreparedGrammar
 	builder     *ParseItemSetBuilder
-	table       ParseTable[ActionListID]
+	table       ParseTable
 	info        *ParseStateInfo
 	diagnostics []Diagnostic
 }

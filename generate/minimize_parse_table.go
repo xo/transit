@@ -75,8 +75,8 @@ type minimizeStateLists[T any] struct {
 // sort_unstable_by_key. The keys of the items of a list are different, so
 // the order is the same in Go.
 func collectMinimizeStateLists[T any](
-	states []ParseState[ActionListID],
-	list func(state *ParseState[ActionListID]) iter.Seq[T],
+	states []ParseState,
+	list func(state *ParseState) iter.Seq[T],
 	compare func(a, b T) int,
 ) minimizeStateLists[T] {
 	starts := make([]uint32, 1, len(states)+1)
@@ -95,7 +95,7 @@ func collectMinimizeStateLists[T any](
 // get returns the list of state.
 //
 // get is StateLists::get.
-func (l *minimizeStateLists[T]) get(state *ParseState[ActionListID]) []T {
+func (l *minimizeStateLists[T]) get(state *ParseState) []T {
 	id := int(state.ID)
 	// INVARIANT: collectMinimizeStateLists pushes one offset per state after the leading
 	// 0, so a state of the table has its start at starts[id] and its end at
@@ -111,7 +111,7 @@ func (l *minimizeStateLists[T]) get(state *ParseState[ActionListID]) []T {
 //
 // MinimizeParseTable is minimize_parse_table.
 func MinimizeParseTable(
-	parseTable *ParseTable[ActionListID],
+	parseTable *ParseTable,
 	syntaxGrammar *SyntaxGrammar,
 	lexicalGrammar *LexicalGrammar,
 	simpleAliases AliasMap,
@@ -279,7 +279,7 @@ func newMinimizeConflictPass(m *minimizer, shiftMaps *minimizeStateLists[minimiz
 	// for easy comparison.
 	entryMaps := collectMinimizeStateLists(
 		m.parseTable.States,
-		func(state *ParseState[ActionListID]) iter.Seq[minimizeEntry] {
+		func(state *ParseState) iter.Seq[minimizeEntry] {
 			return func(yield func(minimizeEntry) bool) {
 				for sym, id := range state.TerminalEntries.All() {
 					if !yield(minimizeEntry{key: newMinimizeSymbolKey(m.indexer, sym), id: id}) {
@@ -324,7 +324,7 @@ func newMinimizeConflictPass(m *minimizer, shiftMaps *minimizeStateLists[minimiz
 // hasToken reports whether the state has an entry for key.
 //
 // hasToken is ConflictPass::has_token.
-func (p *minimizeConflictPass) hasToken(state *ParseState[ActionListID], key minimizeSymbolKey) bool {
+func (p *minimizeConflictPass) hasToken(state *ParseState, key minimizeSymbolKey) bool {
 	if index, ok := key.symbol(p.minimizer.indexer).TerminalIndex(); ok {
 		row := p.bits.getStateRow(int(state.ID))
 		index := int(index)
@@ -340,7 +340,7 @@ func (p *minimizeConflictPass) hasToken(state *ParseState[ActionListID], key min
 // has it.
 //
 // canTake is ConflictPass::can_take.
-func (p *minimizeConflictPass) canTake(target *ParseState[ActionListID], key minimizeSymbolKey) bool {
+func (p *minimizeConflictPass) canTake(target *ParseState, key minimizeSymbolKey) bool {
 	return p.hasToken(target, key) ||
 		!p.minimizer.tokenConflicts(target, p.bits, key)
 }
@@ -351,7 +351,7 @@ func (p *minimizeConflictPass) canTake(target *ParseState[ActionListID], key min
 // compatibleWithMerged is ConflictPass::compatible_with_merged.
 func (p *minimizeConflictPass) compatibleWithMerged(
 	keptStates *minimizeKeptStates,
-	state *ParseState[ActionListID],
+	state *ParseState,
 	kept []uint32,
 	groupIDsByStateID []ParseStateID,
 ) bool {
@@ -457,7 +457,7 @@ func (k *minimizeKeptStates) clear() {
 // merge is KeptStates::merge.
 func (k *minimizeKeptStates) merge(
 	kept []uint32,
-	states []ParseState[ActionListID],
+	states []ParseState,
 	entryMaps *minimizeStateLists[minimizeEntry],
 ) {
 	for _, stateID := range kept[k.mergedCount:] {
@@ -500,7 +500,7 @@ func (k *minimizeKeptStates) addableToAll(key minimizeSymbolKey, kept []uint32, 
 // ShouldSplit reports whether two states conflict.
 //
 // ShouldSplit is the should_split of ConflictPass.
-func (p *minimizeConflictPass) ShouldSplit(left, right *ParseState[ActionListID], groupIDsByStateID []ParseStateID) bool {
+func (p *minimizeConflictPass) ShouldSplit(left, right *ParseState, groupIDsByStateID []ParseStateID) bool {
 	return p.minimizer.statesConflict(
 		left,
 		right,
@@ -515,7 +515,7 @@ func (p *minimizeConflictPass) ShouldSplit(left, right *ParseState[ActionListID]
 //
 // Signature is the signature of ConflictPass. The hash only narrows which
 // states Equivalent compares, so its value cannot reach the output.
-func (p *minimizeConflictPass) Signature(state *ParseState[ActionListID], groupIDsByStateID []ParseStateID) (uint64, bool) {
+func (p *minimizeConflictPass) Signature(state *ParseState, groupIDsByStateID []ParseStateID) (uint64, bool) {
 	var hasher fxhash.Hasher
 	hasher.WriteU64(p.staticSignatures[state.ID])
 	for _, shift := range p.shiftMaps.get(state) {
@@ -530,7 +530,7 @@ func (p *minimizeConflictPass) Signature(state *ParseState[ActionListID], groupI
 // the same states.
 //
 // Equivalent is the equivalent of ConflictPass.
-func (p *minimizeConflictPass) Equivalent(left, right *ParseState[ActionListID], groupIDsByStateID []ParseStateID) bool {
+func (p *minimizeConflictPass) Equivalent(left, right *ParseState, groupIDsByStateID []ParseStateID) bool {
 	entries1 := p.entryMaps.get(left)
 	entries2 := p.entryMaps.get(right)
 	actionLists := &p.minimizer.parseTable.ActionLists
@@ -582,7 +582,7 @@ func (p *minimizeConflictPass) StartGroup() {
 // CompatibleWithAll is the compatible_with_all of ConflictPass. Upstream
 // takes the scratch out of the pass while the check reads the rest of it,
 // which Go does not need.
-func (p *minimizeConflictPass) CompatibleWithAll(state *ParseState[ActionListID], kept []uint32, groupIDsByStateID []ParseStateID) bool {
+func (p *minimizeConflictPass) CompatibleWithAll(state *ParseState, kept []uint32, groupIDsByStateID []ParseStateID) bool {
 	p.kept.merge(kept, p.minimizer.parseTable.States, &p.entryMaps)
 	return p.compatibleWithMerged(&p.kept, state, kept, groupIDsByStateID)
 }
@@ -610,7 +610,7 @@ func newMinimizeSuccessorPass(m *minimizer, shiftMaps *minimizeStateLists[minimi
 	// so index alone is sufficient for sorting and comparison.
 	nonterminalMaps := collectMinimizeStateLists(
 		m.parseTable.States,
-		func(state *ParseState[ActionListID]) iter.Seq[minimizeGoto] {
+		func(state *ParseState) iter.Seq[minimizeGoto] {
 			return func(yield func(minimizeGoto) bool) {
 				for sym, action := range state.NonterminalEntries.All() {
 					index, ok := sym.NonTerminalIndex()
@@ -636,7 +636,7 @@ func newMinimizeSuccessorPass(m *minimizer, shiftMaps *minimizeStateLists[minimi
 // ShouldSplit reports whether the successors of two states differ.
 //
 // ShouldSplit is the should_split of SuccessorPass.
-func (p *minimizeSuccessorPass) ShouldSplit(left, right *ParseState[ActionListID], groupIDsByStateID []ParseStateID) bool {
+func (p *minimizeSuccessorPass) ShouldSplit(left, right *ParseState, groupIDsByStateID []ParseStateID) bool {
 	return p.minimizer.stateSuccessorsDiffer(
 		left,
 		right,
@@ -651,7 +651,7 @@ func (p *minimizeSuccessorPass) ShouldSplit(left, right *ParseState[ActionListID
 //
 // Signature is the signature of SuccessorPass. The hash only narrows which
 // states Equivalent compares, so its value cannot reach the output.
-func (p *minimizeSuccessorPass) Signature(state *ParseState[ActionListID], groupIDsByStateID []ParseStateID) (uint64, bool) {
+func (p *minimizeSuccessorPass) Signature(state *ParseState, groupIDsByStateID []ParseStateID) (uint64, bool) {
 	var hasher fxhash.Hasher
 	for _, shift := range p.shiftMaps.get(state) {
 		hasher.WriteU32(uint32(shift.key))
@@ -675,7 +675,7 @@ func (p *minimizeSuccessorPass) Signature(state *ParseState[ActionListID], group
 // never separates them, and separates either from exactly the same states.
 //
 // Equivalent is the equivalent of SuccessorPass.
-func (p *minimizeSuccessorPass) Equivalent(left, right *ParseState[ActionListID], groupIDsByStateID []ParseStateID) bool {
+func (p *minimizeSuccessorPass) Equivalent(left, right *ParseState, groupIDsByStateID []ParseStateID) bool {
 	shifts1 := p.shiftMaps.get(left)
 	shifts2 := p.shiftMaps.get(right)
 	gotos1 := p.nonterminalMaps.get(left)
@@ -716,7 +716,7 @@ func (p *minimizeSuccessorPass) StartGroup() {}
 // time.
 //
 // CompatibleWithAll is the default compatible_with_all of SplitCriterion.
-func (p *minimizeSuccessorPass) CompatibleWithAll(*ParseState[ActionListID], []uint32, []ParseStateID) bool {
+func (p *minimizeSuccessorPass) CompatibleWithAll(*ParseState, []uint32, []ParseStateID) bool {
 	return false
 }
 
@@ -726,7 +726,7 @@ func (p *minimizeSuccessorPass) CompatibleWithAll(*ParseState[ActionListID], []u
 // minimizer is Minimizer. strPool is used only by the log lines of
 // upstream.
 type minimizer struct {
-	parseTable     *ParseTable[ActionListID]
+	parseTable     *ParseTable
 	syntaxGrammar  *SyntaxGrammar
 	lexicalGrammar *LexicalGrammar
 	// indexer gives each symbol its minimizeSymbolKey.
@@ -846,7 +846,7 @@ func (m *minimizer) removeUnitReductions() {
 			done = true
 			state := &m.parseTable.States[stateIndex]
 
-			state.UpdateNonterminalReferences(func(otherStateID ParseStateID, state *ParseState[ActionListID]) ParseStateID {
+			state.UpdateNonterminalReferences(func(otherStateID ParseStateID, state *ParseState) ParseStateID {
 				symbol, ok := unitReductionSymbolsByState[otherStateID]
 				if !ok {
 					return otherStateID
@@ -925,7 +925,7 @@ func (m *minimizer) mergeCompatibleStates() {
 	// Keys are symbol positions, for single-instruction comparison.
 	shiftMaps := collectMinimizeStateLists(
 		states,
-		func(state *ParseState[ActionListID]) iter.Seq[minimizeShift] {
+		func(state *ParseState) iter.Seq[minimizeShift] {
 			return func(yield func(minimizeShift) bool) {
 				for sym, id := range state.TerminalEntries.All() {
 					actions := m.parseTable.ActionLists.Get(id)
@@ -973,17 +973,17 @@ func (m *minimizer) mergeCompatibleStates() {
 	stateIDsByGroupID[startGroupIndex], stateIDsByGroupID[1] = stateIDsByGroupID[1], stateIDsByGroupID[startGroupIndex]
 
 	// Create a list of new parse states: one state for each group of old states.
-	newStates := make([]ParseState[ActionListID], 0, len(stateIDsByGroupID))
+	newStates := make([]ParseState, 0, len(stateIDsByGroupID))
 	for _, stateIDs := range stateIDsByGroupID {
 		// Initialize the new state based on the first old state in the group.
 		parseState := states[stateIDs[0]]
-		states[stateIDs[0]] = ParseState[ActionListID]{}
+		states[stateIDs[0]] = ParseState{}
 
 		// Extend the new state with all of the actions from the other old states
 		// in the group.
 		for _, stateID := range stateIDs[1:] {
 			otherParseState := states[stateID]
-			states[stateID] = ParseState[ActionListID]{}
+			states[stateID] = ParseState{}
 
 			parseState.HasEOFGatedReduce = parseState.HasEOFGatedReduce || otherParseState.HasEOFGatedReduce
 			parseState.TerminalEntries.Extend(otherParseState.TerminalEntries.All())
@@ -995,14 +995,14 @@ func (m *minimizer) mergeCompatibleStates() {
 		}
 
 		// Update the new state's outgoing references using the new grouping.
-		parseState.UpdateNonterminalReferences(func(stateID ParseStateID, _ *ParseState[ActionListID]) ParseStateID {
+		parseState.UpdateNonterminalReferences(func(stateID ParseStateID, _ *ParseState) ParseStateID {
 			return groupIDsByStateID[stateID]
 		})
 		newStates = append(newStates, parseState)
 	}
 
 	m.parseTable.States = newStates
-	RemapTerminalReferences(m.parseTable, func(stateID ParseStateID) ParseStateID {
+	m.parseTable.RemapTerminalReferences(func(stateID ParseStateID) ParseStateID {
 		return groupIDsByStateID[stateID]
 	})
 }
@@ -1028,7 +1028,7 @@ func minimizeHashAction(hasher *fxhash.Hasher, action ParseAction) {
 //
 // statesConflict is Minimizer::states_conflict.
 func (m *minimizer) statesConflict(
-	state1, state2 *ParseState[ActionListID],
+	state1, state2 *ParseState,
 	groupIDsByStateID []ParseStateID,
 	entryMaps *minimizeStateLists[minimizeEntry],
 	conflictBits *minimizeConflictBits,
@@ -1076,7 +1076,7 @@ func (m *minimizer) statesConflict(
 //
 // stateSuccessorsDiffer is Minimizer::state_successors_differ.
 func (m *minimizer) stateSuccessorsDiffer(
-	state1, state2 *ParseState[ActionListID],
+	state1, state2 *ParseState,
 	groupIDsByStateID []ParseStateID,
 	shiftMaps *minimizeStateLists[minimizeShift],
 	nonterminalMaps *minimizeStateLists[minimizeGoto],
@@ -1179,7 +1179,7 @@ func (m *minimizer) actionListsConflict(id1, id2 ActionListID, groupIDsByStateID
 // conflicts with a token of the state.
 //
 // tokenConflicts is Minimizer::token_conflicts.
-func (m *minimizer) tokenConflicts(rightState *ParseState[ActionListID], conflictBits *minimizeConflictBits, newToken minimizeSymbolKey) bool {
+func (m *minimizer) tokenConflicts(rightState *ParseState, conflictBits *minimizeConflictBits, newToken minimizeSymbolKey) bool {
 	var newTokenIndex int
 	var newTokenIsTerminal bool
 	symbol := newToken.symbol(m.indexer)
@@ -1259,7 +1259,7 @@ func (m *minimizer) removeUnusedStates() {
 	stateUsageMap[1] = true
 
 	for i := range states {
-		for referencedState := range ReferencedStates(&states[i], &m.parseTable.ActionLists) {
+		for referencedState := range states[i].ReferencedStates(&m.parseTable.ActionLists) {
 			stateUsageMap[referencedState] = true
 		}
 	}
@@ -1275,7 +1275,7 @@ func (m *minimizer) removeUnusedStates() {
 	originalStateID := 0
 	for stateID < len(states) {
 		if stateUsageMap[originalStateID] {
-			states[stateID].UpdateNonterminalReferences(func(otherStateID ParseStateID, _ *ParseState[ActionListID]) ParseStateID {
+			states[stateID].UpdateNonterminalReferences(func(otherStateID ParseStateID, _ *ParseState) ParseStateID {
 				return stateReplacementMap[otherStateID]
 			})
 			stateID++
@@ -1285,7 +1285,7 @@ func (m *minimizer) removeUnusedStates() {
 		originalStateID++
 	}
 	m.parseTable.States = states
-	RemapTerminalReferences(m.parseTable, func(stateID ParseStateID) ParseStateID {
+	m.parseTable.RemapTerminalReferences(func(stateID ParseStateID) ParseStateID {
 		return stateReplacementMap[stateID]
 	})
 }
@@ -1325,17 +1325,17 @@ func (m *minimizer) reorderStatesByDescendingSize() {
 
 	// Reorder the parse states and update their references to reflect
 	// the new ordering.
-	newStates := make([]ParseState[ActionListID], 0, len(oldIDsByNewID))
+	newStates := make([]ParseState, 0, len(oldIDsByNewID))
 	for _, oldID := range oldIDsByNewID {
 		state := states[oldID]
-		states[oldID] = ParseState[ActionListID]{}
-		state.UpdateNonterminalReferences(func(id ParseStateID, _ *ParseState[ActionListID]) ParseStateID {
+		states[oldID] = ParseState{}
+		state.UpdateNonterminalReferences(func(id ParseStateID, _ *ParseState) ParseStateID {
 			return newIDsByOldID[id]
 		})
 		newStates = append(newStates, state)
 	}
 	m.parseTable.States = newStates
-	RemapTerminalReferences(m.parseTable, func(id ParseStateID) ParseStateID {
+	m.parseTable.RemapTerminalReferences(func(id ParseStateID) ParseStateID {
 		return newIDsByOldID[id]
 	})
 }

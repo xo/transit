@@ -291,7 +291,7 @@ func (p *ActionListPool) Intern(dedup map[string]uint32, list ActionList) uint32
 // indices. The empty list gets index 0.
 //
 // Canonicalize is ActionListPool::canonicalize.
-func (p *ActionListPool) Canonicalize(states []ParseState[ActionListID]) {
+func (p *ActionListPool) Canonicalize(states []ParseState) {
 	oldActions, oldRanges := p.actions, p.ranges
 	p.actions, p.ranges = nil, nil
 	ids := make(map[string]uint32)
@@ -326,16 +326,14 @@ type ParseTableEntry struct {
 	Reusable bool
 }
 
-// ParseState is a state of the parse table. T is the type of the value of a
-// terminal entry. The builder of the parse table makes ActionListID entries.
+// ParseState is a state of the parse table.
 //
-// ParseState is ParseState. Upstream gives T the default ActionListId, and Go
-// has no default for a type parameter. The zero ParseState is
-// ParseState::default. A ParseState holds IndexMaps, so it must not be copied
-// while it is in use (see IndexMap).
-type ParseState[T any] struct {
+// ParseState is ParseState. The zero ParseState is ParseState::default. A
+// ParseState holds IndexMaps, so it must not be copied while it is in use
+// (see IndexMap).
+type ParseState struct {
 	ID                 ParseStateID
-	TerminalEntries    IndexMap[Symbol, T]
+	TerminalEntries    IndexMap[Symbol, ActionListID]
 	NonterminalEntries IndexMap[Symbol, GotoAction]
 	ReservedWords      TokenSet
 	LexStateID         LexStateID
@@ -389,12 +387,11 @@ func (p *ProductionInfo) Equal(other *ProductionInfo) bool {
 		maps.EqualFunc(p.FieldMap, other.FieldMap, slices.Equal)
 }
 
-// ParseTable is the parse table. T is the type of the value of a terminal
-// entry of a state, as in ParseState.
+// ParseTable is the parse table.
 //
 // ParseTable is ParseTable. The zero ParseTable is ParseTable::default.
-type ParseTable[T any] struct {
-	States                     []ParseState[T]
+type ParseTable struct {
+	States                     []ParseState
 	ActionLists                ActionListPool
 	Symbols                    []Symbol
 	ProductionInfos            []ProductionInfo
@@ -496,7 +493,7 @@ func (e ParseTableEntry) Clone() ParseTableEntry {
 // extra.
 //
 // IsEndOfNonTerminalExtra is ParseState::is_end_of_non_terminal_extra.
-func (s *ParseState[T]) IsEndOfNonTerminalExtra() bool {
+func (s *ParseState) IsEndOfNonTerminalExtra() bool {
 	return s.TerminalEntries.ContainsKey(SymbolEndOfNonTerminalExtraValue)
 }
 
@@ -504,9 +501,8 @@ func (s *ParseState[T]) IsEndOfNonTerminalExtra() bool {
 // shift action of the terminal entries, in the order of the entries, then the
 // target of each goto action of the non-terminal entries.
 //
-// ReferencedStates is ParseState::referenced_states. It is a function,
-// because upstream defines it only for ParseState<ActionListId>.
-func ReferencedStates(s *ParseState[ActionListID], pool *ActionListPool) iter.Seq[ParseStateID] {
+// ReferencedStates is ParseState::referenced_states.
+func (s *ParseState) ReferencedStates(pool *ActionListPool) iter.Seq[ParseStateID] {
 	return func(yield func(ParseStateID) bool) {
 		for id := range s.TerminalEntries.Values() {
 			for _, action := range pool.Get(id) {
@@ -528,9 +524,7 @@ func ReferencedStates(s *ParseState[ActionListID], pool *ActionListPool) iter.Se
 // state.
 //
 // UpdateNonterminalReferences is ParseState::update_nonterminal_references.
-// Upstream defines it only for ParseState<ActionListId>, and it does not use
-// T.
-func (s *ParseState[T]) UpdateNonterminalReferences(f func(ParseStateID, *ParseState[T]) ParseStateID) {
+func (s *ParseState) UpdateNonterminalReferences(f func(ParseStateID, *ParseState) ParseStateID) {
 	type update struct {
 		symbol   Symbol
 		newState ParseStateID
@@ -552,9 +546,8 @@ func (s *ParseState[T]) UpdateNonterminalReferences(f func(ParseStateID, *ParseS
 // RemapTerminalReferences changes the target of each shift action to what f
 // returns for it. It changes only the lists of the pool that a state uses.
 //
-// RemapTerminalReferences is ParseTable::remap_terminal_references. It is a
-// function, because upstream defines it only for ParseTable<ActionListId>.
-func RemapTerminalReferences(t *ParseTable[ActionListID], f func(ParseStateID) ParseStateID) {
+// RemapTerminalReferences is ParseTable::remap_terminal_references.
+func (t *ParseTable) RemapTerminalReferences(f func(ParseStateID) ParseStateID) {
 	p := &t.ActionLists
 	if n := p.Len(); len(p.remapScratch) < n {
 		p.remapScratch = append(p.remapScratch, make([]bool, n-len(p.remapScratch))...)

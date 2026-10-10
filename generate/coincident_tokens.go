@@ -41,7 +41,7 @@ type CoincidentTokenIndex struct {
 // Go form maps the bytes of each sorted set to true. Upstream sorts with
 // sort_unstable, and two indices that compare equal are the same value, so
 // the order is the same in Go.
-func NewCoincidentTokenIndex[T any](table *ParseTable[T], lexicalGrammar *LexicalGrammar, wordToken Symbol, hasWordToken bool) *CoincidentTokenIndex {
+func NewCoincidentTokenIndex(table *ParseTable, lexicalGrammar *LexicalGrammar, wordToken Symbol, hasWordToken bool) *CoincidentTokenIndex {
 	n := len(lexicalGrammar.Variables)
 	rowWords := (n + 63) / 64
 	result := &CoincidentTokenIndex{

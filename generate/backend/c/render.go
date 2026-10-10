@@ -124,7 +124,7 @@ type generator struct {
 	buffer                         bytes.Buffer
 	indentLevel                    int
 	languageName                   string
-	parseTable                     *generate.ParseTable[generate.ActionListID]
+	parseTable                     *generate.ParseTable
 	mainLexTable                   *generate.LexTable
 	keywordLexTable                *generate.LexTable
 	largeCharacterSets             []generate.LargeCharacterSet
@@ -1596,7 +1596,7 @@ func (g *generator) addParseTable() error {
 // order. Only the end of a non-terminal extra has none, and it sorts first,
 // as the None of upstream. A state holds it once at most, so the sort has no
 // equal elements.
-func (g *generator) sortedTerminalEntries(entries []terminalEntry, state *generate.ParseState[generate.ActionListID]) []terminalEntry {
+func (g *generator) sortedTerminalEntries(entries []terminalEntry, state *generate.ParseState) []terminalEntry {
 	for symbol, id := range state.TerminalEntries.All() {
 		entries = append(entries, terminalEntry{symbol: symbol, id: id})
 	}

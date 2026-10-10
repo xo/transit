@@ -19,7 +19,7 @@ import (
 // MinimizeParseTable, with the calls and the arguments of build_tables.rs,
 // and returns the minimized table. It returns false when an earlier step
 // rejects the grammar.
-func minimizeTablesForTest(t *testing.T, file string, optimizations OptLevel) (*ParseTable[ActionListID], bool) {
+func minimizeTablesForTest(t *testing.T, file string, optimizations OptLevel) (*ParseTable, bool) {
 	t.Helper()
 	built, err := buildParseTableForTest(t, file)
 	if err != nil {
@@ -120,7 +120,7 @@ func TestMinimizeParseTableStateOrder(t *testing.T) {
 					t.Errorf("%s: state %d has more entries than state %d", f, i, i-1)
 				}
 			}
-			for id := range ReferencedStates(state, &table.ActionLists) {
+			for id := range state.ReferencedStates(&table.ActionLists) {
 				if int(id) >= len(table.States) {
 					t.Errorf("%s: state %d refers to state %d, which is not in the table", f, i, id)
 				}

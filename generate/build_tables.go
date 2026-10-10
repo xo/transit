@@ -19,7 +19,7 @@ import (
 //
 // Tables is Tables.
 type Tables struct {
-	ParseTable         ParseTable[ActionListID]
+	ParseTable         ParseTable
 	MainLexTable       LexTable
 	KeywordLexTable    LexTable
 	LargeCharacterSets []LargeCharacterSet
@@ -190,7 +190,7 @@ func getFollowingTokens(syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGra
 // recover action for each token that can be recovered to.
 //
 // populateErrorState is populate_error_state.
-func populateErrorState(parseTable *ParseTable[ActionListID], syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGrammar, coincidentTokenIndex *CoincidentTokenIndex, tokenConflictMap *TokenConflictMap, keywords *TokenSet) {
+func populateErrorState(parseTable *ParseTable, syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGrammar, coincidentTokenIndex *CoincidentTokenIndex, tokenConflictMap *TokenConflictMap, keywords *TokenSet) {
 	n := len(lexicalGrammar.Variables)
 
 	// First find the tokens that are free of conflicts: the tokens that
@@ -249,7 +249,7 @@ func populateErrorState(parseTable *ParseTable[ActionListID], syntaxGrammar *Syn
 // the word token first, the external tokens and the non-terminals.
 //
 // populateUsedSymbols is populate_used_symbols.
-func populateUsedSymbols(parseTable *ParseTable[ActionListID], syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGrammar) {
+func populateUsedSymbols(parseTable *ParseTable, syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGrammar) {
 	terminalUsages := make([]bool, len(lexicalGrammar.Variables))
 	nonTerminalUsages := make([]bool, len(syntaxGrammar.Variables))
 	externalUsages := make([]bool, len(syntaxGrammar.ExternalTokens))
@@ -308,7 +308,7 @@ func populateUsedSymbols(parseTable *ParseTable[ActionListID], syntaxGrammar *Sy
 // external tokens, and lists the sets. Set 0 is the empty set.
 //
 // populateExternalLexStates is populate_external_lex_states.
-func populateExternalLexStates(parseTable *ParseTable[ActionListID], syntaxGrammar *SyntaxGrammar) {
+func populateExternalLexStates(parseTable *ParseTable, syntaxGrammar *SyntaxGrammar) {
 	externalTokensByCorrespondingInternalToken := map[TerminalIndex]int{}
 	for i, externalToken := range syntaxGrammar.ExternalTokens {
 		if !externalToken.HasCorrespondingInternalToken {
@@ -426,7 +426,7 @@ func identifyKeywords(lexicalGrammar *LexicalGrammar, wordToken Symbol, hasWordT
 // overlap another token of that state.
 //
 // markFragileTokens is mark_fragile_tokens.
-func markFragileTokens(parseTable *ParseTable[ActionListID], tokenConflictMap *TokenConflictMap) {
+func markFragileTokens(parseTable *ParseTable, tokenConflictMap *TokenConflictMap) {
 	var validTerminalIndices []TerminalIndex
 	for s := range parseTable.States {
 		state := &parseTable.States[s]

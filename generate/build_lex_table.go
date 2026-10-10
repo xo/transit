@@ -42,7 +42,7 @@ type LexTables struct {
 //
 // BuildLexTable is build_lex_table.
 func BuildLexTable(
-	parseTable *ParseTable[ActionListID],
+	parseTable *ParseTable,
 	syntaxGrammar *SyntaxGrammar,
 	lexicalGrammar *LexicalGrammar,
 	keywords *TokenSet,
@@ -381,7 +381,7 @@ func mergeTokenSet(
 // the result. Each group is a list of state ids in increasing order, and no
 // id is in two groups, so the first ids of the groups differ. The sort is
 // therefore a total order, and the port gets the same order from a Go map.
-func minimizeLexTable(table *LexTable, parseTable *ParseTable[ActionListID]) {
+func minimizeLexTable(table *LexTable, parseTable *ParseTable) {
 	// Initially group the states by their accept action and their valid
 	// lookahead characters.
 	stateIDsBySignature := make(map[string][]uint32)
@@ -519,7 +519,7 @@ func lexStatesDiffer(left, right *LexState, groupIDsByStateID []LexStateID) bool
 //
 // lexSortStates is sort_states. Upstream sorts with a stable sort, as the
 // port does.
-func lexSortStates(table *LexTable, parseTable *ParseTable[ActionListID]) {
+func lexSortStates(table *LexTable, parseTable *ParseTable) {
 	// Get a mapping of old state index -> new_state_index
 	oldIDsByNewID := make([]int, len(table.States))
 	for i := range oldIDsByNewID {

@@ -15,16 +15,16 @@ import (
 // skip would call `f` on slot 1 and index out of bounds here.
 func TestTerminalRemapSkipsUnreferencedPoolEntries(t *testing.T) {
 	t.Parallel()
-	var table ParseTable[ActionListID]
+	var table ParseTable
 	table.ActionLists.Push(ActionList{{Kind: ParseActionShift, State: 0}})
 	table.ActionLists.Push(ActionList{{Kind: ParseActionShift, State: 1}})
-	var state ParseState[ActionListID]
+	var state ParseState
 	state.TerminalEntries.Insert(SymbolEndValue, NewActionListID(0, true))
 	table.States = append(table.States, state)
 
 	// Slot 1 is unreferenced, so `f` must never see state 1 (else this indexes out of bounds).
 	replacement := []ParseStateID{7}
-	RemapTerminalReferences(&table, func(state ParseStateID) ParseStateID { return replacement[state] })
+	table.RemapTerminalReferences(func(state ParseStateID) ParseStateID { return replacement[state] })
 
 	if a := table.ActionLists.Get(NewActionListID(0, false))[0]; a.Kind != ParseActionShift || a.State != 7 {
 		t.Errorf("slot 0: got %+v, want a shift to state 7", a)
@@ -117,8 +117,8 @@ func TestCanonicalizeKeepsEmptyListFirst(t *testing.T) {
 	t.Parallel()
 	shift := ParseAction{Kind: ParseActionShift, State: 2}
 	reduce := ParseAction{Kind: ParseActionReduce, Symbol: NonTerminalSymbol(1), ChildCount: 1}
-	var interned ParseTable[ActionListID]
-	interned.States = make([]ParseState[ActionListID], 2)
+	var interned ParseTable
+	interned.States = make([]ParseState, 2)
 	ids := make(map[string]uint32)
 	intern := func(state int, symbol Symbol, list ActionList, reusable bool) {
 		index := interned.ActionLists.Intern(ids, list)

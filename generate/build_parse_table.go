@@ -416,7 +416,7 @@ type parseTableBuilder struct {
 	auxiliaryContexts         auxiliarySymbolContexts
 	nonTerminalExtraStates    []buildParseExtraState
 	actualConflicts           map[string][]Symbol
-	parseTable                ParseTable[ActionListID]
+	parseTable                ParseTable
 	// actionListIDs holds the pool index of each action list that is
 	// interned into parseTable so far, by the key of Intern.
 	actionListIDs map[string]uint32
@@ -736,7 +736,7 @@ func newParseTableBuilder(
 		coreIDsByCore:             make(map[string]uint32),
 		productionInfoIDsByProdID: productionInfoIDs,
 		actualConflicts:           actualConflicts,
-		parseTable: ParseTable[ActionListID]{
+		parseTable: ParseTable{
 			MaxAliasedProductionLength: 1,
 		},
 		actionListIDs:  make(map[string]uint32),
@@ -762,7 +762,7 @@ func buildParseSymbolsKey(symbols []Symbol) string {
 // grammar does not need.
 //
 // build is ParseTableBuilder::build.
-func (b *parseTableBuilder) build(diagnostics *[]Diagnostic) (ParseTable[ActionListID], *ParseStateInfo, error) {
+func (b *parseTableBuilder) build(diagnostics *[]Diagnostic) (ParseTable, *ParseStateInfo, error) {
 	// Ensure that the empty alias sequence has index 0.
 	b.parseTable.ProductionInfos = append(b.parseTable.ProductionInfos, ProductionInfo{})
 
@@ -815,7 +815,7 @@ func (b *parseTableBuilder) build(diagnostics *[]Diagnostic) (ParseTable[ActionL
 	for _, terminal := range slices.SortedFunc(maps.Keys(nonTerminalExtraItemSetsByFirstTerminal), CompareSymbol) {
 		itemSet := nonTerminalExtraItemSetsByFirstTerminal[terminal]
 		if _, ok := terminal.NonTerminalIndex(); ok {
-			return ParseTable[ActionListID]{}, nil, &ParseTableBuilderError{
+			return ParseTable{}, nil, &ParseTableBuilderError{
 				Kind: ParseTableBuilderImproperNonTerminalExtra,
 				Name: b.symbolName(terminal),
 			}
@@ -842,7 +842,7 @@ func (b *parseTableBuilder) build(diagnostics *[]Diagnostic) (ParseTable[ActionL
 			entry.stateID,
 			&itemSet,
 		); err != nil {
-			return ParseTable[ActionListID]{}, nil, err
+			return ParseTable{}, nil, err
 		}
 	}
 
@@ -902,7 +902,7 @@ func (b *parseTableBuilder) addParseState(
 	stateID := ParseStateID(len(b.parseTable.States))
 	b.precedingSymbolsByID = append(b.precedingSymbolsByID, slices.Clone(precedingSymbols))
 
-	b.parseTable.States = append(b.parseTable.States, ParseState[ActionListID]{
+	b.parseTable.States = append(b.parseTable.States, ParseState{
 		ID:                 stateID,
 		LexStateID:         0,
 		ExternalLexStateID: 0,
@@ -1681,7 +1681,7 @@ func BuildParseTable(
 	variableInfo []VariableInfo,
 	strPool *StrPool,
 	diagnostics *[]Diagnostic,
-) (ParseTable[ActionListID], *ParseStateInfo, error) {
+) (ParseTable, *ParseStateInfo, error) {
 	return newParseTableBuilder(
 		syntaxGrammar,
 		lexicalGrammar,

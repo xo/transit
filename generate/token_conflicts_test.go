@@ -162,7 +162,7 @@ func indexOfVar(t *testing.T, pool *RulePool, grammar *LexicalGrammar, name stri
 
 // lexTablesDump returns the text of the lex tables and of the lex state of
 // each parse state, so that two runs can be compared.
-func lexTablesDump(tables *LexTables, parseTable *ParseTable[ActionListID]) string {
+func lexTablesDump(tables *LexTables, parseTable *ParseTable) string {
 	var b strings.Builder
 	dumpTable := func(name string, table *LexTable) {
 		fmt.Fprintf(&b, "%s\n", name)
@@ -188,14 +188,14 @@ func lexTablesDump(tables *LexTables, parseTable *ParseTable[ActionListID]) stri
 // lexTablesForTest builds the lex tables of a grammar for a parse table made
 // for the test: state 0 holds every terminal and the end of the input, and
 // state i+1 holds terminal i and the end of the input.
-func lexTablesForTest(prepared *PreparedGrammar) (*LexTables, *ParseTable[ActionListID], *TokenConflictMap) {
+func lexTablesForTest(prepared *PreparedGrammar) (*LexTables, *ParseTable, *TokenConflictMap) {
 	syntaxGrammar, lexicalGrammar := &prepared.SyntaxGrammar, &prepared.LexicalGrammar
 	keyMap := NewItemKeyMap(syntaxGrammar, prepared.StrPool)
 	builder := NewParseItemSetBuilder(syntaxGrammar, lexicalGrammar, &prepared.Inlines, keyMap)
 	tokenConflictMap := NewTokenConflictMap(lexicalGrammar, getFollowingTokens(syntaxGrammar, lexicalGrammar, builder))
 
 	n := len(lexicalGrammar.Variables)
-	parseTable := &ParseTable[ActionListID]{States: make([]ParseState[ActionListID], n+1)}
+	parseTable := &ParseTable{States: make([]ParseState, n+1)}
 	for i := range n {
 		parseTable.States[0].TerminalEntries.Insert(TerminalSymbol(i), 0)
 		parseTable.States[i+1].TerminalEntries.Insert(TerminalSymbol(i), 0)
