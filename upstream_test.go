@@ -3,6 +3,7 @@ package transit_test
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -325,19 +326,40 @@ func TestThePathRulesFollowUpstreamMD(t *testing.T) {
 	}
 }
 
+// portedCommit returns the upstream commit that transit ports: the commit in
+// upstream.txt, or the base commit while upstream.txt does not exist (D116).
+func portedCommit(t *testing.T) string {
+	t.Helper()
+	b, err := os.ReadFile("upstream.txt")
+	if errors.Is(err, os.ErrNotExist) {
+		return baseCommit
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := strings.TrimSpace(string(b))
+	if !regexp.MustCompile(`^[0-9a-f]{40}$`).MatchString(c) {
+		t.Fatalf("upstream.txt holds %q, which is not a full commit hash", c)
+	}
+	return c
+}
+
 // TestTheGoldenFilesNameTheBaseCommit makes sure that the golden files come
 // from the upstream commit that transit ports (D30, D40), and that the record
-// of the grammars has the form that docs/GRAMMAR.md gives.
+// of the grammars has the form that docs/GRAMMAR.md gives. The commit that
+// transit ports is in upstream.txt, or it is the base commit while
+// upstream.txt does not exist (D116).
 func TestTheGoldenFilesNameTheBaseCommit(t *testing.T) {
 	t.Parallel()
+	want := portedCommit(t)
 	var testdata struct {
 		Upstream string `json:"upstream"`
 	}
 	if err := json.Unmarshal([]byte(read(t, filepath.Join("generate", "testdata", "upstream.json"))), &testdata); err != nil {
 		t.Fatalf("decoding generate/testdata/upstream.json: %v", err)
 	}
-	if testdata.Upstream != baseCommit {
-		t.Errorf("generate/testdata/upstream.json names %s, and the base commit is %s", testdata.Upstream, baseCommit)
+	if testdata.Upstream != want {
+		t.Errorf("generate/testdata/upstream.json names %s, and transit ports %s", testdata.Upstream, want)
 	}
 	var rec struct {
 		Upstream string `json:"upstream"`
@@ -357,8 +379,8 @@ func TestTheGoldenFilesNameTheBaseCommit(t *testing.T) {
 	if err := json.Unmarshal([]byte(read(t, filepath.Join("grammars", "grammars.json"))), &rec); err != nil {
 		t.Fatalf("decoding grammars/grammars.json: %v", err)
 	}
-	if rec.Upstream != baseCommit {
-		t.Errorf("grammars/grammars.json names %s, and the base commit is %s", rec.Upstream, baseCommit)
+	if rec.Upstream != want {
+		t.Errorf("grammars/grammars.json names %s, and transit ports %s", rec.Upstream, want)
 	}
 	commit := regexp.MustCompile(`^[0-9a-f]{40}$`)
 	hash := regexp.MustCompile(`^[0-9a-f]{64}$`)

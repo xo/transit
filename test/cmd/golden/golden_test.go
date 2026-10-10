@@ -33,6 +33,37 @@ func TestGrammarPathsHasNoRepeats(t *testing.T) {
 	}
 }
 
+// TestPortedCommitReadsUpstreamTxt makes sure that the harness wants the
+// commit in upstream.txt, and the base commit while upstream.txt does not
+// exist (D116).
+func TestPortedCommitReadsUpstreamTxt(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	got, err := portedCommit(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != baseCommit {
+		t.Errorf("expected %s, got: %s", baseCommit, got)
+	}
+	const want = "436c42ff56b28a2016e88a09683a6cd8dbe04e7a"
+	if err := os.WriteFile(filepath.Join(dir, "upstream.txt"), []byte(want+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got, err = portedCommit(dir); err != nil {
+		t.Fatal(err)
+	}
+	if got != want {
+		t.Errorf("expected %s, got: %s", want, got)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "upstream.txt"), []byte("436c42ff\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := portedCommit(dir); err == nil {
+		t.Error("expected an error for a short hash, got none")
+	}
+}
+
 // TestMergeReplacesAndSorts makes sure that a new entry replaces the old entry
 // of the same repository and path, and that the record is sorted.
 func TestMergeReplacesAndSorts(t *testing.T) {
@@ -49,6 +80,22 @@ func TestMergeReplacesAndSorts(t *testing.T) {
 	}
 	if !slices.Equal(commits, want) {
 		t.Errorf("expected %v, got: %v", want, commits)
+	}
+}
+
+// TestMergeKeepsThePackageAndTheCorpus makes sure that a new entry keeps the
+// package name and the corpus result of the old entry, which the sets that
+// make entries do not compute.
+func TestMergeKeepsThePackageAndTheCorpus(t *testing.T) {
+	t.Parallel()
+	corpus := &corpusResult{Tests: 3}
+	old := []grammar{{Repository: "go", Path: ".", Package: "golang", Corpus: corpus, Commit: "old"}}
+	got := merge(old, []grammar{{Repository: "go", Path: ".", Package: "go", Commit: "new"}})
+	if len(got) != 1 {
+		t.Fatalf("expected 1 entry, got: %d", len(got))
+	}
+	if g := got[0]; g.Package != "golang" || g.Corpus != corpus || g.Commit != "new" {
+		t.Errorf("expected the package golang, the old corpus and the commit new, got: %q %v %q", g.Package, g.Corpus, g.Commit)
 	}
 }
 

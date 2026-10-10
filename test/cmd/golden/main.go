@@ -1,7 +1,7 @@
 // Command golden is the golden harness of transit (D58). It runs the upstream
-// tree-sitter tool, at the base commit, on the grammars that test the transit
-// generator, and it records what the tool writes. The C backend of transit
-// must write the same files (D8).
+// tree-sitter tool, at the upstream commit that transit ports, on the grammars
+// that test the transit generator, and it records what the tool writes. The
+// C backend of transit must write the same files (D8).
 //
 // For each of the 68 test grammars of upstream, it keeps grammar.json, and
 // parser.c and node-types.json at ABI 15, at ABI 14, and at ABI 15 with the
@@ -17,9 +17,10 @@
 //
 //	cd test && go run ./cmd/golden
 //
-// It needs the upstream checkout in tree-sitter/ at the base commit (D4, D30),
-// cargo, node and git. It keeps what it downloads in the cache folder of
-// transit, $XDG_CACHE_HOME/transit.
+// It needs the upstream checkout in tree-sitter/ at the commit in upstream.txt,
+// or at the base commit while upstream.txt does not exist (D4, D30, D116). It
+// also needs cargo, node and git. It keeps what it downloads in the cache
+// folder of transit, $XDG_CACHE_HOME/transit.
 package main
 
 import (
@@ -136,7 +137,8 @@ type harness struct {
 	only  map[string]bool
 	out   io.Writer // where the progress and the report go
 
-	// the versions that the golden files record
+	// the upstream commit and the versions that the golden files record
+	upstream    string
 	toolVersion string
 	rustVersion string
 }

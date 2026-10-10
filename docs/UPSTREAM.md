@@ -46,9 +46,9 @@ The base commit is the upstream commit that the first port copies. It is
 the end of a phase, by a decision.
 
 `upstream.txt`, in the root, holds the upstream commit that transit matches,
-as a full hash on one line. It is written at the end of phase 6, because until
-then no commit is fully ported. After that, each commit that ports an upstream
-change also changes `upstream.txt`.
+as a full hash on one line. Phase 6 ports the upstream commits in order, and
+each transit commit of phase 6 writes the last upstream commit that it ports
+or records (D116). Before phase 6, `upstream.txt` does not exist.
 
 ## Where each upstream path goes
 
@@ -385,9 +385,11 @@ cd test && go run ./cmd/golden
 
 It does these steps:
 
-1. It makes sure that the checkout in `tree-sitter/` is at the base commit,
-   and builds the upstream tool with `cargo build --release -p
-   tree-sitter-cli` if it is not built.
+1. It makes sure that the checkout in `tree-sitter/` is at the commit in
+   `upstream.txt` (D116). While `upstream.txt` does not exist, the checkout
+   must be at the base commit. Then it builds the upstream tool with `cargo
+   build --release -p tree-sitter-cli`. If the checkout moved, cargo builds
+   the tool again.
 2. For each test grammar, it runs `tree-sitter generate` in a copy of its
    folder, at ABI 15, at ABI 14, and at ABI 15 with `--disable-optimizations`.
    It writes `generate/testdata/<grammar>/grammar.json`, and `parser.c` and
@@ -432,8 +434,9 @@ output of the tool, so the harness clears them. It sets `NO_COLOR`, so that an
 error has no codes for the colors of a terminal.
 
 `TestTheGoldenFilesNameTheBaseCommit` fails if the upstream commit beside the
-test data is not the commit that transit ports. That is the base commit until
-phase 6 ends, and the commit in `upstream.txt` after that.
+test data is not the commit that transit ports. That is the commit in
+`upstream.txt`, or the base commit while `upstream.txt` does not exist
+(D116).
 
 ## A change to the ABI
 

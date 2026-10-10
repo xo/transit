@@ -753,8 +753,8 @@ arrives, so that phase 6 starts with only the commits that transit ports.
 [`UPSTREAM.md`](UPSTREAM.md) holds the rules. In brief:
 
 1. The base commit is `dcdc8cc` (D30). `upstream.txt`, in the root, holds the
-   upstream commit that transit matches. It is written at the end of phase 6,
-   when it is true.
+   upstream commit that transit matches. Each transit commit of phase 6
+   writes it, and the golden harness reads it (D116).
 2. Each upstream commit is sorted by the paths that it changes: it is ported,
    or it is not applicable, with a reason.
 3. One upstream commit that is ported becomes one transit commit, and the

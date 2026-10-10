@@ -34,7 +34,7 @@ func (h *harness) testGrammars(ctx context.Context, report *coverage) error {
 		return err
 	}
 	return writeJSON(filepath.Join(dst, "upstream.json"), map[string]string{
-		"upstream": baseCommit,
+		"upstream": h.upstream,
 		"tool":     h.toolVersion,
 		"rust":     h.rustVersion,
 	})

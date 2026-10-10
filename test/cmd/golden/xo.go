@@ -70,7 +70,7 @@ func (h *harness) xoGrammars(ctx context.Context, report *coverage) error {
 	if err != nil {
 		return err
 	}
-	rec.Upstream, rec.Tool, rec.Rust = baseCommit, h.toolVersion, h.rustVersion
+	rec.Upstream, rec.Tool, rec.Rust = h.upstream, h.toolVersion, h.rustVersion
 	rec.Grammars = merge(rec.Grammars, entries)
 	return writeJSON(h.recordPath(), rec)
 }

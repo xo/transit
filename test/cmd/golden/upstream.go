@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -35,16 +36,46 @@ type output struct {
 	err         string // the error text, when the tool rejects the grammar
 }
 
-// checkUpstream makes sure that the upstream checkout is at the base commit,
-// and that docs/UPSTREAM.md names the same commit.
+// commitPattern matches a full commit hash.
+var commitPattern = regexp.MustCompile(`^[0-9a-f]{40}$`)
+
+// portedCommit returns the upstream commit that transit ports: the commit in
+// upstream.txt, or the base commit while upstream.txt does not exist (D116).
+func portedCommit(root string) (string, error) {
+	b, err := os.ReadFile(filepath.Join(root, "upstream.txt"))
+	if errors.Is(err, os.ErrNotExist) {
+		return baseCommit, nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("reading upstream.txt: %w", err)
+	}
+	c := strings.TrimSpace(string(b))
+	if !commitPattern.MatchString(c) {
+		return "", fmt.Errorf("reading upstream.txt: %q is not a full commit hash", c)
+	}
+	return c, nil
+}
+
+// checkUpstream makes sure that the upstream checkout is at the commit that
+// transit ports, and that docs/UPSTREAM.md names the base commit. The commit
+// that transit ports is in upstream.txt, or it is the base commit while
+// upstream.txt does not exist (D116).
 func (h *harness) checkUpstream(ctx context.Context) error {
+	want, err := portedCommit(h.root)
+	if err != nil {
+		return err
+	}
 	head, err := command(ctx, h.ts, "git", "rev-parse", "HEAD")
 	if err != nil {
 		return fmt.Errorf("reading the commit of tree-sitter/: %w", err)
 	}
-	if got := strings.TrimSpace(head); got != baseCommit {
-		return fmt.Errorf("tree-sitter/ is at %s, and the base commit is %s (D30)", got, baseCommit)
+	if got := strings.TrimSpace(head); got != want {
+		if want == baseCommit {
+			return fmt.Errorf("tree-sitter/ is at %s, and the base commit is %s (D30)", got, baseCommit)
+		}
+		return fmt.Errorf("tree-sitter/ is at %s, and upstream.txt names %s (D116)", got, want)
 	}
+	h.upstream = want
 	doc, err := os.ReadFile(filepath.Join(h.root, "docs", "UPSTREAM.md"))
 	if err != nil {
 		return fmt.Errorf("reading docs/UPSTREAM.md: %w", err)
@@ -55,15 +86,15 @@ func (h *harness) checkUpstream(ctx context.Context) error {
 	return nil
 }
 
-// buildTool builds the upstream tool at the base commit, and reads its version
-// and the version of the Rust compiler.
+// buildTool builds the upstream tool from the checkout, and reads its version
+// and the version of the Rust compiler. The checkout moves one commit at a
+// time in phase 6 (D116), so the harness runs cargo each time, and cargo
+// builds again only what the move changed.
 func (h *harness) buildTool(ctx context.Context) error {
 	h.tool = filepath.Join(h.ts, "target", "release", "tree-sitter")
-	if _, err := os.Stat(h.tool); err != nil {
-		h.logf("building the upstream tool\n")
-		if _, err := command(ctx, h.ts, "cargo", "build", "--release", "-p", "tree-sitter-cli"); err != nil {
-			return fmt.Errorf("building the upstream tool: %w", err)
-		}
+	h.logf("building the upstream tool\n")
+	if _, err := command(ctx, h.ts, "cargo", "build", "--release", "-p", "tree-sitter-cli"); err != nil {
+		return fmt.Errorf("building the upstream tool: %w", err)
 	}
 	v, err := command(ctx, h.ts, h.tool, "--version")
 	if err != nil {

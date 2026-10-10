@@ -139,7 +139,7 @@ func (h *harness) fixtureGrammars(ctx context.Context, report *coverage) error {
 	if err != nil {
 		return err
 	}
-	rec.Upstream, rec.Tool, rec.Rust = baseCommit, h.toolVersion, h.rustVersion
+	rec.Upstream, rec.Tool, rec.Rust = h.upstream, h.toolVersion, h.rustVersion
 	rec.Grammars = merge(rec.Grammars, entries)
 	return writeJSON(h.recordPath(), rec)
 }
@@ -275,14 +275,33 @@ func (h *harness) fetch(ctx context.Context, repo, ref string) (string, string, 
 }
 
 // merge puts new entries into the record in place of the old entries of the
-// same repository and path, and sorts the record.
+// same repository and path, and sorts the record. A new entry keeps the
+// package name and the corpus result of the old entry. The sets that make
+// the entries do not compute them: a person chooses a package name that the
+// folder does not give (D77, D86), and only the set corpus writes a corpus
+// result. In phase 6 the harness runs at each upstream commit (D116), so a
+// run must not drop them.
 func merge(old, updates []grammar) []grammar {
 	key := func(g grammar) string { return g.Repository + " " + g.Path }
-	seen := map[string]bool{}
-	for _, g := range updates {
-		seen[key(g)] = true
+	byKey := map[string]grammar{}
+	for _, g := range old {
+		byKey[key(g)] = g
 	}
+	seen := map[string]bool{}
 	out := slices.Clone(updates)
+	for i, g := range out {
+		seen[key(g)] = true
+		prev, ok := byKey[key(g)]
+		if !ok {
+			continue
+		}
+		if prev.Package != "" {
+			out[i].Package = prev.Package
+		}
+		if g.Corpus == nil {
+			out[i].Corpus = prev.Corpus
+		}
+	}
 	for _, g := range old {
 		if !seen[key(g)] {
 			out = append(out, g)
