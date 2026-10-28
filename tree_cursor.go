@@ -178,8 +178,6 @@ func lengthBacktrack(a, b length) length {
 // previous is ts_tree_cursor_child_iterator_previous. The C function writes
 // the entry and whether it is visible to out parameters, and the Go function
 // returns them.
-//
-// The entry of C has no descendant index, so it is 0.
 func (it *cursorChildIterator) previous() (result treeCursorEntry, visible, ok bool) {
 	// this is mostly a reverse `ts_tree_cursor_child_iterator_next` taking into
 	// account unsigned underflow
@@ -192,6 +190,7 @@ func (it *cursorChildIterator) previous() (result treeCursorEntry, visible, ok b
 		position:             it.position,
 		childIndex:           it.childIndex,
 		structuralChildIndex: it.structuralChildIndex,
+		descendantIndex:      it.descendantIndex,
 	}
 	visible = child.visible()
 	extra := child.extra()
@@ -209,6 +208,14 @@ func (it *cursorChildIterator) previous() (result treeCursorEntry, visible, ok b
 	// unsigned can underflow so compare it to child_count
 	if it.childIndex < it.parent.childCount() {
 		previousChild := it.parent.ptr.children[it.childIndex]
+		previousVisible := previousChild.visible()
+		if !previousChild.extra() && it.aliasSequence != nil {
+			previousVisible = previousVisible || it.aliasSequence[it.structuralChildIndex] != 0
+		}
+		it.descendantIndex -= previousChild.visibleDescendantCount()
+		if previousVisible {
+			it.descendantIndex--
+		}
 		size := previousChild.size()
 		it.position = lengthBacktrack(it.position, size)
 	}

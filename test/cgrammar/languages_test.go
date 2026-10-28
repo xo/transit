@@ -288,6 +288,7 @@ var goPackageTests = []namedTest{
 	{"TestTreeCursor", TestTreeCursor},
 	{"TestTreeCursorPreviousSibling", TestTreeCursorPreviousSibling},
 	{"TestTreeCursorPreviousSiblingWithManyComments", TestTreeCursorPreviousSiblingWithManyComments},
+	{"TestTreeCursorPreviousSiblingDescendantIndex", TestTreeCursorPreviousSiblingDescendantIndex},
 	{"TestTreeCursorFields", TestTreeCursorFields},
 	{"TestTreeCursorChildForPoint", TestTreeCursorChildForPoint},
 	{"TestTreeNodeEquality", TestTreeNodeEquality},

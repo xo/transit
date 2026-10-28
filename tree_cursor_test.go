@@ -72,9 +72,8 @@ func TestCursorWalk(t *testing.T) {
 		t.Errorf("the walk visited %v, want %v", got, want)
 	}
 
-	// the children of the root, backward. The entry of a previous sibling
-	// has no descendant index in C, so the index is 0, or it counts from 0
-	// in a hidden node, where the walk forward gives 8, 4, 3, 2 and 1.
+	// the children of the root, backward. The descendant indexes are those
+	// of the walk forward.
 	c.Reset(root)
 	if !c.GotoLastChild() || c.Node().StartByte() != 14 {
 		t.Fatalf("GotoLastChild moved to %s", c.Node().Kind())
@@ -87,7 +86,7 @@ func TestCursorWalk(t *testing.T) {
 	if want := []int{12, 6, 4, 2, 0}; !slices.Equal(starts, want) {
 		t.Errorf("GotoPreviousSibling visited %v, want %v", starts, want)
 	}
-	if want := []int{0, 0, 0, 1, 0}; !slices.Equal(indexes, want) {
+	if want := []int{8, 4, 3, 2, 1}; !slices.Equal(indexes, want) {
 		t.Errorf("the descendant indexes after GotoPreviousSibling are %v, want %v", indexes, want)
 	}
 	if c.Node().Kind() != "identifier" || !c.GotoParent() || c.Node() != root {

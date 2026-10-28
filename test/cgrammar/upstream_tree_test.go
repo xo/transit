@@ -447,6 +447,24 @@ func TestTreeCursorPreviousSiblingWithManyComments(t *testing.T) {
 	}
 }
 
+func TestTreeCursorPreviousSiblingDescendantIndex(t *testing.T) {
+	parser := urParser(t, fixtureGrammar(t, "json").Language)
+	tree := urParse(t, parser, "[1,2]", nil)
+
+	cursor := tree.Walk()
+	urEqual(t, "goto_first_child", cursor.GotoFirstChild(), true)
+	urEqual(t, "kind", cursor.Node().Kind(), "array")
+
+	urEqual(t, "goto_last_child", cursor.GotoLastChild(), true)
+	urEqual(t, "kind", cursor.Node().Kind(), "]")
+	for _, expected := range []int{5, 4, 3, 2} {
+		urEqual(t, "goto_previous_sibling", cursor.GotoPreviousSibling(), true)
+		urEqual(t, "descendant_index", cursor.DescendantIndex(), expected)
+	}
+	urEqual(t, "goto_previous_sibling", cursor.GotoPreviousSibling(), false)
+	urEqual(t, "kind", cursor.Node().Kind(), "[")
+}
+
 func TestTreeCursorFields(t *testing.T) {
 	parser := urParser(t, fixtureGrammar(t, "javascript").Language)
 
