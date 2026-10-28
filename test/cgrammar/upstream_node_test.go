@@ -1254,3 +1254,43 @@ func TestDeeplyNestedTrailingEmptyDescendantSearch(t *testing.T) {
 		urSomeNode(t, fmt.Sprintf("depth %d: marker.prev_sibling()", depth), got, ok, expression)
 	}
 }
+
+func TestDeeplyNestedFieldSearchDoesNotOverflowStack(t *testing.T) {
+	must := urMust(t)
+	language := urTestLanguage(t, `{
+            "name": "deeply_nested_fields",
+            "rules": {
+                "document": {"type": "SYMBOL", "name": "_nested"},
+                "_nested": {
+                    "type": "CHOICE",
+                    "members": [
+                        {
+                            "type": "FIELD",
+                            "name": "target",
+                            "content": {"type": "STRING", "value": "x"}
+                        },
+                        {
+                            "type": "SEQ",
+                            "members": [
+                                {"type": "STRING", "value": "("},
+                                {"type": "SYMBOL", "name": "_nested"},
+                                {"type": "STRING", "value": ")"},
+                                {
+                                    "type": "FIELD",
+                                    "name": "target",
+                                    "content": {"type": "STRING", "value": "z"}
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        }`, "")
+	const depth = 100_000
+	source := strings.Repeat("(", depth) + "x" + strings.Repeat(")z", depth)
+	parser := urParser(t, language)
+	tree := urParse(t, parser, source, nil)
+	target := must(tree.RootNode().ChildByFieldName("target"))
+
+	urEqual(t, "the text of target", source[target.StartByte():target.EndByte()], "x")
+}

@@ -1,6 +1,10 @@
 package transit
 
-import "iter"
+import (
+	"iter"
+
+	"github.com/xo/transit/internal/abi"
+)
 
 // This file ports lib/src/node.c, and the type TSNode of
 // lib/include/tree_sitter/api.h.
@@ -937,88 +941,114 @@ func (n Node) NamedChild(i int) (Node, bool) {
 
 // ChildByFieldID returns the first child of the node with a field.
 //
-// ChildByFieldID is ts_node_child_by_field_id. The goto of C is a labeled
-// continue.
+// ChildByFieldID is ts_node_child_by_field_id. The labels of C become
+// loops: descend is the outer loop, scan is the inner loop, and not_found
+// is the code after the loop over the children. notFound is true where C
+// jumps from descend to not_found.
 func (n Node) ChildByFieldID(fieldID FieldID) (Node, bool) {
-	self := n
-recur:
-	for {
-		if fieldID == 0 || self.ChildCount() == 0 {
-			return nullNode(), false
-		}
+	type fieldSearchFrame struct {
+		iterator nodeChildIterator
+		fieldMap []abi.FieldMapEntry
+	}
 
-		fieldMap := self.tree.language.fieldMap(uint32(self.subtree().ptr.productionID))
-		if len(fieldMap) == 0 {
-			return nullNode(), false
+	if fieldID == 0 {
+		return nullNode(), false
+	}
+
+	self := n
+	var stack []fieldSearchFrame
+	var iterator nodeChildIterator
+	var fieldMap []abi.FieldMapEntry
+
+descend:
+	for {
+		notFound := self.ChildCount() == 0
+
+		if !notFound {
+			fieldMap = self.tree.language.fieldMap(uint32(self.subtree().ptr.productionID))
+			notFound = len(fieldMap) == 0
 		}
 
 		// The field mappings are sorted by their field id. Scan all
 		// the mappings to find the ones for the given field id.
-		for FieldID(fieldMap[0].FieldID) < fieldID {
+		for !notFound && FieldID(fieldMap[0].FieldID) < fieldID {
 			fieldMap = fieldMap[1:]
-			if len(fieldMap) == 0 {
-				return nullNode(), false
-			}
+			notFound = len(fieldMap) == 0
 		}
-		for FieldID(fieldMap[len(fieldMap)-1].FieldID) > fieldID {
+		for !notFound && FieldID(fieldMap[len(fieldMap)-1].FieldID) > fieldID {
 			fieldMap = fieldMap[:len(fieldMap)-1]
-			if len(fieldMap) == 0 {
-				return nullNode(), false
-			}
+			notFound = len(fieldMap) == 0
 		}
 
-		iterator := self.iterateChildren()
+		if !notFound {
+			iterator = self.iterateChildren()
+		}
+
 		for {
-			child, ok := iterator.next()
-			if !ok {
-				break
-			}
-			if !child.subtree().extra() {
-				index := iterator.structuralChildIndex - 1
-				if index < uint32(fieldMap[0].ChildIndex) {
-					continue
+		scan:
+			for !notFound {
+				child, ok := iterator.next()
+				if !ok {
+					break
 				}
+				if !child.subtree().extra() {
+					index := iterator.structuralChildIndex - 1
+					if index < uint32(fieldMap[0].ChildIndex) {
+						continue
+					}
 
-				// Hidden nodes' fields are "inherited" by their visible parent.
-				switch {
-				case fieldMap[0].Inherited:
-					// If this is the *last* possible child node for this field,
-					// then perform a tail call to avoid recursion.
-					if len(fieldMap) == 1 {
+					// Hidden nodes' fields are "inherited" by their visible parent.
+					switch {
+					case fieldMap[0].Inherited:
+						// If this is the *last* possible child node for this field,
+						// then perform a tail call to avoid recursion.
+						if len(fieldMap) == 1 {
+							self = child
+							continue descend
+						}
+
+						// Otherwise, descend into this child, but if it doesn't contain
+						// the field, continue searching subsequent children.
+						stack = append(stack, fieldSearchFrame{
+							iterator: iterator,
+							fieldMap: fieldMap,
+						})
 						self = child
-						continue recur
-					}
+						continue descend
 
-					// Otherwise, descend into this child, but if it doesn't contain
-					// the field, continue searching subsequent children.
-					result, ok := child.ChildByFieldID(fieldID)
-					if ok {
-						return result, true
-					}
-					fieldMap = fieldMap[1:]
-					if len(fieldMap) == 0 {
-						return nullNode(), false
-					}
+					case child.isRelevant(true):
+						return child, true
 
-				case child.isRelevant(true):
-					return child, true
+					// If the field refers to a hidden node with visible children,
+					// return the first visible child.
+					case child.ChildCount() > 0:
+						return child.Child(0)
 
-				// If the field refers to a hidden node with visible children,
-				// return the first visible child.
-				case child.ChildCount() > 0:
-					return child.Child(0)
-
-				// Otherwise, continue searching subsequent children.
-				default:
-					fieldMap = fieldMap[1:]
-					if len(fieldMap) == 0 {
-						return nullNode(), false
+					// Otherwise, continue searching subsequent children.
+					default:
+						fieldMap = fieldMap[1:]
+						if len(fieldMap) == 0 {
+							break scan
+						}
 					}
 				}
 			}
-		}
 
-		return nullNode(), false
+			// not_found
+			for {
+				if len(stack) == 0 {
+					return nullNode(), false
+				}
+				frame := stack[len(stack)-1]
+				stack = stack[:len(stack)-1]
+				iterator = frame.iterator
+				fieldMap = frame.fieldMap[1:]
+				if len(fieldMap) != 0 {
+					break
+				}
+			}
+			notFound = false
+		}
 	}
 }
 
