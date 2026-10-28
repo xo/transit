@@ -393,6 +393,43 @@ func TestNodeChildByFieldNameWithExtraHiddenChildren(t *testing.T) {
 	urSameNode(t, "child_by_field_name(body)", must(whileNode.ChildByFieldName("body")), must(whileNode.Child(3)))
 }
 
+func TestNodeChildByFieldNameThroughHiddenNodes(t *testing.T) {
+	must := urMust(t)
+	parser := urParser(t, urTestFixtureLanguage(t, "field_lookup_through_hidden_nodes"))
+
+	// The first child that the tree cursor gives each field, if any. An
+	// empty expected text means no child.
+	for _, c := range []struct {
+		source, fieldName, expected string
+	}{
+		{"[a]", "spread", ""},
+		{"[a, ...b]", "spread", "...b"},
+		{"let a = b;", "outer", "="},
+		{"let a // c\n= b;", "outer", "="},
+		{"let a @x = b;", "outer", "x"},
+		{"shadow a;", "outer", ""},
+		{"alias ...a;", "spread", ""},
+		{"pair ...a, b;", "spread", ""},
+		{"pair ...a, ...b;", "spread", "...b"},
+		{"multi a a = b;", "outer", "="},
+		{"restore a;", "outer", "a"},
+		{"back a b;", "outer", "b"},
+		{"maybe none end;", "outer", ""},
+		{"maybe a end;", "outer", "a"},
+		{"order a b c;", "outer", "c"},
+		{"skip a b c;", "outer", "c"},
+		{"sum a + b + c;", "left", "a"},
+	} {
+		tree := urParse(t, parser, c.source, nil)
+		node := must(tree.RootNode().NamedChild(0))
+		actual := ""
+		if child, ok := node.ChildByFieldName(c.fieldName); ok {
+			actual = c.source[child.StartByte():child.EndByte()]
+		}
+		urEqual(t, "`"+c.fieldName+"` of `"+c.source+"`", actual, c.expected)
+	}
+}
+
 func TestNodeNamedChild(t *testing.T) {
 	must := urMust(t)
 	tree := urParseJSONExample(t)

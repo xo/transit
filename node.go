@@ -940,6 +940,73 @@ func (n Node) NamedChild(i int) (Node, bool) {
 	return result, !result.isNull()
 }
 
+// firstChildWithInheritedField follows the first matching child of a hidden
+// node without saving a traversal stack. A different field blocks this field
+// unless the child can contain it explicitly. It returns false if resolving
+// that case, a hidden extra, or backtracking needs a cursor. When it returns
+// true, the node is the null node if no child has the field.
+//
+// firstChildWithInheritedField is ts_node__first_child_with_inherited_field.
+// The C function writes the node to an out parameter, and the Go function
+// returns it.
+func (n Node) firstChildWithInheritedField(fieldID FieldID) (Node, bool) {
+	self := n
+	needsBacktracking := false
+	for {
+		iterator := self.iterateChildren()
+		fieldMap := self.tree.language.fieldMap(uint32(self.subtree().ptr.productionID))
+		didDescend := false
+		for {
+			child, ok := iterator.next()
+			if !ok {
+				break
+			}
+			visible := child.isRelevant(true)
+			if !visible && child.ChildCount() == 0 {
+				continue
+			}
+			// An extra has no field of its own, but a hidden one can hold fields.
+			if child.subtree().extra() {
+				if visible {
+					continue
+				}
+				return Node{}, false
+			}
+
+			var ownFieldID FieldID
+			for _, m := range fieldMap {
+				if !m.Inherited && uint32(m.ChildIndex) == iterator.structuralChildIndex-1 {
+					ownFieldID = FieldID(m.FieldID)
+					break
+				}
+			}
+
+			if ownFieldID != 0 && ownFieldID != fieldID {
+				if visible {
+					continue
+				}
+				childFieldMap := self.tree.language.fieldMap(uint32(child.subtree().ptr.productionID))
+				for _, m := range childFieldMap {
+					if FieldID(m.FieldID) == fieldID {
+						return Node{}, false
+					}
+				}
+				continue
+			}
+			if visible {
+				return child, true
+			}
+			needsBacktracking = needsBacktracking || !iterator.done()
+			self = child
+			didDescend = true
+			break
+		}
+		if !didDescend {
+			return nullNode(), !needsBacktracking
+		}
+	}
+}
+
 // ChildByFieldID returns the first child of the node with a field.
 //
 // ChildByFieldID is ts_node_child_by_field_id. The labels of C become
@@ -948,6 +1015,7 @@ func (n Node) NamedChild(i int) (Node, bool) {
 // jumps from descend to not_found.
 func (n Node) ChildByFieldID(fieldID FieldID) (Node, bool) {
 	type fieldSearchFrame struct {
+		node     Node
 		iterator nodeChildIterator
 		fieldMap []abi.FieldMapEntry
 	}
@@ -1001,6 +1069,15 @@ descend:
 					// Hidden nodes' fields are "inherited" by their visible parent.
 					switch {
 					case fieldMap[0].Inherited:
+						// An alias can make this child visible, keeping its fields inside it.
+						if child.isRelevant(true) {
+							fieldMap = fieldMap[1:]
+							if len(fieldMap) == 0 {
+								break scan
+							}
+							continue
+						}
+
 						// If this is the *last* possible child node for this field,
 						// then perform a tail call to avoid recursion.
 						if len(fieldMap) == 1 {
@@ -1011,6 +1088,7 @@ descend:
 						// Otherwise, descend into this child, but if it doesn't contain
 						// the field, continue searching subsequent children.
 						stack = append(stack, fieldSearchFrame{
+							node:     self,
 							iterator: iterator,
 							fieldMap: fieldMap,
 						})
@@ -1020,10 +1098,41 @@ descend:
 					case child.isRelevant(true):
 						return child, true
 
-					// If the field refers to a hidden node with visible children,
-					// return the first visible child.
+					// A field on a hidden child can be overridden by fields inside it.
+					// Use the cursor's field resolution to find the first matching child.
 					case child.ChildCount() > 0:
-						return child.Child(0)
+						if first, ok := child.firstChildWithInheritedField(fieldID); ok {
+							if !first.isNull() {
+								return first, true
+							}
+							for {
+								fieldMap = fieldMap[1:]
+								if len(fieldMap) == 0 || uint32(fieldMap[0].ChildIndex) != index {
+									break
+								}
+							}
+							if len(fieldMap) == 0 {
+								break scan
+							}
+							continue
+						}
+						cursor := self.Walk()
+						result := nullNode()
+						if cursor.GotoFirstChild() {
+							for {
+								if cursor.FieldID() == fieldID {
+									result = cursor.Node()
+									break
+								}
+								if !cursor.GotoNextSibling() {
+									break
+								}
+							}
+						}
+						if !result.isNull() {
+							return result, true
+						}
+						break scan
 
 					// Otherwise, continue searching subsequent children.
 					default:
@@ -1042,6 +1151,7 @@ descend:
 				}
 				frame := stack[len(stack)-1]
 				stack = stack[:len(stack)-1]
+				self = frame.node
 				iterator = frame.iterator
 				fieldMap = frame.fieldMap[1:]
 				if len(fieldMap) != 0 {

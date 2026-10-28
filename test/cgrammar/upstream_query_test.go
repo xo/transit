@@ -5766,6 +5766,51 @@ func TestQuerySupertypeWithAnonymousNode(t *testing.T) {
 	uqAssertQueryMatches(t, language, query, source, []uqMatch{{0, uqCaptures{{"tuple", "()"}}}})
 }
 
+func TestQueryNegatedFieldThroughHiddenNodes(t *testing.T) {
+	language := uqTestFixtureLanguage(t, "field_lookup_through_hidden_nodes")
+
+	// `spread` is a field of the second list, through the supertype `item`, no
+	// node of the `shadow` is `outer`, since its only name is `inner`, and of the
+	// `maybe`s only the one with a name has an `outer`.
+	source := uqUnindent(`
+        [a]
+        [a, ...b]
+        let a = b;
+        shadow a;
+        alias ...a;
+        pair ...a, b;
+        pair ...a, ...b;
+        let a // c
+        = b;
+        multi a a = b;
+        restore a;
+        back a b;
+        maybe none end;
+        maybe a end;
+        sum a + b + c;
+    `)
+	query := uqNewQuery(t, language, `
+        (list !spread) @list
+        (binding !outer) @binding
+        (shadow !outer) @shadow
+        (aliased !spread) @aliased
+        (alias_pair !spread) @pair
+        (multi !outer) @multi
+        (restored !outer) @restored
+        (back !outer) @back
+        (maybe !outer) @maybe
+        (sum !left) @sum
+        `)
+
+	uqAssertQueryMatches(t, language, query, source, []uqMatch{
+		{0, uqCaptures{{"list", "[a]"}}},
+		{2, uqCaptures{{"shadow", "shadow a;"}}},
+		{3, uqCaptures{{"aliased", "alias ...a;"}}},
+		{4, uqCaptures{{"pair", "pair ...a, b;"}}},
+		{8, uqCaptures{{"maybe", "maybe none end;"}}},
+	})
+}
+
 func TestLastChildAnchorLooksPastHiddenRepeat(t *testing.T) {
 	language := uqTestFixtureLanguage(t, "last_child_anchor_past_hidden_repeat")
 

@@ -98,7 +98,7 @@ dd97a0c0a43294c0df162a6c0e411a09f477cf4f	2026-10-21	not-applicable		changes only
 857ea4f16cb045fdc81c01ede17114bf0a95f4ad	2026-10-21	not-applicable		changes only paths that transit does not port: lib/binding_web/src/marshal.ts, lib/binding_web/src/tree_cursor.ts, lib/binding_web/test/memory_cursor.test.ts
 e3d578032dec2e7042291864302714878315dbed	2026-10-21	not-applicable		changes only paths that transit does not port: lib/binding_web/package-lock.json
 55d9f3bdf4cd3224cb04951dc7b88ab702602329	2026-10-22	ported		fix(generate): propagate fields through unaliased supertypes
-7cd32f1c40ebea5117e31a96162c31171d45cdef	2026-10-22	pending		port in phase 6: lib/src/node.c, test/fixtures/test_grammars/field_lookup_through_hidden_nodes/corpus.txt, test/fixtures/test_grammars/field_lookup_through_hidden_nodes/grammar.js
+7cd32f1c40ebea5117e31a96162c31171d45cdef	2026-10-22	ported		fix(lib): respect field overrides through hidden nodes
 f103d82273ec3521fe89613ba189ebe15f8af679	2026-10-22	pending		port in phase 6: lib/src/node.c, test/fixtures/test_grammars/field_lookup_through_hidden_nodes/corpus.txt, test/fixtures/test_grammars/field_lookup_through_hidden_nodes/grammar.js
 c5fa568bc811a0c1a60c4f5ba2de9550abf0d075	2026-10-22	pending		port in phase 6: lib/src/tree_cursor.c, test/fixtures/test_grammars/field_on_hidden_rule/corpus.txt, test/fixtures/test_grammars/field_on_hidden_rule/grammar.js
 430d29969f04bfedae50b6e445cc14e7378fd7dd	2026-10-22	pending		port in phase 6: crates/cli/src/parse.rs, crates/cli/src/test.rs, crates/generate/src/bitvec.rs
