@@ -31,6 +31,12 @@ import (
 // ABI_VERSION_MAX are generate.ABIVersionMin and generate.ABIVersionMax.
 const smallStateThreshold = 64
 
+// maxSymbolCount is the largest number of symbols and unique aliases of a
+// language. The two highest symbol IDs are reserved for ERROR and _ERROR.
+//
+// maxSymbolCount is MAX_SYMBOL_COUNT.
+const maxSymbolCount = math.MaxUint16 - 1
+
 // abiVersionWithReservedWords is the first ABI version that has the sets of
 // reserved words, the supertype map and the metadata of the grammar.
 //
@@ -44,6 +50,8 @@ type RenderErrorKind uint8
 const (
 	// RenderErrorParseTable is a parse table with too many actions.
 	RenderErrorParseTable RenderErrorKind = iota
+	// RenderErrorSymbolCount is a language with too many symbols.
+	RenderErrorSymbolCount
 	// RenderErrorABI is an ABI version that the backend does not write.
 	RenderErrorABI
 )
@@ -55,7 +63,8 @@ const (
 type RenderError struct {
 	Kind RenderErrorKind
 	// Value is the number of actions of the parse table, for
-	// RenderErrorParseTable, and the ABI version, for RenderErrorABI.
+	// RenderErrorParseTable, the number of symbols, for
+	// RenderErrorSymbolCount, and the ABI version, for RenderErrorABI.
 	Value int
 }
 
@@ -66,6 +75,8 @@ func (e *RenderError) Error() string {
 	switch e.Kind {
 	case RenderErrorParseTable:
 		return "Parse table action count " + strconv.Itoa(e.Value) + " exceeds maximum value of " + strconv.Itoa(math.MaxUint16)
+	case RenderErrorSymbolCount:
+		return "Symbol count " + strconv.Itoa(e.Value) + " exceeds maximum value of " + strconv.Itoa(maxSymbolCount)
 	case RenderErrorABI:
 		return "This version of Tree-sitter can only generate parsers with ABI version " +
 			strconv.Itoa(generate.ABIVersionMin) + " - " + strconv.Itoa(generate.ABIVersionMax) + ", not " + strconv.Itoa(e.Value)
@@ -163,7 +174,9 @@ type largeCharacterSetInfo struct {
 //
 // generate is Generator::generate.
 func (g *generator) generate() (string, error) {
-	g.init()
+	if err := g.init(); err != nil {
+		return "", err
+	}
 	g.addHeader()
 	g.addIncludes()
 	g.addPragmas()
@@ -236,7 +249,7 @@ func (g *generator) generate() (string, error) {
 // reserved words and the number of large states.
 //
 // init is Generator::init.
-func (g *generator) init() {
+func (g *generator) init() error {
 	symbolIdentifiers := map[string]bool{}
 	for i := range g.parseTable.Symbols {
 		g.assignSymbolID(g.parseTable.Symbols[i], symbolIdentifiers)
@@ -336,6 +349,11 @@ func (g *generator) init() {
 		}
 	}
 
+	symbolCount := len(g.parseTable.Symbols) + len(g.uniqueAliases)
+	if symbolCount > maxSymbolCount {
+		return &RenderError{Kind: RenderErrorSymbolCount, Value: symbolCount}
+	}
+
 	for ix, set := range g.largeCharacterSets {
 		count := 1
 		for _, other := range g.largeCharacterSets[:ix] {
@@ -392,6 +410,8 @@ func (g *generator) init() {
 		}
 		g.largeStateCount++
 	}
+
+	return nil
 }
 
 // addHeader writes the comment at the top of the file.

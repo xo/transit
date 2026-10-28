@@ -39,6 +39,12 @@ import (
 // ABI_VERSION_MAX are generate.ABIVersionMin and generate.ABIVersionMax.
 const smallStateThreshold = 64
 
+// maxSymbolCount is the largest number of symbols and unique aliases of a
+// language. The two highest symbol IDs are reserved for ERROR and _ERROR.
+//
+// maxSymbolCount is MAX_SYMBOL_COUNT.
+const maxSymbolCount = math.MaxUint16 - 1
+
 // abiVersionWithReservedWords is the first ABI version that has the sets of
 // reserved words, the supertype map and the metadata of the grammar.
 //
@@ -48,10 +54,12 @@ const abiVersionWithReservedWords = 15
 // RenderErrorKind is the kind of a RenderError.
 type RenderErrorKind uint8
 
-// The kinds of error. The first two are the kinds of upstream, in its order.
+// The kinds of error. The first three are the kinds of upstream, in its order.
 const (
 	// RenderErrorParseTable is a parse table with too many actions.
 	RenderErrorParseTable RenderErrorKind = iota
+	// RenderErrorSymbolCount is a language with too many symbols.
+	RenderErrorSymbolCount
 	// RenderErrorABI is an ABI version that the backend does not write.
 	RenderErrorABI
 	// RenderErrorCharacterSet is a large character set that has a range of
@@ -60,14 +68,15 @@ const (
 	RenderErrorCharacterSet
 )
 
-// RenderError is an error of the Go backend. The text of the first two kinds
+// RenderError is an error of the Go backend. The text of the first three kinds
 // is the text of upstream.
 //
 // RenderError is RenderError, an enum with data upstream.
 type RenderError struct {
 	Kind RenderErrorKind
 	// Value is the number of actions of the parse table, for
-	// RenderErrorParseTable, and the ABI version, for RenderErrorABI.
+	// RenderErrorParseTable, the number of symbols, for
+	// RenderErrorSymbolCount, and the ABI version, for RenderErrorABI.
 	Value int
 	// Name is the name of the character set, for RenderErrorCharacterSet.
 	Name string
@@ -80,6 +89,8 @@ func (e *RenderError) Error() string {
 	switch e.Kind {
 	case RenderErrorParseTable:
 		return "Parse table action count " + strconv.Itoa(e.Value) + " exceeds maximum value of " + strconv.Itoa(math.MaxUint16)
+	case RenderErrorSymbolCount:
+		return "Symbol count " + strconv.Itoa(e.Value) + " exceeds maximum value of " + strconv.Itoa(maxSymbolCount)
 	case RenderErrorABI:
 		return "This version of Tree-sitter can only generate parsers with ABI version " +
 			strconv.Itoa(generate.ABIVersionMin) + " - " + strconv.Itoa(generate.ABIVersionMax) + ", not " + strconv.Itoa(e.Value)
@@ -176,7 +187,9 @@ type largeCharacterSetInfo struct {
 //
 // generate is Generator::generate.
 func (g *generator) generate() (*output, error) {
-	g.init()
+	if err := g.init(); err != nil {
+		return nil, err
+	}
 	g.addStats()
 	g.addSymbolEnum()
 	g.addSymbolNamesList()
@@ -255,7 +268,7 @@ func (g *generator) symbolValue(symbol generate.Symbol) uint16 {
 // reserved words and the number of large states.
 //
 // init is Generator::init.
-func (g *generator) init() {
+func (g *generator) init() error {
 	symbolIdentifiers := map[string]bool{}
 	for i := range g.parseTable.Symbols {
 		g.assignSymbolID(g.parseTable.Symbols[i], symbolIdentifiers)
@@ -355,6 +368,11 @@ func (g *generator) init() {
 		}
 	}
 
+	symbolCount := len(g.parseTable.Symbols) + len(g.uniqueAliases)
+	if symbolCount > maxSymbolCount {
+		return &RenderError{Kind: RenderErrorSymbolCount, Value: symbolCount}
+	}
+
 	for ix, set := range g.largeCharacterSets {
 		count := 1
 		for _, other := range g.largeCharacterSets[:ix] {
@@ -411,6 +429,8 @@ func (g *generator) init() {
 		}
 		g.largeStateCount++
 	}
+
+	return nil
 }
 
 // addStats sets the counts of the tables.
