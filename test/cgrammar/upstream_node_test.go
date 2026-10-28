@@ -430,6 +430,44 @@ func TestNodeChildByFieldNameThroughHiddenNodes(t *testing.T) {
 	}
 }
 
+func TestNodeFieldNameForChildThroughHiddenExtras(t *testing.T) {
+	must := urMust(t)
+	parser := urParser(t, urTestFixtureLanguage(t, "field_lookup_through_hidden_nodes"))
+
+	// The tree cursor gives the nodes inside a hidden extra only the fields set
+	// inside it, not the field of the child before it or of a rule around it.
+	// An empty string stands for no field.
+	for _, c := range []struct {
+		source      string
+		fields      []string
+		namedFields []string
+	}{
+		{
+			"let a @x = b;",
+			[]string{"", "inner", "", "outer", "outer", "outer", ""},
+			[]string{"inner", "outer", "outer"},
+		},
+		{
+			"let a #y = b;",
+			[]string{"", "inner", "", "", "outer", "outer", ""},
+			[]string{"inner", "", "outer"},
+		},
+	} {
+		tree := urParse(t, parser, c.source, nil)
+		binding := must(tree.RootNode().NamedChild(0))
+		var actual []string
+		for i := range binding.ChildCount() {
+			actual = append(actual, binding.FieldNameForChild(i))
+		}
+		urSlice(t, "`"+c.source+"`", actual, c.fields)
+		actual = nil
+		for i := range binding.NamedChildCount() {
+			actual = append(actual, binding.FieldNameForNamedChild(i))
+		}
+		urSlice(t, "named children of `"+c.source+"`", actual, c.namedFields)
+	}
+}
+
 func TestNodeNamedChild(t *testing.T) {
 	must := urMust(t)
 	tree := urParseJSONExample(t)

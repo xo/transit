@@ -595,6 +595,19 @@
           }
         }
       ]
+    },
+    "_tag": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "#"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "name"
+        }
+      ]
     }
   },
   "extras": [
@@ -609,6 +622,10 @@
     {
       "type": "SYMBOL",
       "name": "_note"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_tag"
     }
   ],
   "conflicts": [],

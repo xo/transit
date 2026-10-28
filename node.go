@@ -1211,9 +1211,15 @@ func (n Node) FieldNameForChild(i int) string {
 				grandchildIndex := childIndex - index
 				grandchildCount := child.relevantChildCount(true)
 				if grandchildIndex < grandchildCount {
-					fieldName := result.fieldNameFromLanguage(iterator.structuralChildIndex - 1)
-					if fieldName != "" {
-						inheritedFieldName = fieldName
+					// An extra takes no structural index, and the cursor gives the nodes
+					// inside one no field from outside it.
+					if child.IsExtra() {
+						inheritedFieldName = ""
+					} else {
+						fieldName := result.fieldNameFromLanguage(iterator.structuralChildIndex - 1)
+						if fieldName != "" {
+							inheritedFieldName = fieldName
+						}
 					}
 
 					didDescend = true
@@ -1265,9 +1271,15 @@ func (n Node) FieldNameForNamedChild(i int) string {
 				namedGrandchildIndex := namedChildIndex - index
 				grandchildCount := child.relevantChildCount(false)
 				if namedGrandchildIndex < grandchildCount {
-					fieldName := result.fieldNameFromLanguage(iterator.structuralChildIndex - 1)
-					if fieldName != "" {
-						inheritedFieldName = fieldName
+					// An extra takes no structural index, and the cursor gives the nodes
+					// inside one no field from outside it.
+					if child.IsExtra() {
+						inheritedFieldName = ""
+					} else {
+						fieldName := result.fieldNameFromLanguage(iterator.structuralChildIndex - 1)
+						if fieldName != "" {
+							inheritedFieldName = fieldName
+						}
 					}
 
 					didDescend = true
