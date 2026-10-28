@@ -70,50 +70,50 @@ e9930e0915685efb98a9d325b8f23dfdb9e99559	2026-10-09	ported	35b5750	fix(lib): onl
 af901cd052113a662754af8c03d8eef05e829607	2026-10-10	not-applicable	85ec9d7	changes only paths that transit does not port: lib/binding_web/package-lock.json, lib/binding_web/package.json
 88b21461c73a3f9976bf23fa0b0bff9fc979aa2d	2026-10-10	not-applicable	85ec9d7	changes only paths that transit does not port: flake.lock
 fbfb07e93de82e12784cd0f646e291b8f2e4126e	2026-10-10	not-applicable	85ec9d7	the WebAssembly store and its test, which transit does not port (D1)
-8ca548849fc8dbefd699edcec26546bb14112820	2026-10-15	not-applicable		a bump of wasmtime and of build.zig.zon, which transit does not port (D1)
-453014133d52513454c6a78622216a05111c258a	2026-10-16	not-applicable		changes only paths that transit does not port: lib/binding_web/package-lock.json, lib/binding_web/package.json
-1cd1dfe1858f625e1bdcffb6c94fe14fbb11e46a	2026-10-16	not-applicable		changes only paths that transit does not port: .github/workflows/build.yml, .github/workflows/release.yml
-85061cc66804c74c5c6cc0b6a229e0f91c08636c	2026-10-16	not-applicable		changes only paths that transit does not port: flake.lock
-904234c9169862e10b6cead100a0afd0ac3d1a41	2026-10-17	not-applicable		the module-definition files of the Windows DLL and the xtask that writes them, which transit does not port
-2370f19abcea15331ac3d33810c41074896396bc	2026-10-17	not-applicable		changes only paths that transit does not port: CMakeLists.txt, Makefile, build.zig
-a73f27a2db718bc86a00c6fbd8285525c9b9fe1b	2026-10-17	not-applicable		changes only paths that transit does not port: CMakeLists.txt
-6a1b0b204cd1a21d958554f829369b32fb27b947	2026-10-17	not-applicable		changes only paths that transit does not port: build.zig
-276bc59b3fb8fdecd039099746c0ad2b28fa681d	2026-10-17	not-applicable		changes only paths that transit does not port: Makefile
-95d94d1fdaddf9e53616334cca670b7db6e34f90	2026-10-17	not-applicable		the visibility of the allocator variables of alloc.h on MinGW, which transit does not port, because Go allocates
-71b2f9874a0ed394fe19837c5ddf81b7ab31c180	2026-10-20	not-applicable		a bump of wasmtime and of build.zig.zon, which transit does not port (D1)
-96e30ef980405a61aacffee79e76a653c58c3b34	2026-10-20	ported		lib(query): bound nested query pattern depth
-5e216019692fbac6a91a0859da5e22b25dd1601c	2026-10-20	ported		lib(subtree): make dot graph traversal iterative
-8e87b026123cff25990db87399c96f2932906bc6	2026-10-20	ported		lib(node): make zero-width node searches iterative
-c46e168547a700a54689f4ca1f153fe5c24cee8c	2026-10-20	ported		lib(node): make inherited field search iterative
-996a11cc911307e7a1f33311a5c2b64c4bf029de	2026-10-20	ported		fix(generate): compute node types from productions after inlining
-803c6ebaac27d69e1808b45058482e868d073ceb	2026-10-20	not-applicable		the optional feature js-loader of the Rust binding, which loads a grammar in Rust code that runs as WebAssembly, which transit does not port (D1)
-7f877d3c080f7f8c7764ee1f68002fc52636cacb	2026-10-21	ported		fix(lib): handle terminal ERROR nodes in `ts_node_has_error`
-0f700450ce236b093a7e66b1ec00f078b082a0ef	2026-10-21	not-applicable		changes only paths that transit does not port: lib/binding_web/src/tree_cursor.ts, lib/binding_web/test/tree.test.ts
-ba189ef5a60ef89e9d2f0ef63a9991449d3de962	2026-10-21	not-applicable		changes only paths that transit does not port: lib/binding_web/lib/tree-sitter.c, lib/binding_web/src/tree_cursor.ts, lib/binding_web/test/tree.test.ts
-0580c91b039109dac6ea9ddc1ea54c713850e8e9	2026-10-21	not-applicable		changes only paths that transit does not port: lib/binding_web/lib/tree-sitter.c, lib/binding_web/test/query.test.ts
-26578ed6fb462ee79bf8a669bfec985556edbf5e	2026-10-21	not-applicable		changes only paths that transit does not port: lib/binding_web/src/node.ts, lib/binding_web/test/node.test.ts
-780457e47936115c1e34ee21d4d4adb0664425ea	2026-10-21	not-applicable		changes only paths that transit does not port: lib/binding_web/src/tree_cursor.ts, lib/binding_web/test/tree.test.ts
-17e6a5e56c93c177c9f216542ed741f0c73283ed	2026-10-21	not-applicable		changes only paths that transit does not port: lib/binding_web/src/node.ts, lib/binding_web/test/tree.test.ts
-dd97a0c0a43294c0df162a6c0e411a09f477cf4f	2026-10-21	not-applicable		changes only paths that transit does not port: lib/binding_web/src/query.ts, lib/binding_web/test/query.test.ts
-857ea4f16cb045fdc81c01ede17114bf0a95f4ad	2026-10-21	not-applicable		changes only paths that transit does not port: lib/binding_web/src/marshal.ts, lib/binding_web/src/tree_cursor.ts, lib/binding_web/test/memory_cursor.test.ts
-e3d578032dec2e7042291864302714878315dbed	2026-10-21	not-applicable		changes only paths that transit does not port: lib/binding_web/package-lock.json
-55d9f3bdf4cd3224cb04951dc7b88ab702602329	2026-10-22	ported		fix(generate): propagate fields through unaliased supertypes
-7cd32f1c40ebea5117e31a96162c31171d45cdef	2026-10-22	ported		fix(lib): respect field overrides through hidden nodes
-f103d82273ec3521fe89613ba189ebe15f8af679	2026-10-22	ported		fix(lib): don't give a hidden extra's contents an outside field
-c5fa568bc811a0c1a60c4f5ba2de9550abf0d075	2026-10-22	ported		fix(lib): find later siblings that share a field through a hidden rule
-430d29969f04bfedae50b6e445cc14e7378fd7dd	2026-10-22	not-applicable		the nightly rustfmt configuration, which changes only the form of the Rust code and its comments, and no behavior
-4a412a01a0147d0f50bf7e749572fa632d1ab203	2026-10-22	not-applicable		changes only paths that transit does not port: .github/workflows/ci.yml
-86cf6c0df6e2a08fa9089a1c75cc645ed9935b94	2026-10-23	not-applicable		drops the crate pathdiff from quickjs.rs, which runs grammar.js, and transit reads grammar.json (D17)
-83162b0a0818c586cfc38555897a08f839c88887	2026-10-23	not-applicable		inlines helper crates of the CLI: parse.rs escapes HTML in the command parse, which transit does not port, and query_test.rs uses indoc in place of unindent, which gives the same text to the tests
-af33819d1a760d0478c7edf8bc4bdb3876de1443	2026-10-23	ported		cli: replace rand with a splitmix64 generator
-1aa6d5627437a760e92935d379f2c67f183eaecf	2026-10-23	not-applicable		replaces the crate ctrlc with native signal handlers in crates/cli/src/util.rs, which transit does not port
-3772c9dee107112d4df90c56fa33da1b61c145ed	2026-10-23	not-applicable		reads the imports of a WebAssembly file without the crate wasmparser in crates/cli/src/wasm.rs, which transit does not port (D1)
-0fff6ab6ed206903856200e5390c5dad22924948	2026-10-23	not-applicable		opens the browser without the crate webbrowser in the playground of the CLI, which transit does not port
-7c71386b466d359a9e109485deafa7b5198b50e6	2026-10-24	not-applicable		changes only paths that transit does not port: flake.lock
-ca2b57657f6088a94d04f0d38ecea3f181554830	2026-10-24	not-applicable		changes only paths that transit does not port: lib/binding_web/package-lock.json, lib/binding_web/package.json
-e638d02e077f8accdac8b77bfc1fd3195b5df85e	2026-10-23	ported		fix(generate)!: reject languages with too many symbols
-64aaee668e32b184c73ce79f93376f4f7fc62e89	2026-10-23	ported		fix(lib): reject symbol names with embedded `NULL` suffixes
-9a15b6afa7ad92b5e91c7dd85b308b03a48d51fc	2026-10-24	ported		fix(lib): handle large child indices in reverse cursor traversal
-2cca12daca77929d560e6b5c4df5c7ab9d4a8430	2026-10-24	ported		fix(lib): preserve descendant indices during reverse cursor traversal
-6735df0fc1590ccf2319789949c99edb31364eb0	2026-10-24	ported		fix(lib): retain siblings during byte-based child lookup
-dfe770858e3cfd8e8b29a79ea17da390a6f60319	2026-10-24	ported		fix(lib): verify ancestry for equal-range descendants
+8ca548849fc8dbefd699edcec26546bb14112820	2026-10-15	not-applicable	dbcb636	a bump of wasmtime and of build.zig.zon, which transit does not port (D1)
+453014133d52513454c6a78622216a05111c258a	2026-10-16	not-applicable	dbcb636	changes only paths that transit does not port: lib/binding_web/package-lock.json, lib/binding_web/package.json
+1cd1dfe1858f625e1bdcffb6c94fe14fbb11e46a	2026-10-16	not-applicable	dbcb636	changes only paths that transit does not port: .github/workflows/build.yml, .github/workflows/release.yml
+85061cc66804c74c5c6cc0b6a229e0f91c08636c	2026-10-16	not-applicable	dbcb636	changes only paths that transit does not port: flake.lock
+904234c9169862e10b6cead100a0afd0ac3d1a41	2026-10-17	not-applicable	dbcb636	the module-definition files of the Windows DLL and the xtask that writes them, which transit does not port
+2370f19abcea15331ac3d33810c41074896396bc	2026-10-17	not-applicable	dbcb636	changes only paths that transit does not port: CMakeLists.txt, Makefile, build.zig
+a73f27a2db718bc86a00c6fbd8285525c9b9fe1b	2026-10-17	not-applicable	dbcb636	changes only paths that transit does not port: CMakeLists.txt
+6a1b0b204cd1a21d958554f829369b32fb27b947	2026-10-17	not-applicable	dbcb636	changes only paths that transit does not port: build.zig
+276bc59b3fb8fdecd039099746c0ad2b28fa681d	2026-10-17	not-applicable	dbcb636	changes only paths that transit does not port: Makefile
+95d94d1fdaddf9e53616334cca670b7db6e34f90	2026-10-17	not-applicable	dbcb636	the visibility of the allocator variables of alloc.h on MinGW, which transit does not port, because Go allocates
+71b2f9874a0ed394fe19837c5ddf81b7ab31c180	2026-10-20	not-applicable	dbcb636	a bump of wasmtime and of build.zig.zon, which transit does not port (D1)
+96e30ef980405a61aacffee79e76a653c58c3b34	2026-10-20	ported	6699c65	lib(query): bound nested query pattern depth
+5e216019692fbac6a91a0859da5e22b25dd1601c	2026-10-20	ported	9f09d4c	lib(subtree): make dot graph traversal iterative
+8e87b026123cff25990db87399c96f2932906bc6	2026-10-20	ported	fc3a35f	lib(node): make zero-width node searches iterative
+c46e168547a700a54689f4ca1f153fe5c24cee8c	2026-10-20	ported	31dbf9a	lib(node): make inherited field search iterative
+996a11cc911307e7a1f33311a5c2b64c4bf029de	2026-10-20	ported	399bbd2	fix(generate): compute node types from productions after inlining
+803c6ebaac27d69e1808b45058482e868d073ceb	2026-10-20	not-applicable	f4f2226	the optional feature js-loader of the Rust binding, which loads a grammar in Rust code that runs as WebAssembly, which transit does not port (D1)
+7f877d3c080f7f8c7764ee1f68002fc52636cacb	2026-10-21	ported	bb3e8a6	fix(lib): handle terminal ERROR nodes in `ts_node_has_error`
+0f700450ce236b093a7e66b1ec00f078b082a0ef	2026-10-21	not-applicable	48f35bf	changes only paths that transit does not port: lib/binding_web/src/tree_cursor.ts, lib/binding_web/test/tree.test.ts
+ba189ef5a60ef89e9d2f0ef63a9991449d3de962	2026-10-21	not-applicable	48f35bf	changes only paths that transit does not port: lib/binding_web/lib/tree-sitter.c, lib/binding_web/src/tree_cursor.ts, lib/binding_web/test/tree.test.ts
+0580c91b039109dac6ea9ddc1ea54c713850e8e9	2026-10-21	not-applicable	48f35bf	changes only paths that transit does not port: lib/binding_web/lib/tree-sitter.c, lib/binding_web/test/query.test.ts
+26578ed6fb462ee79bf8a669bfec985556edbf5e	2026-10-21	not-applicable	48f35bf	changes only paths that transit does not port: lib/binding_web/src/node.ts, lib/binding_web/test/node.test.ts
+780457e47936115c1e34ee21d4d4adb0664425ea	2026-10-21	not-applicable	48f35bf	changes only paths that transit does not port: lib/binding_web/src/tree_cursor.ts, lib/binding_web/test/tree.test.ts
+17e6a5e56c93c177c9f216542ed741f0c73283ed	2026-10-21	not-applicable	48f35bf	changes only paths that transit does not port: lib/binding_web/src/node.ts, lib/binding_web/test/tree.test.ts
+dd97a0c0a43294c0df162a6c0e411a09f477cf4f	2026-10-21	not-applicable	48f35bf	changes only paths that transit does not port: lib/binding_web/src/query.ts, lib/binding_web/test/query.test.ts
+857ea4f16cb045fdc81c01ede17114bf0a95f4ad	2026-10-21	not-applicable	48f35bf	changes only paths that transit does not port: lib/binding_web/src/marshal.ts, lib/binding_web/src/tree_cursor.ts, lib/binding_web/test/memory_cursor.test.ts
+e3d578032dec2e7042291864302714878315dbed	2026-10-21	not-applicable	48f35bf	changes only paths that transit does not port: lib/binding_web/package-lock.json
+55d9f3bdf4cd3224cb04951dc7b88ab702602329	2026-10-22	ported	b7999bc	fix(generate): propagate fields through unaliased supertypes
+7cd32f1c40ebea5117e31a96162c31171d45cdef	2026-10-22	ported	13cc93f	fix(lib): respect field overrides through hidden nodes
+f103d82273ec3521fe89613ba189ebe15f8af679	2026-10-22	ported	53bf201	fix(lib): don't give a hidden extra's contents an outside field
+c5fa568bc811a0c1a60c4f5ba2de9550abf0d075	2026-10-22	ported	6173ad3	fix(lib): find later siblings that share a field through a hidden rule
+430d29969f04bfedae50b6e445cc14e7378fd7dd	2026-10-22	not-applicable	f5f2e67	the nightly rustfmt configuration, which changes only the form of the Rust code and its comments, and no behavior
+4a412a01a0147d0f50bf7e749572fa632d1ab203	2026-10-22	not-applicable	f5f2e67	changes only paths that transit does not port: .github/workflows/ci.yml
+86cf6c0df6e2a08fa9089a1c75cc645ed9935b94	2026-10-23	not-applicable	f5f2e67	drops the crate pathdiff from quickjs.rs, which runs grammar.js, and transit reads grammar.json (D17)
+83162b0a0818c586cfc38555897a08f839c88887	2026-10-23	not-applicable	f5f2e67	inlines helper crates of the CLI: parse.rs escapes HTML in the command parse, which transit does not port, and query_test.rs uses indoc in place of unindent, which gives the same text to the tests
+af33819d1a760d0478c7edf8bc4bdb3876de1443	2026-10-23	ported	a614cf0	cli: replace rand with a splitmix64 generator
+1aa6d5627437a760e92935d379f2c67f183eaecf	2026-10-23	not-applicable	54ab5dd	replaces the crate ctrlc with native signal handlers in crates/cli/src/util.rs, which transit does not port
+3772c9dee107112d4df90c56fa33da1b61c145ed	2026-10-23	not-applicable	54ab5dd	reads the imports of a WebAssembly file without the crate wasmparser in crates/cli/src/wasm.rs, which transit does not port (D1)
+0fff6ab6ed206903856200e5390c5dad22924948	2026-10-23	not-applicable	54ab5dd	opens the browser without the crate webbrowser in the playground of the CLI, which transit does not port
+7c71386b466d359a9e109485deafa7b5198b50e6	2026-10-24	not-applicable	54ab5dd	changes only paths that transit does not port: flake.lock
+ca2b57657f6088a94d04f0d38ecea3f181554830	2026-10-24	not-applicable	54ab5dd	changes only paths that transit does not port: lib/binding_web/package-lock.json, lib/binding_web/package.json
+e638d02e077f8accdac8b77bfc1fd3195b5df85e	2026-10-23	ported	142b7da	fix(generate)!: reject languages with too many symbols
+64aaee668e32b184c73ce79f93376f4f7fc62e89	2026-10-23	ported	0cddf49	fix(lib): reject symbol names with embedded `NULL` suffixes
+9a15b6afa7ad92b5e91c7dd85b308b03a48d51fc	2026-10-24	ported	36e8564	fix(lib): handle large child indices in reverse cursor traversal
+2cca12daca77929d560e6b5c4df5c7ab9d4a8430	2026-10-24	ported	2bd80f5	fix(lib): preserve descendant indices during reverse cursor traversal
+6735df0fc1590ccf2319789949c99edb31364eb0	2026-10-24	ported	c2c1624	fix(lib): retain siblings during byte-based child lookup
+dfe770858e3cfd8e8b29a79ea17da390a6f60319	2026-10-24	ported	9d9fd9f	fix(lib): verify ancestry for equal-range descendants
