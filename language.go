@@ -649,7 +649,8 @@ func (l *Language) SymbolName(symbol Symbol) string {
 //
 // SymbolForName is ts_language_symbol_for_name. The C function compares the
 // names with strncmp, so the Go function does too. Only the whole named
-// name "ERROR" finds the symbol of ERROR.
+// name "ERROR" finds the symbol of ERROR. The name of a symbol must have the
+// length of name, so a name with a NUL byte finds no symbol.
 func (l *Language) SymbolForName(name string, named bool) (Symbol, bool) {
 	length := len(name)
 	if named && length == 5 && strncmp(name, "ERROR", length) == 0 {
@@ -662,7 +663,7 @@ func (l *Language) SymbolForName(name string, named bool) (Symbol, bool) {
 			continue
 		}
 		symbolName := l.tables.SymbolNames[i]
-		if strncmp(symbolName, name, length) == 0 && cByte(symbolName, length) == 0 {
+		if strncmp(symbolName, name, length) == 0 && strlen(symbolName) == length {
 			symbol := Symbol(l.tables.PublicSymbolMap[i])
 			return symbol, symbol != 0
 		}
@@ -849,4 +850,13 @@ func cByte(s string, i int) byte {
 		return s[i]
 	}
 	return 0
+}
+
+// strlen returns the length of a string as C reads it: the number of bytes
+// before the first NUL byte, or the length of the string when it has none.
+func strlen(s string) int {
+	if i := strings.IndexByte(s, 0); i >= 0 {
+		return i
+	}
+	return len(s)
 }

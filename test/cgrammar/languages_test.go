@@ -89,6 +89,7 @@ var goPackageTests = []namedTest{
 	{"TestLookaheadIterator", TestLookaheadIterator},
 	{"TestLookaheadIteratorExhaustion", TestLookaheadIteratorExhaustion},
 	{"TestIDForNodeKindOnlyMatchesTheWholeErrorName", TestIDForNodeKindOnlyMatchesTheWholeErrorName},
+	{"TestIDForNodeKindRejectsEmbeddedNulSuffixes", TestIDForNodeKindRejectsEmbeddedNulSuffixes},
 	{"TestSymbolMetadataChecks", TestSymbolMetadataChecks},
 	{"TestSupertypes", TestSupertypes},
 	// upstream_node_test.go

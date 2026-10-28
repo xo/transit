@@ -35,6 +35,17 @@ return a bool, because nothing reads the conflict yet. Port `Conflict` and
 
 ## The runtime
 
+### Report the fault of the lookup of a name with a NUL byte
+
+Since 64aaee66 of upstream, `ts_language_symbol_for_name` in
+`lib/src/language.c` compares `strlen(symbol_name)` with the length of the
+name. If the name of a symbol holds a NUL byte, `strlen` stops at that byte,
+and the function finds no symbol for the name. The Go grammar has the
+anonymous token `"\u0000"`, and `SymbolForName("\x00", false)` finds no
+symbol for it. Before, it found the token. transit ports the fault, and the
+check of the node types in `internal/grammartest` skips such a name. Ken
+decides whether transit reports it upstream.
+
 ### Compare the highlight test with the upstream tool
 
 The highlight test of a grammar module follows the highlighter of upstream

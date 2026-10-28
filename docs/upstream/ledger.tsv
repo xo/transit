@@ -112,7 +112,7 @@ af33819d1a760d0478c7edf8bc4bdb3876de1443	2026-10-23	ported		cli: replace rand wi
 7c71386b466d359a9e109485deafa7b5198b50e6	2026-10-24	not-applicable		changes only paths that transit does not port: flake.lock
 ca2b57657f6088a94d04f0d38ecea3f181554830	2026-10-24	not-applicable		changes only paths that transit does not port: lib/binding_web/package-lock.json, lib/binding_web/package.json
 e638d02e077f8accdac8b77bfc1fd3195b5df85e	2026-10-23	ported		fix(generate)!: reject languages with too many symbols
-64aaee668e32b184c73ce79f93376f4f7fc62e89	2026-10-23	pending		port in phase 6: lib/src/language.c
+64aaee668e32b184c73ce79f93376f4f7fc62e89	2026-10-23	ported		fix(lib): reject symbol names with embedded `NULL` suffixes
 9a15b6afa7ad92b5e91c7dd85b308b03a48d51fc	2026-10-24	pending		port in phase 6: lib/src/tree_cursor.c
 2cca12daca77929d560e6b5c4df5c7ab9d4a8430	2026-10-24	pending		port in phase 6: lib/src/tree_cursor.c
 6735df0fc1590ccf2319789949c99edb31364eb0	2026-10-24	pending		port in phase 6: lib/src/node.c

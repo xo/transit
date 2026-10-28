@@ -163,6 +163,20 @@ func TestIDForNodeKindOnlyMatchesTheWholeErrorName(t *testing.T) {
 	}
 }
 
+func TestIDForNodeKindRejectsEmbeddedNulSuffixes(t *testing.T) {
+	language := fixtureGrammar(t, "javascript").Language
+	for i := range language.SymbolCount() {
+		id := transit.Symbol(i)
+		if language.SymbolType(id) != transit.SymbolRegular {
+			continue
+		}
+		nameWithSuffix := language.SymbolName(id) + "\x00suffix"
+		if got, ok := language.SymbolForName(nameWithSuffix, true); got != 0 || ok {
+			t.Errorf("SymbolForName(%q, true) = %d, %t, want 0, false", nameWithSuffix, got, ok)
+		}
+	}
+}
+
 func TestSymbolMetadataChecks(t *testing.T) {
 	language := fixtureGrammar(t, "rust").Language
 	for i := range language.SymbolCount() {

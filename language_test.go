@@ -441,8 +441,9 @@ func TestLanguageSymbolForName(t *testing.T) {
 		{"identifie", true, 0, false},
 		{"identifierx", true, 0, false},
 		{"alias_name", true, testSymAlias, true},
-		// a NUL ends a C string
-		{"identifier\x00x", true, testSymIdentifier, true},
+		// the name of the symbol must have the length of the name, so a
+		// NUL and a suffix find no symbol
+		{"identifier\x00x", true, 0, false},
 	}
 	for _, test := range tests {
 		got, ok := l.SymbolForName(test.name, test.named)
