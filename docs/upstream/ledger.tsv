@@ -106,9 +106,9 @@ c5fa568bc811a0c1a60c4f5ba2de9550abf0d075	2026-10-22	ported		fix(lib): find later
 86cf6c0df6e2a08fa9089a1c75cc645ed9935b94	2026-10-23	not-applicable		drops the crate pathdiff from quickjs.rs, which runs grammar.js, and transit reads grammar.json (D17)
 83162b0a0818c586cfc38555897a08f839c88887	2026-10-23	not-applicable		inlines helper crates of the CLI: parse.rs escapes HTML in the command parse, which transit does not port, and query_test.rs uses indoc in place of unindent, which gives the same text to the tests
 af33819d1a760d0478c7edf8bc4bdb3876de1443	2026-10-23	ported		cli: replace rand with a splitmix64 generator
-1aa6d5627437a760e92935d379f2c67f183eaecf	2026-10-23	pending		review: Cargo.lock, Cargo.toml
-3772c9dee107112d4df90c56fa33da1b61c145ed	2026-10-23	pending		review: Cargo.lock, Cargo.toml
-0fff6ab6ed206903856200e5390c5dad22924948	2026-10-23	pending		review: Cargo.lock, Cargo.toml
+1aa6d5627437a760e92935d379f2c67f183eaecf	2026-10-23	not-applicable		replaces the crate ctrlc with native signal handlers in crates/cli/src/util.rs, which transit does not port
+3772c9dee107112d4df90c56fa33da1b61c145ed	2026-10-23	not-applicable		reads the imports of a WebAssembly file without the crate wasmparser in crates/cli/src/wasm.rs, which transit does not port (D1)
+0fff6ab6ed206903856200e5390c5dad22924948	2026-10-23	not-applicable		opens the browser without the crate webbrowser in the playground of the CLI, which transit does not port
 7c71386b466d359a9e109485deafa7b5198b50e6	2026-10-24	not-applicable		changes only paths that transit does not port: flake.lock
 ca2b57657f6088a94d04f0d38ecea3f181554830	2026-10-24	not-applicable		changes only paths that transit does not port: lib/binding_web/package-lock.json, lib/binding_web/package.json
 e638d02e077f8accdac8b77bfc1fd3195b5df85e	2026-10-23	pending		port in phase 6: crates/generate/src/render.rs
