@@ -138,3 +138,4 @@ An open question is not a decision. It goes at the end of
 | [D117](D117-transit-follows-upstream-on-request.md) | transit follows upstream on request | Decided |
 | [D118](D118-the-nightly-tier-of-ci-starts.md) | The nightly tier of CI starts | Decided, amends D36 |
 | [D119](D119-the-go-api-gets-the-forms-that-upstream-tests-need.md) | The Go API gets the forms that the upstream tests need | Decided, amends D103 |
+| [D120](D120-transit-does-not-report-the-nul-byte-fault.md) | transit does not report the NUL byte fault upstream | Decided |

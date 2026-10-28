@@ -251,8 +251,8 @@ func Queries(t *testing.T, language *transit.Language, fsys fs.FS) {
 // NodeTypes makes sure that each node type, and each type that it names,
 // is a symbol of the language. It skips a type whose name holds a NUL byte.
 // Since 64aaee66 of upstream, SymbolForName finds no such symbol, because
-// the length of the name as C reads it stops at the NUL byte. BACKLOG.md
-// holds that fault of upstream.
+// the length of the name as C reads it stops at the NUL byte. D120 records
+// that fault of upstream.
 func NodeTypes(t *testing.T, language *transit.Language, types []transit.NodeType) {
 	t.Helper()
 	if len(types) == 0 {
