@@ -329,6 +329,19 @@ func TestFirstNamedChildForOffset(t *testing.T) {
 	urEqual(t, "first_named_child_for_byte(3)", must(sumNode.FirstNamedChildForByte(3)).Kind(), "number")
 }
 
+func TestFirstNamedChildForOffsetAfterAnonymousChildren(t *testing.T) {
+	must := urMust(t)
+	parser := urParser(t, fixtureGrammar(t, "c").Language)
+	tree := urParse(t, parser, "for (;;);", nil)
+	urEqual(t, "has_error", tree.RootNode().HasError(), false)
+
+	forNode := must(tree.RootNode().NamedChild(0))
+	urEqual(t, "kind", forNode.Kind(), "for_statement")
+	bodyNode := must(forNode.ChildByFieldName("body"))
+	urEqual(t, "kind", bodyNode.Kind(), "expression_statement")
+	urSameNode(t, "first_named_child_for_byte(0)", must(forNode.FirstNamedChildForByte(0)), bodyNode)
+}
+
 func TestNodeFieldNameForChild(t *testing.T) {
 	must := urMust(t)
 	parser := urParser(t, fixtureGrammar(t, "c").Language)

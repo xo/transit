@@ -100,6 +100,7 @@ var goPackageTests = []namedTest{
 	{"TestParentOfZeroWidthNode", TestParentOfZeroWidthNode},
 	{"TestFirstChildForOffset", TestFirstChildForOffset},
 	{"TestFirstNamedChildForOffset", TestFirstNamedChildForOffset},
+	{"TestFirstNamedChildForOffsetAfterAnonymousChildren", TestFirstNamedChildForOffsetAfterAnonymousChildren},
 	{"TestNodeFieldNameForChild", TestNodeFieldNameForChild},
 	{"TestNodeFieldNameForNamedChild", TestNodeFieldNameForNamedChild},
 	{"TestNodeChildByFieldNameWithExtraHiddenChildren", TestNodeChildByFieldNameWithExtraHiddenChildren},

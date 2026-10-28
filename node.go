@@ -428,10 +428,6 @@ func (n Node) nextSibling(includeAnonymous bool) Node {
 
 // firstChildForByte is ts_node__first_child_for_byte. The goto of C is a
 // loop.
-//
-// The C function compares the index of the iterator in the parent with the
-// child count of the child, and not with the child count of the parent. The
-// Go function does the same.
 func (n Node) firstChildForByte(goal uint32, includeAnonymous bool) Node {
 	node := n
 	didDescend := true
@@ -456,7 +452,7 @@ func (n Node) firstChildForByte(goal uint32, includeAnonymous bool) Node {
 					return child
 				}
 				if child.ChildCount() > 0 {
-					if iterator.childIndex < child.subtree().childCount() {
+					if !iterator.done() {
 						lastIterator = iterator
 						hasLastIterator = true
 					}
