@@ -1075,9 +1075,182 @@ func urParseDeeplyNestedTree(t *testing.T, depth int) *transit.Tree {
 	return urParse(t, parser, source, nil)
 }
 
+// urCollapseDeeplyNestedTree is collapse_deeply_nested_tree of
+// node_test.rs.
+func urCollapseDeeplyNestedTree(tree *transit.Tree, depth int) {
+	oldEndByte := depth*2 + 1
+	tree.Edit(transit.InputEdit{
+		StartByte:   0,
+		OldEndByte:  oldEndByte,
+		NewEndByte:  0,
+		StartPoint:  urPoint(0, 0),
+		OldEndPoint: urPoint(0, oldEndByte),
+		NewEndPoint: urPoint(0, 0),
+	})
+}
+
+// urSomeNode checks that a lookup found a node, and that the node is want.
+// It is assert_eq!(got, Some(want)).
+func urSomeNode(t *testing.T, what string, got transit.Node, ok bool, want transit.Node) {
+	t.Helper()
+	if !ok {
+		t.Errorf("%s is None", what)
+		return
+	}
+	urSameNode(t, what, got, want)
+}
+
 // TestDeeplyNestedDotGraphDoesNotOverflowStack writes the graph to
 // io.Discard, the Go form of the null device of upstream.
 func TestDeeplyNestedDotGraphDoesNotOverflowStack(t *testing.T) {
 	tree := urParseDeeplyNestedTree(t, 100_000)
 	tree.PrintDotGraph(io.Discard)
+}
+
+func TestPreviousSiblingOfIdenticalZeroWidthLeaves(t *testing.T) {
+	must := urMust(t)
+	for _, depth := range []int{3, 63, 64, 65, 66} {
+		tree := urParseDeeplyNestedTree(t, depth)
+		urCollapseDeeplyNestedTree(tree, depth)
+		expression := must(tree.RootNode().NamedChild(0))
+		innerExpression := must(expression.NamedChild(0))
+		closingParenthesis := must(expression.Child(expression.ChildCount() - 1))
+
+		// Different closing parentheses can share inline data after the edit.
+		got, ok := closingParenthesis.PrevSibling()
+		urSomeNode(t, fmt.Sprintf("depth %d: prev_sibling()", depth), got, ok, innerExpression)
+		got, ok = closingParenthesis.PrevNamedSibling()
+		urSomeNode(t, fmt.Sprintf("depth %d: prev_named_sibling()", depth), got, ok, innerExpression)
+	}
+}
+
+func TestPreviousSiblingOfZeroWidthNodesInHiddenRules(t *testing.T) {
+	must := urMust(t)
+	language := urTestLanguage(t, `{
+            "name": "deeply_nested_hidden_siblings",
+            "rules": {
+                "document": {"type": "SYMBOL", "name": "_expression"},
+                "_expression": {
+                    "type": "CHOICE",
+                    "members": [
+                        {"type": "STRING", "value": "x"},
+                        {
+                            "type": "SEQ",
+                            "members": [
+                                {"type": "STRING", "value": "("},
+                                {"type": "SYMBOL", "name": "_expression"},
+                                {"type": "STRING", "value": ")"}
+                            ]
+                        }
+                    ]
+                }
+            }
+        }`, "")
+	parser := urParser(t, language)
+
+	for _, depth := range []int{3, 63, 64, 65, 66, 128} {
+		source := strings.Repeat("(", depth) + "x" + strings.Repeat(")", depth)
+		tree := urParse(t, parser, source, nil)
+		urCollapseDeeplyNestedTree(tree, depth)
+		root := tree.RootNode()
+		xIndex := depth
+		openingParenthesis := must(root.Child(xIndex - 1))
+		x := must(root.Child(xIndex))
+		firstClosingParenthesis := must(root.Child(xIndex + 1))
+		lastClosingParenthesis := must(root.Child(root.ChildCount() - 1))
+		previousClosingParenthesis := must(root.Child(root.ChildCount() - 2))
+
+		got, ok := x.PrevSibling()
+		urSomeNode(t, fmt.Sprintf("depth %d: x.prev_sibling()", depth), got, ok, openingParenthesis)
+		got, ok = firstClosingParenthesis.PrevSibling()
+		urSomeNode(t, fmt.Sprintf("depth %d: first_closing_parenthesis.prev_sibling()", depth), got, ok, x)
+		got, ok = lastClosingParenthesis.PrevSibling()
+		urSomeNode(t, fmt.Sprintf("depth %d: last_closing_parenthesis.prev_sibling()", depth), got, ok, previousClosingParenthesis)
+	}
+}
+
+func TestDeeplyNestedNodeSearchesDoNotOverflowStack(t *testing.T) {
+	must := urMust(t)
+	const depth = 100_000
+	tree := urParseDeeplyNestedTree(t, depth)
+	urCollapseDeeplyNestedTree(tree, depth)
+	root := tree.RootNode()
+	expression := must(root.NamedChild(0))
+	descendant := expression
+	for {
+		child, ok := descendant.NamedChild(0)
+		if !ok {
+			break
+		}
+		descendant = child
+	}
+	innerExpression := must(expression.NamedChild(0))
+	closingParenthesis := must(expression.Child(expression.ChildCount() - 1))
+
+	got, ok := root.ChildWithDescendant(descendant)
+	urSomeNode(t, "root.child_with_descendant()", got, ok, expression)
+	urEqual(t, "closing_parenthesis.kind()", closingParenthesis.Kind(), ")")
+	got, ok = closingParenthesis.PrevSibling()
+	urSomeNode(t, "closing_parenthesis.prev_sibling()", got, ok, innerExpression)
+	got, ok = closingParenthesis.PrevNamedSibling()
+	urSomeNode(t, "closing_parenthesis.prev_named_sibling()", got, ok, innerExpression)
+}
+
+func TestDeeplyNestedTrailingEmptyDescendantSearch(t *testing.T) {
+	must := urMust(t)
+	language := urTestLanguage(t, `{
+            "name": "deeply_nested_with_marker",
+            "rules": {
+                "document": {
+                    "type": "SEQ",
+                    "members": [
+                        {"type": "SYMBOL", "name": "expression"},
+                        {"type": "SYMBOL", "name": "marker"}
+                    ]
+                },
+                "expression": {
+                    "type": "CHOICE",
+                    "members": [
+                        {"type": "STRING", "value": "x"},
+                        {
+                            "type": "SEQ",
+                            "members": [
+                                {"type": "STRING", "value": "("},
+                                {"type": "SYMBOL", "name": "expression"},
+                                {"type": "STRING", "value": ")"}
+                            ]
+                        }
+                    ]
+                },
+                "marker": {
+                    "type": "SEQ",
+                    "members": [
+                        {"type": "STRING", "value": "a"},
+                        {"type": "STRING", "value": "b"}
+                    ]
+                }
+            }
+        }`, "")
+	parser := urParser(t, language)
+
+	for _, depth := range []int{63, 64, 65, 100_000} {
+		source := strings.Repeat("(", depth) + "x" + strings.Repeat(")", depth) + "ab"
+		tree := urParse(t, parser, source, nil)
+		tree.Edit(transit.InputEdit{
+			StartByte:   0,
+			OldEndByte:  len(source),
+			NewEndByte:  0,
+			StartPoint:  urPoint(0, 0),
+			OldEndPoint: urPoint(0, len(source)),
+			NewEndPoint: urPoint(0, 0),
+		})
+		root := tree.RootNode()
+		expression := must(root.NamedChild(0))
+		marker := must(root.NamedChild(1))
+
+		// A non-leaf marker forces the search through the preceding empty subtree.
+		urEqual(t, "marker.child_count()", marker.ChildCount(), 2)
+		got, ok := marker.PrevSibling()
+		urSomeNode(t, fmt.Sprintf("depth %d: marker.prev_sibling()", depth), got, ok, expression)
+	}
 }

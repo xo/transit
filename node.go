@@ -45,6 +45,9 @@ type nodeChildIterator struct {
 	aliasSequence        []uint16
 }
 
+// tsNodeMaxRecursiveSearchDepth is TS_NODE_MAX_RECURSIVE_SEARCH_DEPTH.
+const tsNodeMaxRecursiveSearchDepth uint32 = 64
+
 // TSNode - constructors
 
 // makeNode is ts_node_new. The name newNode is ts_subtree_new_node.
@@ -203,18 +206,76 @@ func (n Node) child(childIndex uint32, includeAnonymous bool) Node {
 	return nullNode()
 }
 
-// hasTrailingEmptyDescendant is ts_subtree_has_trailing_empty_descendant.
-func (s subtree) hasTrailingEmptyDescendant(other subtree) bool {
-	for i := s.childCount() - 1; i+1 > 0; i-- {
-		child := s.ptr.children[i]
+// hasTrailingEmptyDescendantIterative is
+// ts_subtree_has_trailing_empty_descendant_iterative. other is the slot of
+// the target in the children of its parent, as the id of a node is.
+func (s subtree) hasTrailingEmptyDescendantIterative(other *subtree) bool {
+	var stack []subtree
+	subtree := s
+
+	for {
+		for i := subtree.childCount(); i > 0; i-- {
+			child := &subtree.ptr.children[i-1]
+			if child.totalBytes() > 0 {
+				break
+			}
+			// Distinct inline leaves can have identical contents; compare their slots.
+			if child == other {
+				return true
+			}
+			if child.childCount() > 0 {
+				stack = append(stack, *child)
+			}
+		}
+
+		if len(stack) == 0 {
+			break
+		}
+		subtree = stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+	}
+
+	return false
+}
+
+// hasTrailingEmptyDescendantBounded is
+// ts_subtree_has_trailing_empty_descendant_bounded. The C function writes
+// too_deep to an out parameter, and the Go function returns it.
+func (s subtree) hasTrailingEmptyDescendantBounded(other *subtree, depth uint32) (found, tooDeep bool) {
+	for i := s.childCount(); i > 0; i-- {
+		child := &s.ptr.children[i-1]
 		if child.totalBytes() > 0 {
 			break
 		}
-		if child.ptr == other.ptr || child.hasTrailingEmptyDescendant(other) {
-			return true
+		if child == other {
+			return true, false
+		}
+		// A nonmatching leaf cannot contain the target.
+		if child.childCount() == 0 {
+			continue
+		}
+		if depth == 0 {
+			return false, true
+		}
+
+		found, tooDeep := child.hasTrailingEmptyDescendantBounded(other, depth-1)
+		if found {
+			return true, false
+		}
+		if tooDeep {
+			return false, true
 		}
 	}
-	return false
+	return false, false
+}
+
+// hasTrailingEmptyDescendant is ts_subtree_has_trailing_empty_descendant.
+func (s subtree) hasTrailingEmptyDescendant(other *subtree) bool {
+	found, tooDeep := s.hasTrailingEmptyDescendantBounded(other, tsNodeMaxRecursiveSearchDepth)
+	if tooDeep {
+		return s.hasTrailingEmptyDescendantIterative(other)
+	}
+	return found
 }
 
 // prevSibling is ts_node__prev_sibling.
@@ -251,7 +312,7 @@ func (n Node) prevSibling(includeAnonymous bool) Node {
 
 			if iterator.position.bytes == targetEndByte &&
 				(!selfIsEmpty ||
-					child.subtree().hasTrailingEmptyDescendant(selfSubtree)) {
+					child.subtree().hasTrailingEmptyDescendant(self.id)) {
 				foundChildContainingTarget = true
 				break
 			}
@@ -699,6 +760,121 @@ func (n Node) Parent() (Node, bool) {
 	return node, !node.isNull()
 }
 
+// descendantSearchFrame is DescendantSearchFrame of
+// ts_node_child_with_empty_descendant_iterative.
+type descendantSearchFrame struct {
+	child    Node
+	iterator nodeChildIterator
+}
+
+// childWithEmptyDescendantIterative is
+// ts_node_child_with_empty_descendant_iterative. The labels of the C
+// function become the loop and its two ends: scan is the next turn of the
+// loop, resume is the code after the if and the else, found is the code
+// after the loop, and no_descendant is the else.
+func (n Node) childWithEmptyDescendantIterative(descendant Node) Node {
+	targetByte := uint32(descendant.StartByte())
+
+	var stack []descendantSearchFrame
+	iterator := n.iterateChildren()
+	result := nullNode()
+
+	for {
+		child, ok := iterator.next()
+		if ok && uint32(child.StartByte()) <= targetByte {
+			if child.id == descendant.id {
+				result = child
+				break
+			}
+
+			if iterator.position.bytes >= targetByte && child.ChildCount() > 0 {
+				stack = append(stack, descendantSearchFrame{child, iterator})
+				iterator = child.iterateChildren()
+				continue
+			}
+		} else {
+			if len(stack) == 0 {
+				return result
+			}
+			frame := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			child = frame.child
+			iterator = frame.iterator
+		}
+
+		if iterator.position.bytes <= targetByte ||
+			child.ChildCount() == 0 {
+			continue
+		}
+
+		if child.isRelevant(true) {
+			result = child
+			break
+		}
+		iterator = child.iterateChildren()
+	}
+
+	for len(stack) > 0 {
+		frame := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+		if frame.child.isRelevant(true) {
+			result = frame.child
+		}
+	}
+
+	return result
+}
+
+// childWithEmptyDescendantBounded is
+// ts_node_child_with_empty_descendant_bounded. The C function writes
+// too_deep to an out parameter, and the Go function returns it.
+func (n Node) childWithEmptyDescendantBounded(descendant Node, depth uint32) (result Node, tooDeep bool) {
+	self := n
+	targetByte := uint32(descendant.StartByte())
+
+	for {
+		iterator := self.iterateChildren()
+		for {
+			next, ok := iterator.next()
+			if !ok || uint32(next.StartByte()) > targetByte {
+				return nullNode(), false
+			}
+			self = next
+			if self.id == descendant.id {
+				return self, false
+			}
+
+			if iterator.position.bytes >= targetByte && self.ChildCount() > 0 {
+				if depth == 0 {
+					return nullNode(), true
+				}
+
+				child, tooDeep := self.childWithEmptyDescendantBounded(
+					descendant,
+					depth-1,
+				)
+				if tooDeep {
+					return nullNode(), true
+				}
+				if !child.isNull() {
+					if self.isRelevant(true) {
+						return self, false
+					}
+					return child, false
+				}
+			}
+			if iterator.position.bytes > targetByte && self.ChildCount() != 0 {
+				break
+			}
+		}
+		if self.isRelevant(true) {
+			break
+		}
+	}
+
+	return self, false
+}
+
 // ChildWithDescendant returns the child of the node that holds descendant.
 // The result can be descendant itself.
 //
@@ -707,7 +883,16 @@ func (n Node) ChildWithDescendant(descendant Node) (Node, bool) {
 	self := n
 	startByte := uint32(descendant.StartByte())
 	endByte := uint32(descendant.EndByte())
-	isEmpty := startByte == endByte
+	if startByte == endByte {
+		child, tooDeep := self.childWithEmptyDescendantBounded(
+			descendant,
+			tsNodeMaxRecursiveSearchDepth,
+		)
+		if tooDeep {
+			child = self.childWithEmptyDescendantIterative(descendant)
+		}
+		return child, !child.isNull()
+	}
 
 	for {
 		iterator := self.iterateChildren()
@@ -720,27 +905,7 @@ func (n Node) ChildWithDescendant(descendant Node) (Node, bool) {
 			if self.id == descendant.id {
 				return self, true
 			}
-
-			// If the descendant is empty, and the end byte is within `self`,
-			// we check whether `self` contains it or not.
-			if isEmpty && iterator.position.bytes >= endByte && self.ChildCount() > 0 {
-				child, ok := self.ChildWithDescendant(descendant)
-				// If the child is not null, return self if it's relevant, else return the child
-				if ok {
-					if self.isRelevant(true) {
-						return self, true
-					}
-					return child, true
-				}
-			}
-
-			var inRange bool
-			if isEmpty {
-				inRange = iterator.position.bytes <= endByte
-			} else {
-				inRange = iterator.position.bytes < endByte
-			}
-			if !inRange && self.ChildCount() != 0 {
+			if iterator.position.bytes >= endByte && self.ChildCount() != 0 {
 				break
 			}
 		}
