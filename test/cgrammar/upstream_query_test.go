@@ -159,6 +159,15 @@ func TestQueryErrorsOnInvalidSyntax(t *testing.T) {
 	})
 }
 
+func TestQueryRejectsExcessivePatternDepth(t *testing.T) {
+	language := uqTestFixtureLanguage(t, "basic_cst")
+	const nesting = 300
+	source := strings.Repeat("(_ ", nesting) + "_" + strings.Repeat(")", nesting)
+	if got := uqQueryError(t, language, source).Kind; got != transit.QueryErrorStructure {
+		t.Errorf("NewQuery returned the kind %v, want %v", got, transit.QueryErrorStructure)
+	}
+}
+
 func TestQueryErrorsOnAnchorAtGroupEdge(t *testing.T) {
 	language := uqLanguage(t, "javascript")
 

@@ -81,7 +81,7 @@ a73f27a2db718bc86a00c6fbd8285525c9b9fe1b	2026-10-17	not-applicable		changes only
 276bc59b3fb8fdecd039099746c0ad2b28fa681d	2026-10-17	not-applicable		changes only paths that transit does not port: Makefile
 95d94d1fdaddf9e53616334cca670b7db6e34f90	2026-10-17	not-applicable		the visibility of the allocator variables of alloc.h on MinGW, which transit does not port, because Go allocates
 71b2f9874a0ed394fe19837c5ddf81b7ab31c180	2026-10-20	not-applicable		a bump of wasmtime and of build.zig.zon, which transit does not port (D1)
-96e30ef980405a61aacffee79e76a653c58c3b34	2026-10-20	pending		port in phase 6: lib/src/query.c
+96e30ef980405a61aacffee79e76a653c58c3b34	2026-10-20	ported		lib(query): bound nested query pattern depth
 5e216019692fbac6a91a0859da5e22b25dd1601c	2026-10-20	pending		port in phase 6: lib/src/subtree.c
 8e87b026123cff25990db87399c96f2932906bc6	2026-10-20	pending		port in phase 6: lib/src/node.c
 c46e168547a700a54689f4ca1f153fe5c24cee8c	2026-10-20	pending		port in phase 6: lib/src/node.c

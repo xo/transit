@@ -572,6 +572,8 @@ const (
 	// Entering or leaving a node costs one, plus one for each in-progress state,
 	// because every step visits all of them.
 	workPerQueryCallbackCheck = 1000
+	// maxQueryPatternDepth is MAX_QUERY_PATTERN_DEPTH.
+	maxQueryPatternDepth = 100
 )
 
 // Stream
@@ -2299,6 +2301,7 @@ func (q *query) parsePredicate(stream *stream) QueryErrorKind {
 func (q *query) parsePattern(
 	stream *stream,
 	depth uint32,
+	nestingDepth uint32,
 	isImmediate bool,
 	isInsideAlternation bool,
 	captureQuantifiers *captureQuantifierList,
@@ -2308,6 +2311,9 @@ func (q *query) parsePattern(
 	}
 	if stream.next == ')' || stream.next == ']' {
 		return parentDone
+	}
+	if nestingDepth >= maxQueryPatternDepth {
+		return QueryErrorStructure
 	}
 
 	startingStepIndex := uint32(len(q.steps))
@@ -2335,6 +2341,7 @@ func (q *query) parsePattern(
 			e := q.parsePattern(
 				stream,
 				depth,
+				nestingDepth+1,
 				isImmediate,
 				true,
 				&branchCaptureQuantifiers,
@@ -2404,6 +2411,7 @@ func (q *query) parsePattern(
 				e := q.parsePattern(
 					stream,
 					depth,
+					nestingDepth+1,
 					childIsImmediate,
 					isInsideAlternation,
 					&childCaptureQuantifiers,
@@ -2613,6 +2621,7 @@ func (q *query) parsePattern(
 				e := q.parsePattern(
 					stream,
 					depth+1,
+					nestingDepth+1,
 					childIsImmediate,
 					isInsideAlternation,
 					&childCaptureQuantifiers,
@@ -2714,6 +2723,7 @@ func (q *query) parsePattern(
 		e := q.parsePattern(
 			stream,
 			depth,
+			nestingDepth+1,
 			isImmediate,
 			isInsideAlternation,
 			&fieldCaptureQuantifiers,
@@ -2889,7 +2899,7 @@ func newQuery(language *Language, source string) (q *query, errorOffset uint32, 
 			isNonLocal:     false,
 		})
 		var captureQuantifiers captureQuantifierList
-		errorType = q.parsePattern(&stream, 0, false, false, &captureQuantifiers)
+		errorType = q.parsePattern(&stream, 0, 0, false, false, &captureQuantifiers)
 		q.steps = append(q.steps, newQueryStep(0, patternDoneMarker, false))
 
 		pattern := &q.patterns[len(q.patterns)-1]
