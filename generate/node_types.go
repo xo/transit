@@ -491,6 +491,18 @@ func computeVariableInfoFixedPoint(syntaxGrammar *SyntaxGrammar, lexicalGrammar 
 								&productionChildrenQuantity,
 								&productionChildrenWithoutFieldsQuantity,
 							) || didChange
+						} else if index, ok := childSymbol.NonTerminalIndex(); childType.Kind == ChildTypeNormal &&
+							slices.Contains(syntaxGrammar.SupertypeSymbols, childSymbol) && ok {
+							// A supertype with no alias stays an abstract child
+							// type, but its fields belong to the parent.
+							skippedField, hasSkippedField := step.GetField()
+							didChange = inheritHiddenChildFields(
+								&result[index],
+								skippedField,
+								hasSkippedField,
+								&variableInfo,
+								productionFieldQuantities,
+							) || didChange
 						}
 
 						// Note whether this production has children whose
@@ -558,18 +570,13 @@ func inheritHiddenChildInfo(
 		variableInfo.HasMultiStepProduction = true
 	}
 
-	// When a hidden child has fields, the parent node can seem to have the
-	// same fields. The order of this loop over a Go map cannot reach the
-	// output, because each field changes only its own entries.
-	for fieldName, childFieldInfo := range childVariableInfo.Fields {
-		q, ok := productionFieldQuantities[fieldName]
-		if !ok {
-			q = zeroChildQuantity()
-		}
-		q.append(childFieldInfo.Quantity)
-		productionFieldQuantities[fieldName] = q
-		didChange = extendSorted(&variableInfo.field(fieldName).Types, childFieldInfo.Types...) || didChange
-	}
+	didChange = inheritHiddenChildFields(
+		childVariableInfo,
+		0,
+		false,
+		variableInfo,
+		productionFieldQuantities,
+	) || didChange
 
 	// When a hidden child has children, the parent node can seem to have
 	// the same children.
@@ -584,6 +591,39 @@ func inheritHiddenChildInfo(
 			productionChildrenWithoutFieldsQuantity.append(childVariableInfo.ChildrenWithoutFields.Quantity)
 			didChange = extendSorted(&variableInfo.ChildrenWithoutFields.Types, childVariableInfo.ChildrenWithoutFields.Types...) || didChange
 		}
+	}
+
+	return didChange
+}
+
+// inheritHiddenChildFields gives the parent the fields of a hidden child
+// variable, except skippedField when hasSkippedField is true. It reports
+// whether anything changed.
+//
+// inheritHiddenChildFields is inherit_hidden_child_fields.
+func inheritHiddenChildFields(
+	childVariableInfo *VariableInfo,
+	skippedField StrID,
+	hasSkippedField bool,
+	variableInfo *VariableInfo,
+	productionFieldQuantities map[StrID]ChildQuantity,
+) bool {
+	didChange := false
+
+	// When a hidden child has fields, the parent node can seem to have the
+	// same fields. The order of this loop over a Go map cannot reach the
+	// output, because each field changes only its own entries.
+	for fieldName, childFieldInfo := range childVariableInfo.Fields {
+		if hasSkippedField && fieldName == skippedField {
+			continue
+		}
+		q, ok := productionFieldQuantities[fieldName]
+		if !ok {
+			q = zeroChildQuantity()
+		}
+		q.append(childFieldInfo.Quantity)
+		productionFieldQuantities[fieldName] = q
+		didChange = extendSorted(&variableInfo.field(fieldName).Types, childFieldInfo.Types...) || didChange
 	}
 
 	return didChange

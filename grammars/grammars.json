@@ -1,5 +1,5 @@
 {
-  "upstream": "e3d578032dec2e7042291864302714878315dbed",
+  "upstream": "55d9f3bdf4cd3224cb04951dc7b88ab702602329",
   "tool": "tree-sitter 0.28.0",
   "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
   "grammars": [
@@ -546,7 +546,7 @@
       "golden": {
         "abi14": {
           "parser_c": "461de88f6029b4328433275f3b7125ca45008479dd1059fb744387572188eff7",
-          "node_types": "8fa9967f1e2d52c817a663a8848389e6265603a10bb1a02c3e16b60baa7700ce",
+          "node_types": "ff460320996d04c77985acd57d1fc639a303d49166d88e9461a81c02c22ceda4",
           "paths": [
             "field map",
             "inherited field",
@@ -569,7 +569,7 @@
         },
         "abi15": {
           "parser_c": "c3cac90c3e6622926b69bb0269b1cf09ab00a6d9ad62a6b59df9223b44f06398",
-          "node_types": "8fa9967f1e2d52c817a663a8848389e6265603a10bb1a02c3e16b60baa7700ce",
+          "node_types": "ff460320996d04c77985acd57d1fc639a303d49166d88e9461a81c02c22ceda4",
           "paths": [
             "field map",
             "inherited field",
@@ -5987,8 +5987,8 @@
       "status": "available",
       "golden": {
         "abi14": {
-          "parser_c": "c38f80430c9fb466510d8ec098d22425e1bb238093ef27c1de2e80dfc2a8ab95",
-          "node_types": "12ea1259c9e644754a13068eafd6160a9c5561c7a69e9cb9c8cd6c968b5e09fc",
+          "parser_c": "34aa5a50c7367312981161646c44a5018fc52bb54822025afff0fd14458ade44",
+          "node_types": "8affc16f9210cae2c3ccc3993c081f7e29a987ed4fba28acd2bc999746ef7cb6",
           "paths": [
             "field map",
             "inherited field",
@@ -6009,8 +6009,8 @@
           ]
         },
         "abi15": {
-          "parser_c": "933206d96a78f7785c13b2600182f1527dcd755c200b1271bb5bc4d8da4b17b3",
-          "node_types": "12ea1259c9e644754a13068eafd6160a9c5561c7a69e9cb9c8cd6c968b5e09fc",
+          "parser_c": "e56d3d7acb8b64327c54f5729290bf5de38b1fbfba6ed78cb23933068fe3051d",
+          "node_types": "8affc16f9210cae2c3ccc3993c081f7e29a987ed4fba28acd2bc999746ef7cb6",
           "paths": [
             "field map",
             "inherited field",
@@ -6158,8 +6158,8 @@
       "status": "available",
       "golden": {
         "abi14": {
-          "parser_c": "a0a20972eaa6249b1ac2827c069e8e4fd2424cd410604be6d8b9504ef854a3bb",
-          "node_types": "fc78fb4feb4cf0a1ce3854ec13b6512f407b8bd44630188542672db203e22499",
+          "parser_c": "1d4950352647ac04f262bbd51ac1a9d7db36c466d9084fd7cd670fb0912a2c5e",
+          "node_types": "1f138b102407c11a304352a9f752140686d4daad78ee49b92503b37f692c982b",
           "paths": [
             "field map",
             "inherited field",
@@ -6179,8 +6179,8 @@
           ]
         },
         "abi15": {
-          "parser_c": "786d519aff176e3dc6e0d5543f74e347c75237e7d03d56422753c31a06770886",
-          "node_types": "fc78fb4feb4cf0a1ce3854ec13b6512f407b8bd44630188542672db203e22499",
+          "parser_c": "d68a73a8ebb9cc6a7fbef788f9a7e73c455fec4bcef63154daccd4a82ca51750",
+          "node_types": "1f138b102407c11a304352a9f752140686d4daad78ee49b92503b37f692c982b",
           "paths": [
             "field map",
             "inherited field",
@@ -9226,8 +9226,8 @@
       "status": "available",
       "golden": {
         "abi14": {
-          "parser_c": "e4b01a0e86a1c9df23d9079d1b2bbb88324501330a81e349396d79080e8a67db",
-          "node_types": "2400ecb984b7d3af41c5d235455690306fc5cc402ca8666cac67984bfa3237b7",
+          "parser_c": "89ee911f3d897975908297b217c5bc89ecd1bc2486d7c1026316d64e4eb9f67f",
+          "node_types": "edbd04698dcf9d724f3e3efe9bf603dd882e233b740da734c38ae77fbe1a346f",
           "paths": [
             "field map",
             "inherited field",
@@ -9251,8 +9251,8 @@
           ]
         },
         "abi15": {
-          "parser_c": "288ab6feacc67e24d10ba73f80286e6b78402974078a045430a99df6f7e3e1eb",
-          "node_types": "2400ecb984b7d3af41c5d235455690306fc5cc402ca8666cac67984bfa3237b7",
+          "parser_c": "072cc0c3df791eadbcda85341e65b696daffa6cfbd2f1709d2e6090afd890cfb",
+          "node_types": "edbd04698dcf9d724f3e3efe9bf603dd882e233b740da734c38ae77fbe1a346f",
           "paths": [
             "field map",
             "inherited field",

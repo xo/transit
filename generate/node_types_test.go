@@ -1149,6 +1149,84 @@ func TestGetVariableInfoWithSupertypes(t *testing.T) {
 	})
 }
 
+// TestGetVariableInfoWithFieldsInsideSupertypes is
+// test_get_variable_info_with_fields_inside_supertypes in node_types.rs.
+func TestGetVariableInfoWithFieldsInsideSupertypes(t *testing.T) {
+	interner := NewStrPool()
+	field := interner.Intern("value")
+	lexicalGrammar := nodeTypesLexicalGrammar(interner)
+	for _, parentField := range []StrID{0, field} {
+		grammar := nodeTypesSyntaxGrammar(interner, []nodeTypesVariable{
+			{"parent", VariableNamed, [][]ProductionStep{{
+				nodeTypesStep(NonTerminalSymbol(1), 0),
+			}}},
+			{"_hidden", VariableHidden, [][]ProductionStep{{
+				nodeTypesStep(NonTerminalSymbol(2), parentField),
+			}}},
+			{"_supertype", VariableHidden, [][]ProductionStep{{
+				nodeTypesStep(TerminalSymbol(0), field),
+			}}},
+		},
+			[]Symbol{NonTerminalSymbol(2)},
+		)
+		info, err := GetVariableInfo(grammar, lexicalGrammar, AliasMap{}, &InlinedProductionMap{}, interner)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Fields cross the supertype and the hidden rule, and the supertype
+		// stays an abstract child type. When the step of the supertype has
+		// the same field, the child must count only once.
+		fieldInfo, ok := info[0].Fields[field]
+		if !ok {
+			t.Fatalf("parent field %d: expected the field value", parentField)
+		}
+		if fieldInfo.Quantity != oneChildQuantity() {
+			t.Errorf("parent field %d: expected the quantity %+v, got: %+v", parentField, oneChildQuantity(), fieldInfo.Quantity)
+		}
+		expected := []ChildType{NormalChildType(TerminalSymbol(0))}
+		if parentField != 0 {
+			expected = []ChildType{NormalChildType(NonTerminalSymbol(2))}
+		}
+		if !slices.Equal(fieldInfo.Types, expected) {
+			t.Errorf("parent field %d: expected the types %v, got: %v", parentField, expected, fieldInfo.Types)
+		}
+		if !slices.Contains(info[0].Children.Types, NormalChildType(NonTerminalSymbol(2))) {
+			t.Errorf("parent field %d: expected the child _supertype, got: %v", parentField, info[0].Children.Types)
+		}
+		if slices.Contains(info[0].Children.Types, NormalChildType(TerminalSymbol(0))) {
+			t.Errorf("parent field %d: expected no child terminal 0, got: %v", parentField, info[0].Children.Types)
+		}
+	}
+}
+
+// TestGetVariableInfoWithAliasedSupertypeFields is
+// test_get_variable_info_with_aliased_supertype_fields in node_types.rs.
+func TestGetVariableInfoWithAliasedSupertypeFields(t *testing.T) {
+	interner := NewStrPool()
+	field := interner.Intern("inner")
+	lexicalGrammar := nodeTypesLexicalGrammar(interner)
+	child := nodeTypesStep(NonTerminalSymbol(1), 0)
+	child.SetAlias(Alias{Value: interner.Intern("wrapper"), IsNamed: true}, true)
+	grammar := nodeTypesSyntaxGrammar(interner, []nodeTypesVariable{
+		{"parent", VariableNamed, [][]ProductionStep{{child}}},
+		{"_supertype", VariableHidden, [][]ProductionStep{{
+			nodeTypesStep(TerminalSymbol(0), field),
+		}}},
+	},
+		[]Symbol{NonTerminalSymbol(1)},
+	)
+	info, err := GetVariableInfo(grammar, lexicalGrammar, AliasMap{}, &InlinedProductionMap{}, interner)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := info[1].Fields[field]; !ok {
+		t.Error("expected the field inner on _supertype")
+	}
+	if len(info[0].Fields) != 0 {
+		t.Errorf("expected no field on parent, got: %v", info[0].Fields)
+	}
+}
+
 // TestNodeTypesSupertypeAndInlineConflict is
 // test_supertype_and_inline_conflict in node_types.rs. The name differs
 // because intern_symbols_test.go has a test of the same name.
