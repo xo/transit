@@ -2,6 +2,7 @@ package cgrammar
 
 import (
 	"fmt"
+	"io"
 	"iter"
 	"os"
 	"path/filepath"
@@ -1044,4 +1045,39 @@ func urParseJSONExample(t *testing.T) *transit.Tree {
 	t.Helper()
 	parser := urParser(t, fixtureGrammar(t, "json").Language)
 	return urParse(t, parser, urJSONExample, nil)
+}
+
+// urParseDeeplyNestedTree is parse_deeply_nested_tree of node_test.rs.
+func urParseDeeplyNestedTree(t *testing.T, depth int) *transit.Tree {
+	t.Helper()
+	language := urTestLanguage(t, `{
+            "name": "deeply_nested",
+            "rules": {
+                "document": {"type": "SYMBOL", "name": "expression"},
+                "expression": {
+                    "type": "CHOICE",
+                    "members": [
+                        {"type": "STRING", "value": "x"},
+                        {
+                            "type": "SEQ",
+                            "members": [
+                                {"type": "STRING", "value": "("},
+                                {"type": "SYMBOL", "name": "expression"},
+                                {"type": "STRING", "value": ")"}
+                            ]
+                        }
+                    ]
+                }
+            }
+        }`, "")
+	source := strings.Repeat("(", depth) + "x" + strings.Repeat(")", depth)
+	parser := urParser(t, language)
+	return urParse(t, parser, source, nil)
+}
+
+// TestDeeplyNestedDotGraphDoesNotOverflowStack writes the graph to
+// io.Discard, the Go form of the null device of upstream.
+func TestDeeplyNestedDotGraphDoesNotOverflowStack(t *testing.T) {
+	tree := urParseDeeplyNestedTree(t, 100_000)
+	tree.PrintDotGraph(io.Discard)
 }

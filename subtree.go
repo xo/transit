@@ -1356,9 +1356,9 @@ func (s subtree) string(
 	return b.String()
 }
 
-// printDotGraphNode is ts_subtree__print_dot_graph. The name of a node in
-// the graph is the address of the subtree, as in C.
-func (s *subtree) printDotGraphNode(startOffset uint32, language *Language, aliasSymbol Symbol, w io.Writer) {
+// writeDotNode is ts_subtree__write_dot_node. The name of a node in the
+// graph is the address of the subtree, as in C.
+func (s *subtree) writeDotNode(startOffset uint32, language *Language, aliasSymbol Symbol, w io.Writer) {
 	subtreeSymbol := s.symbol()
 	symbol := aliasSymbol
 	if symbol == 0 {
@@ -1403,20 +1403,56 @@ func (s *subtree) printDotGraphNode(startOffset uint32, language *Language, alia
 	}
 
 	fprintf(w, "\"]\n")
+}
 
-	childStartOffset := startOffset
-	childInfoOffset := uint32(language.tables.MaxAliasSequenceLength) *
-		uint32(s.productionID())
-	for i, n := uint32(0), s.childCount(); i < n; i++ {
-		child := &s.ptr.children[i]
-		subtreeAliasSymbol := Symbol(0)
-		if !child.extra() && childInfoOffset != 0 {
-			subtreeAliasSymbol = Symbol(language.tables.AliasSequences[childInfoOffset])
-			childInfoOffset++
+// dotGraphFrame is DotGraphFrame.
+type dotGraphFrame struct {
+	subtree          *subtree
+	childIndex       uint32
+	childStartOffset uint32
+	childInfoOffset  uint32
+}
+
+// printDotGraphNode is ts_subtree__print_dot_graph.
+func (s *subtree) printDotGraphNode(startOffset uint32, language *Language, aliasSymbol Symbol, w io.Writer) {
+	s.writeDotNode(startOffset, language, aliasSymbol, w)
+
+	stack := []dotGraphFrame{{
+		subtree:          s,
+		childStartOffset: startOffset,
+		childInfoOffset:  uint32(language.tables.MaxAliasSequenceLength) * uint32(s.productionID()),
+	}}
+
+	for len(stack) > 0 {
+		frame := &stack[len(stack)-1]
+		subtree := frame.subtree
+		i := frame.childIndex
+		if i > 0 {
+			child := &subtree.ptr.children[i-1]
+			fprintf(w, "tree_%p -> tree_%p [tooltip=%d]\n", subtree, child, i-1)
 		}
-		child.printDotGraphNode(childStartOffset, language, subtreeAliasSymbol, w)
-		fprintf(w, "tree_%p -> tree_%p [tooltip=%d]\n", s, child, i)
-		childStartOffset += child.totalBytes()
+
+		if i == subtree.childCount() {
+			stack = stack[:len(stack)-1]
+			continue
+		}
+
+		child := &subtree.ptr.children[i]
+		subtreeAliasSymbol := Symbol(0)
+		if !child.extra() && frame.childInfoOffset != 0 {
+			subtreeAliasSymbol = Symbol(language.tables.AliasSequences[frame.childInfoOffset])
+			frame.childInfoOffset++
+		}
+		child.writeDotNode(frame.childStartOffset, language, subtreeAliasSymbol, w)
+
+		childFrame := dotGraphFrame{
+			subtree:          child,
+			childStartOffset: frame.childStartOffset,
+			childInfoOffset:  uint32(language.tables.MaxAliasSequenceLength) * uint32(child.productionID()),
+		}
+		frame.childStartOffset += child.totalBytes()
+		frame.childIndex++
+		stack = append(stack, childFrame)
 	}
 }
 
