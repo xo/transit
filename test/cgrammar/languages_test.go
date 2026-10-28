@@ -110,6 +110,7 @@ var goPackageTests = []namedTest{
 	{"TestRootNodeWithOffset", TestRootNodeWithOffset},
 	{"TestNodeIsExtra", TestNodeIsExtra},
 	{"TestNodeIsError", TestNodeIsError},
+	{"TestNodeHasError", TestNodeHasError},
 	{"TestNodeSexp", TestNodeSexp},
 	{"TestNodeNumericSymbolsRespectSimpleAliases", TestNodeNumericSymbolsRespectSimpleAliases},
 	{"TestHiddenZeroWidthNodeWithVisibleChild", TestHiddenZeroWidthNodeWithVisibleChild},

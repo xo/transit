@@ -22,7 +22,9 @@ import (
 // cstCorpus holds corpus cases of the json grammar with the attribute :cst.
 // The expected output of each case is the output of tree-sitter test of the
 // upstream tool at the base commit, for the same input, with
-// tree-sitter-json at the tag of grammars/grammars.json.
+// tree-sitter-json at the tag of grammars/grammars.json. The line of the
+// terminal ERROR node of "Error in an array" is the output at 7f877d3c,
+// where ts_node_has_error reports true for that node.
 const cstCorpus = "================================================================================\n" +
 	"Object with a string\n" +
 	":cst\n" +
@@ -105,7 +107,7 @@ const cstCorpus = "=============================================================
 	"1:1 - 1:2        number `1`\n" +
 	"1:2 - 1:3        \",\"\n" +
 	"1:4 - 1:6       •ERROR\n" +
-	"1:4 - 1:5          •ERROR `@`\n" +
+	"1:4 - 1:5         •ERROR `@`\n" +
 	"1:5 - 1:6          \",\"\n" +
 	"1:7 - 1:8        number `2`\n" +
 	"1:8 - 1:9        \"]\"\n" +

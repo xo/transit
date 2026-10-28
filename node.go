@@ -705,7 +705,8 @@ func (n Node) HasChanges() bool {
 //
 // HasError is ts_node_has_error.
 func (n Node) HasError() bool {
-	return n.subtree().errorCost() > 0
+	return n.IsError() ||
+		n.subtree().errorCost() > 0
 }
 
 // IsError reports whether the node is an ERROR node.

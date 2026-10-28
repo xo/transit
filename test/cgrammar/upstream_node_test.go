@@ -675,6 +675,24 @@ func TestNodeIsError(t *testing.T) {
 	urEqual(t, "child.is_error", child.IsError(), true)
 }
 
+func TestNodeHasError(t *testing.T) {
+	must := urMust(t)
+	parser := urParser(t, fixtureGrammar(t, "json").Language)
+	tree := urParse(t, parser, "!", nil)
+
+	root := tree.RootNode()
+	urEqual(t, "root.has_error", root.HasError(), true)
+
+	errorNode := must(root.Child(0))
+	urEqual(t, "error.is_error", errorNode.IsError(), true)
+	urEqual(t, "error.has_error", errorNode.HasError(), true)
+
+	terminalError := must(errorNode.Child(0))
+	urEqual(t, "terminal_error.is_error", terminalError.IsError(), true)
+	urEqual(t, "terminal_error.child_count", terminalError.ChildCount(), 0)
+	urEqual(t, "terminal_error.has_error", terminalError.HasError(), true)
+}
+
 func TestEditPoint(t *testing.T) {
 	edit := transit.InputEdit{
 		StartByte:   5,
