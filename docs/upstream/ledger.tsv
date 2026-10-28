@@ -70,3 +70,50 @@ e9930e0915685efb98a9d325b8f23dfdb9e99559	2026-10-09	ported	35b5750	fix(lib): onl
 af901cd052113a662754af8c03d8eef05e829607	2026-10-10	not-applicable	85ec9d7	changes only paths that transit does not port: lib/binding_web/package-lock.json, lib/binding_web/package.json
 88b21461c73a3f9976bf23fa0b0bff9fc979aa2d	2026-10-10	not-applicable	85ec9d7	changes only paths that transit does not port: flake.lock
 fbfb07e93de82e12784cd0f646e291b8f2e4126e	2026-10-10	not-applicable	85ec9d7	the WebAssembly store and its test, which transit does not port (D1)
+8ca548849fc8dbefd699edcec26546bb14112820	2026-10-15	pending		review: Cargo.lock, lib/Cargo.toml
+453014133d52513454c6a78622216a05111c258a	2026-10-16	not-applicable		changes only paths that transit does not port: lib/binding_web/package-lock.json, lib/binding_web/package.json
+1cd1dfe1858f625e1bdcffb6c94fe14fbb11e46a	2026-10-16	not-applicable		changes only paths that transit does not port: .github/workflows/build.yml, .github/workflows/release.yml
+85061cc66804c74c5c6cc0b6a229e0f91c08636c	2026-10-16	not-applicable		changes only paths that transit does not port: flake.lock
+904234c9169862e10b6cead100a0afd0ac3d1a41	2026-10-17	pending		review: lib/src/tree_sitter.def, lib/src/tree_sitter_wasm.def
+2370f19abcea15331ac3d33810c41074896396bc	2026-10-17	not-applicable		changes only paths that transit does not port: CMakeLists.txt, Makefile, build.zig
+a73f27a2db718bc86a00c6fbd8285525c9b9fe1b	2026-10-17	not-applicable		changes only paths that transit does not port: CMakeLists.txt
+6a1b0b204cd1a21d958554f829369b32fb27b947	2026-10-17	not-applicable		changes only paths that transit does not port: build.zig
+276bc59b3fb8fdecd039099746c0ad2b28fa681d	2026-10-17	not-applicable		changes only paths that transit does not port: Makefile
+95d94d1fdaddf9e53616334cca670b7db6e34f90	2026-10-17	pending		port in phase 6: lib/src/alloc.h
+71b2f9874a0ed394fe19837c5ddf81b7ab31c180	2026-10-20	pending		review: Cargo.lock, lib/Cargo.toml
+96e30ef980405a61aacffee79e76a653c58c3b34	2026-10-20	pending		port in phase 6: lib/src/query.c
+5e216019692fbac6a91a0859da5e22b25dd1601c	2026-10-20	pending		port in phase 6: lib/src/subtree.c
+8e87b026123cff25990db87399c96f2932906bc6	2026-10-20	pending		port in phase 6: lib/src/node.c
+c46e168547a700a54689f4ca1f153fe5c24cee8c	2026-10-20	pending		port in phase 6: lib/src/node.c
+996a11cc911307e7a1f33311a5c2b64c4bf029de	2026-10-20	pending		port in phase 6: crates/generate/src/build_tables/minimize_parse_table.rs, crates/generate/src/generate.rs, crates/generate/src/grammars.rs
+803c6ebaac27d69e1808b45058482e868d073ceb	2026-10-20	pending		review: Cargo.lock, lib/Cargo.toml, lib/binding_rust/README.md
+7f877d3c080f7f8c7764ee1f68002fc52636cacb	2026-10-21	pending		port in phase 6: lib/src/node.c
+0f700450ce236b093a7e66b1ec00f078b082a0ef	2026-10-21	not-applicable		changes only paths that transit does not port: lib/binding_web/src/tree_cursor.ts, lib/binding_web/test/tree.test.ts
+ba189ef5a60ef89e9d2f0ef63a9991449d3de962	2026-10-21	not-applicable		changes only paths that transit does not port: lib/binding_web/lib/tree-sitter.c, lib/binding_web/src/tree_cursor.ts, lib/binding_web/test/tree.test.ts
+0580c91b039109dac6ea9ddc1ea54c713850e8e9	2026-10-21	not-applicable		changes only paths that transit does not port: lib/binding_web/lib/tree-sitter.c, lib/binding_web/test/query.test.ts
+26578ed6fb462ee79bf8a669bfec985556edbf5e	2026-10-21	not-applicable		changes only paths that transit does not port: lib/binding_web/src/node.ts, lib/binding_web/test/node.test.ts
+780457e47936115c1e34ee21d4d4adb0664425ea	2026-10-21	not-applicable		changes only paths that transit does not port: lib/binding_web/src/tree_cursor.ts, lib/binding_web/test/tree.test.ts
+17e6a5e56c93c177c9f216542ed741f0c73283ed	2026-10-21	not-applicable		changes only paths that transit does not port: lib/binding_web/src/node.ts, lib/binding_web/test/tree.test.ts
+dd97a0c0a43294c0df162a6c0e411a09f477cf4f	2026-10-21	not-applicable		changes only paths that transit does not port: lib/binding_web/src/query.ts, lib/binding_web/test/query.test.ts
+857ea4f16cb045fdc81c01ede17114bf0a95f4ad	2026-10-21	not-applicable		changes only paths that transit does not port: lib/binding_web/src/marshal.ts, lib/binding_web/src/tree_cursor.ts, lib/binding_web/test/memory_cursor.test.ts
+e3d578032dec2e7042291864302714878315dbed	2026-10-21	not-applicable		changes only paths that transit does not port: lib/binding_web/package-lock.json
+55d9f3bdf4cd3224cb04951dc7b88ab702602329	2026-10-22	pending		port in phase 6: crates/generate/src/node_types.rs
+7cd32f1c40ebea5117e31a96162c31171d45cdef	2026-10-22	pending		port in phase 6: lib/src/node.c, test/fixtures/test_grammars/field_lookup_through_hidden_nodes/corpus.txt, test/fixtures/test_grammars/field_lookup_through_hidden_nodes/grammar.js
+f103d82273ec3521fe89613ba189ebe15f8af679	2026-10-22	pending		port in phase 6: lib/src/node.c, test/fixtures/test_grammars/field_lookup_through_hidden_nodes/corpus.txt, test/fixtures/test_grammars/field_lookup_through_hidden_nodes/grammar.js
+c5fa568bc811a0c1a60c4f5ba2de9550abf0d075	2026-10-22	pending		port in phase 6: lib/src/tree_cursor.c, test/fixtures/test_grammars/field_on_hidden_rule/corpus.txt, test/fixtures/test_grammars/field_on_hidden_rule/grammar.js
+430d29969f04bfedae50b6e445cc14e7378fd7dd	2026-10-22	pending		port in phase 6: crates/cli/src/parse.rs, crates/cli/src/test.rs, crates/generate/src/bitvec.rs
+4a412a01a0147d0f50bf7e749572fa632d1ab203	2026-10-22	not-applicable		changes only paths that transit does not port: .github/workflows/ci.yml
+86cf6c0df6e2a08fa9089a1c75cc645ed9935b94	2026-10-23	pending		review: Cargo.lock, crates/generate/Cargo.toml, crates/generate/src/quickjs.rs
+83162b0a0818c586cfc38555897a08f839c88887	2026-10-23	pending		port in phase 6: crates/cli/src/parse.rs
+af33819d1a760d0478c7edf8bc4bdb3876de1443	2026-10-23	pending		review: Cargo.lock, Cargo.toml, crates/cli/src/tests/helpers/query_helpers.rs
+1aa6d5627437a760e92935d379f2c67f183eaecf	2026-10-23	pending		review: Cargo.lock, Cargo.toml
+3772c9dee107112d4df90c56fa33da1b61c145ed	2026-10-23	pending		review: Cargo.lock, Cargo.toml
+0fff6ab6ed206903856200e5390c5dad22924948	2026-10-23	pending		review: Cargo.lock, Cargo.toml
+7c71386b466d359a9e109485deafa7b5198b50e6	2026-10-24	not-applicable		changes only paths that transit does not port: flake.lock
+ca2b57657f6088a94d04f0d38ecea3f181554830	2026-10-24	not-applicable		changes only paths that transit does not port: lib/binding_web/package-lock.json, lib/binding_web/package.json
+e638d02e077f8accdac8b77bfc1fd3195b5df85e	2026-10-23	pending		port in phase 6: crates/generate/src/render.rs
+64aaee668e32b184c73ce79f93376f4f7fc62e89	2026-10-23	pending		port in phase 6: lib/src/language.c
+9a15b6afa7ad92b5e91c7dd85b308b03a48d51fc	2026-10-24	pending		port in phase 6: lib/src/tree_cursor.c
+2cca12daca77929d560e6b5c4df5c7ab9d4a8430	2026-10-24	pending		port in phase 6: lib/src/tree_cursor.c
+6735df0fc1590ccf2319789949c99edb31364eb0	2026-10-24	pending		port in phase 6: lib/src/node.c
+dfe770858e3cfd8e8b29a79ea17da390a6f60319	2026-10-24	pending		port in phase 6: lib/src/node.c
