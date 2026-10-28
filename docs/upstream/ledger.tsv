@@ -116,4 +116,4 @@ e638d02e077f8accdac8b77bfc1fd3195b5df85e	2026-10-23	ported		fix(generate)!: reje
 9a15b6afa7ad92b5e91c7dd85b308b03a48d51fc	2026-10-24	ported		fix(lib): handle large child indices in reverse cursor traversal
 2cca12daca77929d560e6b5c4df5c7ab9d4a8430	2026-10-24	ported		fix(lib): preserve descendant indices during reverse cursor traversal
 6735df0fc1590ccf2319789949c99edb31364eb0	2026-10-24	ported		fix(lib): retain siblings during byte-based child lookup
-dfe770858e3cfd8e8b29a79ea17da390a6f60319	2026-10-24	pending		port in phase 6: lib/src/node.c
+dfe770858e3cfd8e8b29a79ea17da390a6f60319	2026-10-24	ported		fix(lib): verify ancestry for equal-range descendants

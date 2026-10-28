@@ -94,6 +94,14 @@ func urChildWithDescendantIs(t *testing.T, what string, n, descendant, want tran
 	urSameNode(t, what+".child_with_descendant()", got, want)
 }
 
+// urNoChildWithDescendant checks that child_with_descendant is None.
+func urNoChildWithDescendant(t *testing.T, what string, n, descendant transit.Node) {
+	t.Helper()
+	if got, ok := n.ChildWithDescendant(descendant); ok {
+		t.Errorf("%s is %s at %d, want None", what, got.Kind(), got.StartByte())
+	}
+}
+
 func TestNodeChild(t *testing.T) {
 	must := urMust(t)
 	tree := urParseJSONExample(t)
@@ -214,6 +222,31 @@ func TestNodeChildren(t *testing.T) {
 		t.Fatal("no object in the named children")
 	}
 	urSlice(t, "children", urKinds(objectNode.Children()), []string{"{", "pair", "}"})
+}
+
+func TestNodeChildWithDescendantSameRange(t *testing.T) {
+	must := urMust(t)
+	parser := urParser(t, fixtureGrammar(t, "javascript").Language)
+
+	tree := urParse(t, parser, "(a)", nil)
+	root := tree.RootNode()
+	statement := must(root.Child(0))
+	parenthesized := must(statement.Child(0))
+
+	urEqual(t, "kind", root.Kind(), "program")
+	urEqual(t, "kind", statement.Kind(), "expression_statement")
+	urEqual(t, "kind", parenthesized.Kind(), "parenthesized_expression")
+	urEqual(t, "byte_range", urByteRange(root), urByteRange(statement))
+	urEqual(t, "byte_range", urByteRange(statement), urByteRange(parenthesized))
+
+	urNoChildWithDescendant(t, "root.child_with_descendant(root)", root, root)
+	urNoChildWithDescendant(t, "statement.child_with_descendant(statement)", statement, statement)
+
+	urChildWithDescendantIs(t, "root", root, statement, statement)
+	urChildWithDescendantIs(t, "root", root, parenthesized, statement)
+	urChildWithDescendantIs(t, "statement", statement, parenthesized, parenthesized)
+
+	urNoChildWithDescendant(t, "statement.child_with_descendant(root)", statement, root)
 }
 
 func TestNodeChildrenByFieldName(t *testing.T) {

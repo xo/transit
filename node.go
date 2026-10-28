@@ -876,14 +876,78 @@ func (n Node) childWithEmptyDescendantBounded(descendant Node, depth uint32) (re
 	return self, false
 }
 
+// childWithSameRangeDescendant is
+// ts_node_child_with_same_range_descendant. Its frame has the shape of
+// descendantSearchFrame, so the Go function uses that type.
+func (n Node) childWithSameRangeDescendant(descendant Node) Node {
+	self := n
+	var stack []descendantSearchFrame
+	iterator := self.iterateChildren()
+	result := nullNode()
+
+	for {
+		child, ok := iterator.next()
+		if !ok {
+			if len(stack) == 0 {
+				break
+			}
+
+			frame := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			iterator = frame.iterator
+			continue
+		}
+
+		if child.Equal(descendant) {
+			result = child
+
+			// Return the outermost visible node on the path. Hidden wrappers
+			// should not become the result when a visible descendant exists.
+			for len(stack) > 0 {
+				frame := stack[len(stack)-1]
+				stack = stack[:len(stack)-1]
+				if frame.child.isRelevant(true) {
+					result = frame.child
+				}
+			}
+			break
+		}
+
+		// A node containing a same-range descendant must itself have the same
+		// range. Descend only through those nodes.
+		if child.StartByte() == self.StartByte() &&
+			child.EndByte() == self.EndByte() &&
+			child.ChildCount() > 0 {
+			stack = append(stack, descendantSearchFrame{
+				child:    child,
+				iterator: iterator,
+			})
+			iterator = child.iterateChildren()
+		}
+	}
+
+	return result
+}
+
 // ChildWithDescendant returns the child of the node that holds descendant.
-// The result can be descendant itself.
+// The result can be descendant itself. It returns false when descendant is
+// the node itself.
 //
 // ChildWithDescendant is ts_node_child_with_descendant.
 func (n Node) ChildWithDescendant(descendant Node) (Node, bool) {
 	self := n
+	if self.Equal(descendant) {
+		return nullNode(), false
+	}
 	startByte := uint32(descendant.StartByte())
 	endByte := uint32(descendant.EndByte())
+
+	if startByte == uint32(self.StartByte()) &&
+		endByte == uint32(self.EndByte()) {
+		child := self.childWithSameRangeDescendant(descendant)
+		return child, !child.isNull()
+	}
+
 	if startByte == endByte {
 		child, tooDeep := self.childWithEmptyDescendantBounded(
 			descendant,

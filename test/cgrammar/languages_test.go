@@ -95,6 +95,7 @@ var goPackageTests = []namedTest{
 	// upstream_node_test.go
 	{"TestNodeChild", TestNodeChild},
 	{"TestNodeChildren", TestNodeChildren},
+	{"TestNodeChildWithDescendantSameRange", TestNodeChildWithDescendantSameRange},
 	{"TestNodeChildrenByFieldName", TestNodeChildrenByFieldName},
 	{"TestNodeParentOfChildByFieldName", TestNodeParentOfChildByFieldName},
 	{"TestParentOfZeroWidthNode", TestParentOfZeroWidthNode},
