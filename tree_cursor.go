@@ -633,7 +633,9 @@ func (c *TreeCursor) Node() Node {
 // supertypeCount is the number that it wrote.
 //
 // Private - Get various facts about the current node that are needed
-// when executing tree queries.
+// when executing tree queries. `can_have_later_siblings_with_this_field`
+// is never false when a later sibling has the current node's field, but
+// can be true when none does.
 func (c *TreeCursor) currentStatus(supertypes []Symbol) (
 	fieldID FieldID,
 	hasLaterSiblings bool,
@@ -642,6 +644,8 @@ func (c *TreeCursor) currentStatus(supertypes []Symbol) (
 	supertypeCount uint32,
 ) {
 	maxSupertypes := uint32(len(supertypes))
+	// A later sibling with no field of its own may inherit one further up.
+	laterSiblingWithoutField := false
 
 	// Walk up the tree, visiting the current node and its invisible ancestors,
 	// because fields can refer to nodes through invisible *wrapper* nodes,
@@ -679,52 +683,34 @@ func (c *TreeCursor) currentStatus(supertypes []Symbol) (
 			supertypeCount++
 		}
 
-		// Determine if the current node has later siblings. A later *anonymous*
-		// sibling settles `has_later_siblings` but says nothing about later *named*
-		// siblings.
-		if !hasLaterNamedSiblings {
-			siblingCount := parentEntry.subtree.childCount()
-			structuralChildIndex := entry.structuralChildIndex
-			if !entry.subtree.extra() {
-				structuralChildIndex++
-			}
-			for j := entry.childIndex + 1; j < siblingCount; j++ {
-				sibling := parentEntry.subtree.ptr.children[j]
-				siblingMetadata := c.tree.language.symbolMetadata(
-					subtreeSymbol(sibling, structuralChildIndex),
-				)
-				if siblingMetadata.Visible {
-					hasLaterSiblings = true
-					if siblingMetadata.Named {
-						hasLaterNamedSiblings = true
-						break
-					}
-				} else if sibling.visibleChildCount() > 0 {
-					hasLaterSiblings = true
-					if sibling.ptr.namedChildCount > 0 {
-						hasLaterNamedSiblings = true
-						break
-					}
-				}
-				if !sibling.extra() {
-					structuralChildIndex++
-				}
-			}
-		}
+		fieldMap := c.tree.language.fieldMap(
+			uint32(parentEntry.subtree.ptr.productionID),
+		)
 
+		findLaterSiblingWithoutField := false
 		if !entry.subtree.extra() {
-			fieldMap := c.tree.language.fieldMap(
-				uint32(parentEntry.subtree.ptr.productionID),
-			)
-
-			// Look for a field name associated with the current node.
-			if fieldID == 0 {
-				for _, m := range fieldMap {
-					if !m.Inherited && uint32(m.ChildIndex) == entry.structuralChildIndex {
-						fieldID = FieldID(m.FieldID)
-						break
-					}
+			// Look for a field name associated with this entry.
+			var entryFieldID FieldID
+			for _, m := range fieldMap {
+				if !m.Inherited && uint32(m.ChildIndex) == entry.structuralChildIndex {
+					entryFieldID = FieldID(m.FieldID)
+					break
 				}
+			}
+
+			if entryFieldID != 0 {
+				if fieldID == 0 {
+					fieldID = entryFieldID
+					// A field found on this entry may also belong to any later sibling
+					// found below. Those were scanned before the field was known, so assume
+					// they do.
+					if hasLaterSiblings {
+						canHaveLaterSiblingsWithThisField = true
+					}
+				} else if laterSiblingWithoutField && entryFieldID == fieldID {
+					canHaveLaterSiblingsWithThisField = true
+				}
+				laterSiblingWithoutField = false
 			}
 
 			// Determine if the current node can have later siblings with the same field name.
@@ -735,6 +721,61 @@ func (c *TreeCursor) currentStatus(supertypes []Symbol) (
 						canHaveLaterSiblingsWithThisField = true
 						break
 					}
+				}
+			}
+			// A fieldless later sibling may inherit a field from its hidden parent.
+			findLaterSiblingWithoutField = fieldID != 0 &&
+				!canHaveLaterSiblingsWithThisField &&
+				!laterSiblingWithoutField &&
+				!c.isEntryVisible(uint32(i-1))
+		}
+
+		// Determine if the current node has later siblings. A later *anonymous*
+		// sibling settles `has_later_siblings` but says nothing about later *named*
+		// siblings. When needed, also look for one with no field of its own.
+		if !hasLaterNamedSiblings || findLaterSiblingWithoutField {
+			siblingCount := parentEntry.subtree.childCount()
+			structuralChildIndex := entry.structuralChildIndex
+			if !entry.subtree.extra() {
+				structuralChildIndex++
+			}
+			for j := entry.childIndex + 1; j < siblingCount; j++ {
+				sibling := parentEntry.subtree.ptr.children[j]
+				siblingMetadata := c.tree.language.symbolMetadata(
+					subtreeSymbol(sibling, structuralChildIndex),
+				)
+				isVisible := siblingMetadata.Visible
+				isNamed := siblingMetadata.Named
+				if !isVisible && sibling.visibleChildCount() > 0 {
+					isVisible = true
+					isNamed = sibling.ptr.namedChildCount > 0
+				}
+				if isVisible {
+					hasLaterSiblings = true
+					if isNamed {
+						hasLaterNamedSiblings = true
+					}
+					if findLaterSiblingWithoutField {
+						hasField := false
+						if !sibling.extra() {
+							for _, m := range fieldMap {
+								if !m.Inherited && uint32(m.ChildIndex) == structuralChildIndex {
+									hasField = true
+									break
+								}
+							}
+						}
+						if !hasField {
+							laterSiblingWithoutField = true
+							findLaterSiblingWithoutField = false
+						}
+					}
+				}
+				if hasLaterNamedSiblings && !findLaterSiblingWithoutField {
+					break
+				}
+				if !sibling.extra() {
+					structuralChildIndex++
 				}
 			}
 		}

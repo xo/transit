@@ -18,8 +18,8 @@ func TestGenerateOnEveryTestGrammar(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(files) != 73 {
-		t.Fatalf("expected the 73 test grammars, found %d", len(files))
+	if len(files) != 74 {
+		t.Fatalf("expected the 74 test grammars, found %d", len(files))
 	}
 	variants := []struct {
 		dir  string

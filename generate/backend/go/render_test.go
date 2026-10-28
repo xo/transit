@@ -44,8 +44,8 @@ func TestRenderOnEveryTestGrammar(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(files) != 73 {
-		t.Fatalf("expected the grammar.json of the 73 test grammars in testdata, found %d", len(files))
+	if len(files) != 74 {
+		t.Fatalf("expected the grammar.json of the 74 test grammars in testdata, found %d", len(files))
 	}
 	for _, f := range files {
 		name := filepath.Base(filepath.Dir(f))

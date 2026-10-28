@@ -5811,6 +5811,37 @@ func TestQueryNegatedFieldThroughHiddenNodes(t *testing.T) {
 	})
 }
 
+func TestQueryFieldOnHiddenRuleReachesLaterSiblings(t *testing.T) {
+	language := uqTestFixtureLanguage(t, "field_on_hidden_rule")
+
+	// `outer` reaches the `=` and `b` through the hidden `_binding`, and `left`
+	// reaches `a`, the first `+`, and `b` through the nested hidden `_sum`s.
+	source := "let a = b;\nsum a + b + c;\n"
+
+	query := uqNewQuery(t, language, `
+        (binding outer: (name) @outer_name)
+        (binding outer: _ @outer_node)
+        (sum left: "+" @left_operator)
+        (sum left: (name) @left_name)
+        `)
+
+	uqAssertQueryMatches(t, language, query, source, []uqMatch{
+		{1, uqCaptures{{"outer_node", "="}}},
+		{0, uqCaptures{{"outer_name", "b"}}},
+		{1, uqCaptures{{"outer_node", "b"}}},
+		{3, uqCaptures{{"left_name", "a"}}},
+		{2, uqCaptures{{"left_operator", "+"}}},
+		{3, uqCaptures{{"left_name", "b"}}},
+	})
+
+	// `arg` reaches the `(` through the hidden `_call`, and `a` has an `arg` of
+	// its own.
+	query = uqNewQuery(t, language, "(call arg: (name) @arg_name)")
+	uqAssertQueryMatches(t, language, query, "call (a);\n", []uqMatch{
+		{0, uqCaptures{{"arg_name", "a"}}},
+	})
+}
+
 func TestLastChildAnchorLooksPastHiddenRepeat(t *testing.T) {
 	language := uqTestFixtureLanguage(t, "last_child_anchor_past_hidden_repeat")
 

@@ -1,0 +1,142 @@
+[
+  {
+    "type": "binding",
+    "named": true,
+    "fields": {
+      "inner": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "name",
+            "named": true
+          }
+        ]
+      },
+      "outer": {
+        "multiple": true,
+        "required": true,
+        "types": [
+          {
+            "type": "=",
+            "named": false
+          },
+          {
+            "type": "name",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "call",
+    "named": true,
+    "fields": {
+      "arg": {
+        "multiple": true,
+        "required": true,
+        "types": [
+          {
+            "type": "(",
+            "named": false
+          },
+          {
+            "type": "name",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "source_file",
+    "named": true,
+    "root": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "binding",
+          "named": true
+        },
+        {
+          "type": "call",
+          "named": true
+        },
+        {
+          "type": "sum",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "sum",
+    "named": true,
+    "fields": {
+      "left": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "+",
+            "named": false
+          },
+          {
+            "type": "name",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "name",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "(",
+    "named": false
+  },
+  {
+    "type": ")",
+    "named": false
+  },
+  {
+    "type": "+",
+    "named": false
+  },
+  {
+    "type": ";",
+    "named": false
+  },
+  {
+    "type": "=",
+    "named": false
+  },
+  {
+    "type": "call",
+    "named": false
+  },
+  {
+    "type": "let",
+    "named": false
+  },
+  {
+    "type": "name",
+    "named": true
+  },
+  {
+    "type": "sum",
+    "named": false
+  }
+]
