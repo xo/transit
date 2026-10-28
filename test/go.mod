@@ -3,35 +3,35 @@ module github.com/xo/transit/test
 go 1.27.1
 
 require (
-	github.com/xo/transit v0.4.0
-	github.com/xo/transit/grammars/bash v0.4.0
-	github.com/xo/transit/grammars/c v0.4.0
-	github.com/xo/transit/grammars/cpp v0.4.0
-	github.com/xo/transit/grammars/cql v0.4.0
-	github.com/xo/transit/grammars/embeddedtemplate v0.4.0
-	github.com/xo/transit/grammars/go v0.4.0
-	github.com/xo/transit/grammars/graphql v0.4.0
-	github.com/xo/transit/grammars/html v0.4.0
-	github.com/xo/transit/grammars/java v0.4.0
-	github.com/xo/transit/grammars/javascript v0.4.0
-	github.com/xo/transit/grammars/jsdoc v0.4.0
-	github.com/xo/transit/grammars/json v0.4.0
-	github.com/xo/transit/grammars/mysql v0.4.0
-	github.com/xo/transit/grammars/neo4j v0.4.0
-	github.com/xo/transit/grammars/oracle v0.4.0
-	github.com/xo/transit/grammars/php v0.4.0
-	github.com/xo/transit/grammars/postgres v0.4.0
-	github.com/xo/transit/grammars/python v0.4.0
-	github.com/xo/transit/grammars/ruby v0.4.0
-	github.com/xo/transit/grammars/rust v0.4.0
-	github.com/xo/transit/grammars/sparql v0.4.0
-	github.com/xo/transit/grammars/sql v0.4.0
-	github.com/xo/transit/grammars/sqlserver v0.4.0
-	github.com/xo/transit/grammars/surrealdb v0.4.0
-	github.com/xo/transit/grammars/typescript v0.4.0
-	github.com/xo/transit/grammars/usql v0.4.0
-	github.com/xo/transit/grammars/ydb v0.4.0
-	github.com/xo/transit/styles v0.4.0
+	github.com/xo/transit v0.5.0
+	github.com/xo/transit/grammars/bash v0.5.0
+	github.com/xo/transit/grammars/c v0.5.0
+	github.com/xo/transit/grammars/cpp v0.5.0
+	github.com/xo/transit/grammars/cql v0.5.0
+	github.com/xo/transit/grammars/embeddedtemplate v0.5.0
+	github.com/xo/transit/grammars/go v0.5.0
+	github.com/xo/transit/grammars/graphql v0.5.0
+	github.com/xo/transit/grammars/html v0.5.0
+	github.com/xo/transit/grammars/java v0.5.0
+	github.com/xo/transit/grammars/javascript v0.5.0
+	github.com/xo/transit/grammars/jsdoc v0.5.0
+	github.com/xo/transit/grammars/json v0.5.0
+	github.com/xo/transit/grammars/mysql v0.5.0
+	github.com/xo/transit/grammars/neo4j v0.5.0
+	github.com/xo/transit/grammars/oracle v0.5.0
+	github.com/xo/transit/grammars/php v0.5.0
+	github.com/xo/transit/grammars/postgres v0.5.0
+	github.com/xo/transit/grammars/python v0.5.0
+	github.com/xo/transit/grammars/ruby v0.5.0
+	github.com/xo/transit/grammars/rust v0.5.0
+	github.com/xo/transit/grammars/sparql v0.5.0
+	github.com/xo/transit/grammars/sql v0.5.0
+	github.com/xo/transit/grammars/sqlserver v0.5.0
+	github.com/xo/transit/grammars/surrealdb v0.5.0
+	github.com/xo/transit/grammars/typescript v0.5.0
+	github.com/xo/transit/grammars/usql v0.5.0
+	github.com/xo/transit/grammars/ydb v0.5.0
+	github.com/xo/transit/styles v0.5.0
 )
 
 replace github.com/xo/transit => ..
