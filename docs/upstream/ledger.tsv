@@ -70,17 +70,17 @@ e9930e0915685efb98a9d325b8f23dfdb9e99559	2026-10-09	ported	35b5750	fix(lib): onl
 af901cd052113a662754af8c03d8eef05e829607	2026-10-10	not-applicable	85ec9d7	changes only paths that transit does not port: lib/binding_web/package-lock.json, lib/binding_web/package.json
 88b21461c73a3f9976bf23fa0b0bff9fc979aa2d	2026-10-10	not-applicable	85ec9d7	changes only paths that transit does not port: flake.lock
 fbfb07e93de82e12784cd0f646e291b8f2e4126e	2026-10-10	not-applicable	85ec9d7	the WebAssembly store and its test, which transit does not port (D1)
-8ca548849fc8dbefd699edcec26546bb14112820	2026-10-15	pending		review: Cargo.lock, lib/Cargo.toml
+8ca548849fc8dbefd699edcec26546bb14112820	2026-10-15	not-applicable		a bump of wasmtime and of build.zig.zon, which transit does not port (D1)
 453014133d52513454c6a78622216a05111c258a	2026-10-16	not-applicable		changes only paths that transit does not port: lib/binding_web/package-lock.json, lib/binding_web/package.json
 1cd1dfe1858f625e1bdcffb6c94fe14fbb11e46a	2026-10-16	not-applicable		changes only paths that transit does not port: .github/workflows/build.yml, .github/workflows/release.yml
 85061cc66804c74c5c6cc0b6a229e0f91c08636c	2026-10-16	not-applicable		changes only paths that transit does not port: flake.lock
-904234c9169862e10b6cead100a0afd0ac3d1a41	2026-10-17	pending		review: lib/src/tree_sitter.def, lib/src/tree_sitter_wasm.def
+904234c9169862e10b6cead100a0afd0ac3d1a41	2026-10-17	not-applicable		the module-definition files of the Windows DLL and the xtask that writes them, which transit does not port
 2370f19abcea15331ac3d33810c41074896396bc	2026-10-17	not-applicable		changes only paths that transit does not port: CMakeLists.txt, Makefile, build.zig
 a73f27a2db718bc86a00c6fbd8285525c9b9fe1b	2026-10-17	not-applicable		changes only paths that transit does not port: CMakeLists.txt
 6a1b0b204cd1a21d958554f829369b32fb27b947	2026-10-17	not-applicable		changes only paths that transit does not port: build.zig
 276bc59b3fb8fdecd039099746c0ad2b28fa681d	2026-10-17	not-applicable		changes only paths that transit does not port: Makefile
-95d94d1fdaddf9e53616334cca670b7db6e34f90	2026-10-17	pending		port in phase 6: lib/src/alloc.h
-71b2f9874a0ed394fe19837c5ddf81b7ab31c180	2026-10-20	pending		review: Cargo.lock, lib/Cargo.toml
+95d94d1fdaddf9e53616334cca670b7db6e34f90	2026-10-17	not-applicable		the visibility of the allocator variables of alloc.h on MinGW, which transit does not port, because Go allocates
+71b2f9874a0ed394fe19837c5ddf81b7ab31c180	2026-10-20	not-applicable		a bump of wasmtime and of build.zig.zon, which transit does not port (D1)
 96e30ef980405a61aacffee79e76a653c58c3b34	2026-10-20	pending		port in phase 6: lib/src/query.c
 5e216019692fbac6a91a0859da5e22b25dd1601c	2026-10-20	pending		port in phase 6: lib/src/subtree.c
 8e87b026123cff25990db87399c96f2932906bc6	2026-10-20	pending		port in phase 6: lib/src/node.c
