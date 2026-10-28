@@ -1,6 +1,9 @@
 package transit
 
-import "slices"
+import (
+	"math"
+	"slices"
+)
 
 // This file ports lib/src/tree_cursor.c and lib/src/tree_cursor.h.
 //
@@ -176,13 +179,11 @@ func lengthBacktrack(a, b length) length {
 // the entry and whether it is visible to out parameters, and the Go function
 // returns them.
 //
-// The C function stops when the child index, cut to 8 bits, is -1. So it
-// also stops at the child index 255, and the Go function does the same. The
-// entry of C has no descendant index, so it is 0.
+// The entry of C has no descendant index, so it is 0.
 func (it *cursorChildIterator) previous() (result treeCursorEntry, visible, ok bool) {
 	// this is mostly a reverse `ts_tree_cursor_child_iterator_next` taking into
 	// account unsigned underflow
-	if it.parent.ptr == nil || int8(it.childIndex) == -1 {
+	if it.parent.ptr == nil || it.childIndex == math.MaxUint32 {
 		return treeCursorEntry{}, false, false
 	}
 	child := &it.parent.ptr.children[it.childIndex]

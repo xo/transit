@@ -264,7 +264,7 @@ func TestCursorInternals(t *testing.T) {
 	}
 }
 
-func TestCursorPreviousSiblingStopsAtIndex255(t *testing.T) {
+func TestCursorPreviousSiblingPassesIndex255(t *testing.T) {
 	l := testLanguage(15)
 	pool := newSubtreePool(0)
 	children := make(subtreeArray, 300)
@@ -274,15 +274,17 @@ func TestCursorPreviousSiblingStopsAtIndex255(t *testing.T) {
 	root := newTree(newNode(&pool, testSymExpression, children, 0, l), l, nil).RootNode()
 	c := root.Walk()
 
-	// the descendant index of child i is i + 1. C cuts the child index to
-	// 8 bits, so it stops at the children 255 and 256.
+	// the descendant index of child i is i + 1. Only the first child has no
+	// previous sibling. Before, C cut the child index to 8 bits, and it
+	// stopped at the children 255 and 256.
 	for _, test := range []struct {
 		child int
 		ok    bool
 	}{
+		{0, false},
 		{254, true},
-		{255, false},
-		{256, false},
+		{255, true},
+		{256, true},
 		{257, true},
 		{299, true},
 	} {

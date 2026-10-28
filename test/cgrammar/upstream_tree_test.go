@@ -1,6 +1,7 @@
 package cgrammar
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -420,6 +421,30 @@ func TestTreeCursorPreviousSibling(t *testing.T) {
 	urEqual(t, "utf8_text", cursor.Node().Text([]byte(text)), "// Hi there")
 
 	urEqual(t, "goto_previous_sibling", cursor.GotoPreviousSibling(), false)
+}
+
+func TestTreeCursorPreviousSiblingWithManyComments(t *testing.T) {
+	parser := urParser(t, fixtureGrammar(t, "rust").Language)
+	text := strings.Repeat("// comment\n", 300)
+	tree := urParse(t, parser, text, nil)
+	root := tree.RootNode()
+	urEqual(t, "has_error", root.HasError(), false)
+
+	cursor := tree.Walk()
+	children := slices.Collect(root.Children())
+	urEqual(t, "children", len(children), 300)
+	for i, child := range children {
+		if !child.IsExtra() {
+			t.Errorf("child %d is not extra", i)
+		}
+	}
+
+	cursor.Reset(root)
+	urEqual(t, "goto_last_child", cursor.GotoLastChild(), true)
+	for index, child := range slices.Backward(children) {
+		urSameNode(t, fmt.Sprintf("child %d", index), cursor.Node(), child)
+		urEqual(t, fmt.Sprintf("goto_previous_sibling of child %d", index), cursor.GotoPreviousSibling(), index > 0)
+	}
 }
 
 func TestTreeCursorFields(t *testing.T) {

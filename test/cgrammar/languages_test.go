@@ -287,6 +287,7 @@ var goPackageTests = []namedTest{
 	{"TestTreeEditWithIncludedRanges", TestTreeEditWithIncludedRanges},
 	{"TestTreeCursor", TestTreeCursor},
 	{"TestTreeCursorPreviousSibling", TestTreeCursorPreviousSibling},
+	{"TestTreeCursorPreviousSiblingWithManyComments", TestTreeCursorPreviousSiblingWithManyComments},
 	{"TestTreeCursorFields", TestTreeCursorFields},
 	{"TestTreeCursorChildForPoint", TestTreeCursorChildForPoint},
 	{"TestTreeNodeEquality", TestTreeNodeEquality},
