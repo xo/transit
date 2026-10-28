@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"iter"
-	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -3940,11 +3939,6 @@ func uqIterationCount() int {
 	return 10
 }
 
-// The random patterns differ from those of upstream, because upstream uses
-// the generator StdRng of the Rust crate rand, and the port uses the
-// generator PCG of math/rand/v2 with the same seeds. The test compares the
-// matches of the query with the matches that a walk of the tree finds, so
-// any pattern works.
 func TestQueryRandom(t *testing.T) {
 	root, _ := setup(t)
 	language := uqLanguage(t, "rust")
@@ -3973,7 +3967,7 @@ func TestQueryRandom(t *testing.T) {
 	endSeed := startSeed + uqIterationCount()
 
 	for seed := startSeed; seed < startSeed+endSeed; seed++ {
-		rng := rand.New(rand.NewPCG(uint64(seed), 0))
+		rng := urNewRand(uint64(seed))
 		patternAST, _, _ := uqRandomPatternInTree(patternTree, rng)
 		pattern := patternAST.String()
 		expectedMatches := patternAST.matchesInTree(testTree)

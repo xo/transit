@@ -27,12 +27,12 @@ import (
 // after an edit.
 //
 // The attribute test_with_seed is urRetrySeeds. The start seed comes from
-// TREE_SITTER_SEED, or it is random, as in upstream. urRand uses the PCG of
-// math/rand/v2 in place of StdRng, so a seed gives other edits than in
-// upstream. A failed check of the sizes of a tree panics in upstream, and
-// here it fails the trial, with the other failures. allocations::record is
-// dropped, and the environment variables for logs and for the filters of
-// the examples are not read.
+// TREE_SITTER_SEED, or it is random, as in upstream. urRand is the
+// generator of upstream, so a seed gives the same edits as in upstream. A
+// failed check of the sizes of a tree panics in upstream, and here it fails
+// the trial, with the other failures. allocations::record is dropped, and the
+// environment variables for logs and for the filters of the examples are not
+// read.
 
 // urEditCount is DEFAULT_EDIT_COUNT of fuzz.rs.
 const urEditCount = 3

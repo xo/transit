@@ -3,7 +3,6 @@ package cgrammar
 import (
 	"context"
 	"encoding/binary"
-	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"slices"
@@ -343,25 +342,41 @@ func urPositionForOffset(input []byte, offset int) transit.Point {
 // urOperators is OPERATORS of fuzz/random.rs.
 const urOperators = "+-<>()*/&|!,.%"
 
-// urAlphanumeric is the set of the distribution Alphanumeric of the Rust
-// crate rand.
+// urAlphanumeric is ALPHANUMERIC of fuzz/random.rs.
 const urAlphanumeric = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 
-// urRand is Rand of fuzz/random.rs. It uses the PCG of math/rand/v2 in
-// place of StdRng of the crate rand, so a seed gives other edits than in
-// upstream.
-type urRand struct {
-	r *rand.Rand
-}
+// urRand is Rand of fuzz/random.rs, the generator SplitMix64. A seed gives
+// the same numbers as in upstream, so a failed run replays with
+// TREE_SITTER_SEED.
+type urRand uint64
 
 // urNewRand is Rand::new.
 func urNewRand(seed uint64) *urRand {
-	return &urRand{r: rand.New(rand.NewPCG(seed, 0))}
+	r := urRand(seed)
+	return &r
+}
+
+// nextUint64 is Rand::next_u64.
+func (r *urRand) nextUint64() uint64 {
+	*r += 0x9E37_79B9_7F4A_7C15
+	mixed := uint64(*r)
+	mixed = (mixed ^ (mixed >> 30)) * 0xBF58_476D_1CE4_E5B9
+	mixed = (mixed ^ (mixed >> 27)) * 0x94D0_49BB_1331_11EB
+	return mixed ^ (mixed >> 31)
 }
 
 // unsigned returns a number from 0 to maxValue, both included.
 func (r *urRand) unsigned(maxValue int) int {
-	return r.r.IntN(maxValue + 1)
+	value := r.nextUint64()
+	if bound := uint64(maxValue) + 1; bound != 0 {
+		value %= bound
+	}
+	return int(value)
+}
+
+// chance returns true with the probability p.
+func (r *urRand) chance(p float64) bool {
+	return float64(r.nextUint64()>>11)/float64(uint64(1)<<53) < p
 }
 
 // words returns up to maxCount words of letters and digits, or operators.
@@ -381,7 +396,7 @@ func (r *urRand) words(maxCount int) []byte {
 			result = append(result, urOperators[index])
 		} else {
 			for range r.unsigned(8) {
-				result = append(result, urAlphanumeric[r.r.IntN(len(urAlphanumeric))])
+				result = append(result, urAlphanumeric[r.unsigned(len(urAlphanumeric)-1)])
 			}
 		}
 	}

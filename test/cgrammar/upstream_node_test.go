@@ -663,8 +663,6 @@ func TestNodeDescendantForRange(t *testing.T) {
 	}
 }
 
-// TestNodeEdit uses urRand, whose edits for the seed 0 are not the edits
-// of StdRng in upstream.
 func TestNodeEdit(t *testing.T) {
 	code := []byte(urJSONExample)
 	tree := urParseJSONExample(t)

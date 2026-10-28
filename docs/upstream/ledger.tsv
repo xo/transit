@@ -105,7 +105,7 @@ c5fa568bc811a0c1a60c4f5ba2de9550abf0d075	2026-10-22	ported		fix(lib): find later
 4a412a01a0147d0f50bf7e749572fa632d1ab203	2026-10-22	not-applicable		changes only paths that transit does not port: .github/workflows/ci.yml
 86cf6c0df6e2a08fa9089a1c75cc645ed9935b94	2026-10-23	not-applicable		drops the crate pathdiff from quickjs.rs, which runs grammar.js, and transit reads grammar.json (D17)
 83162b0a0818c586cfc38555897a08f839c88887	2026-10-23	not-applicable		inlines helper crates of the CLI: parse.rs escapes HTML in the command parse, which transit does not port, and query_test.rs uses indoc in place of unindent, which gives the same text to the tests
-af33819d1a760d0478c7edf8bc4bdb3876de1443	2026-10-23	pending		review: Cargo.lock, Cargo.toml, crates/cli/src/tests/helpers/query_helpers.rs
+af33819d1a760d0478c7edf8bc4bdb3876de1443	2026-10-23	ported		cli: replace rand with a splitmix64 generator
 1aa6d5627437a760e92935d379f2c67f183eaecf	2026-10-23	pending		review: Cargo.lock, Cargo.toml
 3772c9dee107112d4df90c56fa33da1b61c145ed	2026-10-23	pending		review: Cargo.lock, Cargo.toml
 0fff6ab6ed206903856200e5390c5dad22924948	2026-10-23	pending		review: Cargo.lock, Cargo.toml

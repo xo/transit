@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"iter"
-	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"slices"
@@ -358,28 +357,22 @@ var uqCaptureNames = []string{
 	"one", "two", "three", "four", "five", "six", "seven", "eight",
 }
 
-// uqRandomBool returns true with the probability p. It is random_bool of
-// the Rust crate rand.
-func uqRandomBool(rng *rand.Rand, p float64) bool {
-	return rng.Float64() < p
-}
-
 // uqRandomPatternInTree builds a random pattern that matches a node of a
 // tree, and returns it with the range of points that it covers. It is
 // Pattern::random_pattern_in_tree.
-func uqRandomPatternInTree(tree *transit.Tree, rng *rand.Rand) (*uqPattern, transit.Point, transit.Point) {
+func uqRandomPatternInTree(tree *transit.Tree, rng *urRand) (*uqPattern, transit.Point, transit.Point) {
 	cursor := tree.Walk()
 
 	// Descend to the node at a random byte offset and depth.
 	maxDepth := 0
-	byteOffset := rng.IntN(cursor.Node().EndByte())
+	byteOffset := rng.unsigned(cursor.Node().EndByte() - 1)
 	for {
 		if _, ok := cursor.GotoFirstChildForByte(byteOffset); !ok {
 			break
 		}
 		maxDepth++
 	}
-	depth := rng.IntN(maxDepth + 1)
+	depth := rng.unsigned(maxDepth)
 	for range depth {
 		cursor.GotoParent()
 	}
@@ -389,7 +382,7 @@ func uqRandomPatternInTree(tree *transit.Tree, rng *rand.Rand) (*uqPattern, tran
 	patternStart := cursor.Node().StartPoint()
 	roots := []*uqPattern{uqRandomPatternForNode(cursor, rng)}
 	for len(roots) < 5 && cursor.GotoNextSibling() {
-		if uqRandomBool(rng, 0.2) {
+		if rng.chance(0.2) {
 			roots = append(roots, uqRandomPatternForNode(cursor, rng))
 		}
 	}
@@ -413,36 +406,36 @@ func uqRandomPatternInTree(tree *transit.Tree, rng *rand.Rand) (*uqPattern, tran
 
 // uqRandomPatternForNode builds a random pattern that matches the node of
 // the cursor. It is Pattern::random_pattern_for_node.
-func uqRandomPatternForNode(cursor *transit.TreeCursor, rng *rand.Rand) *uqPattern {
+func uqRandomPatternForNode(cursor *transit.TreeCursor, rng *urRand) *uqPattern {
 	node := cursor.Node()
 
 	// Sometimes specify the node's type, sometimes use a wildcard.
 	var kind string
 	var named bool
-	if uqRandomBool(rng, 0.9) {
+	if rng.chance(0.9) {
 		kind, named = node.Kind(), node.IsNamed()
 	} else {
-		kind, named = "_", node.IsNamed() && uqRandomBool(rng, 0.8)
+		kind, named = "_", node.IsNamed() && rng.chance(0.8)
 	}
 
 	// Sometimes specify the node's field.
 	var field string
-	if uqRandomBool(rng, 0.75) {
+	if rng.chance(0.75) {
 		field = cursor.FieldName()
 	}
 
 	// Sometimes capture the node.
 	var capture string
-	if uqRandomBool(rng, 0.7) {
-		capture = uqCaptureNames[rng.IntN(len(uqCaptureNames))]
+	if rng.chance(0.7) {
+		capture = uqCaptureNames[rng.unsigned(len(uqCaptureNames)-1)]
 	}
 
 	// Walk the children and include child patterns for some of them.
 	var children []*uqPattern
 	if named && cursor.GotoFirstChild() {
-		maxChildren := rng.IntN(4)
+		maxChildren := rng.unsigned(3)
 		for cursor.GotoNextSibling() {
-			if uqRandomBool(rng, 0.6) {
+			if rng.chance(0.6) {
 				childAST := uqRandomPatternForNode(cursor, rng)
 				children = append(children, childAST)
 				if len(children) >= maxChildren {
