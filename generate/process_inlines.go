@@ -44,9 +44,15 @@ type inlineWork struct {
 // build is InlineBuilder::build.
 func (b *inlineBuilder) build() (InlinedProductionMap, map[uint32]bool) {
 	dead := map[uint32]bool{}
+	fullyInlined := map[uint32]InlinedProductionRange{}
+	var fullyInlinedIDs []uint32
 	var worklist []inlineWork
+	var finalProductions []uint32
+
 	for prodID := range b.firstInlined {
 		survived := false
+		didInline := false
+		finalProductions = finalProductions[:0]
 		worklist = append(worklist, inlineWork{prodID: prodID})
 		for len(worklist) > 0 {
 			i := 0
@@ -54,6 +60,7 @@ func (b *inlineBuilder) build() (InlinedProductionMap, map[uint32]bool) {
 				w := worklist[i]
 				step, ok := b.productionStepForID(w.prodID, w.stepIndex)
 				if !ok {
+					finalProductions = append(finalProductions, w.prodID)
 					worklist = slices.Delete(worklist, i, i+1)
 					survived = true
 					continue
@@ -63,6 +70,7 @@ func (b *inlineBuilder) build() (InlinedProductionMap, map[uint32]bool) {
 					i++
 					continue
 				}
+				didInline = true
 				ids := b.inlineProductionAtStep(w.prodID, w.stepIndex)
 				items := make([]inlineWork, len(ids))
 				for k, id := range ids {
@@ -71,11 +79,23 @@ func (b *inlineBuilder) build() (InlinedProductionMap, map[uint32]bool) {
 				worklist = slices.Replace(worklist, i, i+1, items...)
 			}
 		}
+		// An unchanged production always survives. Upstream checks it only
+		// with debug_assert.
 		if !survived {
 			dead[prodID] = true
+		} else if didInline {
+			start := uint32(len(fullyInlinedIDs))
+			fullyInlinedIDs = append(fullyInlinedIDs, finalProductions...)
+			end := uint32(len(fullyInlinedIDs))
+			fullyInlined[prodID] = InlinedProductionRange{Start: start, End: end}
 		}
 	}
-	return InlinedProductionMap{Map: b.m}, dead
+
+	return InlinedProductionMap{
+		Map:             b.m,
+		FullyInlined:    fullyInlined,
+		FullyInlinedIDs: fullyInlinedIDs,
+	}, dead
 }
 
 // inlineProductionAtStep expands the inlined variable at one step of one

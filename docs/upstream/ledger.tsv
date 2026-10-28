@@ -85,7 +85,7 @@ a73f27a2db718bc86a00c6fbd8285525c9b9fe1b	2026-10-17	not-applicable		changes only
 5e216019692fbac6a91a0859da5e22b25dd1601c	2026-10-20	ported		lib(subtree): make dot graph traversal iterative
 8e87b026123cff25990db87399c96f2932906bc6	2026-10-20	ported		lib(node): make zero-width node searches iterative
 c46e168547a700a54689f4ca1f153fe5c24cee8c	2026-10-20	ported		lib(node): make inherited field search iterative
-996a11cc911307e7a1f33311a5c2b64c4bf029de	2026-10-20	pending		port in phase 6: crates/generate/src/build_tables/minimize_parse_table.rs, crates/generate/src/generate.rs, crates/generate/src/grammars.rs
+996a11cc911307e7a1f33311a5c2b64c4bf029de	2026-10-20	ported		fix(generate): compute node types from productions after inlining
 803c6ebaac27d69e1808b45058482e868d073ceb	2026-10-20	pending		review: Cargo.lock, lib/Cargo.toml, lib/binding_rust/README.md
 7f877d3c080f7f8c7764ee1f68002fc52636cacb	2026-10-21	pending		port in phase 6: lib/src/node.c
 0f700450ce236b093a7e66b1ec00f078b082a0ef	2026-10-21	not-applicable		changes only paths that transit does not port: lib/binding_web/src/tree_cursor.ts, lib/binding_web/test/tree.test.ts

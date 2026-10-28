@@ -43,7 +43,7 @@ func buildParseTableForTest(t *testing.T, file string) (*builtParseTableForTest,
 	if err != nil {
 		return result, err
 	}
-	variableInfo, err := GetVariableInfo(&prepared.SyntaxGrammar, &prepared.LexicalGrammar, prepared.DefaultAliases, prepared.StrPool)
+	variableInfo, err := GetVariableInfo(&prepared.SyntaxGrammar, &prepared.LexicalGrammar, prepared.DefaultAliases, &prepared.Inlines, prepared.StrPool)
 	if err != nil {
 		return result, err
 	}

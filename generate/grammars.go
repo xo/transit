@@ -376,13 +376,50 @@ func (s *ProductionStore) Production(id uint32) ProdRef {
 	return s.Productions[id].Contents(s.Steps)
 }
 
+// InlinedProductionRange is a range in InlinedProductionMap.FullyInlinedIDs.
+//
+// InlinedProductionRange is InlinedProductionRange.
+type InlinedProductionRange struct {
+	Start uint32
+	End   uint32
+}
+
 // InlinedProductionMap maps a production and a step to the productions that
-// inline the symbol of the step.
+// inline the symbol of the step. It records the replacement production IDs
+// when inline rule references are expanded.
 //
 // InlinedProductionMap is InlinedProductionMap. Upstream keys an FxHashMap
-// with the pair, and only looks keys up.
+// with the pair, and only looks keys up. The same holds for FullyInlined.
 type InlinedProductionMap struct {
 	Map map[[2]uint32][]uint32
+	// FullyInlined holds the ranges into FullyInlinedIDs for original
+	// productions expanded by inlining.
+	FullyInlined map[uint32]InlinedProductionRange
+	// FullyInlinedIDs holds the final production IDs backing the ranges in
+	// FullyInlined.
+	FullyInlinedIDs []uint32
+}
+
+// DiscardFullyInlined removes the final productions of the original
+// productions.
+//
+// DiscardFullyInlined is InlinedProductionMap::discard_fully_inlined.
+func (m *InlinedProductionMap) DiscardFullyInlined() {
+	m.FullyInlined = map[uint32]InlinedProductionRange{}
+	m.FullyInlinedIDs = nil
+}
+
+// FullyInlinedProdIDs returns the final productions of an original
+// production that inlining expanded, and false when inlining did not expand
+// it.
+//
+// FullyInlinedProdIDs is InlinedProductionMap::fully_inlined_prod_ids.
+func (m *InlinedProductionMap) FullyInlinedProdIDs(prodID uint32) ([]uint32, bool) {
+	r, ok := m.FullyInlined[prodID]
+	if !ok {
+		return nil, false
+	}
+	return m.FullyInlinedIDs[r.Start:r.End], true
 }
 
 // InlinedProdIDs returns the productions that inline the symbol at a step.

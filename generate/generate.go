@@ -208,11 +208,11 @@ func generateNodeTypesFromGrammar(inputGrammar *InputGrammar, diagnostics *[]Dia
 	if err != nil {
 		return nil, err
 	}
-	variableInfo, err := GetVariableInfo(&prepared.SyntaxGrammar, &prepared.LexicalGrammar, prepared.DefaultAliases, prepared.StrPool)
+	variableInfo, err := GetVariableInfo(&prepared.SyntaxGrammar, &prepared.LexicalGrammar, prepared.DefaultAliases, &prepared.Inlines, prepared.StrPool)
 	if err != nil {
 		return nil, err
 	}
-	nodeTypesJSON, err := NodeTypesJSON(&prepared.SyntaxGrammar, &prepared.LexicalGrammar, prepared.DefaultAliases, variableInfo, prepared.StrPool)
+	nodeTypesJSON, err := NodeTypesJSON(&prepared.SyntaxGrammar, &prepared.LexicalGrammar, prepared.DefaultAliases, variableInfo, &prepared.Inlines, prepared.StrPool)
 	if err != nil {
 		return nil, err
 	}
@@ -241,6 +241,7 @@ func ParserForGrammarWithOpts(inputGrammar *InputGrammar, abiVersion int, semant
 		return nil, err
 	}
 	supertypeSymbolMap := GetSupertypeSymbolMap(out.syntaxGrammar, out.simpleAliases, out.variableInfo)
+	out.inlines.DiscardFullyInlined()
 	tables, err := BuildTables(out.syntaxGrammar, out.lexicalGrammar, out.simpleAliases, out.variableInfo, out.inlines, out.strPool, optimizations, diagnostics)
 	if err != nil {
 		return nil, err

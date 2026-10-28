@@ -114,7 +114,7 @@ func buildTablesForTest(t *testing.T, path string, opts OptLevel) (*Tables, erro
 	if err != nil {
 		return nil, err
 	}
-	variableInfo, err := GetVariableInfo(&prepared.SyntaxGrammar, &prepared.LexicalGrammar, prepared.DefaultAliases, prepared.StrPool)
+	variableInfo, err := GetVariableInfo(&prepared.SyntaxGrammar, &prepared.LexicalGrammar, prepared.DefaultAliases, &prepared.Inlines, prepared.StrPool)
 	if err != nil {
 		return nil, err
 	}

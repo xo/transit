@@ -452,7 +452,7 @@ func TestNodeTypesWithAliasMatchingCanonicalSupertype(t *testing.T) {
 		},
 	}
 	prepared := prepareForTest(t, grammar)
-	_, err := GetVariableInfo(&prepared.SyntaxGrammar, &prepared.LexicalGrammar, prepared.DefaultAliases, prepared.StrPool)
+	_, err := GetVariableInfo(&prepared.SyntaxGrammar, &prepared.LexicalGrammar, prepared.DefaultAliases, &prepared.Inlines, prepared.StrPool)
 
 	var collision *SupertypeAliasCollisionError
 	if !errors.As(err, &collision) || collision.Name != "_super" {
@@ -593,6 +593,178 @@ func TestNodeTypesWithInlinedRules(t *testing.T) {
 		},
 		fields: map[StrID]*fieldInfoJSON{},
 	})
+}
+
+// findNodeType returns the node type of a kind, and false when no node type
+// has the kind. It is nodes.iter().find(|node| node.kind == kind).
+func findNodeType(nodeTypes []nodeInfoJSON, kind StrID) (nodeInfoJSON, bool) {
+	i := slices.IndexFunc(nodeTypes, func(n nodeInfoJSON) bool { return n.kind == kind })
+	if i < 0 {
+		return nodeInfoJSON{}, false
+	}
+	return nodeTypes[i], true
+}
+
+// expectFoundNodeInfo fails the test unless the node type of a kind is the
+// expected one. It is assert_eq!(nodes.iter().find(...), Some(&expected)).
+func expectFoundNodeInfo(t *testing.T, nodeTypes []nodeInfoJSON, expected nodeInfoJSON) {
+	t.Helper()
+	actual, ok := findNodeType(nodeTypes, expected.kind)
+	if !ok {
+		t.Errorf("expected the node type\n%s\ngot none", formatNodeInfo(expected))
+		return
+	}
+	expectNodeInfo(t, actual, expected)
+}
+
+// TestNodeTypesAliasedInlineUnitShape is
+// test_node_types_aliased_inline_unit_shape in node_types.rs.
+func TestNodeTypesAliasedInlineUnitShape(t *testing.T) {
+	pool := NewRulePool()
+	sourceFileName := pool.Intern("source_file")
+	inlinedName := pool.Intern("inlined")
+	wrapperName := pool.Intern("_wrapper")
+	valueName := pool.Intern("_value")
+	nameName := pool.Intern("name")
+	numberName := pool.Intern("number")
+	thingName := pool.Intern("thing")
+	inlinedSymbol := named(pool, "inlined")
+	sourceFile := pool.Repeat(inlinedSymbol)
+	inlinedToken := str(pool, "inlined")
+	wrapperSymbol := named(pool, "_wrapper")
+	aliasedWrapper := nodeTypesAlias(pool, wrapperSymbol, "thing", true)
+	inlined := pool.Seq([]RuleID{inlinedToken, aliasedWrapper})
+	wrapper := named(pool, "_value")
+	valueNameSymbol := named(pool, "name")
+	numberNameSymbol := named(pool, "number")
+	value := pool.Choice([]RuleID{valueNameSymbol, numberNameSymbol})
+	nodeTypes := mustGetNodeTypes(t, &InputGrammar{
+		Pool:        pool,
+		InlineNames: []StrID{wrapperName},
+		Variables: []Variable{
+			{Name: sourceFileName, Root: sourceFile},
+			{Name: inlinedName, Root: inlined},
+			{Name: wrapperName, Root: wrapper},
+			{Name: valueName, Root: value},
+			{Name: nameName, Root: pat(pool, "[a-z]+")},
+			{Name: numberName, Root: pat(pool, "[0-9]+")},
+		},
+	})
+
+	expectFoundNodeInfo(t, nodeTypes, nodeInfoJSON{
+		kind:   thingName,
+		named:  true,
+		fields: map[StrID]*fieldInfoJSON{},
+		children: &fieldInfoJSON{
+			required: true,
+			types: []nodeTypeRef{
+				{kind: nameName, named: true},
+				{kind: numberName, named: true},
+			},
+		},
+	})
+}
+
+// TestNodeTypesInlinedFieldOverridesInnerField is
+// test_node_types_inlined_field_overrides_inner_field in node_types.rs.
+func TestNodeTypesInlinedFieldOverridesInnerField(t *testing.T) {
+	pool := NewRulePool()
+	sourceFileName := pool.Intern("source_file")
+	pairName := pool.Intern("_pair")
+	nameName := pool.Intern("name")
+	outerName := pool.Intern("outer")
+	name := named(pool, "name")
+	head := nodeTypesField(pool, "inner", name)
+	pair := pool.Seq([]RuleID{head, name})
+	pairSymbol := named(pool, "_pair")
+	sourceFile := nodeTypesField(pool, "outer", pairSymbol)
+	nodeTypes := mustGetNodeTypes(t, &InputGrammar{
+		Pool:        pool,
+		InlineNames: []StrID{pairName},
+		Variables: []Variable{
+			{Name: sourceFileName, Root: sourceFile},
+			{Name: pairName, Root: pair},
+			{Name: nameName, Root: pat(pool, "[a-z]+")},
+		},
+	})
+
+	expectFoundNodeInfo(t, nodeTypes, nodeInfoJSON{
+		kind:  sourceFileName,
+		named: true,
+		root:  true,
+		fields: map[StrID]*fieldInfoJSON{
+			outerName: {
+				multiple: true,
+				required: true,
+				types:    []nodeTypeRef{{kind: nameName, named: true}},
+			},
+		},
+	})
+}
+
+// TestNodeTypesAliasedInlineRepetition is
+// test_node_types_aliased_inline_repetition in node_types.rs.
+func TestNodeTypesAliasedInlineRepetition(t *testing.T) {
+	for _, withHeadField := range []bool{false, true} {
+		t.Run(fmt.Sprintf("with_head_field=%t", withHeadField), func(t *testing.T) {
+			pool := NewRulePool()
+			sourceFileName := pool.Intern("source_file")
+			inlineName := pool.Intern("_path")
+			pathName := pool.Intern("path")
+			nameName := pool.Intern("name")
+			headName := pool.Intern("head")
+			name := named(pool, "name")
+			dot := str(pool, ".")
+			tail := pool.Seq([]RuleID{dot, name})
+			tail = pool.Repeat(tail)
+			blank := pool.Blank()
+			tail = pool.Choice([]RuleID{tail, blank})
+			head := named(pool, "name")
+			if withHeadField {
+				head = nodeTypesField(pool, "head", head)
+			}
+			path := pool.Seq([]RuleID{head, tail})
+			pathSymbol := named(pool, "_path")
+			sourceFile := nodeTypesAlias(pool, pathSymbol, "path", true)
+			nodeTypes := mustGetNodeTypes(t, &InputGrammar{
+				Pool:        pool,
+				InlineNames: []StrID{inlineName},
+				Variables: []Variable{
+					{Name: sourceFileName, Root: sourceFile},
+					{Name: inlineName, Root: path},
+					{Name: nameName, Root: pat(pool, "[a-z]+")},
+				},
+			})
+
+			fields := map[StrID]*fieldInfoJSON{}
+			if withHeadField {
+				fields[headName] = &fieldInfoJSON{
+					required: true,
+					types:    []nodeTypeRef{{kind: pathName, named: true}},
+				}
+			}
+			expectFoundNodeInfo(t, nodeTypes, nodeInfoJSON{
+				kind:   sourceFileName,
+				named:  true,
+				root:   true,
+				fields: fields,
+				children: &fieldInfoJSON{
+					multiple: !withHeadField,
+					required: !withHeadField,
+					types:    []nodeTypeRef{{kind: pathName, named: true}},
+				},
+			})
+			expectFoundNodeInfo(t, nodeTypes, nodeInfoJSON{
+				kind:   pathName,
+				named:  true,
+				fields: map[StrID]*fieldInfoJSON{},
+				children: &fieldInfoJSON{
+					multiple: true,
+					types:    []nodeTypeRef{{kind: nameName, named: true}},
+				},
+			})
+		})
+	}
 }
 
 // TestNodeTypesForAliasedNodes is test_node_types_for_aliased_nodes in
@@ -856,7 +1028,7 @@ func TestGetVariableInfo(t *testing.T) {
 			{nodeTypesStep(TerminalSymbol(0), 0), nodeTypesStep(TerminalSymbol(3), field2)},
 		}},
 	}, nil)
-	variableInfo, err := GetVariableInfo(grammar, lexicalGrammar, AliasMap{}, interner)
+	variableInfo, err := GetVariableInfo(grammar, lexicalGrammar, AliasMap{}, &InlinedProductionMap{}, interner)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -889,7 +1061,7 @@ func TestGetVariableInfoWithRepetitionsInsideFields(t *testing.T) {
 			{nodeTypesStep(NonTerminalSymbol(1), 0), nodeTypesStep(NonTerminalSymbol(1), 0)},
 		}},
 	}, nil)
-	variableInfo, err := GetVariableInfo(grammar, lexicalGrammar, AliasMap{}, interner)
+	variableInfo, err := GetVariableInfo(grammar, lexicalGrammar, AliasMap{}, &InlinedProductionMap{}, interner)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -924,7 +1096,7 @@ func TestGetVariableInfoWithInheritedFields(t *testing.T) {
 			nodeTypesStep(TerminalSymbol(3), field1),
 		}}},
 	}, nil)
-	variableInfo, err := GetVariableInfo(grammar, lexicalGrammar, AliasMap{}, interner)
+	variableInfo, err := GetVariableInfo(grammar, lexicalGrammar, AliasMap{}, &InlinedProductionMap{}, interner)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -964,7 +1136,7 @@ func TestGetVariableInfoWithSupertypes(t *testing.T) {
 		// _rule1 is a supertype.
 		[]Symbol{NonTerminalSymbol(1)},
 	)
-	variableInfo, err := GetVariableInfo(grammar, lexicalGrammar, AliasMap{}, interner)
+	variableInfo, err := GetVariableInfo(grammar, lexicalGrammar, AliasMap{}, &InlinedProductionMap{}, interner)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1061,12 +1233,12 @@ func TestNodeTypesOnEveryTestGrammar(t *testing.T) {
 			// TestPrepareGrammarOnEveryTestGrammar checks these grammars.
 			continue
 		}
-		variableInfo, err := GetVariableInfo(&prepared.SyntaxGrammar, &prepared.LexicalGrammar, prepared.DefaultAliases, prepared.StrPool)
+		variableInfo, err := GetVariableInfo(&prepared.SyntaxGrammar, &prepared.LexicalGrammar, prepared.DefaultAliases, &prepared.Inlines, prepared.StrPool)
 		if err != nil {
 			t.Errorf("%s: expected no error from GetVariableInfo, got: %v", name, err)
 			continue
 		}
-		actual, err := NodeTypesJSON(&prepared.SyntaxGrammar, &prepared.LexicalGrammar, prepared.DefaultAliases, variableInfo, prepared.StrPool)
+		actual, err := NodeTypesJSON(&prepared.SyntaxGrammar, &prepared.LexicalGrammar, prepared.DefaultAliases, variableInfo, &prepared.Inlines, prepared.StrPool)
 		if err != nil {
 			t.Errorf("%s: expected no error from NodeTypesJSON, got: %v", name, err)
 			continue
@@ -1160,11 +1332,11 @@ func firstDifference(expected, actual string) string {
 func getNodeTypes(t *testing.T, grammar *InputGrammar) ([]nodeInfoJSON, error) {
 	t.Helper()
 	prepared := prepareForTest(t, grammar)
-	variableInfo, err := GetVariableInfo(&prepared.SyntaxGrammar, &prepared.LexicalGrammar, prepared.DefaultAliases, prepared.StrPool)
+	variableInfo, err := GetVariableInfo(&prepared.SyntaxGrammar, &prepared.LexicalGrammar, prepared.DefaultAliases, &prepared.Inlines, prepared.StrPool)
 	if err != nil {
 		t.Fatalf("expected no error from GetVariableInfo, got: %v", err)
 	}
-	return generateNodeTypes(&prepared.SyntaxGrammar, &prepared.LexicalGrammar, prepared.DefaultAliases, variableInfo, prepared.StrPool)
+	return generateNodeTypes(&prepared.SyntaxGrammar, &prepared.LexicalGrammar, prepared.DefaultAliases, variableInfo, &prepared.Inlines, prepared.StrPool)
 }
 
 // mustGetNodeTypes is getNodeTypes, and it fails the test on an error. It is

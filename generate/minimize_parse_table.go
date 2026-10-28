@@ -774,14 +774,11 @@ type minimizeGoto struct {
 // unitReductionSymbolsByState and actionListIDs.
 func (m *minimizer) removeUnitReductions() {
 	aliasedSymbols := make(map[Symbol]bool)
-	for i := range m.syntaxGrammar.Variables {
-		start, end := m.syntaxGrammar.VariableProdIDs(i)
-		for prodID := start; prodID < end; prodID++ {
-			for _, step := range m.syntaxGrammar.Production(prodID).Steps {
-				if _, ok := step.GetAlias(); ok {
-					aliasedSymbols[step.Symbol()] = true
-				}
-			}
+	// Include appended productions, where inlining can copy an alias onto
+	// the symbols that replace the inlined step.
+	for _, step := range m.syntaxGrammar.Steps {
+		if _, ok := step.GetAlias(); ok {
+			aliasedSymbols[step.Symbol()] = true
 		}
 	}
 

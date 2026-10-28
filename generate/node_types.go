@@ -351,12 +351,12 @@ func (e *SupertypeAliasCollisionError) Error() string {
 // The error is an *InvalidSupertypeError or a *SupertypeAliasCollisionError.
 //
 // GetVariableInfo is get_variable_info.
-func GetVariableInfo(syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGrammar, defaultAliases AliasMap, strPool *StrPool) ([]VariableInfo, error) {
-	if err := validateSupertypeAliases(syntaxGrammar, defaultAliases, strPool); err != nil {
+func GetVariableInfo(syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGrammar, defaultAliases AliasMap, inlines *InlinedProductionMap, strPool *StrPool) ([]VariableInfo, error) {
+	if err := validateSupertypeAliases(syntaxGrammar, defaultAliases, inlines, strPool); err != nil {
 		return nil, err
 	}
-	result := computeVariableInfoFixedPoint(syntaxGrammar, lexicalGrammar, defaultAliases)
-	if err := validateSupertypeStructure(result, syntaxGrammar, lexicalGrammar, defaultAliases, strPool); err != nil {
+	result := computeVariableInfoFixedPoint(syntaxGrammar, lexicalGrammar, defaultAliases, inlines)
+	if err := validateSupertypeStructure(result, syntaxGrammar, lexicalGrammar, defaultAliases, inlines, strPool); err != nil {
 		return nil, err
 	}
 	stripHiddenChildTypes(result, syntaxGrammar, lexicalGrammar)
@@ -368,8 +368,8 @@ func GetVariableInfo(syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGramma
 // both an abstract supertype and a concrete aliased node.
 //
 // validateSupertypeAliases is validate_supertype_aliases.
-func validateSupertypeAliases(syntaxGrammar *SyntaxGrammar, defaultAliases AliasMap, strPool *StrPool) error {
-	aliasesBySymbol := getAliasesBySymbol(syntaxGrammar, defaultAliases)
+func validateSupertypeAliases(syntaxGrammar *SyntaxGrammar, defaultAliases AliasMap, inlines *InlinedProductionMap, strPool *StrPool) error {
+	aliasesBySymbol := getAliasesBySymbol(syntaxGrammar, defaultAliases, inlines)
 	for _, supertypeSymbol := range syntaxGrammar.SupertypeSymbols {
 		index, ok := supertypeSymbol.NonTerminalIndex()
 		if !ok {
@@ -394,7 +394,7 @@ func validateSupertypeAliases(syntaxGrammar *SyntaxGrammar, defaultAliases Alias
 // to each other, so the loop runs until no more changes occur.
 //
 // computeVariableInfoFixedPoint is compute_variable_info_fixed_point.
-func computeVariableInfoFixedPoint(syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGrammar, defaultAliases AliasMap) []VariableInfo {
+func computeVariableInfoFixedPoint(syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGrammar, defaultAliases AliasMap, inlines *InlinedProductionMap) []VariableInfo {
 	childTypeIsVisible := func(t ChildType) bool {
 		return variableTypeForChildType(t, syntaxGrammar, lexicalGrammar) >= VariableAnonymous
 	}
@@ -412,108 +412,118 @@ func computeVariableInfoFixedPoint(syntaxGrammar *SyntaxGrammar, lexicalGrammar 
 		didChange = false
 
 		for i := range syntaxGrammar.Variables {
+			if slices.Contains(syntaxGrammar.VariablesToInline, NonTerminalSymbol(i)) {
+				continue
+			}
 			variableInfo := result[i].clone()
 
 			// Look at each production of the variable. The child types of
 			// the variable combine across all productions at once, but the
 			// child quantities are recorded for each production.
+			productionFieldQuantities := map[StrID]ChildQuantity{}
 			start, end := syntaxGrammar.VariableProdIDs(i)
-			for prodID := start; prodID < end; prodID++ {
-				production := syntaxGrammar.Production(prodID)
-				productionFieldQuantities := map[StrID]ChildQuantity{}
-				productionChildrenQuantity := zeroChildQuantity()
-				productionChildrenWithoutFieldsQuantity := zeroChildQuantity()
-				productionHasUninitializedInvisibleChildren := false
-
-				if len(production.Steps) > 1 {
-					variableInfo.HasMultiStepProduction = true
+			for originalProdID := start; originalProdID < end; originalProdID++ {
+				productionIDs, ok := inlines.FullyInlinedProdIDs(originalProdID)
+				if !ok {
+					productionIDs = []uint32{originalProdID}
 				}
+				for _, prodID := range productionIDs {
+					clear(productionFieldQuantities)
+					production := syntaxGrammar.Production(prodID)
+					productionChildrenQuantity := zeroChildQuantity()
+					productionChildrenWithoutFieldsQuantity := zeroChildQuantity()
+					productionHasUninitializedInvisibleChildren := false
 
-				for _, step := range production.Steps {
-					childSymbol := step.Symbol()
-					childType := step.ChildType(defaultAliases)
-
-					childIsHidden := !childTypeIsVisible(childType) &&
-						!slices.Contains(syntaxGrammar.SupertypeSymbols, childSymbol)
-
-					// Keep the set of all child types of this variable, and
-					// the quantity of visible children in this production.
-					didChange = extendSorted(&variableInfo.Children.Types, childType) || didChange
-					if !childIsHidden {
-						productionChildrenQuantity.append(oneChildQuantity())
+					if len(production.Steps) > 1 {
+						variableInfo.HasMultiStepProduction = true
 					}
 
-					// Keep the set of child types of each field, and the
-					// quantity of children of each field in this production.
-					if fieldName, ok := step.GetField(); ok {
-						fieldInfo := variableInfo.field(fieldName)
-						didChange = extendSorted(&fieldInfo.Types, childType) || didChange
+					for _, step := range production.Steps {
+						childSymbol := step.Symbol()
+						childType := step.ChildType(defaultAliases)
 
-						productionFieldQuantity, ok := productionFieldQuantities[fieldName]
-						if !ok {
-							productionFieldQuantity = zeroChildQuantity()
+						childIsHidden := !childTypeIsVisible(childType) &&
+							!slices.Contains(syntaxGrammar.SupertypeSymbols, childSymbol)
+
+						// Keep the set of all child types of this variable, and
+						// the quantity of visible children in this production.
+						didChange = extendSorted(&variableInfo.Children.Types, childType) || didChange
+						if !childIsHidden {
+							productionChildrenQuantity.append(oneChildQuantity())
 						}
 
-						// Inherit the types and quantities of hidden children
-						// of fields.
+						// Keep the set of child types of each field, and the
+						// quantity of children of each field in this production.
+						if fieldName, ok := step.GetField(); ok {
+							fieldInfo := variableInfo.field(fieldName)
+							didChange = extendSorted(&fieldInfo.Types, childType) || didChange
+
+							productionFieldQuantity, ok := productionFieldQuantities[fieldName]
+							if !ok {
+								productionFieldQuantity = zeroChildQuantity()
+							}
+
+							// Inherit the types and quantities of hidden children
+							// of fields.
+							if index, ok := childSymbol.NonTerminalIndex(); childIsHidden && ok {
+								childVariableInfo := &result[index]
+								didChange = extendSorted(&fieldInfo.Types, childVariableInfo.Children.Types...) || didChange
+								productionFieldQuantity.append(childVariableInfo.Children.Quantity)
+							} else {
+								productionFieldQuantity.append(oneChildQuantity())
+							}
+							productionFieldQuantities[fieldName] = productionFieldQuantity
+						} else if childTypeIsNamed(childType) {
+							// Keep the set of named children without fields in
+							// this variable.
+							productionChildrenWithoutFieldsQuantity.append(oneChildQuantity())
+							didChange = extendSorted(&variableInfo.ChildrenWithoutFields.Types, childType) || didChange
+						}
+
+						// Inherit all child information from hidden children.
 						if index, ok := childSymbol.NonTerminalIndex(); childIsHidden && ok {
-							childVariableInfo := &result[index]
-							didChange = extendSorted(&fieldInfo.Types, childVariableInfo.Children.Types...) || didChange
-							productionFieldQuantity.append(childVariableInfo.Children.Quantity)
-						} else {
-							productionFieldQuantity.append(oneChildQuantity())
+							_, hasField := step.GetField()
+							didChange = inheritHiddenChildInfo(
+								&result[index],
+								!hasField,
+								&variableInfo,
+								productionFieldQuantities,
+								&productionChildrenQuantity,
+								&productionChildrenWithoutFieldsQuantity,
+							) || didChange
 						}
-						productionFieldQuantities[fieldName] = productionFieldQuantity
-					} else if childTypeIsNamed(childType) {
-						// Keep the set of named children without fields in
-						// this variable.
-						productionChildrenWithoutFieldsQuantity.append(oneChildQuantity())
-						didChange = extendSorted(&variableInfo.ChildrenWithoutFields.Types, childType) || didChange
-					}
 
-					// Inherit all child information from hidden children.
-					if index, ok := childSymbol.NonTerminalIndex(); childIsHidden && ok {
-						_, hasField := step.GetField()
-						didChange = inheritHiddenChildInfo(
-							&result[index],
-							!hasField,
-							&variableInfo,
-							productionFieldQuantities,
-							&productionChildrenQuantity,
-							&productionChildrenWithoutFieldsQuantity,
-						) || didChange
-					}
-
-					// Note whether this production has children whose
-					// summaries are not computed yet.
-					var childIndex uint32
-					switch childSymbol.Kind() {
-					case SymbolExternal, SymbolTerminal, SymbolNonTerminal:
-						childIndex = childSymbol.index
-					default:
-						panic("unreachable")
-					}
-					if int(childIndex) >= i && !allInitialized {
-						productionHasUninitializedInvisibleChildren = true
-					}
-				}
-
-				// When the summaries of all the children of this production
-				// are initialized, add the quantities that this production
-				// allows.
-				if !productionHasUninitializedInvisibleChildren {
-					didChange = variableInfo.Children.Quantity.union(productionChildrenQuantity) || didChange
-
-					didChange = variableInfo.ChildrenWithoutFields.Quantity.union(productionChildrenWithoutFieldsQuantity) || didChange
-
-					// The order of this loop over a Go map cannot reach the
-					// output, because each field changes only its own info.
-					for fieldName, info := range variableInfo.Fields {
-						q, ok := productionFieldQuantities[fieldName]
-						if !ok {
-							q = zeroChildQuantity()
+						// Note whether this production has children whose
+						// summaries are not computed yet.
+						var childIndex uint32
+						switch childSymbol.Kind() {
+						case SymbolExternal, SymbolTerminal, SymbolNonTerminal:
+							childIndex = childSymbol.index
+						default:
+							panic("unreachable")
 						}
-						didChange = info.Quantity.union(q) || didChange
+						if int(childIndex) >= i && !allInitialized {
+							productionHasUninitializedInvisibleChildren = true
+						}
+					}
+
+					// When the summaries of all the children of this production
+					// are initialized, add the quantities that this production
+					// allows.
+					if !productionHasUninitializedInvisibleChildren {
+						didChange = variableInfo.Children.Quantity.union(productionChildrenQuantity) || didChange
+
+						didChange = variableInfo.ChildrenWithoutFields.Quantity.union(productionChildrenWithoutFieldsQuantity) || didChange
+
+						// The order of this loop over a Go map cannot reach the
+						// output, because each field changes only its own info.
+						for fieldName, info := range variableInfo.Fields {
+							q, ok := productionFieldQuantities[fieldName]
+							if !ok {
+								q = zeroChildQuantity()
+							}
+							didChange = info.Quantity.union(q) || didChange
+						}
 					}
 				}
 			}
@@ -584,7 +594,7 @@ func inheritHiddenChildInfo(
 // child.
 //
 // validateSupertypeStructure is validate_supertype_structure.
-func validateSupertypeStructure(result []VariableInfo, syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGrammar, defaultAliases AliasMap, strPool *StrPool) error {
+func validateSupertypeStructure(result []VariableInfo, syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGrammar, defaultAliases AliasMap, inlines *InlinedProductionMap, strPool *StrPool) error {
 	childTypeIsVisible := func(t ChildType) bool {
 		return variableTypeForChildType(t, syntaxGrammar, lexicalGrammar) >= VariableAnonymous
 	}
@@ -598,25 +608,32 @@ func validateSupertypeStructure(result []VariableInfo, syntaxGrammar *SyntaxGram
 			continue
 		}
 		variable := syntaxGrammar.Variables[supertypeIndex]
-		// A symbol can have a production of several steps directly, or
-		// through an inlined anonymous child. In the second case, the error
-		// can be more specific.
+		// A production can expand to multiple nodes directly or through a
+		// hidden child. In the latter case, include that child's name in the
+		// diagnostic.
 		hiddenChildName := ""
 		start, end := syntaxGrammar.VariableProdIDs(int(supertypeIndex))
-		for prodID := start; prodID < end; prodID++ {
-			steps := syntaxGrammar.Production(prodID).Steps
-			if len(steps) != 1 {
-				continue
+	productions:
+		for originalProdID := start; originalProdID < end; originalProdID++ {
+			productionIDs, ok := inlines.FullyInlinedProdIDs(originalProdID)
+			if !ok {
+				productionIDs = []uint32{originalProdID}
 			}
-			step := steps[0]
-			childSymbol := step.Symbol()
-			childType := step.ChildType(defaultAliases)
-			childIsHidden := !childTypeIsVisible(childType) &&
-				!slices.Contains(syntaxGrammar.SupertypeSymbols, childSymbol)
-			index, ok := childSymbol.NonTerminalIndex()
-			if ok && childIsHidden && result[index].HasMultiStepProduction {
-				hiddenChildName = strPool.Resolve(syntaxGrammar.Variables[index].Name)
-				break
+			for _, prodID := range productionIDs {
+				steps := syntaxGrammar.Production(prodID).Steps
+				if len(steps) != 1 {
+					continue
+				}
+				step := steps[0]
+				childSymbol := step.Symbol()
+				childType := step.ChildType(defaultAliases)
+				childIsHidden := !childTypeIsVisible(childType) &&
+					!slices.Contains(syntaxGrammar.SupertypeSymbols, childSymbol)
+				index, ok := childSymbol.NonTerminalIndex()
+				if ok && childIsHidden && result[index].HasMultiStepProduction {
+					hiddenChildName = strPool.Resolve(syntaxGrammar.Variables[index].Name)
+					break productions
+				}
 			}
 		}
 
@@ -697,7 +714,7 @@ func insertOptionalAlias(set []optionalAlias, alias optionalAlias) []optionalAli
 //
 // getAliasesBySymbol is get_aliases_by_symbol. Upstream returns an
 // FxHashMap of BTreeSets.
-func getAliasesBySymbol(syntaxGrammar *SyntaxGrammar, defaultAliases AliasMap) map[Symbol][]optionalAlias {
+func getAliasesBySymbol(syntaxGrammar *SyntaxGrammar, defaultAliases AliasMap, inlines *InlinedProductionMap) map[Symbol][]optionalAlias {
 	aliasesBySymbol := map[Symbol][]optionalAlias{}
 	// The order of this loop over a Go map cannot reach the output, because
 	// each symbol is a different key.
@@ -710,16 +727,25 @@ func getAliasesBySymbol(syntaxGrammar *SyntaxGrammar, defaultAliases AliasMap) m
 		}
 	}
 	for i := range syntaxGrammar.Variables {
+		if slices.Contains(syntaxGrammar.VariablesToInline, NonTerminalSymbol(i)) {
+			continue
+		}
 		start, end := syntaxGrammar.VariableProdIDs(i)
-		for prodID := start; prodID < end; prodID++ {
-			for _, step := range syntaxGrammar.Production(prodID).Steps {
-				var alias optionalAlias
-				if a, ok := step.GetAlias(); ok {
-					alias = optionalAlias{alias: a, ok: true}
-				} else if a, ok := defaultAliases[step.Symbol()]; ok {
-					alias = optionalAlias{alias: a, ok: true}
+		for originalProdID := start; originalProdID < end; originalProdID++ {
+			productionIDs, ok := inlines.FullyInlinedProdIDs(originalProdID)
+			if !ok {
+				productionIDs = []uint32{originalProdID}
+			}
+			for _, prodID := range productionIDs {
+				for _, step := range syntaxGrammar.Production(prodID).Steps {
+					var alias optionalAlias
+					if a, ok := step.GetAlias(); ok {
+						alias = optionalAlias{alias: a, ok: true}
+					} else if a, ok := defaultAliases[step.Symbol()]; ok {
+						alias = optionalAlias{alias: a, ok: true}
+					}
+					aliasesBySymbol[step.Symbol()] = insertOptionalAlias(aliasesBySymbol[step.Symbol()], alias)
 				}
-				aliasesBySymbol[step.Symbol()] = insertOptionalAlias(aliasesBySymbol[step.Symbol()], alias)
 			}
 		}
 	}
@@ -751,7 +777,9 @@ func (m SupertypeSymbolMap) Sorted() iter.Seq2[Symbol, []ChildType] {
 //
 // Upstream also builds a map from each alias to its symbols here, and never
 // reads it. Go rejects a variable that is not read, and the map changes
-// nothing, so the port leaves it out.
+// nothing, so the port leaves it out. Upstream passes its argument inlines
+// only to get_aliases_by_symbol for that map, so the port leaves out the
+// argument too.
 //
 // GetSupertypeSymbolMap is get_supertype_symbol_map.
 func GetSupertypeSymbolMap(syntaxGrammar *SyntaxGrammar, defaultAliases AliasMap, variableInfo []VariableInfo) SupertypeSymbolMap {
@@ -795,8 +823,8 @@ func (e *SuperTypeCycleError) Error() string {
 // The error is a *SuperTypeCycleError.
 //
 // NodeTypesJSON is generate_node_types_json.
-func NodeTypesJSON(syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGrammar, defaultAliases AliasMap, variableInfo []VariableInfo, strPool *StrPool) (string, error) {
-	nodes, err := generateNodeTypes(syntaxGrammar, lexicalGrammar, defaultAliases, variableInfo, strPool)
+func NodeTypesJSON(syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGrammar, defaultAliases AliasMap, variableInfo []VariableInfo, inlines *InlinedProductionMap, strPool *StrPool) (string, error) {
+	nodes, err := generateNodeTypes(syntaxGrammar, lexicalGrammar, defaultAliases, variableInfo, inlines, strPool)
 	if err != nil {
 		return "", err
 	}
@@ -808,8 +836,8 @@ func NodeTypesJSON(syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGrammar,
 // generateNodeTypes returns the entries of node-types.json, in their order.
 //
 // generateNodeTypes is generate_node_types.
-func generateNodeTypes(syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGrammar, defaultAliases AliasMap, variableInfo []VariableInfo, strPool *StrPool) ([]nodeInfoJSON, error) {
-	aliasesBySymbol := getAliasesBySymbol(syntaxGrammar, defaultAliases)
+func generateNodeTypes(syntaxGrammar *SyntaxGrammar, lexicalGrammar *LexicalGrammar, defaultAliases AliasMap, variableInfo []VariableInfo, inlines *InlinedProductionMap, strPool *StrPool) ([]nodeInfoJSON, error) {
+	aliasesBySymbol := getAliasesBySymbol(syntaxGrammar, defaultAliases, inlines)
 	extraNodeTypes := collectExtraNodeTypes(syntaxGrammar, lexicalGrammar, aliasesBySymbol)
 
 	// Upstream keeps the entries in a BTreeMap. The Go map is enough,

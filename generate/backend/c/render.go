@@ -669,31 +669,28 @@ func (g *generator) addAliasSequences() {
 // which is unique, so the order of the map does not reach the output.
 func (g *generator) addNonTerminalAliasMap() {
 	aliasIDsBySymbol := map[generate.Symbol][]string{}
-	for i := range g.syntaxGrammar.Variables {
-		start, end := g.syntaxGrammar.VariableProdIDs(i)
-		for prodID := start; prodID < end; prodID++ {
-			for _, step := range g.syntaxGrammar.Production(prodID).Steps {
-				alias, ok := step.GetAlias()
-				if !ok || step.Symbol().Kind() != generate.SymbolNonTerminal {
-					continue
-				}
-				if defaultAlias, ok := g.defaultAliases[step.Symbol()]; ok && defaultAlias == alias {
-					continue
-				}
-				if _, ok := g.symbolIDs[step.Symbol()]; !ok {
-					continue
-				}
-				aliasID, ok := g.aliasIDs[alias]
-				if !ok {
-					continue
-				}
-				aliasIDs := aliasIDsBySymbol[step.Symbol()]
-				if ix, found := slices.BinarySearch(aliasIDs, aliasID); !found {
-					aliasIDs = slices.Insert(aliasIDs, ix, aliasID)
-				}
-				aliasIDsBySymbol[step.Symbol()] = aliasIDs
-			}
+	// Include appended productions, where inlining can copy an alias onto
+	// the symbols that replace the inlined step.
+	for _, step := range g.syntaxGrammar.Steps {
+		alias, ok := step.GetAlias()
+		if !ok || step.Symbol().Kind() != generate.SymbolNonTerminal {
+			continue
 		}
+		if defaultAlias, ok := g.defaultAliases[step.Symbol()]; ok && defaultAlias == alias {
+			continue
+		}
+		if _, ok := g.symbolIDs[step.Symbol()]; !ok {
+			continue
+		}
+		aliasID, ok := g.aliasIDs[alias]
+		if !ok {
+			continue
+		}
+		aliasIDs := aliasIDsBySymbol[step.Symbol()]
+		if ix, found := slices.BinarySearch(aliasIDs, aliasID); !found {
+			aliasIDs = slices.Insert(aliasIDs, ix, aliasID)
+		}
+		aliasIDsBySymbol[step.Symbol()] = aliasIDs
 	}
 
 	symbols := make([]generate.Symbol, 0, len(aliasIDsBySymbol))

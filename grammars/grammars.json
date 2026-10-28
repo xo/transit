@@ -1,5 +1,5 @@
 {
-  "upstream": "c46e168547a700a54689f4ca1f153fe5c24cee8c",
+  "upstream": "996a11cc911307e7a1f33311a5c2b64c4bf029de",
   "tool": "tree-sitter 0.28.0",
   "rust": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
   "grammars": [
@@ -1761,7 +1761,7 @@
       "golden": {
         "abi14": {
           "parser_c": "ea26eb36492fa35bb4671e55cd8491d43c0ec6da95d2b27dcc79db50548ceffc",
-          "node_types": "be01cccd5b91a93691f353bf82bdc37c8af0bf8df3a4c33093a3bb025dca7156",
+          "node_types": "212775c4427af89a9987323db30ccbf2c39acd23a16003addd602bb48f28cb12",
           "paths": [
             "field map",
             "inherited field",
@@ -1785,7 +1785,7 @@
         },
         "abi15": {
           "parser_c": "588bcda6d5fd9a3341cdc8b12558d8ed7a685056c27c8cdf1250fc5987bca197",
-          "node_types": "be01cccd5b91a93691f353bf82bdc37c8af0bf8df3a4c33093a3bb025dca7156",
+          "node_types": "212775c4427af89a9987323db30ccbf2c39acd23a16003addd602bb48f28cb12",
           "paths": [
             "field map",
             "inherited field",
@@ -2073,7 +2073,7 @@
       "golden": {
         "abi14": {
           "parser_c": "0447e63544b14cd538c25b4dd84ccdf98965c1db5690bc79e760eaf39f23385a",
-          "node_types": "b8ba68667470614d82928c7513cad47c6dbe38d9edf2ae45aadcc73739aa4fb2",
+          "node_types": "b344151800e4b1514a4e6ed0ac16c01f9613cbf9db809963a90799999dd66184",
           "paths": [
             "field map",
             "inherited field",
@@ -2099,7 +2099,7 @@
         },
         "abi15": {
           "parser_c": "986beb1831cfa0ad0331edcadb832d270fac3f5e07e3a17a999f46a18bea493d",
-          "node_types": "b8ba68667470614d82928c7513cad47c6dbe38d9edf2ae45aadcc73739aa4fb2",
+          "node_types": "b344151800e4b1514a4e6ed0ac16c01f9613cbf9db809963a90799999dd66184",
           "paths": [
             "field map",
             "inherited field",
@@ -2206,7 +2206,7 @@
       "golden": {
         "abi14": {
           "parser_c": "c0612ab2d3551e9632ededdf753ee68d6ee72033c9e6fc32976c538b7aeb41ef",
-          "node_types": "8b330d8ad42d0ff1814af5cca63aec4967790ecfc6b621d434fd86289d209634",
+          "node_types": "b2218dd91a2bdebcbfd1422a443cef0e4868734c21dbb8cca67d14400de6e62d",
           "paths": [
             "field map",
             "inherited field",
@@ -2229,7 +2229,7 @@
         },
         "abi15": {
           "parser_c": "bbddad96af0d3ca5fe20a2ddc9cddc6528ead82035e9bb59c9783f51931813f0",
-          "node_types": "8b330d8ad42d0ff1814af5cca63aec4967790ecfc6b621d434fd86289d209634",
+          "node_types": "b2218dd91a2bdebcbfd1422a443cef0e4868734c21dbb8cca67d14400de6e62d",
           "paths": [
             "field map",
             "inherited field",
@@ -4078,7 +4078,7 @@
       "golden": {
         "abi14": {
           "parser_c": "fa8caab7ebd77af5bc7479840c87493dc6540c31a7ef3447a393b8988704027a",
-          "node_types": "230d6ceb7ff09f90be483eb576011a8247c1d3f19d21b207a5abca6dbb2c2c85",
+          "node_types": "f1619829d6aaf8e220aa1516ad1af787ee2dd01619c8d02bbbf451f0bb038ed9",
           "paths": [
             "field map",
             "inherited field",
@@ -4103,7 +4103,7 @@
         },
         "abi15": {
           "parser_c": "ee92d9cb1535fc80abef7ebf5423787fa45c52dd13fddbb525ac9961ea2a40ba",
-          "node_types": "230d6ceb7ff09f90be483eb576011a8247c1d3f19d21b207a5abca6dbb2c2c85",
+          "node_types": "f1619829d6aaf8e220aa1516ad1af787ee2dd01619c8d02bbbf451f0bb038ed9",
           "paths": [
             "field map",
             "inherited field",
@@ -4212,7 +4212,7 @@
       "golden": {
         "abi14": {
           "parser_c": "b9c2baa64d07a6e7202d3016abd39579292d62012379b16ba585c7d779710ff3",
-          "node_types": "65901b99885030305d20302f025d515791cc456715e1b5b167632a6df6e99d81",
+          "node_types": "e932c2d697cee074cda135638c681b484169037b7155165bff30eb7041f175e0",
           "paths": [
             "field map",
             "inherited field",
@@ -4237,7 +4237,7 @@
         },
         "abi15": {
           "parser_c": "588e285f0077bf4ced813e18f2010079d1df33fd8c992d0e39799c3daa05af0a",
-          "node_types": "65901b99885030305d20302f025d515791cc456715e1b5b167632a6df6e99d81",
+          "node_types": "e932c2d697cee074cda135638c681b484169037b7155165bff30eb7041f175e0",
           "paths": [
             "field map",
             "inherited field",
@@ -4729,7 +4729,7 @@
       "golden": {
         "abi14": {
           "parser_c": "4c5dbb179fa38d56d350347d28056739b0db9b7c30ba6a42bac96f4e3088229d",
-          "node_types": "0a1a6746e69e1e4768ecc827d36de0ceb7b33eef1f5eaac5e29eb088007843eb",
+          "node_types": "d334ac9d7e2bb6af7c8426ec05ab24dd1c96088e8d39766a2bfeb1d8a2b2b23a",
           "paths": [
             "field map",
             "inherited field",
@@ -4754,7 +4754,7 @@
         },
         "abi15": {
           "parser_c": "c95578dc7d0845d6b8305caab74e72d38cd03d6db8d20c8400e4b6a17fb833a2",
-          "node_types": "0a1a6746e69e1e4768ecc827d36de0ceb7b33eef1f5eaac5e29eb088007843eb",
+          "node_types": "d334ac9d7e2bb6af7c8426ec05ab24dd1c96088e8d39766a2bfeb1d8a2b2b23a",
           "paths": [
             "field map",
             "inherited field",
@@ -5546,7 +5546,7 @@
       "golden": {
         "abi14": {
           "parser_c": "f98b8331c1fd958dcb4f5ada76f11fd2655c7e92ecd00843d1b5b5455e0aa37c",
-          "node_types": "562be3f679c04c724faf3a9436bd4acd27b1788a1d0f6556f6f1453427798ea5",
+          "node_types": "d42ccc53f944ac96e572a0dd659a0e043672546aa60490123ecf88cacad5eb04",
           "paths": [
             "field map",
             "inherited field",
@@ -5571,7 +5571,7 @@
         },
         "abi15": {
           "parser_c": "7482a3adad69067b2222f689738503e17205a5a6bd5cfa1dae441ab96be942b5",
-          "node_types": "562be3f679c04c724faf3a9436bd4acd27b1788a1d0f6556f6f1453427798ea5",
+          "node_types": "d42ccc53f944ac96e572a0dd659a0e043672546aa60490123ecf88cacad5eb04",
           "paths": [
             "field map",
             "inherited field",
@@ -6556,7 +6556,7 @@
       "golden": {
         "abi14": {
           "parser_c": "a3cdc37693783a1f6468884d3b9c999465e0dd1ec49c01340861d9a495769b67",
-          "node_types": "80a025c64c928041b0c78f6606da12e367cfe240de5361d680fc0a61e0093985",
+          "node_types": "763851a5ba8b6bbf4ee8f4d4dfda86e909d9f6c4808b129100bb97f68f3bbd7b",
           "paths": [
             "field map",
             "inherited field",
@@ -6579,7 +6579,7 @@
         },
         "abi15": {
           "parser_c": "3563879a5390fcdc57695e0fecdf5e9501940ea2cf702913ee1945367e4f7efd",
-          "node_types": "80a025c64c928041b0c78f6606da12e367cfe240de5361d680fc0a61e0093985",
+          "node_types": "763851a5ba8b6bbf4ee8f4d4dfda86e909d9f6c4808b129100bb97f68f3bbd7b",
           "paths": [
             "field map",
             "inherited field",
@@ -7382,7 +7382,7 @@
       "golden": {
         "abi14": {
           "parser_c": "b7cdd28ebcfc682b6cb626875e210f3aecbd245f2f867c924343bfc53dbcb297",
-          "node_types": "528211228b49ef3d8f292aff490cba55f3d881a8e709d5f4d4c24155bc12a6f7",
+          "node_types": "ca9fdba71777448d19977cd44299307d048adbebd296c0313e4436795339869c",
           "paths": [
             "field map",
             "inherited field",
@@ -7407,7 +7407,7 @@
         },
         "abi15": {
           "parser_c": "63519a4868c55ca6ef38eec9afe89201f585cc0750c11e86d635ff007faa8ca5",
-          "node_types": "528211228b49ef3d8f292aff490cba55f3d881a8e709d5f4d4c24155bc12a6f7",
+          "node_types": "ca9fdba71777448d19977cd44299307d048adbebd296c0313e4436795339869c",
           "paths": [
             "field map",
             "inherited field",
@@ -7492,8 +7492,8 @@
       "status": "available",
       "golden": {
         "abi14": {
-          "parser_c": "f6c1ba65c45b3b4cb47e6dc2a25cf3972c12156b2891c8be640efb761b36dd33",
-          "node_types": "1daa1be95c53e5bdd08c1228a225c71f997edada6e04efb8ec0eeaac36039695",
+          "parser_c": "1a4b3c5cc47c8e24748058723b0b606816e571e8b55024a8ea2984c432526fa6",
+          "node_types": "8901a74870700ed29917c38711d500fa9c722466147a1f625c37b7a86653255c",
           "paths": [
             "field map",
             "inherited field",
@@ -7510,8 +7510,8 @@
           ]
         },
         "abi15": {
-          "parser_c": "5589fab80863c773d8eef291c559b3036d4fcd6fbc3b9e73d0da4091fe35e8ee",
-          "node_types": "1daa1be95c53e5bdd08c1228a225c71f997edada6e04efb8ec0eeaac36039695",
+          "parser_c": "680d9985def8dde7d7cc23d922c00f296a77502c65b82ab078b6144d9a99aaba",
+          "node_types": "8901a74870700ed29917c38711d500fa9c722466147a1f625c37b7a86653255c",
           "paths": [
             "field map",
             "inherited field",
@@ -7549,7 +7549,7 @@
       "golden": {
         "abi14": {
           "parser_c": "95d88a043561a5c26f501ee6ca072af88acf51c1b0387b20090f4cefabe5b2cf",
-          "node_types": "ceaa3d487534ee66f7c5cbc093e34544a970e74dc80609f49fb26d1659c7b784",
+          "node_types": "68e34a52ff197da9e11d7bba8b9fcc754df6da4eb641af0b323f0cefffca1e24",
           "paths": [
             "field map",
             "inherited field",
@@ -7574,7 +7574,7 @@
         },
         "abi15": {
           "parser_c": "e125cf20793e486534ae7633c2517d7a113906e61bfaca157acd36f565a7e6c1",
-          "node_types": "ceaa3d487534ee66f7c5cbc093e34544a970e74dc80609f49fb26d1659c7b784",
+          "node_types": "68e34a52ff197da9e11d7bba8b9fcc754df6da4eb641af0b323f0cefffca1e24",
           "paths": [
             "field map",
             "inherited field",
@@ -8550,7 +8550,7 @@
       "golden": {
         "abi14": {
           "parser_c": "218406252cb294d4c59bd63481839b4a781b7745508e552d8eb368c86238b235",
-          "node_types": "5f037c3ef3d4a152f96184646b8122f4c6eb9168cdcd2958e08ccd916c7a2cf3",
+          "node_types": "d0d7b06a457507f8afe88264ceb8b3a11164c94f5021054780f8e4e4679c6b8c",
           "paths": [
             "field map",
             "inherited field",
@@ -8577,7 +8577,7 @@
         },
         "abi15": {
           "parser_c": "6f107176aede1c4084c958186ecca72089e2609fb19be0e2d605eebe83c67466",
-          "node_types": "5f037c3ef3d4a152f96184646b8122f4c6eb9168cdcd2958e08ccd916c7a2cf3",
+          "node_types": "d0d7b06a457507f8afe88264ceb8b3a11164c94f5021054780f8e4e4679c6b8c",
           "paths": [
             "field map",
             "inherited field",
@@ -8713,7 +8713,7 @@
       "golden": {
         "abi14": {
           "parser_c": "6fb5776b08f9a538253f6e935a8ec865d5b667a9b96d7c1357a2a42b1c7e2f87",
-          "node_types": "89e30c1a5ba8015b5d87e78d91db18f3cecc0a604bb9479490f20e27f55e5899",
+          "node_types": "d2c1b65bf0ea0c7acf8defd4e0ff63e511db36559a6f951f3b9e2538a41d3c17",
           "paths": [
             "field map",
             "inherited field",
@@ -8737,7 +8737,7 @@
         },
         "abi15": {
           "parser_c": "fbf54199fdfd20be242deb9272f5764642d73485d44eb4475bb7cd44af7ed77c",
-          "node_types": "89e30c1a5ba8015b5d87e78d91db18f3cecc0a604bb9479490f20e27f55e5899",
+          "node_types": "d2c1b65bf0ea0c7acf8defd4e0ff63e511db36559a6f951f3b9e2538a41d3c17",
           "paths": [
             "field map",
             "inherited field",
@@ -8925,7 +8925,7 @@
       "golden": {
         "abi14": {
           "parser_c": "cacdbd524a761f08b45716813ac3762fe93c2a70aecd2ba61921cf5b4cda1bb7",
-          "node_types": "dc4948fd6acf50b2dca56ef4d360c066e4304be4dbbc461044f5a2ced206a1e2",
+          "node_types": "f8fea65bd897bc96cdc208d318de966543fa5d97afd2410bcb3b10f32687842a",
           "paths": [
             "field map",
             "inherited field",
@@ -8950,7 +8950,7 @@
         },
         "abi15": {
           "parser_c": "235ef33159ca76eee97b612e040c154c73989057a24a5ddaf80e1f3e592f3554",
-          "node_types": "dc4948fd6acf50b2dca56ef4d360c066e4304be4dbbc461044f5a2ced206a1e2",
+          "node_types": "f8fea65bd897bc96cdc208d318de966543fa5d97afd2410bcb3b10f32687842a",
           "paths": [
             "field map",
             "inherited field",
@@ -9227,7 +9227,7 @@
       "golden": {
         "abi14": {
           "parser_c": "e4b01a0e86a1c9df23d9079d1b2bbb88324501330a81e349396d79080e8a67db",
-          "node_types": "04393d6eeb9f6bd65e6c645f3a94b2dfb155f5e3c5cab9d306584c8929901df0",
+          "node_types": "2400ecb984b7d3af41c5d235455690306fc5cc402ca8666cac67984bfa3237b7",
           "paths": [
             "field map",
             "inherited field",
@@ -9252,7 +9252,7 @@
         },
         "abi15": {
           "parser_c": "288ab6feacc67e24d10ba73f80286e6b78402974078a045430a99df6f7e3e1eb",
-          "node_types": "04393d6eeb9f6bd65e6c645f3a94b2dfb155f5e3c5cab9d306584c8929901df0",
+          "node_types": "2400ecb984b7d3af41c5d235455690306fc5cc402ca8666cac67984bfa3237b7",
           "paths": [
             "field map",
             "inherited field",
@@ -9964,7 +9964,7 @@
       "golden": {
         "abi14": {
           "parser_c": "6d79386fa595ba6ebfcc899730ade6a2bb996c72a842092f0aaa049359628440",
-          "node_types": "07453021054f96dfce4ef0fe19aee17fb7785c607bd0579f303f6583a3660d2a",
+          "node_types": "93c826e821eda50fa53449521162f53f8421a8293c493108befc5626dcdea0e7",
           "paths": [
             "field map",
             "inherited field",
@@ -9988,7 +9988,7 @@
         },
         "abi15": {
           "parser_c": "8a66d115d6776effc095154f9765a699790a69f369fb6b8bfb3575ff42a04cbf",
-          "node_types": "07453021054f96dfce4ef0fe19aee17fb7785c607bd0579f303f6583a3660d2a",
+          "node_types": "93c826e821eda50fa53449521162f53f8421a8293c493108befc5626dcdea0e7",
           "paths": [
             "field map",
             "inherited field",
@@ -10336,8 +10336,8 @@
       "status": "available",
       "golden": {
         "abi14": {
-          "parser_c": "ebd315f6adfadc0bfc1c96c8c353c9ae6cb598f39c9456ee7f824a670a1080a9",
-          "node_types": "5c8bebb253756753351ae000d3c640d1315f025045193589a6173d983449d7d6",
+          "parser_c": "ebea23fffebe8feaccf3cb4262fdc296d26852f5ec0af3efc5a7591ec124c4a0",
+          "node_types": "cc9c20eed2465f9254f74f59c508309e2349010817624df7b91d7766b2b7cd9a",
           "paths": [
             "field map",
             "inherited field",
@@ -10363,8 +10363,8 @@
           ]
         },
         "abi15": {
-          "parser_c": "52c85daf3955ac73560a4c975befe98225d962549ffa8a510b3d1ec921ef013e",
-          "node_types": "5c8bebb253756753351ae000d3c640d1315f025045193589a6173d983449d7d6",
+          "parser_c": "35b219931cea57d7c0020a1e5275ff1a3c852f27017fa762831b9efc8e0af75b",
+          "node_types": "cc9c20eed2465f9254f74f59c508309e2349010817624df7b91d7766b2b7cd9a",
           "paths": [
             "field map",
             "inherited field",
@@ -10551,8 +10551,8 @@
       "status": "available",
       "golden": {
         "abi14": {
-          "parser_c": "a511a45c7f9d3b205e2770fba0fb4250f8602d4ef21fb3d55943802008215ab3",
-          "node_types": "14332f80e14f712725100ee9debee4d6a88de57f6d69e9fa46c4954a6363568b",
+          "parser_c": "9b839c60aaef4700a01f6b899354bac3dfeb9cf4d5210abf0aafa49838a13fbe",
+          "node_types": "28d6f9567cef71fc86c6a755717855de7b05a96ec1ff5881b1d25755adb8e4c4",
           "paths": [
             "alias sequences",
             "named unique alias",
@@ -10571,8 +10571,8 @@
           ]
         },
         "abi15": {
-          "parser_c": "1bb109f7824bd41398c70ed3fbec5a807b2639f8107c9154bf58c13a201ba42b",
-          "node_types": "14332f80e14f712725100ee9debee4d6a88de57f6d69e9fa46c4954a6363568b",
+          "parser_c": "d7913c9ad3e6fb089147e193c539e446c1f43c57c627f22b0df168c95b8c667c",
+          "node_types": "28d6f9567cef71fc86c6a755717855de7b05a96ec1ff5881b1d25755adb8e4c4",
           "paths": [
             "alias sequences",
             "named unique alias",
