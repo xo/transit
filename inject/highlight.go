@@ -124,6 +124,12 @@ func (c *Config) Language() *transit.Language {
 	return c.language
 }
 
+// endOfInput is the end of the range of the whole input, which upstream
+// writes as usize::MAX. The C runtime keeps a range in 32 bits, so upstream
+// reads it back as math.MaxUint32. An int holds that value only where it has
+// 64 bits, so on 386 and arm the end is math.MaxInt.
+const endOfInput = min(math.MaxInt, math.MaxUint32)
+
 // Layers parses src with c, finds every injection, and parses the layer of
 // each. lookup gives the configuration of an injected language name, and an
 // injection whose name it does not find is skipped. The parser p parses
@@ -169,8 +175,8 @@ func (c *Config) Layers(ctx context.Context, p *transit.Parser, src []byte, look
 	layers, err := b.newLayer(ctx, "", false, c, c.languageName, 0, nil, []transit.Range{{
 		StartByte:  0,
 		StartPoint: transit.Point{Row: 0, Column: 0},
-		EndByte:    math.MaxUint32,
-		EndPoint:   transit.Point{Row: math.MaxUint32, Column: math.MaxUint32},
+		EndByte:    endOfInput,
+		EndPoint:   transit.Point{Row: endOfInput, Column: endOfInput},
 	}})
 	if err != nil {
 		return nil, err

@@ -23,6 +23,14 @@ jobs:
       run: ./gen.sh -m && git diff --exit-code
     - name: Vet
       run: go vet ./...
+    - name: Vet for 32-bit targets
+      # An int has 32 bits on 386 and arm, so a constant that needs more
+      # bits does not build there. usql builds for arm.
+      run: |
+        for a in 386 arm; do
+          GOOS=linux GOARCH=$a go vet ./... || exit 1
+          for m in styles/go.mod _example/go.mod grammars/*/go.mod; do (cd "$(dirname "$m")" && GOOS=linux GOARCH=$a go vet ./...) || exit 1; done
+        done
     - name: Test
       # the root module is pure Go (D1)
       run: CGO_ENABLED=0 go test -count=1 ./...

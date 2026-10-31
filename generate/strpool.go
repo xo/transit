@@ -1,6 +1,9 @@
 package generate
 
-import "maps"
+import (
+	"maps"
+	"math"
+)
 
 // This file ports crates/generate/src/strpool.rs.
 
@@ -93,7 +96,7 @@ func (p *StrPool) Intern(s string) StrID {
 	// is not a use that upstream supports.
 	start := len(p.buf)
 	end := start + len(s)
-	if end > 1<<32-1 {
+	if uint64(end) > math.MaxUint32 {
 		panic("generate: the string pool is larger than 4 GB")
 	}
 	id := StrID(len(p.spans) + 1)

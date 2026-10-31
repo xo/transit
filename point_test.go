@@ -2,6 +2,7 @@ package transit
 
 import (
 	"math"
+	"strconv"
 	"testing"
 )
 
@@ -52,14 +53,20 @@ func TestPointComparisons(t *testing.T) {
 }
 
 func TestPointConversion(t *testing.T) {
+	// An int has 32 bits on 386 and arm, so the test reaches past 32 bits
+	// only through a shift at run time, and only where an int has 64 bits.
+	if strconv.IntSize < 64 {
+		t.Skip("an int has fewer than 64 bits")
+	}
 	p := newPoint(3, math.MaxUint32)
-	if got := p.public(); got != (Point{Row: 3, Column: math.MaxUint32}) {
+	if got := p.public(); got != (Point{Row: 3, Column: int(p.column)}) {
 		t.Errorf("public() = %v", got)
 	}
 	if got := p.public().internal(); got != p {
 		t.Errorf("public().internal() = %v, want %v", got, p)
 	}
-	if got := (Point{Row: 1 << 32, Column: 1<<32 + 5}).internal(); got != (point{0, 5}) {
+	shift := 32
+	if got := (Point{Row: 1 << shift, Column: 1<<shift + 5}).internal(); got != (point{0, 5}) {
 		t.Errorf("internal() of a Point past 32 bits = %v, want it cut", got)
 	}
 }
