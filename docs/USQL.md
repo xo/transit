@@ -153,7 +153,8 @@ Database 23ai in `grammars/oracle` (D124). One grammar reads SQL and
 PL/SQL, because PL/SQL is not in a quoted string in Oracle. A `/` alone on
 its line ends a statement or a PL/SQL unit, as in a script of SQL*Plus.
 usql gives such a line to the SQL grammar, and the Oracle grammar reads it
-as the end of a statement. SQL++, InfluxQL, KSQL, PartiQL, ES|QL and
+as the end of a statement. The grammar reads a whole PL/SQL unit, such as
+a package body, as one statement. SQL++, InfluxQL, KSQL, PartiQL, ES|QL and
 PPL have no grammar at all. transit writes the missing grammars, and the
 usql grammar, in `grammars/` (D42, D104). The other missing grammars come
 after phase 5, in the order of the dialects of dbmeta (D106). `bigquery` and
@@ -227,6 +228,10 @@ The option does not cover these texts:
    `END IF @a = 1`. The scanner reads it as the end of an `IF` or a
    `WHILE`, so the block stays open. A T-SQL `;WITH` right after `BEGIN`
    makes that `BEGIN` a transaction.
+
+The Oracle grammar reads each of these texts of Oracle when it gets the
+whole text. When the usql grammar gives it one part of such a text, the
+Oracle grammar finds an error in that part.
 
 A batch of CQL holds semicolons too. usql collects a batch from
 `BEGIN BATCH` to `APPLY BATCH` today. With the option `Batches` on, the

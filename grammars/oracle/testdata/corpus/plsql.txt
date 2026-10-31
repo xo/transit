@@ -1,0 +1,1995 @@
+================================================================================
+Anonymous block
+================================================================================
+
+BEGIN
+  NULL;
+END;
+/
+
+---
+
+(source_file
+  (block
+    (null_statement)))
+
+================================================================================
+Block with declarations
+================================================================================
+
+DECLARE
+  n NUMBER := 0;
+  c CONSTANT VARCHAR2(10) DEFAULT 'x';
+  d DATE NOT NULL := SYSDATE;
+  s hr.employees.salary%TYPE;
+  r hr.employees%ROWTYPE;
+BEGIN
+  n := n + 1;
+END;
+
+---
+
+(source_file
+  (block
+    (variable_declaration
+      (identifier)
+      (type)
+      (number))
+    (variable_declaration
+      (identifier)
+      (type
+        (type_modifiers
+          (number)))
+      (string))
+    (variable_declaration
+      (identifier)
+      (type)
+      (pseudocolumn))
+    (variable_declaration
+      (identifier)
+      (type
+        (identifier)
+        (identifier)
+        (identifier)))
+    (variable_declaration
+      (identifier)
+      (type
+        (identifier)
+        (identifier)))
+    (assignment_statement
+      (column_reference
+        (identifier))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))))
+
+================================================================================
+Labeled nested block
+================================================================================
+
+<<outer>>
+BEGIN
+  <<inner>>
+  DECLARE
+    x PLS_INTEGER;
+  BEGIN
+    x := 1;
+  END inner;
+END outer;
+
+---
+
+(source_file
+  (label
+    (identifier))
+  (block
+    (label
+      (identifier))
+    (block
+      (variable_declaration
+        (identifier)
+        (type
+          (identifier)))
+      (assignment_statement
+        (column_reference
+          (identifier))
+        (number))
+      (identifier))
+    (identifier)))
+
+================================================================================
+Exception declaration and pragma
+================================================================================
+
+DECLARE
+  e EXCEPTION;
+  PRAGMA EXCEPTION_INIT(e, -20001);
+BEGIN
+  RAISE e;
+EXCEPTION
+  WHEN e OR NO_DATA_FOUND THEN
+    NULL;
+  WHEN pkg.err THEN
+    RAISE;
+  WHEN OTHERS THEN
+    RAISE_APPLICATION_ERROR(-20002, 'failed: ' || SQLERRM);
+END;
+
+---
+
+(source_file
+  (block
+    (exception_declaration
+      (identifier))
+    (pragma
+      (identifier)
+      (arguments
+        (column_reference
+          (identifier))
+        (unary_expression
+          (operator)
+          (number))))
+    (raise_statement
+      (identifier))
+    (exception_section
+      (exception_handler
+        (identifier)
+        (identifier)
+        (null_statement))
+      (exception_handler
+        (identifier)
+        (identifier)
+        (raise_statement))
+      (exception_handler
+        (procedure_call
+          (function_call
+            (identifier)
+            (arguments
+              (unary_expression
+                (operator)
+                (number))
+              (binary_expression
+                (string)
+                (operator)
+                (column_reference
+                  (identifier))))))))))
+
+================================================================================
+Cursor declarations
+================================================================================
+
+DECLARE
+  CURSOR c1 IS SELECT a FROM t;
+  CURSOR c2 (p NUMBER DEFAULT 1) RETURN t%ROWTYPE IS SELECT * FROM t WHERE id = p;
+  CURSOR c3 RETURN t%ROWTYPE;
+BEGIN
+  NULL;
+END;
+
+---
+
+(source_file
+  (block
+    (cursor_declaration
+      (identifier)
+      (select
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))
+    (cursor_declaration
+      (identifier)
+      (parameters
+        (parameter_declaration
+          (identifier)
+          (type)
+          (number)))
+      (type
+        (identifier))
+      (select
+        (all_columns)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (column_reference
+              (identifier))))))
+    (cursor_declaration
+      (identifier)
+      (type
+        (identifier)))
+    (null_statement)))
+
+================================================================================
+Record and collection types
+================================================================================
+
+DECLARE
+  TYPE rec_t IS RECORD (id NUMBER NOT NULL := 0, name t.name%TYPE);
+  TYPE tab_t IS TABLE OF rec_t INDEX BY PLS_INTEGER;
+  TYPE nt_t IS TABLE OF VARCHAR2(10) NOT NULL;
+  TYPE va_t IS VARRAY(10) OF NUMBER;
+  TYPE cur_t IS REF CURSOR RETURN t%ROWTYPE;
+  SUBTYPE small_t IS PLS_INTEGER RANGE 0..9 NOT NULL;
+BEGIN
+  NULL;
+END;
+
+---
+
+(source_file
+  (block
+    (type_definition
+      (identifier)
+      (field_definition
+        (identifier)
+        (type)
+        (number))
+      (field_definition
+        (identifier)
+        (type
+          (identifier)
+          (identifier))))
+    (type_definition
+      (identifier)
+      (type
+        (identifier))
+      (type
+        (identifier)))
+    (type_definition
+      (identifier)
+      (type
+        (type_modifiers
+          (number))))
+    (type_definition
+      (identifier)
+      (number)
+      (type))
+    (type_definition
+      (identifier)
+      (type
+        (identifier)))
+    (subtype_definition
+      (identifier)
+      (type
+        (identifier))
+      (number)
+      (number))
+    (null_statement)))
+
+================================================================================
+Assignments and calls
+================================================================================
+
+BEGIN
+  x := 1;
+  r.name := 'a';
+  t(i) := t(i - 1) * 2;
+  t(i).name := NULL;
+  :new.id := s.NEXTVAL;
+  p;
+  pkg.p(1, b => 2);
+  t.EXTEND;
+  t.DELETE(1);
+  dbms_output.put_line('x');
+  (SELF AS person_t).show();
+END;
+
+---
+
+(source_file
+  (block
+    (assignment_statement
+      (column_reference
+        (identifier))
+      (number))
+    (assignment_statement
+      (column_reference
+        (identifier)
+        (identifier))
+      (string))
+    (assignment_statement
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (binary_expression
+        (function_call
+          (identifier)
+          (arguments
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (number))))
+        (operator)
+        (number)))
+    (assignment_statement
+      (field_expression
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier))))
+        (identifier))
+      (null))
+    (assignment_statement
+      (column_reference
+        (bind_variable)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier)))
+    (procedure_call
+      (column_reference
+        (identifier)))
+    (procedure_call
+      (function_call
+        (identifier)
+        (identifier)
+        (arguments
+          (number)
+          (named_argument
+            (identifier)
+            (number)))))
+    (procedure_call
+      (column_reference
+        (identifier)
+        (identifier)))
+    (procedure_call
+      (function_call
+        (identifier)
+        (identifier)
+        (arguments
+          (number))))
+    (procedure_call
+      (function_call
+        (identifier)
+        (identifier)
+        (arguments
+          (string))))
+    (procedure_call
+      (field_expression
+        (generalized_invocation
+          (column_reference
+            (identifier))
+          (type
+            (identifier)))
+        (function_call
+          (identifier)
+          (arguments))))))
+
+================================================================================
+IF statement
+================================================================================
+
+BEGIN
+  IF a > 1 THEN
+    b := 1;
+  ELSIF a IS NULL OR c%NOTFOUND THEN
+    b := 2;
+  ELSE
+    b := 3;
+  END IF;
+END;
+
+---
+
+(source_file
+  (block
+    (if_statement
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number))
+      (assignment_statement
+        (column_reference
+          (identifier))
+        (number))
+      (elsif_clause
+        (binary_expression
+          (is_expression
+            (column_reference
+              (identifier))
+            (null))
+          (cursor_attribute
+            (column_reference
+              (identifier))
+            (identifier)))
+        (assignment_statement
+          (column_reference
+            (identifier))
+          (number)))
+      (else_clause
+        (assignment_statement
+          (column_reference
+            (identifier))
+          (number))))))
+
+================================================================================
+CASE statement
+================================================================================
+
+BEGIN
+  CASE grade
+    WHEN 'A' THEN x := 1;
+    WHEN 'B' THEN x := 2;
+    ELSE x := 0;
+  END CASE;
+  <<lbl>>
+  CASE
+    WHEN x > 0 THEN NULL;
+  END CASE lbl;
+END;
+
+---
+
+(source_file
+  (block
+    (case_statement
+      (column_reference
+        (identifier))
+      (case_when_clause
+        (string)
+        (assignment_statement
+          (column_reference
+            (identifier))
+          (number)))
+      (case_when_clause
+        (string)
+        (assignment_statement
+          (column_reference
+            (identifier))
+          (number)))
+      (else_clause
+        (assignment_statement
+          (column_reference
+            (identifier))
+          (number))))
+    (label
+      (identifier))
+    (case_statement
+      (case_when_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))
+        (null_statement))
+      (identifier))))
+
+================================================================================
+Loops
+================================================================================
+
+BEGIN
+  LOOP
+    i := i + 1;
+    EXIT WHEN i > 10;
+    CONTINUE WHEN MOD(i, 2) = 0;
+  END LOOP;
+  WHILE i > 0 LOOP
+    i := i - 1;
+  END LOOP;
+  <<l>>
+  FOR i IN REVERSE 1..n LOOP
+    EXIT l;
+  END LOOP l;
+  FOR r IN c(1) LOOP
+    NULL;
+  END LOOP;
+  FOR r IN (SELECT a FROM t) LOOP
+    GOTO done;
+  END LOOP;
+  <<done>>
+  NULL;
+END;
+
+---
+
+(source_file
+  (block
+    (loop_statement
+      (assignment_statement
+        (column_reference
+          (identifier))
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))
+      (exit_statement
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))
+      (continue_statement
+        (binary_expression
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier))
+              (number)))
+          (operator)
+          (number))))
+    (loop_statement
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number))
+      (assignment_statement
+        (column_reference
+          (identifier))
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))))
+    (label
+      (identifier))
+    (loop_statement
+      (iterator
+        (identifier))
+      (iteration_control
+        (number)
+        (column_reference
+          (identifier)))
+      (exit_statement
+        (identifier))
+      (identifier))
+    (loop_statement
+      (iterator
+        (identifier))
+      (iteration_control
+        (function_call
+          (identifier)
+          (arguments
+            (number))))
+      (null_statement))
+    (loop_statement
+      (iterator
+        (identifier))
+      (iteration_control
+        (subquery
+          (select
+            (column_reference
+              (identifier))
+            (from_clause
+              (table_reference
+                (object_reference
+                  (identifier)))))))
+      (goto_statement
+        (identifier)))
+    (label
+      (identifier))
+    (null_statement)))
+
+================================================================================
+Iteration controls of 21c
+================================================================================
+
+BEGIN
+  FOR i IN 1..3, REPEAT i * 2 WHILE i < 100 LOOP
+    NULL;
+  END LOOP;
+  FOR i MUTABLE PLS_INTEGER IN 1..10 BY 2 WHEN MOD(i, 3) = 0 LOOP
+    NULL;
+  END LOOP;
+  FOR i, v IN PAIRS OF t LOOP
+    NULL;
+  END LOOP;
+  FOR v IN VALUES OF t LOOP
+    NULL;
+  END LOOP;
+END;
+
+---
+
+(source_file
+  (block
+    (loop_statement
+      (iterator
+        (identifier))
+      (iteration_control
+        (number)
+        (number))
+      (iteration_control
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))
+      (null_statement))
+    (loop_statement
+      (iterator
+        (identifier)
+        (type
+          (identifier)))
+      (iteration_control
+        (number)
+        (number)
+        (number)
+        (binary_expression
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier))
+              (number)))
+          (operator)
+          (number)))
+      (null_statement))
+    (loop_statement
+      (iterator
+        (identifier))
+      (iterator
+        (identifier))
+      (iteration_control
+        (column_reference
+          (identifier)))
+      (null_statement))
+    (loop_statement
+      (iterator
+        (identifier))
+      (iteration_control
+        (column_reference
+          (identifier)))
+      (null_statement))))
+
+================================================================================
+Dynamic SQL
+================================================================================
+
+BEGIN
+  EXECUTE IMMEDIATE 'DROP TABLE t';
+  EXECUTE IMMEDIATE 'SELECT a FROM t WHERE b = :1' INTO x USING y;
+  EXECUTE IMMEDIATE s BULK COLLECT INTO l USING IN a, OUT b, IN OUT c;
+  EXECUTE IMMEDIATE s USING a RETURNING INTO b;
+END;
+
+---
+
+(source_file
+  (block
+    (execute_immediate_statement
+      (string))
+    (execute_immediate_statement
+      (string)
+      (into_clause
+        (column_reference
+          (identifier)))
+      (using_clause
+        (column_reference
+          (identifier))))
+    (execute_immediate_statement
+      (column_reference
+        (identifier))
+      (into_clause
+        (column_reference
+          (identifier)))
+      (using_clause
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))))
+    (execute_immediate_statement
+      (column_reference
+        (identifier))
+      (using_clause
+        (column_reference
+          (identifier)))
+      (into_clause
+        (column_reference
+          (identifier))))))
+
+================================================================================
+Cursor statements
+================================================================================
+
+BEGIN
+  OPEN c;
+  OPEN c(1, 2);
+  OPEN cv FOR SELECT * FROM t;
+  OPEN cv FOR s USING a, b;
+  FETCH c INTO a, b;
+  FETCH cv BULK COLLECT INTO l LIMIT 100;
+  FETCH c INTO r.a, t(i);
+  CLOSE c;
+  IF c%ISOPEN AND SQL%ROWCOUNT > 0 THEN
+    x := SQL%BULK_ROWCOUNT(1) + SQL%BULK_EXCEPTIONS(1).ERROR_INDEX;
+  END IF;
+END;
+
+---
+
+(source_file
+  (block
+    (open_statement
+      (column_reference
+        (identifier)))
+    (open_statement
+      (function_call
+        (identifier)
+        (arguments
+          (number)
+          (number))))
+    (open_statement
+      (column_reference
+        (identifier))
+      (select
+        (all_columns)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))
+    (open_statement
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (using_clause
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))))
+    (fetch_statement
+      (column_reference
+        (identifier))
+      (into_clause
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))))
+    (fetch_statement
+      (column_reference
+        (identifier))
+      (into_clause
+        (column_reference
+          (identifier)))
+      (number))
+    (fetch_statement
+      (column_reference
+        (identifier))
+      (into_clause
+        (column_reference
+          (identifier)
+          (identifier))
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier))))))
+    (close_statement
+      (column_reference
+        (identifier)))
+    (if_statement
+      (binary_expression
+        (cursor_attribute
+          (column_reference
+            (identifier))
+          (identifier))
+        (binary_expression
+          (cursor_attribute
+            (column_reference
+              (identifier))
+            (identifier))
+          (operator)
+          (number)))
+      (assignment_statement
+        (column_reference
+          (identifier))
+        (binary_expression
+          (cursor_attribute
+            (column_reference
+              (identifier))
+            (identifier)
+            (arguments
+              (number)))
+          (operator)
+          (field_expression
+            (cursor_attribute
+              (column_reference
+                (identifier))
+              (identifier)
+              (arguments
+                (number)))
+            (identifier)))))))
+
+================================================================================
+FORALL
+================================================================================
+
+BEGIN
+  FORALL i IN 1..l.COUNT SAVE EXCEPTIONS
+    INSERT INTO t VALUES l(i);
+  FORALL i IN INDICES OF l
+    UPDATE t SET ROW = l(i) WHERE id = l(i).id;
+  FORALL i IN VALUES OF idx
+    DELETE FROM t WHERE id = l(i);
+END;
+
+---
+
+(source_file
+  (block
+    (forall_statement
+      (identifier)
+      (iteration_control
+        (number)
+        (column_reference
+          (identifier)
+          (identifier)))
+      (insert_statement
+        (insert_into_clause
+          (object_reference
+            (identifier)))
+        (record_values
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier)))))))
+    (forall_statement
+      (identifier)
+      (iteration_control
+        (column_reference
+          (identifier)))
+      (update_statement
+        (object_reference
+          (identifier))
+        (assignment
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier)))))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (field_expression
+              (function_call
+                (identifier)
+                (arguments
+                  (column_reference
+                    (identifier))))
+              (identifier))))))
+    (forall_statement
+      (identifier)
+      (iteration_control
+        (column_reference
+          (identifier)))
+      (delete_statement
+        (object_reference
+          (identifier))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (function_call
+              (identifier)
+              (arguments
+                (column_reference
+                  (identifier))))))))))
+
+================================================================================
+SQL in PL/SQL
+================================================================================
+
+BEGIN
+  SELECT a, b INTO x, y FROM t WHERE id = 1;
+  SELECT a BULK COLLECT INTO l FROM t;
+  INSERT INTO t (a) VALUES (x) RETURNING id INTO n;
+  INSERT INTO t VALUES r;
+  UPDATE t SET a = 1 WHERE CURRENT OF c;
+  DELETE FROM t WHERE a = x;
+  MERGE INTO t USING s ON (t.id = s.id) WHEN MATCHED THEN UPDATE SET t.a = s.a;
+  SAVEPOINT sp;
+  ROLLBACK TO sp;
+  COMMIT;
+END;
+
+---
+
+(source_file
+  (block
+    (select_statement
+      (select
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))
+        (into_clause
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier)))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number)))))
+    (select_statement
+      (select
+        (column_reference
+          (identifier))
+        (into_clause
+          (column_reference
+            (identifier)))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))
+    (insert_statement
+      (insert_into_clause
+        (object_reference
+          (identifier))
+        (column_list
+          (identifier)))
+      (values
+        (value_list
+          (column_reference
+            (identifier))))
+      (returning_clause
+        (column_reference
+          (identifier))
+        (into_clause
+          (column_reference
+            (identifier)))))
+    (insert_statement
+      (insert_into_clause
+        (object_reference
+          (identifier)))
+      (record_values
+        (column_reference
+          (identifier))))
+    (update_statement
+      (object_reference
+        (identifier))
+      (assignment
+        (column_reference
+          (identifier))
+        (number))
+      (where_clause
+        (identifier)))
+    (delete_statement
+      (object_reference
+        (identifier))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)))))
+    (merge_statement
+      (object_reference
+        (identifier))
+      (object_reference
+        (identifier))
+      (parenthesized_expression
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)
+            (identifier))))
+      (merge_update_clause
+        (assignment
+          (column_reference
+            (identifier)
+            (identifier))
+          (column_reference
+            (identifier)
+            (identifier)))))
+    (savepoint_statement
+      (identifier))
+    (rollback_statement
+      (identifier))
+    (commit_statement)))
+
+================================================================================
+PIPE ROW and RETURN
+================================================================================
+
+CREATE FUNCTION f RETURN num_t PIPELINED IS
+BEGIN
+  PIPE ROW (1);
+  RETURN;
+END f;
+/
+
+---
+
+(source_file
+  (create_function_statement
+    (object_reference
+      (identifier))
+    (type
+      (identifier))
+    (pipe_row_statement
+      (parenthesized_expression
+        (number)))
+    (return_statement)
+    (identifier)))
+
+================================================================================
+Conditional compilation
+================================================================================
+
+BEGIN
+  $IF $$debug $THEN
+    dbms_output.put_line($$PLSQL_UNIT || ':' || $$PLSQL_LINE);
+  $ELSIF dbms_db_version.ver_le_12 $THEN
+    NULL;
+  $ELSE
+    $ERROR 'unsupported' $END
+  $END
+END;
+
+---
+
+(source_file
+  (block
+    (conditional_compilation
+      (inquiry_directive)
+      (procedure_call
+        (function_call
+          (identifier)
+          (identifier)
+          (arguments
+            (binary_expression
+              (binary_expression
+                (inquiry_directive)
+                (operator)
+                (string))
+              (operator)
+              (inquiry_directive)))))
+      (column_reference
+        (identifier)
+        (identifier))
+      (null_statement)
+      (conditional_compilation
+        (string)))))
+
+================================================================================
+Conditional compilation of declarations
+================================================================================
+
+CREATE PACKAGE p AS
+  $IF dbms_db_version.version >= 19 $THEN
+    c CONSTANT BOOLEAN := TRUE;
+  $END
+  PROCEDURE q;
+END p;
+
+---
+
+(source_file
+  (create_package_statement
+    (object_reference
+      (identifier))
+    (conditional_compilation
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (number))
+      (variable_declaration
+        (identifier)
+        (type
+          (identifier))
+        (boolean)))
+    (procedure_declaration
+      (identifier))
+    (identifier)))
+
+================================================================================
+CREATE PROCEDURE
+================================================================================
+
+CREATE OR REPLACE PROCEDURE hr.raise_salary (
+  p_id IN employees.employee_id%TYPE,
+  p_amount IN OUT NOCOPY NUMBER,
+  p_flag OUT BOOLEAN,
+  p_note VARCHAR2 DEFAULT NULL
+) AUTHID DEFINER IS
+  l_old NUMBER;
+BEGIN
+  UPDATE employees SET salary = salary + p_amount WHERE employee_id = p_id;
+END raise_salary;
+/
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (parameters
+      (parameter_declaration
+        (identifier)
+        (type
+          (identifier)
+          (identifier)))
+      (parameter_declaration
+        (identifier)
+        (type))
+      (parameter_declaration
+        (identifier)
+        (type
+          (identifier)))
+      (parameter_declaration
+        (identifier)
+        (type)
+        (null)))
+    (variable_declaration
+      (identifier)
+      (type))
+    (update_statement
+      (object_reference
+        (identifier))
+      (assignment
+        (column_reference
+          (identifier))
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)))))
+    (identifier)))
+
+================================================================================
+CREATE FUNCTION with options
+================================================================================
+
+CREATE OR REPLACE EDITIONABLE FUNCTION f (a NUMBER) RETURN NUMBER
+  DETERMINISTIC PARALLEL_ENABLE RESULT_CACHE ACCESSIBLE BY (PACKAGE p, q)
+AS
+BEGIN
+  RETURN a * 2;
+END;
+/
+
+---
+
+(source_file
+  (create_function_statement
+    (object_reference
+      (identifier))
+    (parameters
+      (parameter_declaration
+        (identifier)
+        (type)))
+    (type)
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (return_statement
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))))
+
+================================================================================
+CREATE FUNCTION with a call specification
+================================================================================
+
+CREATE FUNCTION j (s VARCHAR2) RETURN VARCHAR2 AS LANGUAGE JAVA NAME 'Util.trim(java.lang.String) return java.lang.String';
+
+---
+
+(source_file
+  (create_function_statement
+    (object_reference
+      (identifier))
+    (parameters
+      (parameter_declaration
+        (identifier)
+        (type)))
+    (type)
+    (call_specification
+      (keyword)
+      (keyword)
+      (string))))
+
+================================================================================
+CREATE FUNCTION with AGGREGATE USING
+================================================================================
+
+CREATE FUNCTION agg (x NUMBER) RETURN NUMBER AGGREGATE USING agg_t;
+
+---
+
+(source_file
+  (create_function_statement
+    (object_reference
+      (identifier))
+    (parameters
+      (parameter_declaration
+        (identifier)
+        (type)))
+    (type)
+    (object_reference
+      (identifier))))
+
+================================================================================
+SQL macro
+================================================================================
+
+CREATE FUNCTION m (t DBMS_TF.TABLE_T) RETURN VARCHAR2 SQL_MACRO(TABLE) IS
+BEGIN
+  RETURN q'{SELECT * FROM t}';
+END;
+
+---
+
+(source_file
+  (create_function_statement
+    (object_reference
+      (identifier))
+    (parameters
+      (parameter_declaration
+        (identifier)
+        (type
+          (identifier)
+          (identifier))))
+    (type)
+    (return_statement
+      (string))))
+
+================================================================================
+CREATE PACKAGE
+================================================================================
+
+CREATE OR REPLACE PACKAGE emp_mgmt AUTHID CURRENT_USER AS
+  TYPE emp_t IS TABLE OF employees%ROWTYPE;
+  g_count NUMBER := 0;
+  no_emp EXCEPTION;
+  CURSOR c RETURN employees%ROWTYPE;
+  FUNCTION hire (name VARCHAR2) RETURN NUMBER;
+  PROCEDURE fire (id NUMBER);
+  PRAGMA SERIALLY_REUSABLE;
+END emp_mgmt;
+/
+
+---
+
+(source_file
+  (create_package_statement
+    (object_reference
+      (identifier))
+    (type_definition
+      (identifier)
+      (type
+        (identifier)))
+    (variable_declaration
+      (identifier)
+      (type)
+      (number))
+    (exception_declaration
+      (identifier))
+    (cursor_declaration
+      (identifier)
+      (type
+        (identifier)))
+    (function_declaration
+      (identifier)
+      (parameters
+        (parameter_declaration
+          (identifier)
+          (type)))
+      (type))
+    (procedure_declaration
+      (identifier)
+      (parameters
+        (parameter_declaration
+          (identifier)
+          (type))))
+    (pragma
+      (identifier))
+    (identifier)))
+
+================================================================================
+CREATE PACKAGE BODY
+================================================================================
+
+CREATE OR REPLACE PACKAGE BODY emp_mgmt AS
+  CURSOR c RETURN employees%ROWTYPE IS SELECT * FROM employees;
+  FUNCTION hire (name VARCHAR2) RETURN NUMBER IS
+    id NUMBER;
+  BEGIN
+    INSERT INTO employees (last_name) VALUES (name) RETURNING employee_id INTO id;
+    RETURN id;
+  END hire;
+  PROCEDURE fire (id NUMBER) IS
+    PRAGMA AUTONOMOUS_TRANSACTION;
+  BEGIN
+    DELETE FROM employees WHERE employee_id = id;
+    COMMIT;
+  END fire;
+BEGIN
+  g_count := 0;
+END emp_mgmt;
+/
+
+---
+
+(source_file
+  (create_package_statement
+    (object_reference
+      (identifier))
+    (cursor_declaration
+      (identifier)
+      (type
+        (identifier))
+      (select
+        (all_columns)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))
+    (function_declaration
+      (identifier)
+      (parameters
+        (parameter_declaration
+          (identifier)
+          (type)))
+      (type)
+      (variable_declaration
+        (identifier)
+        (type))
+      (insert_statement
+        (insert_into_clause
+          (object_reference
+            (identifier))
+          (column_list
+            (identifier)))
+        (values
+          (value_list
+            (column_reference
+              (identifier))))
+        (returning_clause
+          (column_reference
+            (identifier))
+          (into_clause
+            (column_reference
+              (identifier)))))
+      (return_statement
+        (column_reference
+          (identifier)))
+      (identifier))
+    (procedure_declaration
+      (identifier)
+      (parameters
+        (parameter_declaration
+          (identifier)
+          (type)))
+      (pragma
+        (identifier))
+      (delete_statement
+        (object_reference
+          (identifier))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (column_reference
+              (identifier)))))
+      (commit_statement)
+      (identifier))
+    (assignment_statement
+      (column_reference
+        (identifier))
+      (number))
+    (identifier)))
+
+================================================================================
+CREATE TYPE BODY
+================================================================================
+
+CREATE OR REPLACE TYPE BODY person_t AS
+  CONSTRUCTOR FUNCTION person_t (SELF IN OUT NOCOPY person_t, name VARCHAR2) RETURN SELF AS RESULT IS
+  BEGIN
+    SELF.name := name;
+    RETURN;
+  END;
+  MAP MEMBER FUNCTION get_name RETURN VARCHAR2 IS
+  BEGIN
+    RETURN name;
+  END get_name;
+  OVERRIDING MEMBER PROCEDURE show IS
+  BEGIN
+    (SELF AS base_t).show;
+  END;
+  STATIC FUNCTION make RETURN person_t IS
+  BEGIN
+    RETURN person_t('x');
+  END;
+END;
+/
+
+---
+
+(source_file
+  (create_type_body_statement
+    (object_reference
+      (identifier))
+    (method_definition
+      (function_declaration
+        (identifier)
+        (parameters
+          (parameter_declaration
+            (identifier)
+            (type
+              (identifier)))
+          (parameter_declaration
+            (identifier)
+            (type)))
+        (assignment_statement
+          (column_reference
+            (identifier)
+            (identifier))
+          (column_reference
+            (identifier)))
+        (return_statement)))
+    (method_definition
+      (function_declaration
+        (identifier)
+        (type)
+        (return_statement
+          (column_reference
+            (identifier)))
+        (identifier)))
+    (method_definition
+      (procedure_declaration
+        (identifier)
+        (procedure_call
+          (field_expression
+            (generalized_invocation
+              (column_reference
+                (identifier))
+              (type
+                (identifier)))
+            (identifier)))))
+    (method_definition
+      (function_declaration
+        (identifier)
+        (type
+          (identifier))
+        (return_statement
+          (function_call
+            (identifier)
+            (arguments
+              (string))))))))
+
+================================================================================
+CREATE TRIGGER on a table
+================================================================================
+
+CREATE OR REPLACE TRIGGER emp_biu
+  BEFORE INSERT OR UPDATE OF salary, job_id ON employees
+  REFERENCING NEW AS n OLD AS o
+  FOR EACH ROW
+  WHEN (n.salary > 0)
+DECLARE
+  d NUMBER;
+BEGIN
+  IF INSERTING THEN
+    :n.id := emp_seq.NEXTVAL;
+  END IF;
+END;
+/
+
+---
+
+(source_file
+  (create_trigger_statement
+    (object_reference
+      (identifier))
+    (trigger_event)
+    (trigger_event
+      (identifier)
+      (identifier))
+    (object_reference
+      (identifier))
+    (referencing_alias
+      (identifier))
+    (referencing_alias
+      (identifier))
+    (parenthesized_expression
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (number)))
+    (block
+      (variable_declaration
+        (identifier)
+        (type))
+      (if_statement
+        (column_reference
+          (identifier))
+        (assignment_statement
+          (column_reference
+            (bind_variable)
+            (identifier))
+          (column_reference
+            (identifier)
+            (identifier)))))))
+
+================================================================================
+CREATE TRIGGER INSTEAD OF
+================================================================================
+
+CREATE TRIGGER v_ioi INSTEAD OF INSERT ON v FOR EACH ROW
+BEGIN
+  INSERT INTO t VALUES (:new.a);
+END;
+
+---
+
+(source_file
+  (create_trigger_statement
+    (object_reference
+      (identifier))
+    (trigger_event)
+    (object_reference
+      (identifier))
+    (block
+      (insert_statement
+        (insert_into_clause
+          (object_reference
+            (identifier)))
+        (values
+          (value_list
+            (column_reference
+              (bind_variable)
+              (identifier))))))))
+
+================================================================================
+CREATE TRIGGER with CALL
+================================================================================
+
+CREATE TRIGGER t_ai AFTER DELETE ON t FOR EACH ROW FOLLOWS t_bi ENABLE CALL log_delete(:old.id)
+
+---
+
+(source_file
+  (create_trigger_statement
+    (object_reference
+      (identifier))
+    (trigger_event)
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (call_statement
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (bind_variable)
+            (identifier)))))))
+
+================================================================================
+CREATE TRIGGER on a nested table
+================================================================================
+
+CREATE TRIGGER nt_t INSTEAD OF UPDATE ON NESTED TABLE emps OF dept_v
+BEGIN
+  NULL;
+END;
+
+---
+
+(source_file
+  (create_trigger_statement
+    (object_reference
+      (identifier))
+    (trigger_event)
+    (identifier)
+    (object_reference
+      (identifier))
+    (block
+      (null_statement))))
+
+================================================================================
+CREATE TRIGGER on events
+================================================================================
+
+CREATE TRIGGER logon_t AFTER LOGON ON DATABASE
+BEGIN
+  NULL;
+END;
+/
+CREATE TRIGGER ddl_t BEFORE CREATE OR ALTER OR DROP ON hr.SCHEMA
+BEGIN
+  NULL;
+END;
+/
+CREATE TRIGGER stats_t AFTER ASSOCIATE STATISTICS ON SCHEMA
+BEGIN
+  NULL;
+END;
+
+---
+
+(source_file
+  (create_trigger_statement
+    (object_reference
+      (identifier))
+    (trigger_event
+      (keyword))
+    (block
+      (null_statement)))
+  (create_trigger_statement
+    (object_reference
+      (identifier))
+    (trigger_event
+      (keyword))
+    (trigger_event
+      (keyword))
+    (trigger_event
+      (keyword))
+    (identifier)
+    (block
+      (null_statement)))
+  (create_trigger_statement
+    (object_reference
+      (identifier))
+    (trigger_event
+      (keyword)
+      (keyword))
+    (block
+      (null_statement))))
+
+================================================================================
+Compound trigger
+================================================================================
+
+CREATE OR REPLACE TRIGGER c_t FOR UPDATE OF salary ON employees COMPOUND TRIGGER
+  n PLS_INTEGER := 0;
+  BEFORE STATEMENT IS
+  BEGIN
+    n := 0;
+  END BEFORE STATEMENT;
+  AFTER EACH ROW IS
+  BEGIN
+    n := n + 1;
+  END AFTER EACH ROW;
+END c_t;
+/
+
+---
+
+(source_file
+  (create_trigger_statement
+    (object_reference
+      (identifier))
+    (trigger_event
+      (identifier))
+    (object_reference
+      (identifier))
+    (compound_trigger
+      (variable_declaration
+        (identifier)
+        (type
+          (identifier))
+        (number))
+      (timing_point_section
+        (assignment_statement
+          (column_reference
+            (identifier))
+          (number)))
+      (timing_point_section
+        (assignment_statement
+          (column_reference
+            (identifier))
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number))))
+      (identifier))))
+
+================================================================================
+Nested subprograms
+================================================================================
+
+DECLARE
+  PROCEDURE p (x NUMBER);
+  FUNCTION f (x NUMBER) RETURN NUMBER IS
+  BEGIN
+    RETURN x;
+  END f;
+  PROCEDURE p (x NUMBER) IS
+  BEGIN
+    NULL;
+  END;
+BEGIN
+  p(f(1));
+END;
+
+---
+
+(source_file
+  (block
+    (procedure_declaration
+      (identifier)
+      (parameters
+        (parameter_declaration
+          (identifier)
+          (type))))
+    (function_declaration
+      (identifier)
+      (parameters
+        (parameter_declaration
+          (identifier)
+          (type)))
+      (type)
+      (return_statement
+        (column_reference
+          (identifier)))
+      (identifier))
+    (procedure_declaration
+      (identifier)
+      (parameters
+        (parameter_declaration
+          (identifier)
+          (type)))
+      (null_statement))
+    (procedure_call
+      (function_call
+        (identifier)
+        (arguments
+          (function_call
+            (identifier)
+            (arguments
+              (number))))))))
+
+================================================================================
+Qualified expressions
+================================================================================
+
+DECLARE
+  l ints_t := ints_t(1 => 55, -5 => 10, 'k' => 3);
+BEGIN
+  dbms_scheduler.create_job(job_name => 'j', comment => 'c');
+  x := f(1)(2);
+END;
+
+---
+
+(source_file
+  (block
+    (variable_declaration
+      (identifier)
+      (type
+        (identifier))
+      (function_call
+        (identifier)
+        (arguments
+          (named_argument
+            (number)
+            (number))
+          (named_argument
+            (unary_expression
+              (operator)
+              (number))
+            (number))
+          (named_argument
+            (string)
+            (number)))))
+    (procedure_call
+      (function_call
+        (identifier)
+        (identifier)
+        (arguments
+          (named_argument
+            (identifier)
+            (string))
+          (named_argument
+            (identifier)
+            (string)))))
+    (assignment_statement
+      (column_reference
+        (identifier))
+      (function_call
+        (identifier)
+        (arguments
+          (number))
+        (arguments
+          (number))))))
+
+================================================================================
+WITH FUNCTION
+================================================================================
+
+WITH
+  FUNCTION f (n NUMBER) RETURN NUMBER IS
+  BEGIN
+    RETURN n * 2;
+  END;
+  PROCEDURE p IS
+  BEGIN
+    NULL;
+  END;
+  c AS (SELECT 1 a FROM dual)
+SELECT f(a) FROM c;
+/
+
+---
+
+(source_file
+  (select_statement
+    (with_clause
+      (function_declaration
+        (identifier)
+        (parameters
+          (parameter_declaration
+            (identifier)
+            (type)))
+        (type)
+        (return_statement
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number))))
+      (procedure_declaration
+        (identifier)
+        (null_statement))
+      (cte
+        (identifier)
+        (subquery
+          (select
+            (aliased_expression
+              (number)
+              (identifier))
+            (from_clause
+              (table_reference
+                (object_reference
+                  (identifier))))))))
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+WITH FUNCTION without a subquery factoring clause
+================================================================================
+
+WITH FUNCTION f RETURN NUMBER IS BEGIN RETURN 1; END;
+SELECT f FROM dual
+
+---
+
+(source_file
+  (select_statement
+    (with_clause
+      (function_declaration
+        (identifier)
+        (type)
+        (return_statement
+          (number))))
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+ALTER and DROP of units
+================================================================================
+
+ALTER PROCEDURE p COMPILE;
+ALTER PACKAGE p COMPILE BODY REUSE SETTINGS;
+ALTER TRIGGER t DISABLE;
+ALTER TYPE t COMPILE SPECIFICATION;
+DROP PACKAGE BODY p;
+DROP TYPE BODY t;
+DROP TRIGGER IF EXISTS t;
+
+---
+
+(source_file
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+ADMINISTER KEY MANAGEMENT
+================================================================================
+
+ADMINISTER KEY MANAGEMENT SET KEYSTORE OPEN IDENTIFIED BY EXTERNAL STORE;
+
+---
+
+(source_file
+  (administer_key_management_statement
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)))

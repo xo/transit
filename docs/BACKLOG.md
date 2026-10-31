@@ -191,13 +191,9 @@ These faults remain:
 
 The Oracle grammar that xo writes (D124) reads the queries of Oracle
 Database 23ai, the statements that change data, the statements of
-transactions, of sessions and of privileges, and the statements that
-define objects. The units of PL/SQL come in a later part. It leaves out
-these forms of a query:
+transactions, of sessions and of privileges, the statements that define
+objects, and PL/SQL. It leaves out these forms of a query:
 
-- The declarations of PL/SQL in `WITH`, as in
-  `WITH FUNCTION f RETURN NUMBER IS BEGIN RETURN 1; END; SELECT f FROM dual`.
-  The body is PL/SQL, which a later part adds.
 - `GRAPH_TABLE` of the property graphs of 23ai, the analytic views, and the
   operations of `JSON_TRANSFORM`, such as `SET '$.a' = 1`.
 - `FROM FIRST` and `FROM LAST` after `NTH_VALUE`. `FROM` after a function
@@ -208,17 +204,12 @@ these forms of a query:
 
 It leaves out these forms of the other statements:
 
-- A record of PL/SQL as the values of `INSERT`, as in
-  `INSERT INTO t VALUES r`, and `SET ROW = r` of `UPDATE`. They come with
-  PL/SQL.
 - A parameter of `ALTER SYSTEM SET` that holds a reserved word, as in
   `SET ENCRYPTION KEY IDENTIFIED BY w`, and the privilege
   `ON COMMIT REFRESH`, whose `ON` starts the object of `GRANT`.
 
 It leaves out these forms of the statements that define objects:
 
-- `CREATE TYPE BODY` and the bodies of the methods. They are PL/SQL, which
-  a later part adds.
 - The source text of `CREATE JAVA SOURCE ... AS` and of
   `CREATE MLE MODULE ... AS`. It is Java or JavaScript, not SQL.
 - The form of GraphQL of `CREATE JSON RELATIONAL DUALITY VIEW`, as in
@@ -242,6 +233,31 @@ a statement, such as `LOG`, `RETURNING` or `WHEN`, is not an alias of the
 table there. So `DELETE FROM t log WHERE a = 1` has an error. In the same
 way, a view with the name `log` after `DROP MATERIALIZED VIEW` has an
 error, because `LOG` continues the kind of the object.
+
+It leaves out these forms of PL/SQL:
+
+- A variable or a parameter whose name is a word that Oracle SQL reserves
+  and PL/SQL does not, such as `row`, `level` or `uid`. A reserved set of
+  tree-sitter applies to the steps of one rule, and an expression of
+  PL/SQL uses the rules of an expression of SQL.
+- A constructor with `NEW`, as in `NEW food_t('x')`. `new` can also be a
+  column or a name of a trigger, as in `WHEN (new.a > 0)`, and the parser
+  cannot tell the two forms apart with one token of lookahead.
+- A function whose name is a reserved word, such as `SET(t)`, `USER()` and
+  a method `EXISTS` in a package specification.
+- A name of an element of an associative array that is an expression with
+  an operator, as in `t('a' || 'b' => 1)`. A literal, a sign and a function
+  call can be the name.
+- An attribute of a cursor variable that is a bind variable, as in
+  `:c%ISOPEN`.
+- Conditional compilation in a part of a declaration or a statement, as in
+  a parameter list. It can hold whole declarations and statements.
+- A statement that starts with a word that is also a keyword of PL/SQL,
+  such as a procedure with the name `open` or `close`.
+
+The words that only PL/SQL reserves, such as `BEGIN` and `END`, are not in
+the reserved set. A reserved set changes only the lexer, so these words
+save no parse states (D125).
 
 ## The setup of the repository
 

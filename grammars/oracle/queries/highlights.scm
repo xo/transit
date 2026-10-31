@@ -23,7 +23,9 @@
   "ACCESSIBLE"
   "ADD"
   "ADMIN"
+  "ADMINISTER"
   "AFTER"
+  "AGGREGATE"
   "ALL"
   "ALLOW"
   "ALTER"
@@ -52,6 +54,7 @@
   "AUTOMATIC"
   "BATCH"
   "BEFORE"
+  "BEGIN"
   "BEQUEATH"
   "BETWEEN"
   "BIGFILE"
@@ -72,6 +75,7 @@
   "CHECK"
   "CHOOSE"
   "CLASS"
+  "CLOSE"
   "CLUSTER"
   "CLUSTERING"
   "COLLATE"
@@ -84,12 +88,14 @@
   "COMMIT"
   "COMMITTED"
   "COMPILE"
+  "COMPOUND"
   "COMPRESS"
   "COMPUTE"
   "CONDITIONAL"
   "CONNECT"
   "CONNECT_BY_ROOT"
   "CONSISTENT"
+  "CONSTANT"
   "CONSTRAINT"
   "CONSTRAINTS"
   "CONSTRUCTOR"
@@ -105,6 +111,7 @@
   "COST"
   "COUNT"
   "CREATE"
+  "CROSSEDITION"
   "CUBE"
   "CURRENT"
   "CURRENT_USER"
@@ -116,6 +123,7 @@
   "DAY"
   "DBA_RECYCLEBIN"
   "DECIMAL"
+  "DECLARE"
   "DECREMENT"
   "DEFAULT"
   "DEFERRABLE"
@@ -145,11 +153,13 @@
   "DROP"
   "DUALITY"
   "DUPLICATED"
+  "EACH"
   "EDGE"
   "EDITION"
   "EDITIONABLE"
   "EDITIONING"
   "ELSE"
+  "ELSIF"
   "EMPTY"
   "ENABLE"
   "ENCRYPT"
@@ -160,11 +170,15 @@
   "ERRORS"
   "ESCAPE"
   "EXCEPT"
+  "EXCEPTION"
   "EXCEPTIONS"
   "EXCLUDE"
   "EXCLUSIVE"
+  "EXECUTE"
   "EXISTS"
+  "EXIT"
   "EXPLAIN"
+  "EXTERNAL"
   "FALSE"
   "FETCH"
   "FILESTORE"
@@ -174,16 +188,20 @@
   "FLEXIBLE"
   "FLOAT"
   "FOLLOWING"
+  "FOLLOWS"
   "FOR"
+  "FORALL"
   "FORCE"
   "FOREIGN"
   "FOREVER"
   "FORMAT"
+  "FORWARD"
   "FROM"
   "FUNCTION"
   "FUNCTIONS"
   "GENERATED"
   "GLOBAL"
+  "GOTO"
   "GRANT"
   "GRAPH"
   "GROUP"
@@ -209,12 +227,14 @@
   "INDEXTYPE"
   "INDEXTYPES"
   "INDICATOR"
+  "INDICES"
   "INFINITE"
   "INITIALLY"
   "INITRANS"
   "INMEMORY"
   "INSERT"
   "INSTANTIABLE"
+  "INSTEAD"
   "INTEGER"
   "INTERLEAVED"
   "INTERSECT"
@@ -232,6 +252,7 @@
   "KEY"
   "KEYS"
   "LABEL"
+  "LANGUAGE"
   "LAST"
   "LATERAL"
   "LAX"
@@ -256,8 +277,10 @@
   "LOGGING"
   "LOGICAL"
   "LONG"
+  "LOOP"
   "MAIN"
   "MANAGED"
+  "MANAGEMENT"
   "MAP"
   "MATCH"
   "MATCHED"
@@ -282,6 +305,7 @@
   "MONTH"
   "MULTISET"
   "MULTIVALUE"
+  "MUTABLE"
   "NAME"
   "NAN"
   "NATIONAL"
@@ -322,6 +346,7 @@
   "ONE"
   "ONLINE"
   "ONLY"
+  "OPEN"
   "OPERATOR"
   "OPTION"
   "OPTIONS"
@@ -336,7 +361,9 @@
   "OVERRIDING"
   "PACKAGE"
   "PACKAGES"
+  "PAIRS"
   "PARALLEL_ENABLE"
+  "PARENT"
   "PARTITION"
   "PARTITIONS"
   "PASSING"
@@ -350,6 +377,7 @@
   "PERMUTE"
   "PERSISTABLE"
   "PFILE"
+  "PIPE"
   "PIPELINED"
   "PIVOT"
   "PLAN"
@@ -357,7 +385,10 @@
   "PMEM"
   "POINT"
   "POLICY"
+  "POLYMORPHIC"
+  "PRAGMA"
   "PREBUILT"
+  "PRECEDES"
   "PRECEDING"
   "PRECISION"
   "PRESENT"
@@ -372,18 +403,23 @@
   "PROPERTY"
   "PUBLIC"
   "PURGE"
+  "RAISE"
   "RANGE"
   "RAW"
   "READ"
+  "RECORD"
   "RECYCLEBIN"
   "REDUCED"
   "REF"
   "REFERENCE"
   "REFERENCES"
+  "REFERENCING"
   "REJECT"
   "RELATIONAL"
+  "RELIES_ON"
   "RELY"
   "RENAME"
+  "REPEAT"
   "REPLACE"
   "REPLICATION"
   "RESERVABLE"
@@ -412,6 +448,7 @@
   "RUNNING"
   "SALT"
   "SAMPLE"
+  "SAVE"
   "SAVEPOINT"
   "SCALAR"
   "SCALARS"
@@ -446,6 +483,7 @@
   "SOURCE"
   "SPFILE"
   "SQL"
+  "SQL_MACRO"
   "STANDBY"
   "START"
   "STATEMENT"
@@ -459,6 +497,7 @@
   "SUBPARTITION"
   "SUBPARTITIONS"
   "SUBSET"
+  "SUBTYPE"
   "SUCCESSFUL"
   "SUPPLEMENTAL"
   "SYNONYM"
@@ -521,6 +560,7 @@
   "WHEN"
   "WHENEVER"
   "WHERE"
+  "WHILE"
   "WINDOW"
   "WITH"
   "WITHIN"
@@ -549,6 +589,9 @@
 
 (type
   schema: (identifier) @module)
+
+(type
+  column: (identifier) @variable.member)
 
 (type
   [
@@ -850,12 +893,146 @@
 (create_schema_statement
   schema: (identifier) @module)
 
+(create_procedure_statement
+  name: (object_reference
+    name: (identifier) @function))
+
+(create_function_statement
+  name: (object_reference
+    name: (identifier) @function))
+
+(create_package_statement
+  name: (object_reference
+    name: (identifier) @module))
+
+(create_trigger_statement
+  name: (object_reference
+    name: (identifier) @function))
+
+(create_trigger_statement
+  schema: (identifier) @module)
+
+(create_trigger_statement
+  column: (identifier) @variable.member)
+
+(create_procedure_statement
+  end: (identifier) @function)
+
+(create_function_statement
+  end: (identifier) @function)
+
+(procedure_declaration
+  end: (identifier) @function)
+
+(function_declaration
+  end: (identifier) @function)
+
+(compound_trigger
+  end: (identifier) @function)
+
+(create_package_statement
+  end: (identifier) @module)
+
+(block
+  end: (identifier) @label)
+
+(loop_statement
+  end: (identifier) @label)
+
+(case_statement
+  end: (identifier) @label)
+
+(procedure_declaration
+  name: (identifier) @function)
+
+(function_declaration
+  name: (identifier) @function)
+
+(procedure_call
+  (column_reference
+    name: (identifier) @function.call))
+
+(label
+  name: (identifier) @label)
+
+(exit_statement
+  label: (identifier) @label)
+
+(continue_statement
+  label: (identifier) @label)
+
+(goto_statement
+  label: (identifier) @label)
+
+(variable_declaration
+  name: (identifier) @variable)
+
+(cursor_declaration
+  name: (identifier) @variable)
+
+(exception_declaration
+  name: (identifier) @constant)
+
+(exception_handler
+  exception: (identifier) @constant)
+
+(raise_statement
+  exception: (identifier) @constant)
+
+(exception_handler
+  package: (identifier) @module)
+
+(raise_statement
+  package: (identifier) @module)
+
+(type_definition
+  name: (identifier) @type.definition)
+
+(subtype_definition
+  name: (identifier) @type.definition)
+
+(field_definition
+  name: (identifier) @variable.member)
+
+(pragma
+  name: (identifier) @keyword.directive)
+
+(iterator
+  name: (identifier) @variable)
+
+(forall_statement
+  index: (identifier) @variable)
+
+(referencing_alias
+  alias: (identifier) @variable)
+
+(cursor_attribute
+  attribute: (identifier) @attribute.builtin)
+
+(inquiry_directive) @constant.macro
+
+[
+  "$IF"
+  "$THEN"
+  "$ELSIF"
+  "$ELSE"
+  "$END"
+  "$ERROR"
+] @keyword.directive
+
 [
   (operator)
   "="
   "=>"
   "%"
+  ":="
+  ".."
 ] @operator
+
+[
+  "<<"
+  ">>"
+] @punctuation.special
 
 [
   "("

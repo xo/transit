@@ -33,6 +33,20 @@
 // REPLACE and UNIQUE, in any order, so that the statements share the
 // parse states after CREATE.
 //
+// The grammar reads PL/SQL with the same rules, because Oracle does not
+// put PL/SQL in a quoted string: the anonymous blocks, the units that
+// CREATE makes, such as procedures, packages and triggers, the functions
+// of WITH, and the declarations and the statements of PL/SQL. The words
+// that only PL/SQL reserves, such as BEGIN and END, are not in the reserved
+// set, because a reserved set changes the lexer and not the parse states
+// (D125). A keyword wins where the parser expects it, so a statement that
+// starts with an identifier, such as a call, cannot start with BEGIN or IF.
+// A statement or a declaration of PL/SQL ends at a semicolon or at a /
+// alone on its line, as a statement of SQL does. The parser cannot merge
+// two states when only one of them takes a token of the external scanner,
+// so this keeps the states after a statement of PL/SQL and after a
+// statement of SQL the same.
+//
 // The external scanner in src/scanner.c reads the comments, the strings
 // with the alternative quoting of Oracle, such as q'[it's]', and a / alone
 // on its line. In a script of SQL*Plus, such a / ends a statement or a
@@ -159,6 +173,17 @@ function keyword(word) {
     pattern += lower === upper ? c : `[${lower}${upper}]`;
   }
   return new RegExp(pattern);
+}
+
+/**
+ * Returns a word of the conditional compilation of PL/SQL, such as $IF: a
+ * token of $ and the word in any case, as an anonymous node with the name $
+ * and the word.
+ *
+ * @param {string} word
+ */
+function directive(word) {
+  return alias(token(seq('$', keyword(word))), '$' + word);
 }
 
 /**
@@ -290,6 +315,14 @@ module.exports = grammar({
       $.drop_statement,
       $.associate_statistics_statement,
       $.disassociate_statistics_statement,
+      $.administer_key_management_statement,
+      $.block,
+      seq(repeat1($.label), $.block),
+      $.create_procedure_statement,
+      $.create_function_statement,
+      $.create_package_statement,
+      $.create_type_body_statement,
+      $.create_trigger_statement,
     ),
 
     // Queries
@@ -309,7 +342,19 @@ module.exports = grammar({
       )),
     )),
 
-    with_clause: $ => seq(kw('WITH'), commaSep1($.cte)),
+    // The functions and the procedures of PL/SQL in WITH come before the
+    // subquery factoring clauses, as in WITH FUNCTION f RETURN NUMBER IS
+    // BEGIN RETURN 1; END; SELECT f FROM dual.
+    with_clause: $ => seq(
+      kw('WITH'),
+      choice(
+        seq(
+          repeat1(choice($.function_declaration, $.procedure_declaration)),
+          optional(commaSep1($.cte)),
+        ),
+        commaSep1($.cte),
+      ),
+    ),
 
     // A subquery factoring clause.
     cte: $ => seq(
@@ -400,7 +445,7 @@ module.exports = grammar({
     into_clause: $ => seq(
       optional(kws('BULK', 'COLLECT')),
       kw('INTO'),
-      commaSep1(choice($.column_reference, $.bind_variable)),
+      commaSep1($._target),
     ),
 
     // A query of values, as in VALUES (1, 'a'), (2, 'b').
@@ -995,7 +1040,7 @@ module.exports = grammar({
     insert_statement: $ => seq(
       kw('INSERT'),
       choice(
-        seq($.insert_into_clause, $._query, repeat($._dml_clause)),
+        seq($.insert_into_clause, choice($._query, $.record_values), repeat($._dml_clause)),
         seq(kw('ALL'), repeat1($._insert_target), $._query),
         seq(
           optional(choice(kw('ALL'), kw('FIRST'))),
@@ -1026,6 +1071,13 @@ module.exports = grammar({
       optional($.error_logging_clause),
     )),
 
+    // A record of PL/SQL gives the values of the row, as in INSERT INTO t
+    // VALUES r.
+    record_values: $ => seq(
+      kw('VALUES'),
+      field('record', choice($.column_reference, $.function_call, $.field_expression)),
+    ),
+
     insert_when_clause: $ => seq(
       kw('WHEN'),
       field('condition', $._expression),
@@ -1041,8 +1093,10 @@ module.exports = grammar({
       repeat(choice($.from_clause, $.where_clause, $._dml_clause, $.wait_clause)),
     ),
 
-    // SET a = 1, SET (a, b) = (SELECT ...) or SET VALUE (t) = expr.
+    // SET a = 1, SET (a, b) = (SELECT ...), SET VALUE (t) = expr, or SET
+    // ROW = r with a record of PL/SQL.
     assignment: $ => choice(
+      seq(kw('ROW'), '=', field('right', $._expression)),
       seq(
         field('left', choice($.column_reference, $.column_list)),
         '=',
@@ -1898,10 +1952,7 @@ module.exports = grammar({
         seq(kw('SHARING'), '=', alias($.identifier, $.keyword)),
         seq(kws('DEFAULT', 'COLLATION'), field('collation', $._name)),
         seq(kw('AUTHID'), choice(kw('CURRENT_USER'), kw('DEFINER'))),
-        seq(kws('ACCESSIBLE', 'BY'), parens(commaSep1(seq(
-          optional(choice(kw('FUNCTION'), kw('PROCEDURE'), kw('PACKAGE'), kw('TRIGGER'), kw('TYPE'))),
-          $.object_reference,
-        )))),
+        $._accessible_by,
       )),
       optional(choice(
         seq(
@@ -2261,6 +2312,584 @@ module.exports = grammar({
       ),
     ),
 
+    // ADMINISTER KEY MANAGEMENT. Its clauses are a list of words.
+    administer_key_management_statement: $ => seq(
+      kws('ADMINISTER', 'KEY', 'MANAGEMENT'),
+      repeat1($._option),
+    ),
+
+    // PL/SQL
+
+    // CREATE PROCEDURE. The body is a block of PL/SQL after IS or AS, or a
+    // call specification, as in AS LANGUAGE JAVA NAME 'C.m()'.
+    create_procedure_statement: $ => seq(
+      $._create,
+      kw('PROCEDURE'),
+      optional($._if_not_exists),
+      field('name', $.object_reference),
+      optional($.parameters),
+      repeat($._unit_option),
+      choice(kw('IS'), kw('AS')),
+      $._unit_body,
+    ),
+
+    // CREATE FUNCTION. A function with AGGREGATE USING or PIPELINED USING
+    // has no body.
+    create_function_statement: $ => seq(
+      $._create,
+      kw('FUNCTION'),
+      optional($._if_not_exists),
+      field('name', $.object_reference),
+      optional($.parameters),
+      kw('RETURN'),
+      field('return', $.type),
+      repeat($._unit_option),
+      optional(seq(choice(kw('IS'), kw('AS')), $._unit_body)),
+    ),
+
+    // CREATE PACKAGE and CREATE PACKAGE BODY. The specification holds
+    // declarations. The body holds declarations and definitions, and it can
+    // end with a block that initializes the package.
+    create_package_statement: $ => seq(
+      $._create,
+      kw('PACKAGE'),
+      optional(kw('BODY')),
+      optional($._if_not_exists),
+      field('name', $.object_reference),
+      repeat($._unit_option),
+      choice(kw('IS'), kw('AS')),
+      repeat($._declaration),
+      choice(
+        seq(kw('END'), optional(field('end', $._name))),
+        $._body,
+      ),
+    ),
+
+    // CREATE TYPE BODY, with the bodies of the methods of an object type.
+    create_type_body_statement: $ => seq(
+      $._create,
+      kws('TYPE', 'BODY'),
+      optional($._if_not_exists),
+      field('name', $.object_reference),
+      repeat($._unit_option),
+      choice(kw('IS'), kw('AS')),
+      repeat(choice($.method_definition, seq($.pragma, $._terminator))),
+      kw('END'),
+    ),
+
+    // A method in a type body, as in MEMBER FUNCTION f RETURN NUMBER IS
+    // BEGIN RETURN 1; END;.
+    method_definition: $ => seq(
+      repeat(seq(
+        optional(kw('NOT')),
+        choice(kw('OVERRIDING'), kw('FINAL'), kw('INSTANTIABLE')),
+      )),
+      optional(choice(kw('MAP'), kw('ORDER'))),
+      choice(kw('MEMBER'), kw('STATIC'), kw('CONSTRUCTOR')),
+      choice($.procedure_declaration, $.function_declaration),
+    ),
+
+    // CREATE TRIGGER: a trigger on a table or a view, an INSTEAD OF
+    // trigger, a compound trigger with FOR, or a trigger on an event of
+    // the schema or the database, such as LOGON or CREATE.
+    create_trigger_statement: $ => seq(
+      $._create,
+      kw('TRIGGER'),
+      optional($._if_not_exists),
+      field('name', $.object_reference),
+      repeat($._unit_option),
+      choice(kw('BEFORE'), kw('AFTER'), kws('INSTEAD', 'OF'), kw('FOR')),
+      $.trigger_event,
+      repeat(seq(kw('OR'), $.trigger_event)),
+      kw('ON'),
+      choice(
+        field('table', $.object_reference),
+        seq(kws('NESTED', 'TABLE'), field('column', $._name), kw('OF'), field('table', $.object_reference)),
+        kw('DATABASE'),
+        kw('SCHEMA'),
+        seq(field('schema', $._name), '.', kw('SCHEMA')),
+        kws('PLUGGABLE', 'DATABASE'),
+      ),
+      repeat($._trigger_clause),
+      choice(
+        $.block,
+        $.call_statement,
+        $.compound_trigger,
+      ),
+    ),
+
+    // An event of a trigger, as in UPDATE OF a, b. An event of the schema
+    // or the database is a list of words, as in ASSOCIATE STATISTICS.
+    trigger_event: $ => choice(
+      kw('INSERT'),
+      kw('DELETE'),
+      seq(kw('UPDATE'), optional(seq(kw('OF'), commaSep1($._name)))),
+      repeat1(alias(reserved('label', $.identifier), $.keyword)),
+    ),
+
+    _trigger_clause: $ => choice(
+      seq(kw('REFERENCING'), repeat1($.referencing_alias)),
+      kws('FOR', 'EACH', 'ROW'),
+      seq(choice(kw('FORWARD'), kw('REVERSE')), kw('CROSSEDITION')),
+      seq(choice(kw('FOLLOWS'), kw('PRECEDES')), commaSep1($.object_reference)),
+      kw('ENABLE'),
+      kw('DISABLE'),
+      seq(kw('WHEN'), field('condition', $.parenthesized_expression)),
+    ),
+
+    referencing_alias: $ => seq(
+      choice(kw('OLD'), kw('NEW'), kw('PARENT')),
+      optional(kw('AS')),
+      field('alias', $._name),
+    ),
+
+    // The body of a compound trigger, with a section for each timing point.
+    compound_trigger: $ => seq(
+      kws('COMPOUND', 'TRIGGER'),
+      repeat($._declaration),
+      repeat1($.timing_point_section),
+      kw('END'),
+      optional(field('end', $._name)),
+    ),
+
+    timing_point_section: $ => seq(
+      $._timing_point,
+      kw('IS'),
+      $._begin,
+      $._timing_point,
+      $._terminator,
+    ),
+
+    _timing_point: $ => seq(
+      choice(kw('BEFORE'), kw('AFTER'), kws('INSTEAD', 'OF')),
+      choice(kw('STATEMENT'), kws('EACH', 'ROW')),
+    ),
+
+    // The options of a subprogram, a package or a trigger, which come in any
+    // order.
+    _unit_option: $ => choice(
+      kw('DETERMINISTIC'),
+      seq(
+        kw('PIPELINED'),
+        optional(seq(choice(kw('ROW'), kw('TABLE')), kw('POLYMORPHIC'))),
+        optional(seq(kw('USING'), field('implementation', $.object_reference))),
+      ),
+      seq(kw('PARALLEL_ENABLE'), optional($._option_group)),
+      prec.right(seq(
+        kw('RESULT_CACHE'),
+        optional(seq(kw('RELIES_ON'), parens(optional(commaSep1($.object_reference))))),
+      )),
+      seq(kws('AGGREGATE', 'USING'), field('implementation', $.object_reference)),
+      seq(kw('SQL_MACRO'), optional(parens(seq(
+        optional(seq(kw('TYPE'), '=>')),
+        choice(kw('SCALAR'), kw('TABLE')),
+      )))),
+      seq(kw('AUTHID'), choice(kw('CURRENT_USER'), kw('DEFINER'))),
+      $._accessible_by,
+      seq(kws('DEFAULT', 'COLLATION'), field('collation', $._name)),
+      seq(kw('SHARING'), '=', alias($.identifier, $.keyword)),
+      kw('EDITIONABLE'),
+      kw('NONEDITIONABLE'),
+    ),
+
+    _accessible_by: $ => seq(
+      kws('ACCESSIBLE', 'BY'),
+      parens(commaSep1(seq(
+        optional(choice(kw('FUNCTION'), kw('PROCEDURE'), kw('PACKAGE'), kw('TRIGGER'), kw('TYPE'))),
+        $.object_reference,
+      ))),
+    ),
+
+    // The body of a subprogram after IS or AS: its declarations and its
+    // block, or a call specification.
+    _unit_body: $ => choice(
+      seq(repeat($._declaration), $._body),
+      $.call_specification,
+    ),
+
+    // A call specification gives a subprogram of Java, C or JavaScript, as
+    // in LANGUAGE C NAME "f" LIBRARY lib. Its clauses are a list of words.
+    call_specification: $ => seq(
+      choice(kw('LANGUAGE'), kw('EXTERNAL'), kw('MLE')),
+      repeat($._option),
+    ),
+
+    // An anonymous block, or a block in a block.
+    block: $ => seq(
+      optional(seq(kw('DECLARE'), repeat($._declaration))),
+      $._body,
+    ),
+
+    // BEGIN, the statements, the handlers of exceptions and END. The name
+    // of the unit or the label of the block can come after END.
+    _body: $ => seq($._begin, optional(field('end', $._name))),
+
+    _begin: $ => seq(
+      kw('BEGIN'),
+      repeat($._plsql_item),
+      optional($.exception_section),
+      kw('END'),
+    ),
+
+    exception_section: $ => seq(kw('EXCEPTION'), repeat1($.exception_handler)),
+
+    exception_handler: $ => seq(
+      kw('WHEN'),
+      $._exception_name,
+      repeat(seq(kw('OR'), $._exception_name)),
+      $._then,
+    ),
+
+    _exception_name: $ => choice(
+      field('exception', kw('OTHERS')),
+      field('exception', $._name),
+      seq(field('package', $._name), '.', field('exception', $._label)),
+    ),
+
+    // Declarations
+
+    // A declaration of a block, a subprogram or a package.
+    _declaration: $ => choice(
+      $.variable_declaration,
+      $.exception_declaration,
+      $.cursor_declaration,
+      $.type_definition,
+      $.subtype_definition,
+      seq($.pragma, $._terminator),
+      $.procedure_declaration,
+      $.function_declaration,
+      $.conditional_compilation,
+    ),
+
+    // A variable or a constant, as in n CONSTANT NUMBER := 1.
+    variable_declaration: $ => seq(
+      field('name', $._name),
+      optional(kw('CONSTANT')),
+      field('type', $.type),
+      optional(kws('NOT', 'NULL')),
+      optional(seq(choice(':=', kw('DEFAULT')), field('value', $._expression))),
+      $._terminator,
+    ),
+
+    exception_declaration: $ => seq(field('name', $._name), kw('EXCEPTION'), $._terminator),
+
+    // A cursor, with its query, or the declaration of a cursor whose query
+    // comes in the package body.
+    cursor_declaration: $ => seq(
+      kw('CURSOR'),
+      field('name', $._name),
+      optional($.parameters),
+      optional(seq(kw('RETURN'), field('return', $.type))),
+      optional(seq(kw('IS'), $._query)),
+      $._terminator,
+    ),
+
+    // A type of PL/SQL: a record, a collection or a REF CURSOR.
+    type_definition: $ => seq(
+      kw('TYPE'),
+      field('name', $._name),
+      choice(kw('IS'), kw('AS')),
+      choice(
+        seq(kw('RECORD'), parens(commaSep1($.field_definition))),
+        seq(
+          kws('TABLE', 'OF'),
+          field('element', $.type),
+          optional(kws('NOT', 'NULL')),
+          optional(seq(kws('INDEX', 'BY'), field('index', $.type))),
+        ),
+        seq(
+          choice(kw('VARRAY'), seq(optional(kw('VARYING')), kw('ARRAY'))),
+          parens(field('limit', $._expression)),
+          kw('OF'),
+          field('element', $.type),
+          optional(kws('NOT', 'NULL')),
+        ),
+        seq(kws('REF', 'CURSOR'), optional(seq(kw('RETURN'), field('return', $.type)))),
+      ),
+      $._terminator,
+    ),
+
+    field_definition: $ => seq(
+      field('name', $._name),
+      field('type', $.type),
+      optional(kws('NOT', 'NULL')),
+      optional(seq(choice(':=', kw('DEFAULT')), field('default', $._expression))),
+    ),
+
+    subtype_definition: $ => seq(
+      kw('SUBTYPE'),
+      field('name', $._name),
+      kw('IS'),
+      field('type', $.type),
+      optional(seq(kw('RANGE'), field('low', $._expression), '..', field('high', $._expression))),
+      optional(kws('NOT', 'NULL')),
+      $._terminator,
+    ),
+
+    // A pragma, as in PRAGMA EXCEPTION_INIT(e, -20001).
+    pragma: $ => seq(kw('PRAGMA'), field('name', $._name), optional($.arguments)),
+
+    // A procedure or a function in a block, a package, a type body or WITH:
+    // its declaration, or its definition with a body after IS or AS.
+    procedure_declaration: $ => seq(
+      kw('PROCEDURE'),
+      field('name', $._name),
+      optional($.parameters),
+      repeat($._unit_option),
+      optional(seq(choice(kw('IS'), kw('AS')), $._unit_body)),
+      $._terminator,
+    ),
+
+    function_declaration: $ => seq(
+      kw('FUNCTION'),
+      field('name', $._name),
+      optional($.parameters),
+      kw('RETURN'),
+      field('return', choice($.type, kws('SELF', 'AS', 'RESULT'))),
+      repeat($._unit_option),
+      optional(seq(choice(kw('IS'), kw('AS')), $._unit_body)),
+      $._terminator,
+    ),
+
+    // Conditional compilation, as in $IF $$DEBUG $THEN ... $END. It holds
+    // declarations or statements.
+    conditional_compilation: $ => choice(
+      seq(
+        directive('IF'),
+        field('condition', $._expression),
+        $._conditional_then,
+        repeat(seq(directive('ELSIF'), field('condition', $._expression), $._conditional_then)),
+        optional(seq(directive('ELSE'), repeat($._conditional_item))),
+        directive('END'),
+      ),
+      seq(directive('ERROR'), field('message', $._expression), directive('END')),
+    ),
+
+    // $THEN and the items after it, which $IF and $ELSIF share.
+    _conditional_then: $ => seq(directive('THEN'), repeat($._conditional_item)),
+
+    _conditional_item: $ => choice(
+      $._declaration,
+      seq(repeat($.label), $._plsql_statement, $._terminator),
+    ),
+
+    // Statements
+
+    // A statement of PL/SQL, with its labels and its semicolon.
+    _plsql_item: $ => choice(
+      seq(repeat($.label), $._plsql_statement, $._terminator),
+      seq($.pragma, $._terminator),
+      $.conditional_compilation,
+    ),
+
+    // THEN and the statements after it, which IF, ELSIF, CASE and the
+    // handlers of exceptions share, so that they share parse states.
+    _then: $ => seq(kw('THEN'), repeat($._plsql_item)),
+
+    label: $ => seq('<<', field('name', $._name), '>>'),
+
+    _plsql_statement: $ => choice(
+      $.assignment_statement,
+      $.procedure_call,
+      $.block,
+      $.if_statement,
+      $.case_statement,
+      $.loop_statement,
+      $.exit_statement,
+      $.continue_statement,
+      $.goto_statement,
+      $.null_statement,
+      $.return_statement,
+      $.raise_statement,
+      $.execute_immediate_statement,
+      $.open_statement,
+      $.fetch_statement,
+      $.close_statement,
+      $.forall_statement,
+      $.pipe_row_statement,
+      $.select_statement,
+      $.insert_statement,
+      $.update_statement,
+      $.delete_statement,
+      $.merge_statement,
+      $.commit_statement,
+      $.rollback_statement,
+      $.savepoint_statement,
+      $.set_transaction_statement,
+      $.lock_table_statement,
+    ),
+
+    // The target of an assignment, a procedure call, or a cursor.
+    _target: $ => choice(
+      $.column_reference,
+      $.function_call,
+      $.field_expression,
+      $.bind_variable,
+    ),
+
+    assignment_statement: $ => seq(
+      field('left', $._target),
+      ':=',
+      field('right', $._expression),
+    ),
+
+    procedure_call: $ => field('procedure', choice(
+      $.column_reference,
+      $.function_call,
+      $.field_expression,
+    )),
+
+    if_statement: $ => seq(
+      kw('IF'),
+      field('condition', $._expression),
+      $._then,
+      repeat($.elsif_clause),
+      optional($.else_clause),
+      kws('END', 'IF'),
+    ),
+
+    elsif_clause: $ => seq(
+      kw('ELSIF'),
+      field('condition', $._expression),
+      $._then,
+    ),
+
+    else_clause: $ => seq(kw('ELSE'), repeat($._plsql_item)),
+
+    case_statement: $ => seq(
+      kw('CASE'),
+      optional(field('value', $._expression)),
+      repeat1($.case_when_clause),
+      optional($.else_clause),
+      kws('END', 'CASE'),
+      optional(field('end', $._name)),
+    ),
+
+    case_when_clause: $ => seq(
+      kw('WHEN'),
+      field('condition', $._expression),
+      $._then,
+    ),
+
+    // LOOP, WHILE and FOR, with the iteration controls of 21c, as in FOR i
+    // IN 1..3, REPEAT i * 2 WHILE i < 100 LOOP.
+    loop_statement: $ => seq(
+      optional(choice(
+        seq(kw('WHILE'), field('condition', $._expression)),
+        seq(
+          kw('FOR'),
+          commaSep1($.iterator),
+          kw('IN'),
+          commaSep1($.iteration_control),
+        ),
+      )),
+      kw('LOOP'),
+      repeat($._plsql_item),
+      kws('END', 'LOOP'),
+      optional(field('end', $._name)),
+    ),
+
+    iterator: $ => seq(
+      field('name', $._name),
+      optional(choice(kw('MUTABLE'), kw('IMMUTABLE'))),
+      optional(field('type', $.type)),
+    ),
+
+    // A range, as in REVERSE 1..n, a cursor, a query, a collection with
+    // VALUES OF, INDICES OF or PAIRS OF, or REPEAT with an expression.
+    iteration_control: $ => seq(
+      choice(
+        seq(
+          optional(kw('REVERSE')),
+          field('low', $._expression),
+          '..',
+          field('high', $._expression),
+          optional(seq(kw('BY'), field('step', $._expression))),
+        ),
+        seq(optional(kw('REPEAT')), field('value', $._expression)),
+        seq(
+          choice(kw('VALUES'), kw('INDICES'), kw('PAIRS')),
+          kw('OF'),
+          field('collection', $._expression),
+        ),
+      ),
+      optional(seq(kw('WHILE'), field('while', $._expression))),
+      optional(seq(kw('WHEN'), field('when', $._expression))),
+    ),
+
+    exit_statement: $ => seq(
+      kw('EXIT'),
+      optional(field('label', $._name)),
+      optional(seq(kw('WHEN'), field('condition', $._expression))),
+    ),
+
+    continue_statement: $ => seq(
+      kw('CONTINUE'),
+      optional(field('label', $._name)),
+      optional(seq(kw('WHEN'), field('condition', $._expression))),
+    ),
+
+    goto_statement: $ => seq(kw('GOTO'), field('label', $._name)),
+
+    null_statement: _ => kw('NULL'),
+
+    return_statement: $ => seq(kw('RETURN'), optional(field('value', $._expression))),
+
+    raise_statement: $ => seq(kw('RAISE'), optional($._exception_name)),
+
+    execute_immediate_statement: $ => seq(
+      kws('EXECUTE', 'IMMEDIATE'),
+      field('statement', $._expression),
+      repeat(choice(
+        $.into_clause,
+        $.using_clause,
+        seq(choice(kw('RETURNING'), kw('RETURN')), $.into_clause),
+      )),
+    ),
+
+    // The bind arguments of a dynamic statement, as in USING IN OUT x.
+    using_clause: $ => seq(
+      kw('USING'),
+      commaSep1(seq(optional(kw('IN')), optional(kw('OUT')), $._expression)),
+    ),
+
+    // OPEN a cursor, or OPEN a cursor variable FOR a query or a string.
+    open_statement: $ => seq(
+      kw('OPEN'),
+      field('cursor', $._target),
+      optional(seq(
+        kw('FOR'),
+        choice($._query, field('statement', $._expression)),
+        optional($.using_clause),
+      )),
+    ),
+
+    fetch_statement: $ => seq(
+      kw('FETCH'),
+      field('cursor', $._target),
+      $.into_clause,
+      optional(seq(kw('LIMIT'), field('limit', $._expression))),
+    ),
+
+    close_statement: $ => seq(kw('CLOSE'), field('cursor', $._target)),
+
+    forall_statement: $ => seq(
+      kw('FORALL'),
+      field('index', $._name),
+      kw('IN'),
+      $.iteration_control,
+      optional(kws('SAVE', 'EXCEPTIONS')),
+      field('statement', choice(
+        $.insert_statement,
+        $.update_statement,
+        $.delete_statement,
+        $.merge_statement,
+        $.execute_immediate_statement,
+      )),
+    ),
+
+    pipe_row_statement: $ => seq(kws('PIPE', 'ROW'), $.parenthesized_expression),
+
     // Expressions
 
     _expression: $ => choice(
@@ -2294,6 +2923,8 @@ module.exports = grammar({
       $.cursor_expression,
       $.multiset_expression,
       $.json_constructor,
+      $.cursor_attribute,
+      $.inquiry_directive,
     ),
 
     _literal: $ => choice(
@@ -2388,6 +3019,9 @@ module.exports = grammar({
         $.keep_clause,
         $.null_treatment,
         $.over_clause,
+        // An element of a collection that a function returns, as in
+        // f(1)(2).
+        $.arguments,
       )),
     )),
 
@@ -2444,8 +3078,11 @@ module.exports = grammar({
 
     _aliased_argument: $ => seq(field('value', $._expression), field('alias', $._name)),
 
+    // The name of an argument can be any word, as in f(comment => 'x'). A
+    // qualified expression of PL/SQL gives the values of the elements of
+    // an associative array, as in t(1 => 'a', 'k' => 'b').
     named_argument: $ => seq(
-      field('name', $._name),
+      field('name', choice($._label, $.number, $.string, $.unary_expression, $.function_call)),
       '=>',
       field('value', $._expression),
     ),
@@ -2543,10 +3180,32 @@ module.exports = grammar({
         $.function_call,
         $.column_reference,
         $.field_expression,
+        $.cursor_attribute,
+        $.generalized_invocation,
       )),
       '.',
       field('field', choice($._label, $.function_call)),
     )),
+
+    // A method of a supertype, as in (SELF AS person_t).show().
+    generalized_invocation: $ => parens(seq(
+      field('value', $._expression),
+      kw('AS'),
+      field('type', $.type),
+    )),
+
+    // An attribute of a cursor of PL/SQL, as in c%ROWCOUNT, SQL%FOUND or
+    // SQL%BULK_ROWCOUNT(1).
+    cursor_attribute: $ => prec.right(PREC.field, seq(
+      field('cursor', choice($.column_reference, $.bind_variable)),
+      '%',
+      field('attribute', $._label),
+      optional($.arguments),
+    )),
+
+    // An inquiry directive of the conditional compilation of PL/SQL, as in
+    // $$PLSQL_UNIT.
+    inquiry_directive: _ => /\$\$[A-Za-z_][A-Za-z0-9_$#]*/,
 
     parenthesized_expression: $ => parens($._expression),
 
@@ -2748,10 +3407,19 @@ module.exports = grammar({
 
     // Types
 
+    // A name with three parts gives the type of a column in PL/SQL, as in
+    // hr.employees.salary%TYPE.
     type: $ => prec.right(choice(
       seq(
-        optional(seq(field('schema', $._name), '.')),
-        field('name', $._name),
+        choice(
+          field('name', $._name),
+          seq(
+            field('schema', $._name),
+            '.',
+            field('name', $._name),
+            optional(seq('.', field('column', $._label))),
+          ),
+        ),
         optional($.type_modifiers),
         optional(seq('%', choice(kw('TYPE'), kw('ROWTYPE')))),
       ),

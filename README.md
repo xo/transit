@@ -207,8 +207,13 @@ statements that define objects: `CREATE`, `ALTER` and `DROP` of tables,
 indexes, views, materialized views, types, domains, property graphs and
 the other objects of the manual, with the columns, the constraints and the
 partitions of a table. The physical options of an object, such as
-`STORAGE`, are a list of words. It does not read PL/SQL yet. A `/`
-alone on its line ends a statement, as in a script of SQL*Plus. The
+`STORAGE`, are a list of words. It reads PL/SQL in the same grammar,
+because Oracle does not put PL/SQL in a quoted string: anonymous blocks,
+`CREATE PROCEDURE`, `CREATE FUNCTION`, `CREATE PACKAGE`, `CREATE PACKAGE
+BODY`, `CREATE TRIGGER`, `CREATE TYPE BODY`, the functions of `WITH`, each
+declaration and statement of PL/SQL, and the conditional compilation with
+`$IF`. A `/` alone on its line ends a statement, as in a script of
+SQL*Plus. The package adds about 3.3 MB to a binary (D125). The
 grammar of `andreasmaierde/tree-sitter-plsql` stays in the golden set, but
 it has no Go package.
 

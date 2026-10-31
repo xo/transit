@@ -50,5 +50,5 @@ SELECT 1, SYSDATE;
 	}
 	// Output:
 	// (source_file (select_statement (select (number) (pseudocolumn))))
-	// patterns in queries/highlights.scm: 104
+	// patterns in queries/highlights.scm: 145
 }

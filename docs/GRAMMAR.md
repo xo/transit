@@ -301,7 +301,9 @@ Each one follows these rules, in addition to the rest of this document:
    reads each expression and each SQL statement of a body as one token, and
    its injection query gives the token to the grammar `postgres`. The
    injection query of `postgres` gives the body of a function or of a `DO`
-   block to `plpgsql` or to `postgres`, as its `LANGUAGE` says.
+   block to `plpgsql` or to `postgres`, as its `LANGUAGE` says. Oracle
+   does not put PL/SQL in a quoted string, so the Oracle grammar reads SQL
+   and PL/SQL in one grammar, and it has no injection query (D124).
 7. A SQL grammar keeps its parse tables small (D122, D123). The token
    `identifier` is the word of the grammar, so one token covers each
    keyword that the language does not reserve. The reserved words of the
@@ -314,6 +316,10 @@ Each one follows these rules, in addition to the rest of this document:
    reserved set, as the comment at the top of `grammars/oracle/grammar.js`
    says. Then a reserved word in the list does not give a large state of
    its own.
+   The parser cannot merge two states when only one of them takes a token
+   of the external scanner. So a statement of PL/SQL ends at a `;` or at a
+   `/` alone on its line, as a statement of SQL does, and the states after
+   them are the same.
 
 A change to such a grammar is a change to transit. It follows "Before you
 stage" in `AGENTS.md`, and its golden files are made again.
