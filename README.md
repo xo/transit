@@ -196,7 +196,10 @@ The package `github.com/xo/transit/grammars/postgres/postgres` holds the
 grammar `postgres`, which xo writes from the reference manual of
 PostgreSQL 19 (D122). It covers the lexical structure, the expressions, the
 types, the function calls and the full `SELECT`, with `WITH`, `VALUES` and
-`TABLE`. It does not read the other statements yet. The variables
+`TABLE`. It also covers `INSERT`, `UPDATE`, `DELETE`, `MERGE`, `COPY`, the
+statements of transactions, of prepared statements and of cursors, and the
+utility statements, such as `EXPLAIN`, `SET` and `VACUUM`. It does not read
+the statements that define objects yet, such as `CREATE TABLE`. The variables
 of psql are part of the usql grammar, which gives this grammar a
 placeholder of the same length in place of each variable (D101). The
 package `plpgsql` of the same module still holds the grammar of

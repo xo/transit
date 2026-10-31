@@ -1,0 +1,610 @@
+================================================================================
+Prepare and execute a statement
+================================================================================
+
+PREPARE fooplan (int, text, bool, numeric) AS
+    INSERT INTO foo VALUES($1, $2, $3, $4);
+EXECUTE fooplan(1, 'Hunter Valley', 't', 200.00);
+
+---
+
+(source_file
+  (prepare_statement
+    (identifier)
+    (type
+      (identifier))
+    (type
+      (identifier))
+    (type
+      (identifier))
+    (type
+      (identifier))
+    (insert_statement
+      (object_reference
+        (identifier))
+      (values
+        (value_list
+          (parameter)
+          (parameter)
+          (parameter)
+          (parameter)))))
+  (execute_statement
+    (identifier)
+    (arguments
+      (number)
+      (string)
+      (string)
+      (number))))
+
+================================================================================
+Deallocate a prepared statement
+================================================================================
+
+DEALLOCATE fooplan;
+DEALLOCATE PREPARE ALL;
+
+---
+
+(source_file
+  (deallocate_statement
+    (identifier))
+  (deallocate_statement))
+
+================================================================================
+Declare a cursor
+================================================================================
+
+DECLARE liahona SCROLL CURSOR WITH HOLD FOR SELECT * FROM films;
+DECLARE c BINARY NO SCROLL CURSOR FOR TABLE t;
+
+---
+
+(source_file
+  (declare_statement
+    (identifier)
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (declare_statement
+    (identifier)
+    (table_query
+      (object_reference
+        (identifier)))))
+
+================================================================================
+Fetch from a cursor
+================================================================================
+
+FETCH FORWARD 5 FROM liahona;
+FETCH PRIOR FROM liahona;
+FETCH c;
+FETCH ABSOLUTE -1 IN c;
+FETCH BACKWARD ALL c;
+
+---
+
+(source_file
+  (fetch_statement
+    (fetch_direction
+      (number))
+    (identifier))
+  (fetch_statement
+    (fetch_direction)
+    (identifier))
+  (fetch_statement
+    (identifier))
+  (fetch_statement
+    (fetch_direction
+      (operator)
+      (number))
+    (identifier))
+  (fetch_statement
+    (fetch_direction)
+    (identifier)))
+
+================================================================================
+Move a cursor
+================================================================================
+
+MOVE FORWARD 5 IN liahona;
+MOVE LAST FROM c;
+
+---
+
+(source_file
+  (fetch_statement
+    (fetch_direction
+      (number))
+    (identifier))
+  (fetch_statement
+    (fetch_direction)
+    (identifier)))
+
+================================================================================
+Close a cursor
+================================================================================
+
+CLOSE liahona;
+CLOSE ALL;
+
+---
+
+(source_file
+  (close_statement
+    (identifier))
+  (close_statement))
+
+================================================================================
+Call a procedure
+================================================================================
+
+CALL do_db_maintenance();
+CALL s.p(1, b => 2);
+
+---
+
+(source_file
+  (call_statement
+    (function_call
+      (identifier)
+      (arguments)))
+  (call_statement
+    (function_call
+      (identifier)
+      (identifier)
+      (arguments
+        (number)
+        (named_argument
+          (identifier)
+          (number))))))
+
+================================================================================
+Run an anonymous code block
+================================================================================
+
+DO $$DECLARE r record; BEGIN NULL; END$$;
+DO LANGUAGE plpgsql 'BEGIN NULL; END';
+
+---
+
+(source_file
+  (do_statement
+    (dollar_quoted_string
+      (string_content)))
+  (do_statement
+    (identifier)
+    (string)))
+
+================================================================================
+Explain a query
+================================================================================
+
+EXPLAIN SELECT * FROM foo;
+
+---
+
+(source_file
+  (explain_statement
+    (select_statement
+      (select
+        (all_columns)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))))
+
+================================================================================
+Explain with options
+================================================================================
+
+EXPLAIN (ANALYZE, FORMAT json, BUFFERS off, SERIALIZE text) SELECT * FROM foo WHERE i = 4;
+
+---
+
+(source_file
+  (explain_statement
+    (option_list
+      (option
+        (identifier))
+      (option
+        (identifier)
+        (identifier))
+      (option
+        (identifier)
+        (identifier))
+      (option
+        (identifier)
+        (identifier)))
+    (select_statement
+      (select
+        (all_columns)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number)))))))
+
+================================================================================
+Explain with the old options
+================================================================================
+
+EXPLAIN ANALYZE VERBOSE UPDATE t SET a = 1;
+EXPLAIN VERBOSE EXECUTE q(1);
+EXPLAIN (COSTS false) DELETE FROM t;
+
+---
+
+(source_file
+  (explain_statement
+    (update_statement
+      (table_reference
+        (object_reference
+          (identifier)))
+      (set_clause
+        (assignment
+          (identifier)
+          (number)))))
+  (explain_statement
+    (execute_statement
+      (identifier)
+      (arguments
+        (number))))
+  (explain_statement
+    (option_list
+      (option
+        (identifier)
+        (identifier)))
+    (delete_statement
+      (table_reference
+        (object_reference
+          (identifier))))))
+
+================================================================================
+Set a setting
+================================================================================
+
+SET search_path TO my_schema, public;
+SET datestyle TO postgres, dmy;
+SET LOCAL statement_timeout = '10s';
+SET extra_float_digits = -1;
+SET plpgsql.extra_warnings TO DEFAULT;
+SET enable_seqscan = on;
+SET SESSION work_mem FROM CURRENT;
+
+---
+
+(source_file
+  (set_statement
+    (setting_name
+      (identifier))
+    (identifier)
+    (identifier))
+  (set_statement
+    (setting_name
+      (identifier))
+    (identifier)
+    (identifier))
+  (set_statement
+    (setting_name
+      (identifier))
+    (string))
+  (set_statement
+    (setting_name
+      (identifier))
+    (operator)
+    (number))
+  (set_statement
+    (setting_name
+      (identifier)
+      (identifier)))
+  (set_statement
+    (setting_name
+      (identifier))
+    (identifier))
+  (set_statement
+    (setting_name
+      (identifier))))
+
+================================================================================
+Set the settings of the standard
+================================================================================
+
+SET TIME ZONE 'PST8PDT';
+SET TIME ZONE LOCAL;
+SET TIME ZONE INTERVAL '+00:00' HOUR TO MINUTE;
+SET SCHEMA 'foo';
+SET NAMES 'UTF8';
+SET XML OPTION DOCUMENT;
+
+---
+
+(source_file
+  (set_statement
+    (string))
+  (set_statement)
+  (set_statement
+    (typed_literal
+      (type)
+      (string)
+      (interval_fields)))
+  (set_statement
+    (string))
+  (set_statement
+    (string))
+  (set_statement))
+
+================================================================================
+Set the role
+================================================================================
+
+SET ROLE paul;
+SET ROLE NONE;
+SET role = 'paul';
+SET SESSION AUTHORIZATION DEFAULT;
+SET LOCAL SESSION AUTHORIZATION 'paul';
+
+---
+
+(source_file
+  (set_statement
+    (identifier))
+  (set_statement
+    (identifier))
+  (set_statement
+    (setting_name
+      (identifier))
+    (string))
+  (set_statement)
+  (set_statement
+    (string)))
+
+================================================================================
+Show a setting
+================================================================================
+
+SHOW DateStyle;
+SHOW ALL;
+SHOW TIME ZONE;
+SHOW TRANSACTION ISOLATION LEVEL;
+
+---
+
+(source_file
+  (show_statement
+    (setting_name
+      (identifier)))
+  (show_statement)
+  (show_statement)
+  (show_statement))
+
+================================================================================
+Reset a setting
+================================================================================
+
+RESET timezone;
+RESET ALL;
+RESET SESSION AUTHORIZATION;
+
+---
+
+(source_file
+  (reset_statement
+    (setting_name
+      (identifier)))
+  (reset_statement)
+  (reset_statement))
+
+================================================================================
+Notifications
+================================================================================
+
+LISTEN virtual;
+NOTIFY virtual;
+NOTIFY virtual, 'This is the payload';
+UNLISTEN virtual;
+UNLISTEN *;
+
+---
+
+(source_file
+  (listen_statement
+    (identifier))
+  (notify_statement
+    (identifier))
+  (notify_statement
+    (identifier)
+    (string))
+  (unlisten_statement
+    (identifier))
+  (unlisten_statement))
+
+================================================================================
+Vacuum
+================================================================================
+
+VACUUM;
+VACUUM (VERBOSE, ANALYZE, PARALLEL 4, INDEX_CLEANUP auto) onek;
+VACUUM FULL FREEZE VERBOSE ANALYZE t (a, b), ONLY u;
+
+---
+
+(source_file
+  (vacuum_statement)
+  (vacuum_statement
+    (option_list
+      (option
+        (identifier))
+      (option
+        (identifier))
+      (option
+        (identifier)
+        (number))
+      (option
+        (identifier)
+        (identifier)))
+    (object_reference
+      (identifier)))
+  (vacuum_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier))
+    (object_reference
+      (identifier))))
+
+================================================================================
+Analyze
+================================================================================
+
+ANALYZE;
+ANALYZE VERBOSE t;
+ANALYSE (SKIP_LOCKED true) t (a), u;
+
+---
+
+(source_file
+  (analyze_statement)
+  (analyze_statement
+    (object_reference
+      (identifier)))
+  (analyze_statement
+    (option_list
+      (option
+        (identifier)
+        (identifier)))
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier))
+    (object_reference
+      (identifier))))
+
+================================================================================
+Cluster
+================================================================================
+
+CLUSTER employees USING employees_ind;
+CLUSTER;
+CLUSTER (VERBOSE) s.t;
+CLUSTER idx ON t;
+
+---
+
+(source_file
+  (cluster_statement
+    (object_reference
+      (identifier))
+    (identifier))
+  (cluster_statement)
+  (cluster_statement
+    (option_list
+      (option
+        (identifier)))
+    (object_reference
+      (identifier)
+      (identifier)))
+  (cluster_statement
+    (identifier)
+    (object_reference
+      (identifier))))
+
+================================================================================
+Repack
+================================================================================
+
+REPACK;
+REPACK (VERBOSE) t (a) USING INDEX i;
+
+---
+
+(source_file
+  (repack_statement)
+  (repack_statement
+    (option_list
+      (option
+        (identifier)))
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier))
+    (identifier)))
+
+================================================================================
+Reindex
+================================================================================
+
+REINDEX INDEX my_index;
+REINDEX TABLE CONCURRENTLY my_broken_table;
+REINDEX (VERBOSE, TABLESPACE fast) DATABASE;
+REINDEX SYSTEM;
+
+---
+
+(source_file
+  (reindex_statement
+    (object_reference
+      (identifier)))
+  (reindex_statement
+    (object_reference
+      (identifier)))
+  (reindex_statement
+    (option_list
+      (option
+        (identifier))
+      (option
+        (identifier)
+        (identifier))))
+  (reindex_statement))
+
+================================================================================
+Checkpoint
+================================================================================
+
+CHECKPOINT;
+CHECKPOINT (MODE FAST, FLUSH_UNLOGGED);
+
+---
+
+(source_file
+  (checkpoint_statement)
+  (checkpoint_statement
+    (option_list
+      (option
+        (identifier)
+        (identifier))
+      (option
+        (identifier)))))
+
+================================================================================
+Discard
+================================================================================
+
+DISCARD ALL;
+DISCARD TEMP;
+
+---
+
+(source_file
+  (discard_statement)
+  (discard_statement))
+
+================================================================================
+Load
+================================================================================
+
+LOAD 'auto_explain';
+
+---
+
+(source_file
+  (load_statement
+    (string)))

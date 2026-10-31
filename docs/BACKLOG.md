@@ -113,6 +113,16 @@ query of PostgreSQL 19:
 - A cast as the second argument of `position`, as in
   `position(a IN b::bytea)`.
 
+It also leaves out these forms of the statements that change rows and of
+the utility statements:
+
+- `EXPLAIN` of `CREATE TABLE AS`, `CREATE MATERIALIZED VIEW` and
+  `REFRESH MATERIALIZED VIEW`. These statements come with the statements
+  that define objects. Add each of them to the rule
+  `_explainable_statement` then.
+- The parameters of an operator class in the target of `ON CONFLICT`, as
+  in `ON CONFLICT (key int4_ops (fillfactor=10))`.
+
 ## The setup of the repository
 
 These items come in phase 1 and later, as the plan says.

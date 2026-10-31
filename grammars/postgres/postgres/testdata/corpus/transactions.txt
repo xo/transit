@@ -1,0 +1,136 @@
+================================================================================
+Begin a transaction
+================================================================================
+
+BEGIN;
+BEGIN WORK ISOLATION LEVEL SERIALIZABLE, READ ONLY;
+
+---
+
+(source_file
+  (begin_statement)
+  (begin_statement
+    (transaction_mode)
+    (transaction_mode)))
+
+================================================================================
+Start a transaction
+================================================================================
+
+START TRANSACTION ISOLATION LEVEL REPEATABLE READ READ WRITE NOT DEFERRABLE;
+
+---
+
+(source_file
+  (begin_statement
+    (transaction_mode)
+    (transaction_mode)
+    (transaction_mode)))
+
+================================================================================
+Commit a transaction
+================================================================================
+
+COMMIT;
+COMMIT TRANSACTION AND CHAIN;
+END WORK;
+
+---
+
+(source_file
+  (commit_statement)
+  (commit_statement)
+  (commit_statement))
+
+================================================================================
+Roll back a transaction
+================================================================================
+
+ROLLBACK;
+ROLLBACK WORK AND NO CHAIN;
+ABORT;
+
+---
+
+(source_file
+  (rollback_statement)
+  (rollback_statement)
+  (rollback_statement))
+
+================================================================================
+Savepoints
+================================================================================
+
+SAVEPOINT my_savepoint;
+ROLLBACK TO SAVEPOINT my_savepoint;
+ROLLBACK TRANSACTION TO s;
+RELEASE SAVEPOINT my_savepoint;
+RELEASE s;
+
+---
+
+(source_file
+  (savepoint_statement
+    (identifier))
+  (rollback_statement
+    (identifier))
+  (rollback_statement
+    (identifier))
+  (release_statement
+    (identifier))
+  (release_statement
+    (identifier)))
+
+================================================================================
+Two-phase commit
+================================================================================
+
+PREPARE TRANSACTION 'foobar';
+COMMIT PREPARED 'foobar';
+ROLLBACK PREPARED 'foobar';
+
+---
+
+(source_file
+  (prepare_transaction_statement
+    (string))
+  (commit_statement
+    (string))
+  (rollback_statement
+    (string)))
+
+================================================================================
+Set the modes of a transaction
+================================================================================
+
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+SET TRANSACTION SNAPSHOT '00000003-0000001B-1';
+SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+
+---
+
+(source_file
+  (set_statement
+    (transaction_mode))
+  (set_statement
+    (string))
+  (set_statement
+    (transaction_mode)))
+
+================================================================================
+Set the mode of constraints
+================================================================================
+
+SET CONSTRAINTS ALL DEFERRED;
+SET CONSTRAINTS a, s.b IMMEDIATE;
+
+---
+
+(source_file
+  (set_statement)
+  (set_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))))

@@ -1,0 +1,1137 @@
+================================================================================
+Insert a row
+================================================================================
+
+INSERT INTO films VALUES ('UA502', 'Bananas', 105, '1971-07-13', 'Comedy');
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (values
+      (value_list
+        (string)
+        (string)
+        (number)
+        (string)
+        (string)))))
+
+================================================================================
+Insert a row into columns with a default value
+================================================================================
+
+INSERT INTO films (code, title, did, date_prod, kind)
+    VALUES ('T_601', 'Yojimbo', 106, DEFAULT, 'Drama');
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier)
+      (identifier)
+      (identifier)
+      (identifier))
+    (values
+      (value_list
+        (string)
+        (string)
+        (number)
+        (string)))))
+
+================================================================================
+Insert the default values
+================================================================================
+
+INSERT INTO films DEFAULT VALUES;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+Insert two rows
+================================================================================
+
+INSERT INTO films (code, title) VALUES ('B6717', 'Tampopo'), ('HG120', 'The Dinner Game');
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier))
+    (values
+      (value_list
+        (string)
+        (string))
+      (value_list
+        (string)
+        (string)))))
+
+================================================================================
+Insert the rows of a query
+================================================================================
+
+INSERT INTO films SELECT * FROM tmp_films WHERE date_prod < '2004-05-07';
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (string))))))
+
+================================================================================
+Insert into fields and elements of columns
+================================================================================
+
+INSERT INTO tictactoe (game, board[1:3][2], point.x) VALUES (1, '{}', 2);
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier)
+      (number)
+      (number)
+      (number)
+      (identifier)
+      (identifier))
+    (values
+      (value_list
+        (number)
+        (string)
+        (number)))))
+
+================================================================================
+Insert with an identity value of the user
+================================================================================
+
+INSERT INTO t AS x (a) OVERRIDING SYSTEM VALUE VALUES (1);
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (column_list
+      (identifier))
+    (values
+      (value_list
+        (number)))))
+
+================================================================================
+Insert and return a column
+================================================================================
+
+INSERT INTO distributors (did, dname) VALUES (DEFAULT, 'XYZ Widgets')
+   RETURNING did;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier))
+    (values
+      (value_list
+        (string)))
+    (returning_clause
+      (column_reference
+        (identifier)))))
+
+================================================================================
+Insert and return the old and the new row
+================================================================================
+
+INSERT INTO t VALUES (1) RETURNING WITH (OLD AS o, NEW AS n) o.a, n.a AS b, *;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (values
+      (value_list
+        (number)))
+    (returning_clause
+      (identifier)
+      (identifier)
+      (column_reference
+        (identifier)
+        (identifier))
+      (aliased_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (identifier))
+      (all_columns))))
+
+================================================================================
+Insert the rows that an update returns
+================================================================================
+
+WITH upd AS (
+  UPDATE employees SET sales_count = sales_count + 1 WHERE id =
+    (SELECT sales_person FROM accounts WHERE name = 'Acme Corporation')
+    RETURNING *
+)
+INSERT INTO employees_log SELECT *, current_timestamp FROM upd;
+
+---
+
+(source_file
+  (insert_statement
+    (with_clause
+      (cte
+        (identifier)
+        (update_statement
+          (table_reference
+            (object_reference
+              (identifier)))
+          (set_clause
+            (assignment
+              (identifier)
+              (binary_expression
+                (column_reference
+                  (identifier))
+                (operator)
+                (number))))
+          (where_clause
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (subquery
+                (select
+                  (column_reference
+                    (identifier))
+                  (from_clause
+                    (table_reference
+                      (object_reference
+                        (identifier))))
+                  (where_clause
+                    (binary_expression
+                      (column_reference
+                        (identifier))
+                      (operator)
+                      (string)))))))
+          (returning_clause
+            (all_columns)))))
+    (object_reference
+      (identifier))
+    (select
+      (all_columns)
+      (function_call
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Insert or update on a conflict
+================================================================================
+
+INSERT INTO distributors (did, dname)
+    VALUES (5, 'Gizmo Transglobal'), (6, 'Associated Computing, Inc')
+    ON CONFLICT (did) DO UPDATE SET dname = EXCLUDED.dname;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier))
+    (values
+      (value_list
+        (number)
+        (string))
+      (value_list
+        (number)
+        (string)))
+    (on_conflict_clause
+      (conflict_target
+        (index_element
+          (identifier)))
+      (set_clause
+        (assignment
+          (identifier)
+          (column_reference
+            (identifier)
+            (identifier)))))))
+
+================================================================================
+Insert or do nothing on a conflict
+================================================================================
+
+INSERT INTO distributors (did, dname) VALUES (7, 'Redline GmbH')
+    ON CONFLICT (did) DO NOTHING;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier))
+    (values
+      (value_list
+        (number)
+        (string)))
+    (on_conflict_clause
+      (conflict_target
+        (index_element
+          (identifier))))))
+
+================================================================================
+Insert with a conflict on a constraint
+================================================================================
+
+INSERT INTO distributors (did, dname) VALUES (9, 'Antwerp Design')
+    ON CONFLICT ON CONSTRAINT distributors_pkey DO NOTHING;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier))
+    (values
+      (value_list
+        (number)
+        (string)))
+    (on_conflict_clause
+      (conflict_target
+        (identifier)))))
+
+================================================================================
+Insert with a conflict on an index with a predicate
+================================================================================
+
+INSERT INTO distributors AS d (did, dname) VALUES (8, 'Anvil Distribution')
+    ON CONFLICT (lower(dname) COLLATE "C" text_pattern_ops, did DESC) WHERE is_active
+    DO UPDATE SET dname = EXCLUDED.dname || ' (formerly ' || d.dname || ')'
+    WHERE d.zipcode <> '21201';
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (column_list
+      (identifier)
+      (identifier))
+    (values
+      (value_list
+        (number)
+        (string)))
+    (on_conflict_clause
+      (conflict_target
+        (index_element
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier))))
+          (object_reference
+            (identifier))
+          (object_reference
+            (identifier)))
+        (index_element
+          (identifier))
+        (where_clause
+          (column_reference
+            (identifier))))
+      (set_clause
+        (assignment
+          (identifier)
+          (binary_expression
+            (column_reference
+              (identifier)
+              (identifier))
+            (operator)
+            (binary_expression
+              (string)
+              (operator)
+              (binary_expression
+                (column_reference
+                  (identifier)
+                  (identifier))
+                (operator)
+                (string))))))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (operator)
+          (string))))))
+
+================================================================================
+Insert or select on a conflict
+================================================================================
+
+INSERT INTO t (k) VALUES (1) ON CONFLICT (k) DO SELECT FOR UPDATE RETURNING *;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier))
+    (values
+      (value_list
+        (number)))
+    (on_conflict_clause
+      (conflict_target
+        (index_element
+          (identifier))))
+    (returning_clause
+      (all_columns))))
+
+================================================================================
+Update a column
+================================================================================
+
+UPDATE films SET kind = 'Dramatic' WHERE kind = 'Drama';
+
+---
+
+(source_file
+  (update_statement
+    (table_reference
+      (object_reference
+        (identifier)))
+    (set_clause
+      (assignment
+        (identifier)
+        (string)))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (string)))))
+
+================================================================================
+Update columns with a default value
+================================================================================
+
+UPDATE weather SET temp_lo = temp_lo+1, temp_hi = temp_lo+15, prcp = DEFAULT
+  WHERE city = 'San Francisco' AND date = '2003-07-03'
+  RETURNING temp_lo, temp_hi, prcp;
+
+---
+
+(source_file
+  (update_statement
+    (table_reference
+      (object_reference
+        (identifier)))
+    (set_clause
+      (assignment
+        (identifier)
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))
+      (assignment
+        (identifier)
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))
+      (assignment
+        (identifier)))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (binary_expression
+          (string)
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (string)))))
+    (returning_clause
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier)))))
+
+================================================================================
+Update a list of columns
+================================================================================
+
+UPDATE weather SET (temp_lo, temp_hi, prcp) = (temp_lo+1, temp_lo+15, DEFAULT)
+  WHERE city = 'San Francisco';
+
+---
+
+(source_file
+  (update_statement
+    (table_reference
+      (object_reference
+        (identifier)))
+    (set_clause
+      (assignment
+        (identifier)
+        (identifier)
+        (identifier)
+        (value_list
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number))
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number)))))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (string)))))
+
+================================================================================
+Update a list of columns from a subquery
+================================================================================
+
+UPDATE accounts SET (contact_first_name, contact_last_name) =
+    (SELECT first_name, last_name FROM employees
+     WHERE employees.id = accounts.sales_person);
+
+---
+
+(source_file
+  (update_statement
+    (table_reference
+      (object_reference
+        (identifier)))
+    (set_clause
+      (assignment
+        (identifier)
+        (identifier)
+        (subquery
+          (select
+            (column_reference
+              (identifier))
+            (column_reference
+              (identifier))
+            (from_clause
+              (table_reference
+                (object_reference
+                  (identifier))))
+            (where_clause
+              (binary_expression
+                (column_reference
+                  (identifier)
+                  (identifier))
+                (operator)
+                (column_reference
+                  (identifier)
+                  (identifier))))))))))
+
+================================================================================
+Update with a list of tables
+================================================================================
+
+UPDATE employees SET sales_count = sales_count + 1 FROM accounts
+  WHERE accounts.name = 'Acme Corporation'
+  AND employees.id = accounts.sales_person;
+
+---
+
+(source_file
+  (update_statement
+    (table_reference
+      (object_reference
+        (identifier)))
+    (set_clause
+      (assignment
+        (identifier)
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))))
+    (from_clause
+      (table_reference
+        (object_reference
+          (identifier))))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (binary_expression
+          (string)
+          (binary_expression
+            (column_reference
+              (identifier)
+              (identifier))
+            (operator)
+            (column_reference
+              (identifier)
+              (identifier))))))))
+
+================================================================================
+Update fields and elements of columns
+================================================================================
+
+UPDATE ONLY t AS x SET a[1] = 2, b.c = 3, d[2:] = '{}', (e, f) = ROW (4, 5);
+
+---
+
+(source_file
+  (update_statement
+    (table_reference
+      (object_reference
+        (identifier))
+      (identifier))
+    (set_clause
+      (assignment
+        (identifier)
+        (number)
+        (number))
+      (assignment
+        (identifier)
+        (identifier)
+        (number))
+      (assignment
+        (identifier)
+        (number)
+        (string))
+      (assignment
+        (identifier)
+        (identifier)
+        (value_list
+          (number)
+          (number))))))
+
+================================================================================
+Update the row of a cursor
+================================================================================
+
+UPDATE films SET kind = 'Dramatic' WHERE CURRENT OF c_films;
+
+---
+
+(source_file
+  (update_statement
+    (table_reference
+      (object_reference
+        (identifier)))
+    (set_clause
+      (assignment
+        (identifier)
+        (string)))
+    (where_clause
+      (current_of
+        (identifier)))))
+
+================================================================================
+Delete with a list of tables
+================================================================================
+
+DELETE FROM films USING producers
+  WHERE producer_id = producers.id AND producers.name = 'foo';
+
+---
+
+(source_file
+  (delete_statement
+    (table_reference
+      (object_reference
+        (identifier)))
+    (table_reference
+      (object_reference
+        (identifier)))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (binary_expression
+            (column_reference
+              (identifier)
+              (identifier))
+            (operator)
+            (string)))))))
+
+================================================================================
+Delete and return the rows
+================================================================================
+
+DELETE FROM tasks WHERE status = 'DONE' RETURNING *;
+
+---
+
+(source_file
+  (delete_statement
+    (table_reference
+      (object_reference
+        (identifier)))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (string)))
+    (returning_clause
+      (all_columns))))
+
+================================================================================
+Delete the row of a cursor
+================================================================================
+
+DELETE FROM ONLY films f WHERE CURRENT OF c_films;
+
+---
+
+(source_file
+  (delete_statement
+    (table_reference
+      (object_reference
+        (identifier))
+      (identifier))
+    (where_clause
+      (current_of
+        (identifier)))))
+
+================================================================================
+Delete with a column named current
+================================================================================
+
+DELETE FROM t WHERE current = 1;
+
+---
+
+(source_file
+  (delete_statement
+    (table_reference
+      (object_reference
+        (identifier)))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))))
+
+================================================================================
+Merge
+================================================================================
+
+MERGE INTO customer_account ca
+USING recent_transactions t
+ON t.customer_id = ca.customer_id
+WHEN MATCHED THEN
+  UPDATE SET balance = balance + transaction_value
+WHEN NOT MATCHED THEN
+  INSERT (customer_id, balance)
+  VALUES (t.customer_id, t.transaction_value);
+
+---
+
+(source_file
+  (merge_statement
+    (table_reference
+      (object_reference
+        (identifier))
+      (identifier))
+    (table_reference
+      (object_reference
+        (identifier))
+      (identifier))
+    (binary_expression
+      (column_reference
+        (identifier)
+        (identifier))
+      (operator)
+      (column_reference
+        (identifier)
+        (identifier)))
+    (merge_when_clause
+      (merge_update
+        (set_clause
+          (assignment
+            (identifier)
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (column_reference
+                (identifier)))))))
+    (merge_when_clause
+      (merge_insert
+        (column_list
+          (identifier)
+          (identifier))
+        (value_list
+          (column_reference
+            (identifier)
+            (identifier))
+          (column_reference
+            (identifier)
+            (identifier)))))))
+
+================================================================================
+Merge with every action
+================================================================================
+
+WITH s AS (SELECT * FROM src)
+MERGE INTO wines w
+USING (SELECT * FROM s) AS s
+ON s.winename = w.winename
+WHEN NOT MATCHED BY TARGET AND s.stock_delta > 0 THEN
+  INSERT VALUES(s.winename, s.stock_delta)
+WHEN NOT MATCHED THEN
+  INSERT DEFAULT VALUES
+WHEN MATCHED AND w.stock + s.stock_delta > 0 THEN
+  UPDATE SET stock = w.stock + s.stock_delta
+WHEN MATCHED THEN
+  DELETE
+WHEN NOT MATCHED BY SOURCE THEN
+  DO NOTHING
+RETURNING merge_action(), w.*;
+
+---
+
+(source_file
+  (merge_statement
+    (with_clause
+      (cte
+        (identifier)
+        (select
+          (all_columns)
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier)))))))
+    (table_reference
+      (object_reference
+        (identifier))
+      (identifier))
+    (derived_table
+      (subquery
+        (select
+          (all_columns)
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier))))))
+      (identifier))
+    (binary_expression
+      (column_reference
+        (identifier)
+        (identifier))
+      (operator)
+      (column_reference
+        (identifier)
+        (identifier)))
+    (merge_when_clause
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (number))
+      (merge_insert
+        (value_list
+          (column_reference
+            (identifier)
+            (identifier))
+          (column_reference
+            (identifier)
+            (identifier)))))
+    (merge_when_clause
+      (merge_insert))
+    (merge_when_clause
+      (binary_expression
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)
+            (identifier)))
+        (operator)
+        (number))
+      (merge_update
+        (set_clause
+          (assignment
+            (identifier)
+            (binary_expression
+              (column_reference
+                (identifier)
+                (identifier))
+              (operator)
+              (column_reference
+                (identifier)
+                (identifier)))))))
+    (merge_when_clause
+      (merge_delete))
+    (merge_when_clause)
+    (returning_clause
+      (function_call
+        (identifier)
+        (arguments))
+      (all_columns
+        (identifier)))))
+
+================================================================================
+Copy a table to the standard output
+================================================================================
+
+COPY country TO STDOUT (DELIMITER '|');
+
+---
+
+(source_file
+  (copy_statement
+    (object_reference
+      (identifier))
+    (option_list
+      (option
+        (identifier)
+        (string)))))
+
+================================================================================
+Copy a file into a table
+================================================================================
+
+COPY country FROM '/usr1/proj/bray/sql/country_data';
+
+---
+
+(source_file
+  (copy_statement
+    (object_reference
+      (identifier))
+    (string)))
+
+================================================================================
+Copy a query to a file
+================================================================================
+
+COPY (SELECT * FROM country WHERE country_name LIKE 'A%') TO '/usr1/proj/bray/sql/a_list_countries.copy';
+
+---
+
+(source_file
+  (copy_statement
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (like_expression
+          (column_reference
+            (identifier))
+          (string))))
+    (string)))
+
+================================================================================
+Copy a table to a program
+================================================================================
+
+COPY country TO PROGRAM 'gzip > /usr1/proj/bray/sql/country_data.gz';
+
+---
+
+(source_file
+  (copy_statement
+    (object_reference
+      (identifier))
+    (string)))
+
+================================================================================
+Copy with options and a condition
+================================================================================
+
+COPY t (a, b) FROM STDIN WITH (FORMAT csv, HEADER match, FORCE_NULL (a, b), DEFAULT '\D') WHERE a > 1;
+
+---
+
+(source_file
+  (copy_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier))
+    (option_list
+      (option
+        (identifier)
+        (identifier))
+      (option
+        (identifier)
+        (identifier))
+      (option
+        (identifier)
+        (identifier)
+        (identifier))
+      (option
+        (identifier)
+        (string)))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))))
+
+================================================================================
+Copy with the old options
+================================================================================
+
+COPY t TO STDOUT WITH CSV HEADER DELIMITER AS ',' NULL 'x' FORCE QUOTE *;
+
+---
+
+(source_file
+  (copy_statement
+    (object_reference
+      (identifier))
+    (copy_option
+      (identifier))
+    (copy_option
+      (identifier))
+    (copy_option
+      (identifier)
+      (string))
+    (copy_option
+      (identifier)
+      (string))
+    (copy_option
+      (identifier))
+    (copy_option
+      (identifier))))
+
+================================================================================
+Copy in binary from the rows that a statement returns
+================================================================================
+
+COPY BINARY t FROM STDIN;
+COPY (DELETE FROM t RETURNING *) TO STDOUT;
+
+---
+
+(source_file
+  (copy_statement
+    (object_reference
+      (identifier)))
+  (copy_statement
+    (delete_statement
+      (table_reference
+        (object_reference
+          (identifier)))
+      (returning_clause
+        (all_columns)))))
+
+================================================================================
+Truncate
+================================================================================
+
+TRUNCATE bigtable, fattable RESTART IDENTITY;
+TRUNCATE TABLE ONLY a, b * CONTINUE IDENTITY CASCADE;
+
+---
+
+(source_file
+  (truncate_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)))
+  (truncate_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))))
+
+================================================================================
+Lock
+================================================================================
+
+LOCK films;
+LOCK TABLE films, ONLY s.t IN SHARE ROW EXCLUSIVE MODE NOWAIT;
+
+---
+
+(source_file
+  (lock_statement
+    (object_reference
+      (identifier)))
+  (lock_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (lock_mode)))

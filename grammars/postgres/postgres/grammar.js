@@ -54,9 +54,10 @@ const PREC = {
 // reserves but accepts as a function name or a type name is in
 // TYPE_FUNC_NAME_WORDS.
 const RESERVED_WORDS = [
-  'ALL', 'AND', 'ANY', 'ARRAY', 'AS', 'ASC', 'ASYMMETRIC', 'BOTH', 'CASE',
-  'CAST', 'COLLATE', 'CURRENT_CATALOG', 'CURRENT_DATE', 'CURRENT_ROLE',
-  'CURRENT_TIME', 'CURRENT_TIMESTAMP', 'CURRENT_USER', 'DEFAULT', 'DESC', 'DISTINCT',
+  'ALL', 'ANALYSE', 'ANALYZE', 'AND', 'ANY', 'ARRAY', 'AS', 'ASC', 'ASYMMETRIC',
+  'BOTH', 'CASE', 'CAST', 'COLLATE', 'CONSTRAINT', 'CURRENT_CATALOG',
+  'CURRENT_DATE', 'CURRENT_ROLE', 'CURRENT_TIME', 'CURRENT_TIMESTAMP',
+  'CURRENT_USER', 'DEFAULT', 'DEFERRABLE', 'DESC', 'DISTINCT', 'DO',
   'ELSE', 'END', 'EXCEPT', 'FALSE', 'FETCH', 'FOR', 'FROM', 'GROUP',
   'HAVING', 'IN', 'INTERSECT', 'INTO', 'LATERAL', 'LEADING', 'LIMIT',
   'LOCALTIME', 'LOCALTIMESTAMP', 'NOT', 'NULL', 'OFFSET', 'ON', 'ONLY', 'OR',
@@ -66,9 +67,9 @@ const RESERVED_WORDS = [
 ];
 
 const TYPE_FUNC_NAME_WORDS = [
-  'COLLATION', 'CROSS', 'CURRENT_SCHEMA', 'FULL', 'ILIKE', 'INNER', 'IS',
-  'ISNULL', 'JOIN', 'LEFT', 'LIKE', 'NATURAL', 'NOTNULL', 'OUTER',
-  'OVERLAPS', 'RIGHT', 'SIMILAR', 'TABLESAMPLE',
+  'AUTHORIZATION', 'BINARY', 'COLLATION', 'CONCURRENTLY', 'CROSS', 'CURRENT_SCHEMA', 'FREEZE',
+  'FULL', 'ILIKE', 'INNER', 'IS', 'ISNULL', 'JOIN', 'LEFT', 'LIKE', 'NATURAL',
+  'NOTNULL', 'OUTER', 'OVERLAPS', 'RIGHT', 'SIMILAR', 'TABLESAMPLE', 'VERBOSE',
 ];
 
 /**
@@ -193,11 +194,600 @@ module.exports = grammar({
 
     _statement: $ => choice(
       $.select_statement,
+      $.insert_statement,
+      $.update_statement,
+      $.delete_statement,
+      $.merge_statement,
+      $.copy_statement,
+      $.truncate_statement,
+      $.lock_statement,
+      $.begin_statement,
+      $.commit_statement,
+      $.rollback_statement,
+      $.savepoint_statement,
+      $.release_statement,
+      $.prepare_transaction_statement,
+      $.prepare_statement,
+      $.execute_statement,
+      $.deallocate_statement,
+      $.declare_statement,
+      $.fetch_statement,
+      $.close_statement,
+      $.call_statement,
+      $.do_statement,
+      $.explain_statement,
+      $.set_statement,
+      $.show_statement,
+      $.reset_statement,
+      $.listen_statement,
+      $.notify_statement,
+      $.unlisten_statement,
+      $.vacuum_statement,
+      $.analyze_statement,
+      $.cluster_statement,
+      $.repack_statement,
+      $.reindex_statement,
+      $.checkpoint_statement,
+      $.discard_statement,
+      $.load_statement,
+    ),
+
+    // The statements that change rows: INSERT, UPDATE, DELETE and MERGE. A
+    // WITH clause can come before each of them, and each of them can be the
+    // query of a common table expression.
+    _modifying_statement: $ => choice(
+      $.insert_statement,
+      $.update_statement,
+      $.delete_statement,
+      $.merge_statement,
+    ),
+
+    // The statements that EXPLAIN and PREPARE take.
+    _explainable_statement: $ => choice(
+      $.select_statement,
+      $._modifying_statement,
+      $.declare_statement,
+      $.execute_statement,
     ),
 
     // Queries
 
     select_statement: $ => $._query,
+
+    // Data manipulation
+
+    // The target of INSERT can have an alias only after AS, because VALUES
+    // can come after the name.
+    insert_statement: $ => seq(
+      optional($.with_clause),
+      kw('INSERT'),
+      kw('INTO'),
+      field('table', $.object_reference),
+      optional(seq(kw('AS'), field('alias', $._label))),
+      optional($._insert_columns),
+      optional($._overriding),
+      choice(
+        kws('DEFAULT', 'VALUES'),
+        field('query', $._query),
+      ),
+      optional($.on_conflict_clause),
+      optional($.returning_clause),
+    ),
+
+    // A column of INSERT can be a field or an element of a column.
+    _insert_columns: $ => alias($._insert_column_list, $.column_list),
+
+    _insert_column_list: $ => parens(commaSep1($._assignment_target)),
+
+    _overriding: _ => seq(
+      kw('OVERRIDING'),
+      choice(kw('SYSTEM'), kw('USER')),
+      kw('VALUE'),
+    ),
+
+    on_conflict_clause: $ => seq(
+      kw('ON'),
+      kw('CONFLICT'),
+      optional($.conflict_target),
+      kw('DO'),
+      choice(
+        kw('NOTHING'),
+        seq(kw('UPDATE'), $.set_clause, optional($.where_clause)),
+        seq(
+          kw('SELECT'),
+          optional(seq(kw('FOR'), $._lock_strength)),
+          optional($.where_clause),
+        ),
+      ),
+    ),
+
+    conflict_target: $ => choice(
+      seq(parens(commaSep1($.index_element)), optional($.where_clause)),
+      seq(kw('ON'), kw('CONSTRAINT'), field('constraint', $._name)),
+    ),
+
+    // A column or an expression of an index, with its collation and its
+    // operator class.
+    index_element: $ => seq(
+      choice(
+        field('column', $._name),
+        field('expression', choice($.function_call, $.parenthesized_expression)),
+      ),
+      optional(seq(kw('COLLATE'), field('collation', $.object_reference))),
+      optional(field('operator_class', $.object_reference)),
+      optional(choice(kw('ASC'), kw('DESC'))),
+      optional(seq(kw('NULLS'), choice(kw('FIRST'), kw('LAST')))),
+    ),
+
+    // RETURNING can name the old row and the new row with WITH.
+    returning_clause: $ => seq(
+      kw('RETURNING'),
+      optional(seq(
+        kw('WITH'),
+        parens(commaSep1(seq(
+          choice(kw('OLD'), kw('NEW')),
+          kw('AS'),
+          field('alias', $._name),
+        ))),
+      )),
+      commaSep1($._select_item),
+    ),
+
+    update_statement: $ => seq(
+      optional($.with_clause),
+      kw('UPDATE'),
+      field('table', $.table_reference),
+      $.set_clause,
+      optional($.from_clause),
+      optional($.where_clause),
+      optional($.returning_clause),
+    ),
+
+    set_clause: $ => seq(kw('SET'), commaSep1($.assignment)),
+
+    // A list of columns takes a list of values, in which DEFAULT can stand
+    // for a value, or a subquery.
+    assignment: $ => choice(
+      seq(
+        $._assignment_target,
+        '=',
+        field('value', choice($._expression, kw('DEFAULT'))),
+      ),
+      seq(
+        parens(commaSep1($._assignment_target)),
+        '=',
+        field('value', choice(
+          seq(optional(kw('ROW')), $.value_list),
+          $.subquery,
+        )),
+      ),
+    ),
+
+    // A column, or a field or an element of a column.
+    _assignment_target: $ => seq(
+      field('column', $._name),
+      repeat(choice(
+        seq('.', field('field', $._label)),
+        seq(
+          '[',
+          optional(field('index', $._expression)),
+          optional(seq(':', optional(field('upper', $._expression)))),
+          ']',
+        ),
+      )),
+    ),
+
+    delete_statement: $ => seq(
+      optional($.with_clause),
+      kw('DELETE'),
+      kw('FROM'),
+      field('table', $.table_reference),
+      optional(seq(kw('USING'), commaSep1($._table_reference))),
+      optional($.where_clause),
+      optional($.returning_clause),
+    ),
+
+    merge_statement: $ => seq(
+      optional($.with_clause),
+      kw('MERGE'),
+      kw('INTO'),
+      field('table', $.table_reference),
+      kw('USING'),
+      field('source', $._table_reference),
+      kw('ON'),
+      field('condition', $._expression),
+      repeat1($.merge_when_clause),
+      optional($.returning_clause),
+    ),
+
+    merge_when_clause: $ => seq(
+      kw('WHEN'),
+      choice(
+        kw('MATCHED'),
+        seq(
+          kw('NOT'),
+          kw('MATCHED'),
+          optional(seq(kw('BY'), choice(kw('SOURCE'), kw('TARGET')))),
+        ),
+      ),
+      optional(seq(kw('AND'), field('condition', $._expression))),
+      kw('THEN'),
+      choice(
+        $.merge_insert,
+        $.merge_update,
+        $.merge_delete,
+        kws('DO', 'NOTHING'),
+      ),
+    ),
+
+    merge_insert: $ => seq(
+      kw('INSERT'),
+      optional($._insert_columns),
+      optional($._overriding),
+      choice(
+        seq(kw('VALUES'), $.value_list),
+        kws('DEFAULT', 'VALUES'),
+      ),
+    ),
+
+    merge_update: $ => seq(kw('UPDATE'), $.set_clause),
+
+    merge_delete: _ => kw('DELETE'),
+
+    // COPY has the options of PostgreSQL 9.0 and later in parentheses, and
+    // the older options with no parentheses.
+    copy_statement: $ => seq(
+      kw('COPY'),
+      optional(kw('BINARY')),
+      choice(
+        seq(field('table', $.object_reference), optional($.column_list)),
+        parens(field('query', choice($._query, $._modifying_statement))),
+      ),
+      choice(kw('FROM'), kw('TO')),
+      choice(
+        seq(optional(kw('PROGRAM')), field('file', $.string)),
+        kw('STDIN'),
+        kw('STDOUT'),
+      ),
+      optional(seq(optional(kw('USING')), kw('DELIMITERS'), $.string)),
+      optional(kw('WITH')),
+      optional(choice(
+        $.option_list,
+        seq($.copy_option, repeat(seq(optional(','), $.copy_option))),
+      )),
+      optional($.where_clause),
+    ),
+
+    // An option of COPY in the old form, such as CSV, DELIMITER ',' or
+    // FORCE QUOTE *. The words of such an option are not keywords.
+    copy_option: $ => prec.right(seq(
+      field('name', $._label),
+      optional(kw('AS')),
+      optional(field('value', choice($.string, '*'))),
+    )),
+
+    truncate_statement: $ => seq(
+      kw('TRUNCATE'),
+      optional(kw('TABLE')),
+      commaSep1($._relation),
+      optional(seq(choice(kw('RESTART'), kw('CONTINUE')), kw('IDENTITY'))),
+      optional($._drop_behavior),
+    ),
+
+    _drop_behavior: _ => choice(kw('CASCADE'), kw('RESTRICT')),
+
+    // A table, with ONLY or * for its descendant tables.
+    _relation: $ => seq(
+      optional(kw('ONLY')),
+      field('table', $.object_reference),
+      optional('*'),
+    ),
+
+    lock_statement: $ => seq(
+      kw('LOCK'),
+      optional(kw('TABLE')),
+      commaSep1($._relation),
+      optional(seq(kw('IN'), $.lock_mode, kw('MODE'))),
+      optional(kw('NOWAIT')),
+    ),
+
+    lock_mode: _ => choice(
+      kws('ACCESS', 'SHARE'),
+      kws('ROW', 'SHARE'),
+      kws('ROW', 'EXCLUSIVE'),
+      kws('SHARE', 'UPDATE', 'EXCLUSIVE'),
+      kw('SHARE'),
+      kws('SHARE', 'ROW', 'EXCLUSIVE'),
+      kw('EXCLUSIVE'),
+      kws('ACCESS', 'EXCLUSIVE'),
+    ),
+
+    // Transactions
+
+    begin_statement: $ => seq(
+      choice(
+        seq(kw('BEGIN'), optional($._transaction)),
+        kws('START', 'TRANSACTION'),
+      ),
+      optional($._transaction_modes),
+    ),
+
+    _transaction: _ => choice(kw('WORK'), kw('TRANSACTION')),
+
+    _transaction_modes: $ => seq(
+      $.transaction_mode,
+      repeat(seq(optional(','), $.transaction_mode)),
+    ),
+
+    transaction_mode: _ => choice(
+      seq(
+        kws('ISOLATION', 'LEVEL'),
+        choice(
+          kw('SERIALIZABLE'),
+          kws('REPEATABLE', 'READ'),
+          kws('READ', 'COMMITTED'),
+          kws('READ', 'UNCOMMITTED'),
+        ),
+      ),
+      kws('READ', 'WRITE'),
+      kws('READ', 'ONLY'),
+      seq(optional(kw('NOT')), kw('DEFERRABLE')),
+    ),
+
+    _chain: _ => seq(kw('AND'), optional(kw('NO')), kw('CHAIN')),
+
+    commit_statement: $ => choice(
+      seq(choice(kw('COMMIT'), kw('END')), optional($._transaction), optional($._chain)),
+      seq(kws('COMMIT', 'PREPARED'), field('id', $.string)),
+    ),
+
+    rollback_statement: $ => choice(
+      seq(
+        choice(kw('ROLLBACK'), kw('ABORT')),
+        optional($._transaction),
+        optional(choice(
+          $._chain,
+          seq(kw('TO'), optional(kw('SAVEPOINT')), field('savepoint', $._name)),
+        )),
+      ),
+      seq(kws('ROLLBACK', 'PREPARED'), field('id', $.string)),
+    ),
+
+    savepoint_statement: $ => seq(kw('SAVEPOINT'), field('name', $._name)),
+
+    release_statement: $ => seq(
+      kw('RELEASE'),
+      optional(kw('SAVEPOINT')),
+      field('name', $._name),
+    ),
+
+    prepare_transaction_statement: $ => seq(
+      kws('PREPARE', 'TRANSACTION'),
+      field('id', $.string),
+    ),
+
+    // Prepared statements and cursors
+
+    prepare_statement: $ => seq(
+      kw('PREPARE'),
+      field('name', $._name),
+      optional(parens(commaSep1($.type))),
+      kw('AS'),
+      field('statement', $._explainable_statement),
+    ),
+
+    execute_statement: $ => seq(
+      kw('EXECUTE'),
+      field('name', $._name),
+      optional($.arguments),
+    ),
+
+    deallocate_statement: $ => seq(
+      kw('DEALLOCATE'),
+      optional(kw('PREPARE')),
+      choice(field('name', $._name), kw('ALL')),
+    ),
+
+    declare_statement: $ => seq(
+      kw('DECLARE'),
+      field('name', $._name),
+      repeat(choice(
+        kw('BINARY'),
+        kw('ASENSITIVE'),
+        kw('INSENSITIVE'),
+        seq(optional(kw('NO')), kw('SCROLL')),
+      )),
+      kw('CURSOR'),
+      optional(seq(choice(kw('WITH'), kw('WITHOUT')), kw('HOLD'))),
+      kw('FOR'),
+      field('query', $._query),
+    ),
+
+    // FETCH and MOVE take the same direction.
+    fetch_statement: $ => seq(
+      choice(kw('FETCH'), kw('MOVE')),
+      optional($.fetch_direction),
+      optional(choice(kw('FROM'), kw('IN'))),
+      field('cursor', $._name),
+    ),
+
+    fetch_direction: $ => choice(
+      kw('NEXT'),
+      kw('PRIOR'),
+      kw('FIRST'),
+      kw('LAST'),
+      seq(choice(kw('ABSOLUTE'), kw('RELATIVE')), $._signed_number),
+      $._signed_number,
+      kw('ALL'),
+      seq(choice(kw('FORWARD'), kw('BACKWARD')), optional(choice($._signed_number, kw('ALL')))),
+    ),
+
+    _signed_number: $ => seq(optional(alias($._sign, $.operator)), $.number),
+
+    close_statement: $ => seq(
+      kw('CLOSE'),
+      choice(field('cursor', $._name), kw('ALL')),
+    ),
+
+    call_statement: $ => seq(kw('CALL'), $.function_call),
+
+    // The code of DO is a string in the language that LANGUAGE names, which
+    // is PL/pgSQL if LANGUAGE is not there.
+    do_statement: $ => choice(
+      seq(kw('DO'), field('code', $._code), optional($._language)),
+      seq(kw('DO'), $._language, field('code', $._code)),
+    ),
+
+    _code: $ => choice($.string, $.dollar_quoted_string),
+
+    _language: $ => seq(kw('LANGUAGE'), field('language', choice($._name, $.string))),
+
+    // Utility statements
+
+    explain_statement: $ => seq(
+      kw('EXPLAIN'),
+      optional(choice(
+        $.option_list,
+        seq(choice(kw('ANALYZE'), kw('ANALYSE')), optional(kw('VERBOSE'))),
+        kw('VERBOSE'),
+      )),
+      field('statement', $._explainable_statement),
+    ),
+
+    // The options of EXPLAIN, VACUUM, ANALYZE, CLUSTER, REINDEX, CHECKPOINT
+    // and COPY, such as (FORMAT json, ANALYZE). A name and a value can be
+    // any word.
+    option_list: $ => parens(commaSep1($.option)),
+
+    option: $ => seq(
+      field('name', $._label),
+      optional(field('value', choice(
+        $._option_value,
+        '*',
+        parens(commaSep1($._option_value)),
+      ))),
+    ),
+
+    _option_value: $ => choice($.string, $._signed_number, $._label),
+
+    // SET has a form for each of the settings that the standard names, such
+    // as SET TIME ZONE, and a form for any setting. ROLE is not a keyword,
+    // so that role can also name a setting.
+    set_statement: $ => seq(
+      kw('SET'),
+      optional(choice(kw('SESSION'), kw('LOCAL'), kws('LOCAL', 'SESSION'))),
+      choice(
+        seq(
+          field('name', $.setting_name),
+          choice(kw('TO'), '='),
+          choice(kw('DEFAULT'), commaSep1(field('value', $._option_value))),
+        ),
+        seq(field('name', $.setting_name), kws('FROM', 'CURRENT')),
+        seq(
+          kws('TIME', 'ZONE'),
+          field('value', choice($._option_value, $.typed_literal, kw('LOCAL'), kw('DEFAULT'))),
+        ),
+        seq(kw('SCHEMA'), field('value', $.string)),
+        seq(kw('NAMES'), optional(field('value', choice($.string, kw('DEFAULT'))))),
+        seq(alias($.identifier, 'ROLE'), field('value', choice($._name, $.string))),
+        seq(kw('AUTHORIZATION'), field('value', choice($._name, $.string, kw('DEFAULT')))),
+        seq(kws('XML', 'OPTION'), choice(kw('DOCUMENT'), kw('CONTENT'))),
+        seq(kw('TRANSACTION'), choice(
+          seq(kw('SNAPSHOT'), field('value', $.string)),
+          $._transaction_modes,
+        )),
+        seq(kws('CHARACTERISTICS', 'AS', 'TRANSACTION'), $._transaction_modes),
+        seq(
+          kw('CONSTRAINTS'),
+          choice(kw('ALL'), commaSep1(field('constraint', $.object_reference))),
+          choice(kw('DEFERRED'), kw('IMMEDIATE')),
+        ),
+      ),
+    ),
+
+    // The name of a setting can have a prefix, as in plpgsql.check.
+    setting_name: $ => seq($._name, repeat(seq('.', $._label))),
+
+    show_statement: $ => seq(
+      kw('SHOW'),
+      choice(field('name', $.setting_name), kw('ALL'), $._special_setting),
+    ),
+
+    reset_statement: $ => seq(
+      kw('RESET'),
+      choice(field('name', $.setting_name), kw('ALL'), $._special_setting),
+    ),
+
+    _special_setting: _ => choice(
+      kws('TIME', 'ZONE'),
+      kws('TRANSACTION', 'ISOLATION', 'LEVEL'),
+      kws('SESSION', 'AUTHORIZATION'),
+    ),
+
+    listen_statement: $ => seq(kw('LISTEN'), field('channel', $._name)),
+
+    notify_statement: $ => seq(
+      kw('NOTIFY'),
+      field('channel', $._name),
+      optional(seq(',', field('payload', $.string))),
+    ),
+
+    unlisten_statement: $ => seq(
+      kw('UNLISTEN'),
+      choice(field('channel', $._name), '*'),
+    ),
+
+    vacuum_statement: $ => seq(
+      kw('VACUUM'),
+      optional($.option_list),
+      repeat(choice(kw('FULL'), kw('FREEZE'), kw('VERBOSE'), kw('ANALYZE'), kw('ANALYSE'))),
+      optional(commaSep1($._vacuum_relation)),
+    ),
+
+    _vacuum_relation: $ => seq($._relation, optional($.column_list)),
+
+    analyze_statement: $ => seq(
+      choice(kw('ANALYZE'), kw('ANALYSE')),
+      optional(choice($.option_list, kw('VERBOSE'))),
+      optional(commaSep1($._vacuum_relation)),
+    ),
+
+    // CLUSTER index ON table is the form of PostgreSQL 8.2 and earlier.
+    cluster_statement: $ => seq(
+      kw('CLUSTER'),
+      optional(choice($.option_list, kw('VERBOSE'))),
+      optional(choice(
+        seq(
+          field('table', $.object_reference),
+          optional(seq(kw('USING'), field('index', $._name))),
+        ),
+        seq(field('index', $._name), kw('ON'), field('table', $.object_reference)),
+      )),
+    ),
+
+    repack_statement: $ => seq(
+      kw('REPACK'),
+      optional($.option_list),
+      optional(seq(field('table', $.object_reference), optional($.column_list))),
+      optional(seq(kws('USING', 'INDEX'), optional(field('index', $._name)))),
+    ),
+
+    reindex_statement: $ => seq(
+      kw('REINDEX'),
+      optional($.option_list),
+      choice(kw('INDEX'), kw('TABLE'), kw('SCHEMA'), kw('DATABASE'), kw('SYSTEM')),
+      optional(kw('CONCURRENTLY')),
+      optional(field('name', $.object_reference)),
+    ),
+
+    checkpoint_statement: $ => seq(kw('CHECKPOINT'), optional($.option_list)),
+
+    discard_statement: _ => seq(
+      kw('DISCARD'),
+      choice(kw('ALL'), kw('PLANS'), kw('SEQUENCES'), kw('TEMPORARY'), kw('TEMP')),
+    ),
+
+    load_statement: $ => seq(kw('LOAD'), field('file', $.string)),
 
     _query: $ => prec.right(seq(
       optional($.with_clause),
@@ -222,7 +812,7 @@ module.exports = grammar({
       optional($.column_list),
       kw('AS'),
       optional(seq(optional(kw('NOT')), kw('MATERIALIZED'))),
-      parens(field('query', $._query)),
+      parens(field('query', choice($._query, $._modifying_statement))),
       optional($.search_clause),
       optional($.cycle_clause),
     ),
@@ -291,10 +881,11 @@ module.exports = grammar({
       optional($.window_clause),
     )),
 
-    distinct_clause: $ => seq(
+    // ON after DISTINCT starts DISTINCT ON, and not ON CONFLICT of INSERT.
+    distinct_clause: $ => prec.right(seq(
       kw('DISTINCT'),
       optional(seq(kw('ON'), parens(commaSep1($._expression)))),
-    ),
+    )),
 
     _select_item: $ => choice(
       $._expression,
@@ -440,7 +1031,16 @@ module.exports = grammar({
       )),
     )),
 
-    where_clause: $ => seq(kw('WHERE'), $._expression),
+    // WHERE CURRENT OF names the row of a cursor in UPDATE and DELETE.
+    // CURRENT is not a keyword there, so that current can also name a
+    // column.
+    where_clause: $ => seq(kw('WHERE'), choice($._expression, $.current_of)),
+
+    current_of: $ => seq(
+      alias($.identifier, 'CURRENT'),
+      kw('OF'),
+      field('cursor', $._name),
+    ),
 
     group_by_clause: $ => seq(
       kws('GROUP', 'BY'),
@@ -541,14 +1141,16 @@ module.exports = grammar({
 
     locking_clause: $ => seq(
       kw('FOR'),
-      choice(
-        kw('UPDATE'),
-        kws('NO', 'KEY', 'UPDATE'),
-        kw('SHARE'),
-        kws('KEY', 'SHARE'),
-      ),
+      $._lock_strength,
       optional(seq(kw('OF'), commaSep1($.object_reference))),
       optional(choice(kw('NOWAIT'), kws('SKIP', 'LOCKED'))),
+    ),
+
+    _lock_strength: _ => choice(
+      kw('UPDATE'),
+      kws('NO', 'KEY', 'UPDATE'),
+      kw('SHARE'),
+      kws('KEY', 'SHARE'),
     ),
 
     subquery: $ => parens($._query),
