@@ -1,6 +1,6 @@
 # D106. The grammars of phase 5
 
-Status: Decided, amends D42, amended by D107, D122 and D124.
+Status: Decided, amends D42, amended by D107, D122, D124 and D126.
 
 Ken decided on 2026-10-01, answering questions 73 to 75:
 

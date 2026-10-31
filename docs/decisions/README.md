@@ -124,7 +124,7 @@ An open question is not a decision. It goes at the end of
 | [D103](D103-ken-accepts-the-target-api.md) | Ken accepts the target API | Decided, amended by D119 |
 | [D104](D104-a-grammar-that-xo-writes-lives-in-grammars.md) | A grammar that xo writes lives in grammars | Decided, amends D42 |
 | [D105](D105-ken-accepts-the-usql-grammar.md) | Ken accepts the usql grammar | Decided, amends D101 and D102, amended by D108 |
-| [D106](D106-the-grammars-of-phase-5.md) | The grammars of phase 5 | Decided, amends D42, amended by D107, D122 and D124 |
+| [D106](D106-the-grammars-of-phase-5.md) | The grammars of phase 5 | Decided, amends D42, amended by D107, D122, D124 and D126 |
 | [D107](D107-a-grammar-module-takes-the-name-of-its-dialect.md) | A grammar module takes the name of its dialect | Decided, amends D26 and D106, amended by D108 and D110 |
 | [D108](D108-the-usql-grammar-is-one-language-that-takes-options.md) | The usql grammar is one language that takes options | Decided, amends D101, D105 and D107, amended by D112 and D114 |
 | [D109](D109-the-grammar-modules-fit-a-runner-of-ci.md) | The grammar modules fit a runner of CI | Decided |
@@ -144,3 +144,4 @@ An open question is not a decision. It goes at the end of
 | [D123](D123-the-mysql-grammar-tunes-its-identifier-rules.md) | The MySQL grammar tunes its identifier rules | Decided |
 | [D124](D124-xo-writes-the-oracle-and-sql-server-grammars.md) | xo writes the Oracle and SQL Server grammars | Decided, amends D106, amended by D125 |
 | [D125](D125-the-oracle-grammar-has-no-fixed-size-budget.md) | The Oracle grammar has no fixed size budget | Decided, amends D124 |
+| [D126](D126-xo-writes-the-sqlite-and-duckdb-grammars.md) | xo writes the SQLite and DuckDB grammars | Decided, amends D106 |
