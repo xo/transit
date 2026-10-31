@@ -4,8 +4,8 @@
 // /* ... */. The -- starts a comment only before white space, a control
 // character or the end of the input, as the manual says. It reads the start
 // of a version comment, /*! or /*M! with the digits of a version after it,
-// and its end, */. The text between the two is SQL, so the parser reads it as
-// the rest of the input.
+// and its end, */, as the token VERSION_COMMENT. The text between the two is
+// SQL, so the parser reads it as the rest of the input.
 
 #include "tree_sitter/alloc.h"
 #include "tree_sitter/parser.h"
@@ -16,8 +16,7 @@
 // The external tokens, in the order of externals in grammar.js.
 enum TokenType {
   COMMENT,
-  VERSION_COMMENT_START,
-  VERSION_COMMENT_END,
+  VERSION_COMMENT,
 };
 
 // The state of the scanner.
@@ -76,18 +75,18 @@ static bool scan_version_start(Scanner *s, TSLexer *lexer) {
   }
   lexer->mark_end(lexer);
   s->version = 1;
-  lexer->result_symbol = VERSION_COMMENT_START;
+  lexer->result_symbol = VERSION_COMMENT;
   return true;
 }
 
 // scan_comment reads a block comment or the start of a version comment. The
 // /* is already read.
 static bool scan_comment(Scanner *s, TSLexer *lexer, const bool *valid_symbols) {
-  if (lexer->lookahead == '!' && valid_symbols[VERSION_COMMENT_START]) {
+  if (lexer->lookahead == '!' && valid_symbols[VERSION_COMMENT]) {
     advance(lexer);
     return scan_version_start(s, lexer);
   }
-  if (lexer->lookahead == 'M' && valid_symbols[VERSION_COMMENT_START]) {
+  if (lexer->lookahead == 'M' && valid_symbols[VERSION_COMMENT]) {
     advance(lexer);
     if (lexer->lookahead == '!') {
       advance(lexer);
@@ -146,7 +145,7 @@ bool tree_sitter_mysql_external_scanner_scan(void *payload, TSLexer *lexer, cons
     advance(lexer);
     return scan_comment(s, lexer, valid_symbols);
   }
-  if (c == '*' && s->version && valid_symbols[VERSION_COMMENT_END]) {
+  if (c == '*' && s->version && valid_symbols[VERSION_COMMENT]) {
     advance(lexer);
     if (lexer->lookahead != '/') {
       return false;
@@ -154,7 +153,7 @@ bool tree_sitter_mysql_external_scanner_scan(void *payload, TSLexer *lexer, cons
     advance(lexer);
     lexer->mark_end(lexer);
     s->version = 0;
-    lexer->result_symbol = VERSION_COMMENT_END;
+    lexer->result_symbol = VERSION_COMMENT;
     return true;
   }
   return false;

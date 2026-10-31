@@ -2927,6 +2927,10 @@
             "named": false
           },
           {
+            "type": "DEFAULT",
+            "named": false
+          },
+          {
             "type": "identifier",
             "named": true
           },
@@ -6092,6 +6096,10 @@
           "named": true
         },
         {
+          "type": "interval_unit",
+          "named": true
+        },
+        {
           "type": "is_expression",
           "named": true
         },
@@ -6398,11 +6406,6 @@
         }
       ]
     }
-  },
-  {
-    "type": "identifier",
-    "named": true,
-    "fields": {}
   },
   {
     "type": "if_statement",
@@ -7034,84 +7037,8 @@
         "required": true,
         "types": [
           {
-            "type": "DAY",
-            "named": false
-          },
-          {
-            "type": "DAY_HOUR",
-            "named": false
-          },
-          {
-            "type": "DAY_MICROSECOND",
-            "named": false
-          },
-          {
-            "type": "DAY_MINUTE",
-            "named": false
-          },
-          {
-            "type": "DAY_SECOND",
-            "named": false
-          },
-          {
-            "type": "HOUR",
-            "named": false
-          },
-          {
-            "type": "HOUR_MICROSECOND",
-            "named": false
-          },
-          {
-            "type": "HOUR_MINUTE",
-            "named": false
-          },
-          {
-            "type": "HOUR_SECOND",
-            "named": false
-          },
-          {
-            "type": "MICROSECOND",
-            "named": false
-          },
-          {
-            "type": "MINUTE",
-            "named": false
-          },
-          {
-            "type": "MINUTE_MICROSECOND",
-            "named": false
-          },
-          {
-            "type": "MINUTE_SECOND",
-            "named": false
-          },
-          {
-            "type": "MONTH",
-            "named": false
-          },
-          {
-            "type": "QUARTER",
-            "named": false
-          },
-          {
-            "type": "SECOND",
-            "named": false
-          },
-          {
-            "type": "SECOND_MICROSECOND",
-            "named": false
-          },
-          {
-            "type": "WEEK",
-            "named": false
-          },
-          {
-            "type": "YEAR",
-            "named": false
-          },
-          {
-            "type": "YEAR_MONTH",
-            "named": false
+            "type": "interval_unit",
+            "named": true
           }
         ]
       },
@@ -7120,27 +7047,11 @@
         "required": true,
         "types": [
           {
-            "type": "assignment_expression",
-            "named": true
-          },
-          {
-            "type": "between_expression",
-            "named": true
-          },
-          {
-            "type": "binary_expression",
-            "named": true
-          },
-          {
             "type": "boolean",
             "named": true
           },
           {
             "type": "case_expression",
-            "named": true
-          },
-          {
-            "type": "collate_expression",
             "named": true
           },
           {
@@ -7156,19 +7067,7 @@
             "named": true
           },
           {
-            "type": "in_expression",
-            "named": true
-          },
-          {
             "type": "interval_expression",
-            "named": true
-          },
-          {
-            "type": "is_expression",
-            "named": true
-          },
-          {
-            "type": "like_expression",
             "named": true
           },
           {
@@ -8278,7 +8177,7 @@
     "named": true,
     "fields": {
       "charset": {
-        "multiple": false,
+        "multiple": true,
         "required": false,
         "types": [
           {
@@ -8674,27 +8573,11 @@
       "required": true,
       "types": [
         {
-          "type": "assignment_expression",
-          "named": true
-        },
-        {
-          "type": "between_expression",
-          "named": true
-        },
-        {
-          "type": "binary_expression",
-          "named": true
-        },
-        {
           "type": "boolean",
           "named": true
         },
         {
           "type": "case_expression",
-          "named": true
-        },
-        {
-          "type": "collate_expression",
           "named": true
         },
         {
@@ -8710,19 +8593,7 @@
           "named": true
         },
         {
-          "type": "in_expression",
-          "named": true
-        },
-        {
           "type": "interval_expression",
-          "named": true
-        },
-        {
-          "type": "is_expression",
-          "named": true
-        },
-        {
-          "type": "like_expression",
           "named": true
         },
         {
@@ -8763,10 +8634,6 @@
         },
         {
           "type": "temporal_literal",
-          "named": true
-        },
-        {
-          "type": "unary_expression",
           "named": true
         },
         {
@@ -11980,6 +11847,10 @@
             "named": true
           },
           {
+            "type": "identifier",
+            "named": true
+          },
+          {
             "type": "in_expression",
             "named": true
           },
@@ -13587,10 +13458,6 @@
     "named": false
   },
   {
-    "type": "CROSS",
-    "named": false
-  },
-  {
     "type": "CURRENT",
     "named": false
   },
@@ -13620,26 +13487,6 @@
   },
   {
     "type": "DATETIME",
-    "named": false
-  },
-  {
-    "type": "DAY",
-    "named": false
-  },
-  {
-    "type": "DAY_HOUR",
-    "named": false
-  },
-  {
-    "type": "DAY_MICROSECOND",
-    "named": false
-  },
-  {
-    "type": "DAY_MINUTE",
-    "named": false
-  },
-  {
-    "type": "DAY_SECOND",
     "named": false
   },
   {
@@ -13955,22 +13802,6 @@
     "named": false
   },
   {
-    "type": "HOUR",
-    "named": false
-  },
-  {
-    "type": "HOUR_MICROSECOND",
-    "named": false
-  },
-  {
-    "type": "HOUR_MINUTE",
-    "named": false
-  },
-  {
-    "type": "HOUR_SECOND",
-    "named": false
-  },
-  {
     "type": "IDENTIFIED",
     "named": false
   },
@@ -13996,10 +13827,6 @@
   },
   {
     "type": "INFILE",
-    "named": false
-  },
-  {
-    "type": "INNER",
     "named": false
   },
   {
@@ -14108,10 +13935,6 @@
   },
   {
     "type": "LEAVE",
-    "named": false
-  },
-  {
-    "type": "LEFT",
     "named": false
   },
   {
@@ -14227,22 +14050,6 @@
     "named": false
   },
   {
-    "type": "MICROSECOND",
-    "named": false
-  },
-  {
-    "type": "MINUTE",
-    "named": false
-  },
-  {
-    "type": "MINUTE_MICROSECOND",
-    "named": false
-  },
-  {
-    "type": "MINUTE_SECOND",
-    "named": false
-  },
-  {
     "type": "MIN_ROWS",
     "named": false
   },
@@ -14260,10 +14067,6 @@
   },
   {
     "type": "MODIFY",
-    "named": false
-  },
-  {
-    "type": "MONTH",
     "named": false
   },
   {
@@ -14367,10 +14170,6 @@
     "named": false
   },
   {
-    "type": "OUTER",
-    "named": false
-  },
-  {
     "type": "OUTFILE",
     "named": false
   },
@@ -14467,10 +14266,6 @@
     "named": false
   },
   {
-    "type": "QUARTER",
-    "named": false
-  },
-  {
     "type": "QUERY",
     "named": false
   },
@@ -14563,10 +14358,6 @@
     "named": false
   },
   {
-    "type": "RIGHT",
-    "named": false
-  },
-  {
     "type": "RLIKE",
     "named": false
   },
@@ -14608,14 +14399,6 @@
   },
   {
     "type": "SCHEMAS",
-    "named": false
-  },
-  {
-    "type": "SECOND",
-    "named": false
-  },
-  {
-    "type": "SECOND_MICROSECOND",
     "named": false
   },
   {
@@ -14967,10 +14750,6 @@
     "named": false
   },
   {
-    "type": "WEEK",
-    "named": false
-  },
-  {
     "type": "WHEN",
     "named": false
   },
@@ -15011,10 +14790,6 @@
     "named": false
   },
   {
-    "type": "YEAR_MONTH",
-    "named": false
-  },
-  {
     "type": "ZEROFILL",
     "named": false
   },
@@ -15026,6 +14801,14 @@
     "type": "comment",
     "named": true,
     "extra": true
+  },
+  {
+    "type": "identifier",
+    "named": true
+  },
+  {
+    "type": "interval_unit",
+    "named": true
   },
   {
     "type": "number",
@@ -15048,12 +14831,7 @@
     "named": true
   },
   {
-    "type": "version_comment_end",
-    "named": true,
-    "extra": true
-  },
-  {
-    "type": "version_comment_start",
+    "type": "version_comment",
     "named": true,
     "extra": true
   },

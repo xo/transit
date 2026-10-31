@@ -1,0 +1,105 @@
+================================================================================
+The example of usql
+================================================================================
+
+select 1 as n, 'two' as s from t where a = _v;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (aliased_expression
+        (number)
+        (identifier))
+      (aliased_expression
+        (string)
+        (identifier))
+      (from_clause
+        (table_reference
+          (identifier)))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier)))))))
+
+================================================================================
+A placeholder of a variable
+================================================================================
+
+select _name from _tbl where id = _id;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (identifier)))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier)))))))
+
+================================================================================
+A placeholder of a string variable
+================================================================================
+
+select '_name' from t where a = '_value';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string)
+      (from_clause
+        (table_reference
+          (identifier)))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (string))))))
+
+================================================================================
+A placeholder of a quoted identifier variable
+================================================================================
+
+select "_name" from t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string)
+      (from_clause
+        (table_reference
+          (identifier))))))
+
+================================================================================
+A placeholder of a test of a variable
+================================================================================
+
+select TRUE     , 1 from t where TRUE      ;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (boolean)
+      (number)
+      (from_clause
+        (table_reference
+          (identifier)))
+      (where_clause
+        (boolean)))))

@@ -5,10 +5,7 @@
 
 (comment) @comment
 
-[
-  (version_comment_start)
-  (version_comment_end)
-] @keyword.directive
+(version_comment) @keyword.directive
 
 (string) @string
 
@@ -19,6 +16,8 @@
 (null) @constant.builtin
 
 "UNKNOWN" @constant.builtin
+
+(interval_unit) @keyword
 
 (temporal_literal
   type: _ @type.builtin)
@@ -218,7 +217,6 @@
   "CONVERT"
   "COUNT"
   "CREATE"
-  "CROSS"
   "CURRENT"
   "CURRENT_USER"
   "CURSOR"
@@ -227,11 +225,6 @@
   "DATABASES"
   "DATE"
   "DATETIME"
-  "DAY"
-  "DAY_HOUR"
-  "DAY_MICROSECOND"
-  "DAY_MINUTE"
-  "DAY_SECOND"
   "DEALLOCATE"
   "DEC"
   "DECIMAL"
@@ -303,16 +296,11 @@
   "HAVING"
   "HIGH_PRIORITY"
   "HOSTS"
-  "HOUR"
-  "HOUR_MICROSECOND"
-  "HOUR_MINUTE"
-  "HOUR_SECOND"
   "IDENTIFIED"
   "IGNORE"
   "INDEX"
   "INDEXES"
   "INFILE"
-  "INNER"
   "INOUT"
   "INSERT"
   "INSERT_METHOD"
@@ -337,7 +325,6 @@
   "LANGUAGE"
   "LATERAL"
   "LEADING"
-  "LEFT"
   "LESS"
   "LEVEL"
   "LIMIT"
@@ -363,15 +350,10 @@
   "MEDIUMTEXT"
   "MEMORY"
   "MERGE"
-  "MICROSECOND"
-  "MINUTE"
-  "MINUTE_MICROSECOND"
-  "MINUTE_SECOND"
   "MIN_ROWS"
   "MODE"
   "MODIFIES"
   "MODIFY"
-  "MONTH"
   "MULTILINESTRING"
   "MULTIPOINT"
   "MULTIPOLYGON"
@@ -393,7 +375,6 @@
   "OPTIONALLY"
   "ORDER"
   "OUT"
-  "OUTER"
   "OUTFILE"
   "OVER"
   "PACK_KEYS"
@@ -418,7 +399,6 @@
   "PROCESSLIST"
   "PROFILES"
   "PROXY"
-  "QUARTER"
   "QUERY"
   "QUICK"
   "RANGE"
@@ -437,7 +417,6 @@
   "REPLICATION"
   "RESTRICT"
   "REVOKE"
-  "RIGHT"
   "ROLE"
   "ROLLBACK"
   "ROLLUP"
@@ -448,8 +427,6 @@
   "SAVEPOINT"
   "SCHEMA"
   "SCHEMAS"
-  "SECOND"
-  "SECOND_MICROSECOND"
   "SECURITY"
   "SELECT"
   "SEPARATOR"
@@ -528,7 +505,6 @@
   "VIRTUAL"
   "VISIBLE"
   "WARNINGS"
-  "WEEK"
   "WHERE"
   "WINDOW"
   "WITH"
@@ -536,15 +512,8 @@
   "WRITE"
   "XML"
   "YEAR"
-  "YEAR_MONTH"
   "ZEROFILL"
 ] @keyword
-
-(all_columns
-  "*" @punctuation.special)
-
-(privilege_level
-  "*" @punctuation.special)
 
 [
   "+"
@@ -573,6 +542,14 @@
   "->"
   "->>"
 ] @operator
+
+; The star of all the columns is not an operator. This pattern comes after
+; the operators, so that it gives the capture of the star.
+(all_columns
+  "*" @punctuation.special)
+
+(privilege_level
+  "*" @punctuation.special)
 
 [
   "("

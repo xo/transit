@@ -6,15 +6,14 @@ import "github.com/xo/transit/internal/abi"
 // grammar.js.
 const (
 	comment = iota
-	versionCommentStart
-	versionCommentEnd
+	versionComment
 )
 
 // scanner is a port of src/scanner.c of the grammar. It reads the comments:
 // # and -- to the end of the line, and /* ... */. The -- starts a comment
 // only before white space, a control character or the end of the input. It
 // reads the start of a version comment, /*! or /*M! with the digits of a
-// version after it, and its end, */.
+// version after it, and its end, */, as the token versionComment.
 type scanner struct {
 	// version is 1 inside a version comment, from its start to its end.
 	version uint8
@@ -78,18 +77,18 @@ func (s *scanner) scanVersionStart(lexer *abi.Lexer) bool {
 	}
 	lexer.MarkEnd()
 	s.version = 1
-	lexer.ResultSymbol = versionCommentStart
+	lexer.ResultSymbol = versionComment
 	return true
 }
 
 // scanComment is scan_comment. It reads a block comment or the start of a
 // version comment. The /* is already read.
 func (s *scanner) scanComment(lexer *abi.Lexer, validSymbols []bool) bool {
-	if lexer.Lookahead == '!' && validSymbols[versionCommentStart] {
+	if lexer.Lookahead == '!' && validSymbols[versionComment] {
 		advance(lexer)
 		return s.scanVersionStart(lexer)
 	}
-	if lexer.Lookahead == 'M' && validSymbols[versionCommentStart] {
+	if lexer.Lookahead == 'M' && validSymbols[versionComment] {
 		advance(lexer)
 		if lexer.Lookahead == '!' {
 			advance(lexer)
@@ -144,7 +143,7 @@ func (s *scanner) Scan(lexer *abi.Lexer, validSymbols []bool) bool {
 		advance(lexer)
 		return s.scanComment(lexer, validSymbols)
 	}
-	if c == '*' && s.version != 0 && validSymbols[versionCommentEnd] {
+	if c == '*' && s.version != 0 && validSymbols[versionComment] {
 		advance(lexer)
 		if lexer.Lookahead != '/' {
 			return false
@@ -152,7 +151,7 @@ func (s *scanner) Scan(lexer *abi.Lexer, validSymbols []bool) bool {
 		advance(lexer)
 		lexer.MarkEnd()
 		s.version = 0
-		lexer.ResultSymbol = versionCommentEnd
+		lexer.ResultSymbol = versionComment
 		return true
 	}
 	return false

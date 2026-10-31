@@ -10860,8 +10860,8 @@
       "status": "available",
       "golden": {
         "abi14": {
-          "parser_c": "99e30037ac8694427b6ab423d4de40555f4a1ccf3da8c044268aaac001c94695",
-          "node_types": "a242a31e526e179b0d84f23c72a7c1ba738afe87c3a7989d7f545bad0cded440",
+          "parser_c": "773764554ba3e74cf93ddbf5ac1c6bc09ebff67df0672971a63c319199aac035",
+          "node_types": "332dd64b77239c99d5cda81ce6ad39eac260868d3128306931a8e8d6c3ab25a2",
           "paths": [
             "field map",
             "inherited field",
@@ -10882,8 +10882,8 @@
           ]
         },
         "abi15": {
-          "parser_c": "4b0ff5c2e722ba492d448b9e65ef7490edf2a3c492e65ec9a01a3ff3ecb527e7",
-          "node_types": "a242a31e526e179b0d84f23c72a7c1ba738afe87c3a7989d7f545bad0cded440",
+          "parser_c": "d18f6f884afffbdbb64259ef4198d193b3029e3cc80ed59f1e39a193cae1d7d4",
+          "node_types": "332dd64b77239c99d5cda81ce6ad39eac260868d3128306931a8e8d6c3ab25a2",
           "paths": [
             "field map",
             "inherited field",
@@ -10891,6 +10891,8 @@
             "anonymous unique alias",
             "non-terminal alias map",
             "keyword lexer",
+            "reserved words",
+            "reserved word set of a state",
             "external scanner",
             "external lex state",
             "ADVANCE_MAP",
@@ -10906,7 +10908,7 @@
         }
       },
       "corpus": {
-        "tests": 246,
+        "tests": 255,
         "failures": 0,
         "transit": "same"
       }

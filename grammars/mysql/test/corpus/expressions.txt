@@ -462,20 +462,23 @@ SELECT EXTRACT(YEAR FROM d), d + INTERVAL 1 DAY, DATE_ADD(d, INTERVAL '1:30' HOU
     (select
       (function_call
         (identifier)
+        (interval_unit)
         (column_reference
           (identifier)))
       (binary_expression
         (column_reference
           (identifier))
         (interval_expression
-          (number)))
+          (number)
+          (interval_unit)))
       (function_call
         (identifier)
         (arguments
           (column_reference
             (identifier))
           (interval_expression
-            (string)))))))
+            (string)
+            (interval_unit)))))))
 
 ================================================================================
 Trim, substring and position
@@ -490,24 +493,28 @@ SELECT TRIM(' a '), TRIM(LEADING 'x' FROM s), SUBSTRING(s, 1, 2), SUBSTRING(s FR
     (select
       (function_call
         (identifier)
-        (string))
+        (arguments
+          (string)))
       (function_call
         (identifier)
-        (string)
-        (column_reference
-          (identifier)))
+        (arguments
+          (string)
+          (column_reference
+            (identifier))))
       (function_call
         (identifier)
-        (column_reference
-          (identifier))
-        (number)
-        (number))
+        (arguments
+          (column_reference
+            (identifier))
+          (number)
+          (number)))
       (function_call
         (identifier)
-        (column_reference
-          (identifier))
-        (number)
-        (number))
+        (arguments
+          (column_reference
+            (identifier))
+          (number)
+          (number)))
       (function_call
         (identifier)
         (string)
@@ -790,3 +797,26 @@ SELECT lag(x, 1) OVER (PARTITION BY g ORDER BY t), rank() OVER w FROM t WINDOW w
             (order_by_clause
               (column_reference
                 (identifier)))))))))
+
+================================================================================
+Full-text search without parentheses
+================================================================================
+
+SELECT * FROM t WHERE MATCH a, b AGAINST ('x' IN BOOLEAN MODE);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (identifier)))
+      (where_clause
+        (match_expression
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))
+          (string))))))

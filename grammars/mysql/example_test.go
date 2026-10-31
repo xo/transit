@@ -50,5 +50,5 @@ SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
 	}
 	// Output:
 	// (source_file (set_statement (identifier) (identifier)))
-	// patterns in queries/highlights.scm: 42
+	// patterns in queries/highlights.scm: 43
 }

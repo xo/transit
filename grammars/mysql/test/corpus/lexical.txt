@@ -291,16 +291,16 @@ SELECT /*!32302 SQL_NO_CACHE */ 1;
 ---
 
 (source_file
-  (version_comment_start)
+  (version_comment)
   (set_statement
     (variable_assignment
       (user_variable)
       (system_variable)))
-  (version_comment_end)
+  (version_comment)
   (select_statement
     (select
-      (version_comment_start)
-      (version_comment_end)
+      (version_comment)
+      (version_comment)
       (number))))
 
 ================================================================================
@@ -319,10 +319,10 @@ CREATE TABLE t (id INT) /*! ENGINE=InnoDB */;
       (identifier)
       (data_type
         (type_name)))
-    (version_comment_start)
+    (version_comment)
     (table_option
       (identifier)))
-  (version_comment_end))
+  (version_comment))
 
 ================================================================================
 A MariaDB version comment
@@ -335,10 +335,10 @@ SELECT /*M!100100 1 + */ 2;
 (source_file
   (select_statement
     (select
-      (version_comment_start)
+      (version_comment)
       (binary_expression
         (number)
-        (version_comment_end)
+        (version_comment)
         (number)))))
 
 ================================================================================
@@ -427,26 +427,26 @@ UNLOCK TABLES;
 ---
 
 (source_file
-  (version_comment_start)
+  (version_comment)
   (set_statement
     (identifier))
-  (version_comment_end)
-  (version_comment_start)
+  (version_comment)
+  (version_comment)
   (set_statement
     (variable_assignment
       (column_reference
         (identifier))
       (string)))
-  (version_comment_end)
+  (version_comment)
   (drop_table_statement
     (object_reference
       (identifier)))
-  (version_comment_start)
+  (version_comment)
   (set_statement
     (variable_assignment
       (user_variable)
       (system_variable)))
-  (version_comment_end)
+  (version_comment)
   (create_table_statement
     (object_reference
       (identifier))
@@ -470,12 +470,12 @@ UNLOCK TABLES;
     (table_lock
       (object_reference
         (identifier))))
-  (version_comment_start)
+  (version_comment)
   (alter_table_statement
     (object_reference
       (identifier))
     (alter_option))
-  (version_comment_end)
+  (version_comment)
   (insert_statement
     (object_reference
       (identifier))
@@ -484,10 +484,102 @@ UNLOCK TABLES;
         (number))
       (value_list
         (number))))
-  (version_comment_start)
+  (version_comment)
   (alter_table_statement
     (object_reference
       (identifier))
     (alter_option))
-  (version_comment_end)
+  (version_comment)
   (unlock_tables_statement))
+
+================================================================================
+Reserved words after a dot and as function names
+================================================================================
+
+SELECT t.order, s.t.select, left(a, 1), replace(a, 'x', 'y') FROM s.t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier)
+        (identifier))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (number)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (string)
+          (string)))
+      (from_clause
+        (table_reference
+          (identifier)
+          (identifier))))))
+
+================================================================================
+An alias after an expression with an operator
+================================================================================
+
+SELECT a OR b c, d = 1 AND e f FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (aliased_expression
+        (binary_expression
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier)))
+        (identifier))
+      (aliased_expression
+        (binary_expression
+          (binary_expression
+            (column_reference
+              (identifier))
+            (number))
+          (column_reference
+            (identifier)))
+        (identifier))
+      (from_clause
+        (table_reference
+          (identifier))))))
+
+================================================================================
+Binary as a collation and as a value
+================================================================================
+
+SET character_set_connection = binary;
+CREATE TABLE t (a CHAR(10) COLLATE binary);
+
+---
+
+(source_file
+  (set_statement
+    (variable_assignment
+      (column_reference
+        (identifier))
+      (identifier)))
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (data_type
+        (type_name)
+        (number)
+        (identifier)))))

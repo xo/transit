@@ -189,7 +189,9 @@ bodies. It does not read the `DELIMITER` command of the mysql client. The
 usql grammar ends a statement at each `;`, so by default it splits such a
 body into several statements, and the MySQL grammar finds an error in each
 part. The option `BeginEndBlocks` of `usql.Options` keeps the body in one
-statement (D112). It is off by default.
+statement (D112). It is off by default. One identifier token covers each
+keyword that MySQL does not reserve, and the reserved words of MySQL 8.4
+are not identifiers, so the package adds about 1 MB to a binary (D123).
 
 The package `github.com/xo/transit/grammars/postgres/postgres` holds the
 grammar `postgres`, which xo writes from the reference manual of

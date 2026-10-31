@@ -158,6 +158,35 @@ token to the grammar `postgres`. These faults remain:
   option in `SET` can be an operator that is not a token of the grammar,
   such as `===`.
 
+### Finish the MySQL grammar
+
+The MySQL grammar that xo writes keeps its parse tables small (D123), and
+so it leaves out these forms:
+
+- An expression with an operator as the value of `INTERVAL`, as in
+  `INTERVAL 1 + 1 DAY`. The value is a primary expression or a signed
+  number, so `INTERVAL (1 + 1) DAY` parses. An operator in the value
+  gives each operator a parse state with the units after it, and that
+  costs about 100 large states.
+- An expression with an operator as the text of `AGAINST`, as in
+  `AGAINST (a || b)`. The text is a primary expression.
+- A character set before a hexadecimal or binary number with white space
+  between them, as in `_utf8mb4 0x41`. A token for it can match a name and
+  then the white space, so the generator merges fewer parse states, and
+  that costs about 80 large states. 755 statements of the tests of MySQL
+  8.4 hold this form.
+- A system variable whose first part is a reserved word, as in
+  `SET GLOBAL default.key_buffer_size = 1`.
+
+These faults remain:
+
+- `SOUNDS` and `MEMBER` are the token `identifier`, and an identifier after
+  an expression with an operator ends that expression first, so that the
+  identifier can be an alias. So `a AND b SOUNDS LIKE c` is
+  `(a AND b) SOUNDS LIKE c`, where MySQL reads `a AND (b SOUNDS LIKE c)`.
+- The words of an interval unit that MySQL reserves, such as `DAY_HOUR`,
+  are one token with the other units, so they are not in the reserved set.
+
 ## The setup of the repository
 
 These items come in phase 1 and later, as the plan says.

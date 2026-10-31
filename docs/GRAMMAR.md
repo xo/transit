@@ -299,6 +299,14 @@ Each one follows these rules, in addition to the rest of this document:
    its injection query gives the token to the grammar `postgres`. The
    injection query of `postgres` gives the body of a function or of a `DO`
    block to `plpgsql` or to `postgres`, as its `LANGUAGE` says.
+7. A SQL grammar keeps its parse tables small (D122, D123). The token
+   `identifier` is the word of the grammar, so one token covers each
+   keyword that the language does not reserve. The reserved words of the
+   language are in a reserved set of tree-sitter. A parse state with more
+   than 64 columns takes the large form, which holds a column for each
+   symbol of the grammar. The comment at the top of
+   `grammars/mysql/grammar.js` gives the ways that keep the states few and
+   small.
 
 A change to such a grammar is a change to transit. It follows "Before you
 stage" in `AGENTS.md`, and its golden files are made again.

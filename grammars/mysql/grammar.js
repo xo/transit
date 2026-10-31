@@ -9,15 +9,34 @@
 // The grammar is for a highlighter and for completion, so it accepts more
 // than the server does where that keeps the rules small. A keyword is a
 // token in any case, and it is an anonymous node with the name of the
-// keyword in upper case, such as "SELECT". A keyword is a keyword only where
-// the grammar expects it, so a word such as status or name is an identifier
-// in every other place, as for the words that MySQL does not reserve.
+// keyword in upper case, such as "SELECT".
+//
+// The token identifier is the word of the grammar (D123). A keyword that
+// MySQL does not reserve is an identifier in each place where the grammar
+// does not expect the keyword, so a word such as status or name is an
+// identifier there. The reserved words of MySQL are in the reserved set
+// global, so they are not identifiers, but for a name after a dot, where
+// MySQL accepts every keyword. A function name can be a reserved word that
+// MySQL also uses as a function, such as REPLACE.
+//
+// The grammar keeps its parse tables small. A parse state with more than 64
+// columns takes the large form, so the grammar keeps the columns of a state
+// few. Some keywords that MySQL does not reserve and that come after an
+// expression, such as END of CASE and SOUNDS of SOUNDS LIKE, are the token
+// identifier with the name of the keyword. Then the parse states after an
+// expression have the column identifier and the reserved set global, and
+// the generator can merge more of them. A rule that holds the part of a
+// statement after its optional parts, such as _routine_definition, gives
+// one parse state where several sets of optional parts would give one
+// each.
 //
 // The external scanner in src/scanner.c reads the comments, and the start
-// and the end of a version comment, /*!50100 ... */. The text inside a
-// version comment is parsed as SQL, so it gets its highlights. DELIMITER is
-// a command of the mysql client, and usql does not use it, so the grammar
-// leaves it out. A statement ends at a semicolon or at the end of the input.
+// and the end of a version comment, /*!50100 ... */. Both are the node
+// version_comment, so that they take one column of each parse state. The
+// text inside a version comment is parsed as SQL, so it gets its
+// highlights. DELIMITER is a command of the mysql client, and usql does not
+// use it, so the grammar leaves it out. A statement ends at a semicolon or
+// at the end of the input.
 
 /// <reference types="tree-sitter-cli/dsl" />
 // @ts-check
@@ -25,6 +44,11 @@
 // The precedences of the operators, from the lowest to the highest, as the
 // section "Operator Precedence" of the manual lists them.
 const PREC = {
+  // The precedence of the left side of SOUNDS LIKE and MEMBER OF. MySQL
+  // does not reserve SOUNDS and MEMBER, and the grammar reads them with the
+  // token identifier, so an identifier after an expression is an alias,
+  // as in SELECT a OR b c, and not the start of SOUNDS LIKE.
+  operatorName: -1,
   assign: 1,
   or: 2,
   xor: 3,
@@ -43,6 +67,50 @@ const PREC = {
   collate: 16,
   json: 17,
 };
+
+// The words that MySQL 8.4 reserves, from the section "Keywords and
+// Reserved Words" of the manual. A word is in the list only when the grammar
+// uses it as a keyword, because a reserved word must be a token of the
+// grammar. The rule _current_name holds the reserved words CURRENT_DATE,
+// CURRENT_TIME, CURRENT_TIMESTAMP, LOCALTIME, LOCALTIMESTAMP, UTC_DATE,
+// UTC_TIME and UTC_TIMESTAMP as one token.
+const RESERVED_WORDS = [
+  'ADD', 'ALL', 'ALTER', 'ANALYZE', 'AND', 'AS', 'ASC', 'BEFORE', 'BETWEEN',
+  'BIGINT', 'BINARY', 'BLOB', 'BOTH', 'BY', 'CALL', 'CASCADE', 'CASE', 'CHANGE',
+  'CHAR', 'CHARACTER', 'CHECK', 'COLLATE', 'COLUMN', 'CONDITION', 'CONSTRAINT',
+  'CONTINUE', 'CONVERT', 'CREATE', 'CURRENT_USER', 'CURSOR', 'DATABASE',
+  'DATABASES', 'DEC', 'DECIMAL', 'DECLARE', 'DEFAULT', 'DELAYED', 'DELETE',
+  'DESC', 'DESCRIBE', 'DETERMINISTIC', 'DISTINCT', 'DISTINCTROW', 'DIV',
+  'DOUBLE', 'DROP', 'DUAL', 'EACH', 'ELSE', 'ELSEIF', 'ENCLOSED', 'ESCAPED',
+  'EXCEPT', 'EXISTS', 'EXIT', 'EXPLAIN', 'FALSE', 'FETCH', 'FLOAT', 'FOR',
+  'FORCE', 'FOREIGN', 'FROM', 'FULLTEXT', 'FUNCTION', 'GENERATED', 'GRANT',
+  'GROUP', 'HAVING', 'HIGH_PRIORITY', 'IF', 'IGNORE', 'IN', 'INDEX', 'INFILE',
+  'INOUT', 'INSERT', 'INT', 'INT1', 'INT2', 'INT3', 'INT4', 'INT8', 'INTEGER',
+  'INTERSECT', 'INTERVAL', 'INTO', 'IS', 'ITERATE', 'JOIN', 'KEY', 'KEYS',
+  'LATERAL', 'LEADING', 'LEAVE', 'LIKE', 'LIMIT', 'LINEAR', 'LINES', 'LOAD',
+  'LOCK', 'LONGBLOB', 'LONGTEXT', 'LOOP', 'LOW_PRIORITY', 'MATCH', 'MAXVALUE',
+  'MEDIUMBLOB', 'MEDIUMINT', 'MEDIUMTEXT', 'MOD', 'MODIFIES', 'NATURAL', 'NOT',
+  'NULL', 'NUMERIC', 'OF', 'ON', 'OPTION', 'OPTIONALLY', 'OR', 'ORDER', 'OUT',
+  'OUTFILE', 'OVER', 'PARTITION', 'PRECISION', 'PRIMARY', 'PROCEDURE', 'RANGE',
+  'READ', 'READS', 'REAL', 'RECURSIVE', 'REFERENCES', 'REGEXP', 'RELEASE',
+  'RENAME', 'REPEAT', 'REPLACE', 'RESIGNAL', 'RESTRICT', 'RETURN', 'REVOKE',
+  'RLIKE', 'ROW', 'ROWS', 'SCHEMA', 'SCHEMAS', 'SELECT', 'SEPARATOR', 'SET',
+  'SHOW', 'SIGNAL', 'SMALLINT', 'SPATIAL', 'SQL', 'SQLEXCEPTION', 'SQLSTATE',
+  'SQLWARNING', 'SQL_BIG_RESULT', 'SQL_CALC_FOUND_ROWS', 'SQL_SMALL_RESULT',
+  'STARTING', 'STORED', 'STRAIGHT_JOIN', 'TABLE', 'TERMINATED', 'THEN',
+  'TINYBLOB', 'TINYINT', 'TINYTEXT', 'TO', 'TRAILING', 'TRIGGER', 'TRUE',
+  'UNDO', 'UNION', 'UNIQUE', 'UNLOCK', 'UNSIGNED', 'UPDATE', 'USAGE', 'USE',
+  'USING', 'VALUES', 'VARBINARY', 'VARCHAR', 'VARCHARACTER', 'VARYING',
+  'VIRTUAL', 'WHEN', 'WHERE', 'WHILE', 'WINDOW', 'WITH', 'WRITE', 'XOR',
+  'ZEROFILL',
+];
+
+// The reserved words that also name a function, such as LEFT(s, 2). A
+// function name can be one of them.
+const FUNCTION_WORDS = [
+  'CHAR', 'DATABASE', 'DEFAULT', 'IF', 'INSERT', 'MOD', 'REPEAT', 'REPLACE',
+  'SCHEMA', 'VALUES',
+];
 
 /**
  * Returns a keyword: a token that matches word in any case, as an
@@ -115,19 +183,43 @@ module.exports = grammar({
   extras: $ => [
     /\s/,
     $.comment,
-    $.version_comment_start,
-    $.version_comment_end,
+    $.version_comment,
   ],
 
   // The order of the external tokens is the order of enum TokenType in
   // src/scanner.c.
   externals: $ => [
     $.comment,
-    $.version_comment_start,
-    $.version_comment_end,
+    $.version_comment,
   ],
 
-  word: $ => $._identifier,
+  word: $ => $.identifier,
+
+  // The reserved set global holds the reserved words of MySQL 8.4 that the
+  // grammar uses as keywords. The set function_name leaves out the reserved
+  // words that name a function, and the set label is empty, because MySQL
+  // accepts every keyword after a dot. A state takes the last set of its
+  // items, so the sets go from the strictest to the least strict.
+  reserved: {
+    global: $ => [...RESERVED_WORDS.map(keyword), $._current_name],
+    function_name: $ => [
+      ...RESERVED_WORDS.filter(w => !FUNCTION_WORDS.includes(w)).map(keyword),
+      $._current_name,
+    ],
+    label: _ => [],
+  },
+
+  inline: $ => [
+    $._name,
+    $._member_name,
+    $._function_name,
+    $._collation_name,
+    $._table_factor,
+    $._interval_unit,
+    $._primary_expression,
+    $._literal,
+    $._keyword_name,
+  ],
 
   conflicts: $ => [
     // WITH after GROUP BY starts WITH ROLLUP, or WITH CHECK OPTION of a view.
@@ -216,7 +308,7 @@ module.exports = grammar({
     ),
 
     cte: $ => seq(
-      field('name', $.identifier),
+      field('name', $._name),
       optional($.column_list),
       kw('AS'),
       $.subquery,
@@ -280,13 +372,15 @@ module.exports = grammar({
     aliased_expression: $ => seq(
       field('value', $._expression),
       optional(kw('AS')),
-      field('alias', choice($.identifier, $.string)),
+      field('alias', choice($._name, $.string)),
     ),
 
     all_columns: $ => seq(
       optional(seq(
-        optional(seq(field('schema', $.identifier), '.')),
-        field('table', $.identifier),
+        choice(
+          field('table', $._name),
+          seq(field('schema', $._name), '.', field('table', $._member_name)),
+        ),
         '.',
       )),
       '*',
@@ -303,7 +397,7 @@ module.exports = grammar({
           optional($._line_options),
         ),
         seq(kw('DUMPFILE'), field('file', $.string)),
-        commaSep1(choice($.user_variable, $.identifier)),
+        commaSep1(choice($.user_variable, $._name)),
       ),
     ),
 
@@ -312,7 +406,10 @@ module.exports = grammar({
       field('charset', $._charset_name),
     ),
 
-    _charset_name: $ => choice($.identifier, $.string, kw('BINARY')),
+    _charset_name: $ => choice($._name, $.string, kw('BINARY')),
+
+    // MySQL reserves BINARY, but it is also the name of a collation.
+    _collation_name: $ => choice($._name, $.string, keywordName($, 'BINARY')),
 
     _field_options: $ => seq(
       choice(kw('FIELDS'), kw('COLUMNS')),
@@ -333,32 +430,40 @@ module.exports = grammar({
 
     from_clause: $ => seq(
       kw('FROM'),
-      choice(kw('DUAL'), commaSep1($._table_reference)),
+      choice(kw('DUAL'), $._table_references),
     ),
 
     _table_reference: $ => choice(
+      $._table_factor,
+      $.join,
+    ),
+
+    // The right side of a join is a table factor, as in the manual: a join
+    // on the right side must be in parentheses.
+    _table_factor: $ => choice(
       $.table_reference,
       $.derived_table,
-      $.join,
-      parens(commaSep1($._table_reference)),
+      parens($._table_references),
     ),
 
     table_reference: $ => prec.right(seq(
-      optional(seq(field('schema', $.identifier), '.')),
-      field('name', $.identifier),
+      choice(
+        field('name', $._name),
+        seq(field('schema', $._name), '.', field('name', $._member_name)),
+      ),
       optional($.partition_list),
-      optional(seq(optional(kw('AS')), field('alias', $.identifier))),
+      optional(seq(optional(kw('AS')), field('alias', $._name))),
       repeat($.index_hint),
     )),
 
-    partition_list: $ => seq(kw('PARTITION'), parens(commaSep1($.identifier))),
+    partition_list: $ => seq(kw('PARTITION'), parens(commaSep1($._name))),
 
     derived_table: $ => prec.right(seq(
       optional(kw('LATERAL')),
       $.subquery,
       optional(seq(
         optional(kw('AS')),
-        field('alias', $.identifier),
+        field('alias', $._name),
         optional($.column_list),
       )),
     )),
@@ -370,36 +475,44 @@ module.exports = grammar({
         kw('FOR'),
         choice(kw('JOIN'), kws('ORDER', 'BY'), kws('GROUP', 'BY')),
       )),
-      parens(optional(commaSep1(choice($.identifier, kw('PRIMARY'))))),
+      parens(optional(commaSep1(choice($._name, kw('PRIMARY'))))),
     ),
 
     join: $ => prec.left(seq(
       field('left', $._table_reference),
-      choice(
-        seq(optional(choice(kw('INNER'), kw('CROSS'))), kw('JOIN')),
-        kw('STRAIGHT_JOIN'),
-        seq(choice(kw('LEFT'), kw('RIGHT')), optional(kw('OUTER')), kw('JOIN')),
-        seq(
-          kw('NATURAL'),
-          optional(choice(
-            kw('INNER'),
-            seq(choice(kw('LEFT'), kw('RIGHT')), optional(kw('OUTER'))),
-          )),
-          kw('JOIN'),
-        ),
-      ),
-      field('right', $._table_reference),
+      choice(kw('JOIN'), kw('STRAIGHT_JOIN'), alias($._join, 'JOIN')),
+      field('right', $._table_factor),
       optional(choice(
         seq(kw('ON'), field('condition', $._expression)),
-        seq(kw('USING'), parens(commaSep1(field('using', $.identifier)))),
+        seq(kw('USING'), parens(commaSep1(field('using', $._name)))),
       )),
+    )),
+
+    // The words of a join before JOIN, such as LEFT OUTER JOIN, are one
+    // token with JOIN, so that they take one column of a parse state. It is
+    // the keyword JOIN in the tree.
+    _join: _ => token(seq(
+      choice(
+        keyword('INNER'),
+        keyword('CROSS'),
+        seq(choice(keyword('LEFT'), keyword('RIGHT')), optional(seq(/\s+/, keyword('OUTER')))),
+        seq(
+          keyword('NATURAL'),
+          optional(seq(/\s+/, choice(
+            keyword('INNER'),
+            seq(choice(keyword('LEFT'), keyword('RIGHT')), optional(seq(/\s+/, keyword('OUTER')))),
+          ))),
+        ),
+      ),
+      /\s+/,
+      keyword('JOIN'),
     )),
 
     where_clause: $ => seq(kw('WHERE'), $._expression),
 
     group_by_clause: $ => seq(
       kws('GROUP', 'BY'),
-      commaSep1($._expression),
+      $._expressions,
       optional(kws('WITH', 'ROLLUP')),
     ),
 
@@ -408,16 +521,21 @@ module.exports = grammar({
     window_clause: $ => seq(kw('WINDOW'), commaSep1($.window_definition)),
 
     window_definition: $ => seq(
-      field('name', $.identifier),
+      field('name', $._name),
       kw('AS'),
       $.window_specification,
     ),
 
+    // The clauses of a window come in the order of the manual, but the
+    // grammar takes them in any order, because a sequence of optional
+    // clauses costs parse states for each set of the clauses.
     window_specification: $ => parens(seq(
-      optional(field('name', $.identifier)),
-      optional(seq(kws('PARTITION', 'BY'), commaSep1($._expression))),
-      optional($.order_by_clause),
-      optional($.frame_clause),
+      optional(field('name', $._name)),
+      repeat(choice(
+        seq(kws('PARTITION', 'BY'), $._expressions),
+        $.order_by_clause,
+        $.frame_clause,
+      )),
     )),
 
     frame_clause: $ => seq(
@@ -449,13 +567,13 @@ module.exports = grammar({
       ),
     ),
 
-    _limit_value: $ => choice($.number, $.parameter, $.identifier, $.user_variable),
+    _limit_value: $ => choice($.number, $.parameter, $._name, $.user_variable),
 
     locking_clause: $ => choice(
       seq(
         kw('FOR'),
         choice(kw('UPDATE'), kw('SHARE')),
-        optional(seq(kw('OF'), commaSep1($.identifier))),
+        optional(seq(kw('OF'), commaSep1($._name))),
         optional(choice(kw('NOWAIT'), kws('SKIP', 'LOCKED'))),
       ),
       kws('LOCK', 'IN', 'SHARE', 'MODE'),
@@ -468,14 +586,33 @@ module.exports = grammar({
     insert_statement: $ => seq(
       kw('INSERT'),
       repeat(choice(kw('LOW_PRIORITY'), kw('DELAYED'), kw('HIGH_PRIORITY'), kw('IGNORE'))),
-      ...insertBody($),
+      $._insert_body,
       optional($.on_duplicate_key_update),
     ),
 
     replace_statement: $ => seq(
       kw('REPLACE'),
       repeat(choice(kw('LOW_PRIORITY'), kw('DELAYED'))),
-      ...insertBody($),
+      $._insert_body,
+    ),
+
+    // The rules after INSERT or REPLACE and its modifiers, in a rule of
+    // their own, so that their parse states do not depend on the modifiers.
+    _insert_body: $ => seq(
+      optional(kw('INTO')),
+      field('table', $.object_reference),
+      optional($.partition_list),
+      $._insert_values,
+    ),
+
+    _insert_values: $ => choice(
+      seq(
+        optional($.column_list),
+        $.values_clause,
+        optional(seq(kw('AS'), field('alias', $._name), optional($.column_list))),
+      ),
+      seq(kw('SET'), $._assignments),
+      seq(optional($.column_list), $.select_statement),
     ),
 
     values_clause: $ => seq(
@@ -490,7 +627,7 @@ module.exports = grammar({
 
     on_duplicate_key_update: $ => seq(
       kws('ON', 'DUPLICATE', 'KEY', 'UPDATE'),
-      commaSep1($.assignment),
+      $._assignments,
     ),
 
     assignment: $ => seq(
@@ -503,9 +640,9 @@ module.exports = grammar({
       optional($.with_clause),
       kw('UPDATE'),
       repeat(choice(kw('LOW_PRIORITY'), kw('IGNORE'))),
-      commaSep1($._table_reference),
+      $._table_references,
       kw('SET'),
-      commaSep1($.assignment),
+      $._assignments,
       optional($.where_clause),
       optional($.order_by_clause),
       optional($.limit_clause),
@@ -517,8 +654,8 @@ module.exports = grammar({
       repeat(choice(kw('LOW_PRIORITY'), kw('QUICK'), kw('IGNORE'))),
       optional(commaSep1($.table_reference)),
       kw('FROM'),
-      commaSep1($._table_reference),
-      optional(seq(kw('USING'), commaSep1($._table_reference))),
+      $._table_references,
+      optional(seq(kw('USING'), $._table_references)),
       optional($.where_clause),
       optional($.order_by_clause),
       optional($.limit_clause),
@@ -534,13 +671,18 @@ module.exports = grammar({
       optional(choice(kw('REPLACE'), kw('IGNORE'))),
       kws('INTO', 'TABLE'),
       field('table', $.object_reference),
-      optional($.partition_list),
-      optional($._character_set),
-      optional($._field_options),
-      optional($._line_options),
-      optional(seq(kw('IGNORE'), $.number, choice(kw('LINES'), kw('ROWS')))),
-      optional($.column_list),
-      optional(seq(kw('SET'), commaSep1($.assignment))),
+      // The manual gives the clauses before SET in this order, but the
+      // grammar takes them in any order, because a sequence of optional
+      // clauses costs parse states for each set of the clauses.
+      repeat(choice(
+        $.partition_list,
+        $._character_set,
+        $._field_options,
+        $._line_options,
+        seq(kw('IGNORE'), $.number, choice(kw('LINES'), kw('ROWS'))),
+        $.column_list,
+      )),
+      optional(seq(kw('SET'), $._assignments)),
     ),
 
     // Databases
@@ -549,14 +691,14 @@ module.exports = grammar({
       kw('CREATE'),
       choice(kw('DATABASE'), kw('SCHEMA')),
       optional($._if_not_exists),
-      field('name', $.identifier),
+      field('name', $._name),
       repeat($.database_option),
     ),
 
     alter_database_statement: $ => seq(
       kw('ALTER'),
       choice(kw('DATABASE'), kw('SCHEMA')),
-      optional(field('name', $.identifier)),
+      optional(field('name', $._name)),
       repeat1($.database_option),
     ),
 
@@ -564,14 +706,14 @@ module.exports = grammar({
       kw('DROP'),
       choice(kw('DATABASE'), kw('SCHEMA')),
       optional($._if_exists),
-      field('name', $.identifier),
+      field('name', $._name),
     ),
 
     database_option: $ => seq(
       optional(kw('DEFAULT')),
       choice(
         seq(choice(kws('CHARACTER', 'SET'), kw('CHARSET')), optional('='), field('value', choice($._charset_name, kw('DEFAULT')))),
-        seq(kw('COLLATE'), optional('='), field('value', choice($.identifier, $.string, kw('DEFAULT')))),
+        seq(kw('COLLATE'), optional('='), field('value', choice($._collation_name, kw('DEFAULT')))),
         seq(kw('ENCRYPTION'), optional('='), field('value', $.string)),
         seq(kws('READ', 'ONLY'), optional('='), field('value', choice($.number, kw('DEFAULT')))),
       ),
@@ -584,11 +726,7 @@ module.exports = grammar({
     // Tables
 
     create_table_statement: $ => seq(
-      kw('CREATE'),
-      optional(kw('TEMPORARY')),
-      kw('TABLE'),
-      optional($._if_not_exists),
-      field('name', $.object_reference),
+      $._create_table_head,
       choice(
         seq(kw('LIKE'), field('like', $.object_reference)),
         parens(seq(kw('LIKE'), field('like', $.object_reference))),
@@ -596,13 +734,26 @@ module.exports = grammar({
           optional(parens(commaSep1($._table_element))),
           optional($._table_options),
           optional($.partition_by),
-          optional(seq(
-            optional(choice(kw('IGNORE'), kw('REPLACE'))),
-            optional(kw('AS')),
-            $.select_statement,
-          )),
+          optional($._create_table_query),
         ),
       ),
+    ),
+
+    // The parts of a statement before and after a list of optional parts
+    // are rules of their own, so that the parse states after the list do
+    // not depend on which optional parts come before them.
+    _create_table_head: $ => seq(
+      kw('CREATE'),
+      optional(kw('TEMPORARY')),
+      kw('TABLE'),
+      optional($._if_not_exists),
+      field('name', $.object_reference),
+    ),
+
+    _create_table_query: $ => seq(
+      optional(choice(kw('IGNORE'), kw('REPLACE'))),
+      optional(kw('AS')),
+      $.select_statement,
     ),
 
     _table_element: $ => choice(
@@ -612,7 +763,7 @@ module.exports = grammar({
     ),
 
     column_definition: $ => seq(
-      field('name', $.identifier),
+      field('name', $._name),
       field('type', $.data_type),
       repeat($._column_attribute),
     ),
@@ -639,7 +790,7 @@ module.exports = grammar({
       ),
       $.references_clause,
       seq(
-        optional(seq(kw('CONSTRAINT'), optional(field('constraint', $.identifier)))),
+        optional(seq(kw('CONSTRAINT'), optional(field('constraint', $._name)))),
         $.check_constraint,
       ),
     ),
@@ -652,7 +803,7 @@ module.exports = grammar({
       alias($._signed_number, $.unary_expression),
       $.parenthesized_expression,
       $.function_call,
-      $.identifier,
+      $._name,
     ),
 
     _signed_number: $ => seq(
@@ -670,7 +821,7 @@ module.exports = grammar({
         kw('BINARY'),
         kw('ARRAY'),
         $._character_set,
-        seq(kw('COLLATE'), field('collation', choice($.identifier, $.string))),
+        seq(kw('COLLATE'), field('collation', $._collation_name)),
       )),
     )),
 
@@ -738,37 +889,37 @@ module.exports = grammar({
         seq(choice(kw('INDEX'), kw('KEY'))),
         seq(choice(kw('FULLTEXT'), kw('SPATIAL')), optional(choice(kw('INDEX'), kw('KEY')))),
       ),
-      optional(field('name', $.identifier)),
-      optional($._index_type),
-      $.key_parts,
-      repeat($._index_option),
+      optional(field('name', $._name)),
+      $._index_parts,
     ),
 
     table_constraint: $ => seq(
-      optional(seq(kw('CONSTRAINT'), optional(field('name', $.identifier)))),
-      choice(
-        seq(
-          kws('PRIMARY', 'KEY'),
-          optional($._index_type),
-          $.key_parts,
-          repeat($._index_option),
-        ),
-        seq(
-          kw('UNIQUE'),
-          optional(choice(kw('INDEX'), kw('KEY'))),
-          optional(field('index', $.identifier)),
-          optional($._index_type),
-          $.key_parts,
-          repeat($._index_option),
-        ),
-        seq(
-          kws('FOREIGN', 'KEY'),
-          optional(field('index', $.identifier)),
-          $.column_list,
-          $.references_clause,
-        ),
-        $.check_constraint,
+      optional(seq(kw('CONSTRAINT'), optional(field('name', $._name)))),
+      $._table_constraint_body,
+    ),
+
+    _table_constraint_body: $ => choice(
+      seq(kws('PRIMARY', 'KEY'), $._index_parts),
+      seq(
+        kw('UNIQUE'),
+        optional(choice(kw('INDEX'), kw('KEY'))),
+        optional(field('index', $._name)),
+        $._index_parts,
       ),
+      seq(
+        kws('FOREIGN', 'KEY'),
+        optional(field('index', $._name)),
+        $.column_list,
+        $.references_clause,
+      ),
+      $.check_constraint,
+    ),
+
+    // The parts of an index after its name.
+    _index_parts: $ => seq(
+      optional($._index_type),
+      $.key_parts,
+      repeat($._index_option),
     ),
 
     check_constraint: $ => prec.right(seq(
@@ -799,7 +950,7 @@ module.exports = grammar({
 
     key_part: $ => seq(
       choice(
-        seq(field('column', $.identifier), optional(parens(field('length', $.number)))),
+        seq(field('column', $._name), optional(parens(field('length', $.number)))),
         parens(field('expression', $._expression)),
       ),
       optional(choice(kw('ASC'), kw('DESC'))),
@@ -810,13 +961,13 @@ module.exports = grammar({
     _index_option: $ => choice(
       seq(kw('KEY_BLOCK_SIZE'), optional('='), $.number),
       $._index_type,
-      seq(kws('WITH', 'PARSER'), $.identifier),
+      seq(kws('WITH', 'PARSER'), $._name),
       seq(kw('COMMENT'), $.string),
       kw('VISIBLE'),
       kw('INVISIBLE'),
     ),
 
-    column_list: $ => parens(commaSep1($.identifier)),
+    column_list: $ => parens(commaSep1($._name)),
 
     _table_options: $ => seq(
       $.table_option,
@@ -834,7 +985,7 @@ module.exports = grammar({
         optional(kw('DEFAULT')),
         kw('COLLATE'),
         optional('='),
-        field('value', choice($.identifier, $.string, kw('DEFAULT'))),
+        field('value', choice($._collation_name, kw('DEFAULT'))),
       ),
       seq(
         field('name', choice(
@@ -862,9 +1013,9 @@ module.exports = grammar({
           kw('TABLESPACE'),
         )),
         optional('='),
-        field('value', choice($.identifier, $.string, $.number, kw('DEFAULT'))),
+        field('value', choice($._name, $.string, $.number, kw('DEFAULT'))),
       ),
-      seq(kw('UNION'), optional('='), parens(commaSep1($.object_reference))),
+      seq(kw('UNION'), optional('='), parens($._object_references)),
     ),
 
     partition_by: $ => prec.right(seq(
@@ -875,13 +1026,13 @@ module.exports = grammar({
           optional(kw('LINEAR')),
           kw('KEY'),
           optional(seq(kw('ALGORITHM'), '=', $.number)),
-          parens(optional(commaSep1($.identifier))),
+          parens(optional(commaSep1($._name))),
         ),
         seq(
           choice(kw('RANGE'), kw('LIST')),
           choice(
             parens($._expression),
-            seq(kw('COLUMNS'), parens(commaSep1($.identifier))),
+            seq(kw('COLUMNS'), parens(commaSep1($._name))),
           ),
         ),
       ),
@@ -891,15 +1042,15 @@ module.exports = grammar({
 
     partition_definition: $ => seq(
       kw('PARTITION'),
-      field('name', $.identifier),
+      field('name', $._name),
       optional(seq(
         kw('VALUES'),
         choice(
           seq(
             kws('LESS', 'THAN'),
-            choice(kw('MAXVALUE'), parens(commaSep1($._expression))),
+            choice(kw('MAXVALUE'), parens(commaSep1(choice($._expression, kw('MAXVALUE'))))),
           ),
-          seq(kw('IN'), parens(commaSep1($._expression))),
+          seq(kw('IN'), parens($._expressions)),
         ),
       )),
       repeat($.table_option),
@@ -941,7 +1092,7 @@ module.exports = grammar({
 
     _column_position: $ => choice(
       kw('FIRST'),
-      seq(kw('AFTER'), field('after', $.identifier)),
+      seq(kw('AFTER'), field('after', $._name)),
     ),
 
     add_constraint: $ => seq(
@@ -952,16 +1103,16 @@ module.exports = grammar({
     drop_column: $ => seq(
       kw('DROP'),
       optional(kw('COLUMN')),
-      field('name', $.identifier),
+      field('name', $._name),
     ),
 
     drop_constraint: $ => seq(
       kw('DROP'),
       choice(
-        seq(choice(kw('INDEX'), kw('KEY')), field('name', $.identifier)),
+        seq(choice(kw('INDEX'), kw('KEY')), field('name', $._name)),
         kws('PRIMARY', 'KEY'),
-        seq(kws('FOREIGN', 'KEY'), field('name', $.identifier)),
-        seq(choice(kw('CHECK'), kw('CONSTRAINT')), field('name', $.identifier)),
+        seq(kws('FOREIGN', 'KEY'), field('name', $._name)),
+        seq(choice(kw('CHECK'), kw('CONSTRAINT')), field('name', $._name)),
       ),
     ),
 
@@ -975,24 +1126,24 @@ module.exports = grammar({
     change_column: $ => seq(
       kw('CHANGE'),
       optional(kw('COLUMN')),
-      field('old', $.identifier),
+      field('old', $._name),
       $.column_definition,
       optional($._column_position),
     ),
 
     rename_column: $ => seq(
       kws('RENAME', 'COLUMN'),
-      field('old', $.identifier),
+      field('old', $._name),
       kw('TO'),
-      field('new', $.identifier),
+      field('new', $._name),
     ),
 
     rename_index: $ => seq(
       kw('RENAME'),
       choice(kw('INDEX'), kw('KEY')),
-      field('old', $.identifier),
+      field('old', $._name),
       kw('TO'),
-      field('new', $.identifier),
+      field('new', $._name),
     ),
 
     rename_table: $ => seq(
@@ -1004,7 +1155,7 @@ module.exports = grammar({
     alter_column: $ => seq(
       kw('ALTER'),
       optional(kw('COLUMN')),
-      field('name', $.identifier),
+      field('name', $._name),
       choice(
         seq(kws('SET', 'DEFAULT'), field('default', $._default_value)),
         kws('DROP', 'DEFAULT'),
@@ -1014,22 +1165,23 @@ module.exports = grammar({
 
     alter_index: $ => seq(
       kws('ALTER', 'INDEX'),
-      field('name', $.identifier),
+      field('name', $._name),
       choice(kw('VISIBLE'), kw('INVISIBLE')),
     ),
 
     convert_to_charset: $ => seq(
       kws('CONVERT', 'TO'),
-      $._character_set,
-      optional(seq(kw('COLLATE'), field('collation', choice($.identifier, $.string)))),
+      choice(kws('CHARACTER', 'SET'), kw('CHARSET')),
+      field('charset', choice($._charset_name, kw('DEFAULT'))),
+      optional(seq(kw('COLLATE'), field('collation', $._collation_name))),
     ),
 
     alter_option: $ => choice(
-      seq(kw('ALGORITHM'), optional('='), field('value', choice($.identifier, kw('DEFAULT')))),
-      seq(kw('LOCK'), optional('='), field('value', choice($.identifier, kw('DEFAULT')))),
+      seq(kw('ALGORITHM'), optional('='), field('value', choice($._name, kw('DEFAULT')))),
+      seq(kw('LOCK'), optional('='), field('value', choice($._name, kw('DEFAULT')))),
       kw('FORCE'),
       seq(choice(kw('ENABLE'), kw('DISABLE')), kw('KEYS')),
-      prec.right(seq(kws('ORDER', 'BY'), commaSep1($.identifier))),
+      prec.right(seq(kws('ORDER', 'BY'), commaSep1($._name))),
     ),
 
     drop_table_statement: $ => seq(
@@ -1037,7 +1189,7 @@ module.exports = grammar({
       optional(kw('TEMPORARY')),
       choice(kw('TABLE'), kw('TABLES')),
       optional($._if_exists),
-      commaSep1($.object_reference),
+      $._object_references,
       optional(choice(kw('RESTRICT'), kw('CASCADE'))),
     ),
 
@@ -1063,7 +1215,7 @@ module.exports = grammar({
       kw('CREATE'),
       optional(choice(kw('UNIQUE'), kw('FULLTEXT'), kw('SPATIAL'))),
       kw('INDEX'),
-      field('name', $.identifier),
+      field('name', $._name),
       optional($._index_type),
       kw('ON'),
       field('table', $.object_reference),
@@ -1073,7 +1225,7 @@ module.exports = grammar({
 
     drop_index_statement: $ => seq(
       kws('DROP', 'INDEX'),
-      field('name', $.identifier),
+      field('name', $._name),
       kw('ON'),
       field('table', $.object_reference),
       repeat($.alter_option),
@@ -1087,14 +1239,28 @@ module.exports = grammar({
       repeat($._view_option),
       kw('VIEW'),
       optional($._if_not_exists),
-      ...viewBody($),
+      $._view_body,
     ),
 
     alter_view_statement: $ => seq(
       kw('ALTER'),
       repeat($._view_option),
       kw('VIEW'),
-      ...viewBody($),
+      $._view_body,
+    ),
+
+    // The rules of a view after VIEW, in a rule of their own, so that their
+    // parse states do not depend on the optional parts before VIEW.
+    _view_body: $ => seq(
+      field('name', $.object_reference),
+      optional($.column_list),
+      kw('AS'),
+      $.select_statement,
+      optional(seq(
+        kw('WITH'),
+        optional(choice(kw('CASCADED'), kw('LOCAL'))),
+        kws('CHECK', 'OPTION'),
+      )),
     ),
 
     _view_option: $ => choice(
@@ -1115,13 +1281,21 @@ module.exports = grammar({
       kw('DROP'),
       kw('VIEW'),
       optional($._if_exists),
-      commaSep1($.object_reference),
+      $._object_references,
       optional(choice(kw('RESTRICT'), kw('CASCADE'))),
     ),
 
     // Stored programs
 
+    // The parse states where a statement can start are large, so the part
+    // of a statement before its body is a rule of its own. Then one state
+    // starts the body, whichever optional parts come before it.
     create_trigger_statement: $ => seq(
+      $._trigger_head,
+      field('body', $._routine_body),
+    ),
+
+    _trigger_head: $ => seq(
       kw('CREATE'),
       optional($.definer),
       kw('TRIGGER'),
@@ -1132,8 +1306,7 @@ module.exports = grammar({
       kw('ON'),
       field('table', $.object_reference),
       kws('FOR', 'EACH', 'ROW'),
-      optional(seq(choice(kw('FOLLOWS'), kw('PRECEDES')), field('other', $.identifier))),
-      field('body', $._routine_body),
+      optional(seq(choice(kw('FOLLOWS'), kw('PRECEDES')), field('other', $._name))),
     ),
 
     drop_trigger_statement: $ => seq(
@@ -1143,25 +1316,38 @@ module.exports = grammar({
     ),
 
     create_procedure_statement: $ => seq(
+      $._procedure_head,
+      $._routine_parameters,
+      $._routine_definition,
+    ),
+
+    _procedure_head: $ => seq(
       kw('CREATE'),
       optional($.definer),
       kw('PROCEDURE'),
       optional($._if_not_exists),
       field('name', $.object_reference),
-      parens(optional(commaSep1($.routine_parameter))),
-      repeat($.characteristic),
-      field('body', $._routine_body),
     ),
 
     create_function_statement: $ => seq(
+      $._function_head,
+      $._routine_parameters,
+      kw('RETURNS'),
+      field('return_type', $.data_type),
+      $._routine_definition,
+    ),
+
+    _function_head: $ => seq(
       kw('CREATE'),
       optional($.definer),
       kw('FUNCTION'),
       optional($._if_not_exists),
       field('name', $.object_reference),
-      parens(optional(commaSep1($.routine_parameter))),
-      kw('RETURNS'),
-      field('return_type', $.data_type),
+    ),
+
+    _routine_parameters: $ => parens(optional(commaSep1($.routine_parameter))),
+
+    _routine_definition: $ => seq(
       repeat($.characteristic),
       field('body', $._routine_body),
     ),
@@ -1169,7 +1355,7 @@ module.exports = grammar({
     // A parameter of a function takes no mode, but the grammar accepts one.
     routine_parameter: $ => seq(
       optional(choice(kw('IN'), kw('OUT'), kw('INOUT'))),
-      field('name', $.identifier),
+      field('name', $._name),
       field('type', $.data_type),
     ),
 
@@ -1226,26 +1412,30 @@ module.exports = grammar({
 
     _block_items: $ => repeat1(seq($._block_item, ';')),
 
-    _label: $ => seq(field('label', $.identifier), ':'),
+    _label: $ => seq(field('label', $._name), ':'),
 
-    block: $ => seq(
-      optional($._label),
+    // A compound statement can start with a label. The part after the
+    // label is a rule of its own, so that one parse state starts its
+    // statements, with or without the label.
+    block: $ => seq(optional($._label), $._block_body),
+
+    _block_body: $ => seq(
       kw('BEGIN'),
       optional($._block_items),
       kw('END'),
-      optional(field('end_label', $.identifier)),
+      optional(field('end_label', $._name)),
     ),
 
     declare_variable: $ => seq(
       kw('DECLARE'),
-      commaSep1(field('name', $.identifier)),
+      commaSep1(field('name', $._name)),
       field('type', $.data_type),
       optional(seq(kw('DEFAULT'), field('default', $._expression))),
     ),
 
     declare_condition: $ => seq(
       kw('DECLARE'),
-      field('name', $.identifier),
+      field('name', $._name),
       kws('CONDITION', 'FOR'),
       choice($._sqlstate, $.number),
     ),
@@ -1254,12 +1444,17 @@ module.exports = grammar({
 
     declare_cursor: $ => seq(
       kw('DECLARE'),
-      field('name', $.identifier),
+      field('name', $._name),
       kws('CURSOR', 'FOR'),
       $.select_statement,
     ),
 
     declare_handler: $ => seq(
+      $._handler_head,
+      field('body', $._block_item),
+    ),
+
+    _handler_head: $ => seq(
       kw('DECLARE'),
       choice(kw('CONTINUE'), kw('EXIT'), kw('UNDO')),
       kws('HANDLER', 'FOR'),
@@ -1269,9 +1464,8 @@ module.exports = grammar({
         kw('SQLWARNING'),
         kws('NOT', 'FOUND'),
         kw('SQLEXCEPTION'),
-        $.identifier,
+        $._name,
       )),
-      field('body', $._block_item),
     ),
 
     if_statement: $ => seq(
@@ -1308,75 +1502,83 @@ module.exports = grammar({
       $._block_items,
     ),
 
-    loop_statement: $ => seq(
-      optional($._label),
+    loop_statement: $ => seq(optional($._label), $._loop_body),
+
+    _loop_body: $ => seq(
       kw('LOOP'),
       $._block_items,
       kws('END', 'LOOP'),
-      optional(field('end_label', $.identifier)),
+      optional(field('end_label', $._name)),
     ),
 
-    while_statement: $ => seq(
-      optional($._label),
+    while_statement: $ => seq(optional($._label), $._while_body),
+
+    _while_body: $ => seq(
       kw('WHILE'),
       field('condition', $._expression),
-      kw('DO'),
+      // MySQL does not reserve DO, which comes after an expression here, so
+      // it is the token identifier.
+      alias($.identifier, 'DO'),
       $._block_items,
       kws('END', 'WHILE'),
-      optional(field('end_label', $.identifier)),
+      optional(field('end_label', $._name)),
     ),
 
-    repeat_statement: $ => seq(
-      optional($._label),
+    repeat_statement: $ => seq(optional($._label), $._repeat_body),
+
+    _repeat_body: $ => seq(
       kw('REPEAT'),
       $._block_items,
       kw('UNTIL'),
       field('condition', $._expression),
-      kws('END', 'REPEAT'),
-      optional(field('end_label', $.identifier)),
+      // MySQL does not reserve END, which comes after an expression here,
+      // so it is the token identifier.
+      alias($.identifier, 'END'),
+      kw('REPEAT'),
+      optional(field('end_label', $._name)),
     ),
 
-    leave_statement: $ => seq(kw('LEAVE'), field('label', $.identifier)),
+    leave_statement: $ => seq(kw('LEAVE'), field('label', $._name)),
 
-    iterate_statement: $ => seq(kw('ITERATE'), field('label', $.identifier)),
+    iterate_statement: $ => seq(kw('ITERATE'), field('label', $._name)),
 
     return_statement: $ => seq(kw('RETURN'), $._expression),
 
-    open_statement: $ => seq(kw('OPEN'), field('cursor', $.identifier)),
+    open_statement: $ => seq(kw('OPEN'), field('cursor', $._name)),
 
-    close_statement: $ => seq(kw('CLOSE'), field('cursor', $.identifier)),
+    close_statement: $ => seq(kw('CLOSE'), field('cursor', $._name)),
 
     fetch_statement: $ => seq(
       kw('FETCH'),
       optional(seq(optional(kw('NEXT')), kw('FROM'))),
-      field('cursor', $.identifier),
+      field('cursor', $._name),
       kw('INTO'),
-      commaSep1(choice($.identifier, $.user_variable)),
+      commaSep1(choice($._name, $.user_variable)),
     ),
 
     signal_statement: $ => seq(
       kw('SIGNAL'),
-      choice($._sqlstate, $.identifier),
+      choice($._sqlstate, $._name),
       optional($._signal_information),
     ),
 
     resignal_statement: $ => prec.right(seq(
       kw('RESIGNAL'),
-      optional(choice($._sqlstate, $.identifier)),
+      optional(choice($._sqlstate, $._name)),
       optional($._signal_information),
     )),
 
     _signal_information: $ => seq(
       kw('SET'),
-      commaSep1(seq($.identifier, '=', $._expression)),
+      commaSep1(seq($._name, '=', $._expression)),
     ),
 
     // Accounts and privileges
 
     account: $ => choice(
       seq(
-        field('user', choice($.identifier, $.string)),
-        optional(seq('@', field('host', choice($.identifier, $.string)))),
+        field('user', choice($._name, $.string)),
+        optional(seq('@', field('host', choice($._name, $.string)))),
       ),
       seq(kw('CURRENT_USER'), optional(seq('(', ')'))),
     ),
@@ -1386,9 +1588,9 @@ module.exports = grammar({
     _role: $ => choice(
       field('user', $.string),
       seq(
-        field('user', choice($.identifier, $.string)),
+        field('user', choice($._name, $.string)),
         '@',
-        field('host', choice($.identifier, $.string)),
+        field('host', choice($._name, $.string)),
       ),
     ),
 
@@ -1398,7 +1600,7 @@ module.exports = grammar({
         seq(kw('BY'), $.string),
         seq(
           kw('WITH'),
-          field('plugin', choice($.identifier, $.string)),
+          field('plugin', choice($._name, $.string)),
           optional(seq(choice(kw('BY'), kw('AS')), $.string)),
         ),
       ),
@@ -1407,14 +1609,14 @@ module.exports = grammar({
     create_user_statement: $ => seq(
       kws('CREATE', 'USER'),
       optional($._if_not_exists),
-      commaSep1(seq($.account, optional($._authentication))),
-      optional(seq(kws('DEFAULT', 'ROLE'), commaSep1($.account))),
+      $._user_specifications,
+      optional(seq(kws('DEFAULT', 'ROLE'), $._accounts)),
     ),
 
     alter_user_statement: $ => seq(
       kws('ALTER', 'USER'),
       optional($._if_exists),
-      commaSep1(seq($.account, optional($._authentication))),
+      $._user_specifications,
     ),
 
     drop_user_statement: $ => seq(
@@ -1427,17 +1629,16 @@ module.exports = grammar({
       kw('GRANT'),
       choice(
         seq(
-          commaSep1(choice($.privilege, alias($._role, $.account))),
-          optional(seq(kw('ON'), $._privilege_object)),
+          $._privileges,
           kw('TO'),
-          commaSep1($.account),
+          $._accounts,
           optional(choice(kws('WITH', 'GRANT', 'OPTION'), kws('WITH', 'ADMIN', 'OPTION'))),
         ),
         seq(
           kws('PROXY', 'ON'),
           $.account,
           kw('TO'),
-          commaSep1($.account),
+          $._accounts,
           optional(kws('WITH', 'GRANT', 'OPTION')),
         ),
       ),
@@ -1447,15 +1648,21 @@ module.exports = grammar({
       kw('REVOKE'),
       optional($._if_exists),
       choice(
-        seq(
-          commaSep1(choice($.privilege, alias($._role, $.account))),
-          optional(seq(kw('ON'), $._privilege_object)),
-          kw('FROM'),
-          commaSep1($.account),
-        ),
-        seq(kws('PROXY', 'ON'), $.account, kw('FROM'), commaSep1($.account)),
+        seq($._privileges, kw('FROM'), $._accounts),
+        seq(kws('PROXY', 'ON'), $.account, kw('FROM'), $._accounts),
       ),
     ),
+
+    // A list in a rule of its own has the same parse states in each
+    // statement that holds it, as _expressions has.
+    _privileges: $ => seq(
+      commaSep1(choice($.privilege, alias($._role, $.account))),
+      optional(seq(kw('ON'), $._privilege_object)),
+    ),
+
+    _accounts: $ => commaSep1($.account),
+
+    _user_specifications: $ => commaSep1(seq($.account, optional($._authentication))),
 
     _privilege_object: $ => seq(
       optional(choice(kw('TABLE'), kw('FUNCTION'), kw('PROCEDURE'))),
@@ -1494,7 +1701,7 @@ module.exports = grammar({
         kw('TRIGGER'),
         kw('UPDATE'),
         kw('USAGE'),
-        $.identifier,
+        $._name,
       ),
       optional($.column_list),
     ),
@@ -1502,14 +1709,14 @@ module.exports = grammar({
     privilege_level: $ => choice(
       '*',
       seq('*', '.', '*'),
-      seq(field('schema', $.identifier), '.', '*'),
-      seq(field('schema', $.identifier), '.', field('name', $.identifier)),
-      field('name', $.identifier),
+      seq(field('schema', $._name), '.', '*'),
+      seq(field('schema', $._name), '.', field('name', $._member_name)),
+      field('name', $._name),
     ),
 
     // Sessions and transactions
 
-    use_statement: $ => seq(kw('USE'), field('name', $.identifier)),
+    use_statement: $ => seq(kw('USE'), field('name', $._name)),
 
     set_statement: $ => seq(
       kw('SET'),
@@ -1518,7 +1725,7 @@ module.exports = grammar({
         seq(
           kw('NAMES'),
           choice(
-            seq($._charset_name, optional(seq(kw('COLLATE'), choice($.identifier, $.string)))),
+            seq($._charset_name, optional(seq(kw('COLLATE'), $._collation_name))),
             kw('DEFAULT'),
           ),
         ),
@@ -1551,7 +1758,7 @@ module.exports = grammar({
         field('left', choice($.user_variable, $.system_variable)),
       ),
       choice('=', ':='),
-      field('right', choice($._expression, kw('DEFAULT'), kw('ON'), kw('ALL'))),
+      field('right', choice($._expression, kw('DEFAULT'), kw('ON'), kw('ALL'), keywordName($, 'BINARY'))),
     ),
 
     _transaction_characteristic: _ => choice(
@@ -1590,7 +1797,7 @@ module.exports = grammar({
       optional(kw('WORK')),
       choice(
         optional($._chain),
-        seq(kw('TO'), optional(kw('SAVEPOINT')), field('savepoint', $.identifier)),
+        seq(kw('TO'), optional(kw('SAVEPOINT')), field('savepoint', $._name)),
       ),
     ),
 
@@ -1599,11 +1806,11 @@ module.exports = grammar({
       seq(optional(kw('NO')), kw('RELEASE')),
     ),
 
-    savepoint_statement: $ => seq(kw('SAVEPOINT'), field('name', $.identifier)),
+    savepoint_statement: $ => seq(kw('SAVEPOINT'), field('name', $._name)),
 
     release_savepoint_statement: $ => seq(
       kws('RELEASE', 'SAVEPOINT'),
-      field('name', $.identifier),
+      field('name', $._name),
     ),
 
     lock_tables_statement: $ => seq(
@@ -1614,7 +1821,7 @@ module.exports = grammar({
 
     table_lock: $ => seq(
       field('table', $.object_reference),
-      optional(seq(optional(kw('AS')), field('alias', $.identifier))),
+      optional(seq(optional(kw('AS')), field('alias', $._name))),
       choice(
         seq(kw('READ'), optional(kw('LOCAL'))),
         seq(optional(kw('LOW_PRIORITY')), kw('WRITE')),
@@ -1625,30 +1832,30 @@ module.exports = grammar({
 
     prepare_statement: $ => seq(
       kw('PREPARE'),
-      field('name', $.identifier),
+      field('name', $._name),
       kw('FROM'),
       field('source', choice($.string, $.user_variable)),
     ),
 
     execute_statement: $ => seq(
       kw('EXECUTE'),
-      field('name', $.identifier),
+      field('name', $._name),
       optional(seq(kw('USING'), commaSep1($.user_variable))),
     ),
 
     deallocate_statement: $ => seq(
       choice(kw('DEALLOCATE'), kw('DROP')),
       kw('PREPARE'),
-      field('name', $.identifier),
+      field('name', $._name),
     ),
 
     call_statement: $ => seq(
       kw('CALL'),
       field('name', $.object_reference),
-      optional(parens(optional(commaSep1($._expression)))),
+      optional(parens(optional($._expressions))),
     ),
 
-    do_statement: $ => seq(kw('DO'), commaSep1($._expression)),
+    do_statement: $ => seq(kw('DO'), $._expressions),
 
     // Information
 
@@ -1680,7 +1887,7 @@ module.exports = grammar({
             seq(
               choice(kw('DATABASE'), kw('SCHEMA')),
               optional($._if_not_exists),
-              field('name', $.identifier),
+              field('name', $._name),
             ),
             seq(
               choice(kw('TABLE'), kw('VIEW'), kw('PROCEDURE'), kw('FUNCTION'), kw('TRIGGER'), kw('EVENT')),
@@ -1695,7 +1902,7 @@ module.exports = grammar({
         seq(choice(kw('WARNINGS'), kw('ERRORS')), optional($.limit_clause)),
         seq(kw('COUNT'), '(', '*', ')', choice(kw('WARNINGS'), kw('ERRORS'))),
         seq(optional(kw('STORAGE')), kw('ENGINES')),
-        seq(kw('ENGINE'), field('engine', $.identifier), choice(kw('STATUS'), kw('MUTEX'))),
+        seq(kw('ENGINE'), field('engine', $._name), choice(kw('STATUS'), kw('MUTEX'))),
         seq(kws('TABLE', 'STATUS'), optional($._show_from), optional($._show_filter)),
         seq(kw('TRIGGERS'), optional($._show_from), optional($._show_filter)),
         seq(kw('EVENTS'), optional($._show_from), optional($._show_filter)),
@@ -1715,7 +1922,7 @@ module.exports = grammar({
       ),
     ),
 
-    _show_from: $ => seq(choice(kw('FROM'), kw('IN')), field('database', $.identifier)),
+    _show_from: $ => seq(choice(kw('FROM'), kw('IN')), field('database', $._name)),
 
     _show_filter: $ => choice(
       seq(kw('LIKE'), field('pattern', $.string)),
@@ -1725,13 +1932,13 @@ module.exports = grammar({
     describe_statement: $ => prec.right(seq(
       choice(kw('DESCRIBE'), kw('DESC'), kw('EXPLAIN')),
       field('table', $.object_reference),
-      optional(field('column', choice($.identifier, $.string))),
+      optional(field('column', choice($._name, $.string))),
     )),
 
     explain_statement: $ => seq(
       choice(kw('EXPLAIN'), kw('DESCRIBE'), kw('DESC')),
       optional(choice(kw('ANALYZE'), kw('EXTENDED'), kw('PARTITIONS'))),
-      optional(seq(kw('FORMAT'), '=', field('format', $.identifier))),
+      optional(seq(kw('FORMAT'), '=', field('format', $._name))),
       choice(
         $.select_statement,
         $.insert_statement,
@@ -1791,36 +1998,45 @@ module.exports = grammar({
     )),
 
     column_reference: $ => choice(
-      field('name', choice($.identifier, $._keyword_name)),
-      seq(field('table', $.identifier), '.', field('name', $.identifier)),
+      field('name', choice($._name, $._keyword_name)),
+      seq(field('table', $._name), '.', field('name', $._member_name)),
       seq(
-        field('schema', $.identifier),
+        field('schema', $._name),
         '.',
-        field('table', $.identifier),
+        field('table', $._member_name),
         '.',
-        field('name', $.identifier),
+        field('name', $._member_name),
       ),
     ),
 
     // These keywords start an expression, and MySQL does not reserve them,
     // so they also name a column.
-    _keyword_name: $ => keywordName(
-      $,
-      'DATE',
-      'TIME',
-      'TIMESTAMP',
-      'POSITION',
-      'TRIM',
-      'SUBSTRING',
-      'SUBSTR',
-      'EXTRACT',
-      'CAST',
-    ),
+    _keyword_name: $ => keywordName($, 'DATE', 'TIME', 'TIMESTAMP', 'CAST', 'EXTRACT', 'POSITION'),
 
+    // The reserved words that name a function with no parentheses, but
+    // CURRENT_USER, which is also a keyword of an account. They are one
+    // token, so that they take one column of a parse state.
+    _current_name: _ => token(choice(
+      keyword('CURRENT_TIMESTAMP'),
+      keyword('CURRENT_DATE'),
+      keyword('CURRENT_TIME'),
+      keyword('LOCALTIME'),
+      keyword('LOCALTIMESTAMP'),
+      keyword('UTC_DATE'),
+      keyword('UTC_TIME'),
+      keyword('UTC_TIMESTAMP'),
+    )),
+
+    // A function call has the special forms of the functions that MySQL
+    // gives a syntax of their own, such as CAST(x AS CHAR). TRIM and
+    // SUBSTRING use the keywords that the list of arguments of any function
+    // takes.
     function_call: $ => choice(
       prec.right(seq(
-        optional(seq(field('schema', $.identifier), '.')),
-        field('name', $.identifier),
+        choice(
+          field('name', $._function_name),
+          seq(field('schema', $._name), '.', field('name', $._member_name)),
+        ),
         $.arguments,
         optional($.over_clause),
       )),
@@ -1829,45 +2045,23 @@ module.exports = grammar({
         $.arguments,
       ),
       prec.right(seq(
-        field('name', keywordName($, 'CURRENT_TIMESTAMP', 'CURRENT_DATE', 'CURRENT_TIME', 'CURRENT_USER', 'LOCALTIME', 'LOCALTIMESTAMP', 'UTC_DATE', 'UTC_TIME', 'UTC_TIMESTAMP')),
+        field('name', choice(alias($._current_name, $.identifier), keywordName($, 'CURRENT_USER'))),
         optional(parens(optional($.number))),
       )),
       seq(
-        field('name', keywordName($, 'CAST')),
-        parens(seq($._expression, kw('AS'), $.data_type)),
-      ),
-      seq(
-        field('name', keywordName($, 'CONVERT')),
+        field('name', keywordName($, 'CAST', 'CONVERT')),
         parens(seq(
           $._expression,
-          choice(seq(',', $.data_type), seq(kw('USING'), $._charset_name)),
+          choice(
+            seq(kw('AS'), $.data_type),
+            seq(',', $.data_type),
+            seq(kw('USING'), $._charset_name),
+          ),
         )),
       ),
       seq(
         field('name', keywordName($, 'EXTRACT')),
         parens(seq($._interval_unit, kw('FROM'), $._expression)),
-      ),
-      seq(
-        field('name', keywordName($, 'TRIM')),
-        parens(choice(
-          $._expression,
-          seq(
-            optional(choice(kw('BOTH'), kw('LEADING'), kw('TRAILING'))),
-            optional($._expression),
-            kw('FROM'),
-            $._expression,
-          ),
-        )),
-      ),
-      seq(
-        field('name', keywordName($, 'SUBSTRING', 'SUBSTR')),
-        parens(seq(
-          $._expression,
-          choice(
-            seq(',', $._expression, optional(seq(',', $._expression))),
-            seq(kw('FROM'), $._expression, optional(seq(kw('FOR'), $._expression))),
-          ),
-        )),
       ),
       seq(
         field('name', keywordName($, 'POSITION')),
@@ -1879,22 +2073,37 @@ module.exports = grammar({
       '*',
       seq(
         optional(choice(kw('DISTINCT'), kw('ALL'))),
-        commaSep1($._expression),
+        $._argument_list,
         optional($.order_by_clause),
         optional(seq(kw('SEPARATOR'), $.string)),
       ),
     ))),
 
+    // The arguments of a function. Most functions take a list of
+    // expressions with commas between them. TRIM and SUBSTRING have keywords
+    // between their arguments, as in TRIM(BOTH 'x' FROM s) and
+    // SUBSTRING(s FROM 2 FOR 3). The grammar accepts these keywords between
+    // two arguments of any function, so that each argument is in the same
+    // parse states.
+    _argument_list: $ => seq(
+      optional(seq(
+        choice(kw('BOTH'), kw('LEADING'), kw('TRAILING')),
+        optional(kw('FROM')),
+      )),
+      $._expression,
+      repeat(seq(choice(',', kw('FROM'), kw('FOR')), $._expression)),
+    ),
+
     over_clause: $ => seq(
       kw('OVER'),
-      choice(field('window', $.identifier), $.window_specification),
+      choice(field('window', $._name), $.window_specification),
     ),
 
     parenthesized_expression: $ => parens($._expression),
 
     row_constructor: $ => choice(
-      seq(kw('ROW'), parens(commaSep1($._expression))),
-      parens(seq($._expression, ',', commaSep1($._expression))),
+      seq(kw('ROW'), parens($._expressions)),
+      parens(seq($._expression, ',', $._expressions)),
     ),
 
     exists_expression: $ => seq(kw('EXISTS'), $.subquery),
@@ -1904,7 +2113,9 @@ module.exports = grammar({
       optional(field('value', $._expression)),
       repeat1($.when_clause),
       optional(seq(kw('ELSE'), field('else', $._expression))),
-      kw('END'),
+      // MySQL does not reserve END, which comes after an expression here,
+      // so it is the token identifier.
+      alias($.identifier, 'END'),
     ),
 
     when_clause: $ => seq(
@@ -1914,41 +2125,55 @@ module.exports = grammar({
       field('result', $._expression),
     ),
 
+    // The value of an interval is a primary expression or a signed number,
+    // as in INTERVAL -1 DAY. An expression with an operator must be in
+    // parentheses, so that each operator does not need a parse state with
+    // the units after it.
     interval_expression: $ => seq(
       kw('INTERVAL'),
-      field('value', $._expression),
+      field('value', choice($._primary_expression, alias($._signed_number, $.unary_expression))),
       field('unit', $._interval_unit),
     ),
 
-    _interval_unit: _ => choice(
-      kw('MICROSECOND'),
-      kw('SECOND'),
-      kw('MINUTE'),
-      kw('HOUR'),
-      kw('DAY'),
-      kw('WEEK'),
-      kw('MONTH'),
-      kw('QUARTER'),
-      kw('YEAR'),
-      kw('SECOND_MICROSECOND'),
-      kw('MINUTE_MICROSECOND'),
-      kw('MINUTE_SECOND'),
-      kw('HOUR_MICROSECOND'),
-      kw('HOUR_SECOND'),
-      kw('HOUR_MINUTE'),
-      kw('DAY_MICROSECOND'),
-      kw('DAY_SECOND'),
-      kw('DAY_MINUTE'),
-      kw('DAY_HOUR'),
-      kw('YEAR_MONTH'),
+    // A unit of an interval is the node interval_unit. The units but YEAR
+    // are one token, so that they take one column of a parse state. YEAR is
+    // a token of its own, because it also names a type.
+    _interval_unit: $ => choice(
+      alias($._unit, $.interval_unit),
+      alias(keyword('YEAR'), $.interval_unit),
     ),
+
+    _unit: _ => token(choice(
+      keyword('MICROSECOND'),
+      keyword('SECOND'),
+      keyword('MINUTE'),
+      keyword('HOUR'),
+      keyword('DAY'),
+      keyword('WEEK'),
+      keyword('MONTH'),
+      keyword('QUARTER'),
+      keyword('SECOND_MICROSECOND'),
+      keyword('MINUTE_MICROSECOND'),
+      keyword('MINUTE_SECOND'),
+      keyword('HOUR_MICROSECOND'),
+      keyword('HOUR_SECOND'),
+      keyword('HOUR_MINUTE'),
+      keyword('DAY_MICROSECOND'),
+      keyword('DAY_SECOND'),
+      keyword('DAY_MINUTE'),
+      keyword('DAY_HOUR'),
+      keyword('YEAR_MONTH'),
+    )),
 
     match_expression: $ => seq(
       kw('MATCH'),
-      parens(commaSep1($.column_reference)),
+      // MySQL accepts the columns with or without parentheses.
+      choice(parens($._match_columns), $._match_columns),
       kw('AGAINST'),
+      // The text to search for is a primary expression, so that each
+      // operator does not need a parse state with the modes after it.
       parens(seq(
-        $._expression,
+        $._primary_expression,
         optional(choice(
           kws('IN', 'NATURAL', 'LANGUAGE', 'MODE'),
           kws('IN', 'NATURAL', 'LANGUAGE', 'MODE', 'WITH', 'QUERY', 'EXPANSION'),
@@ -1957,6 +2182,8 @@ module.exports = grammar({
         )),
       )),
     ),
+
+    _match_columns: $ => commaSep1($.column_reference),
 
     unary_expression: $ => choice(
       prec(PREC.not, seq(field('operator', kw('NOT')), field('operand', $._expression))),
@@ -1991,8 +2218,11 @@ module.exports = grammar({
           field('right', choice($._expression, $.quantified_subquery)),
         )),
         prec.left(PREC.compare, seq(
-          field('left', $._expression),
-          field('operator', seq(kw('MEMBER'), optional(kw('OF')))),
+          prec(PREC.operatorName, seq(
+            field('left', $._expression),
+            field('operator', alias($.identifier, 'MEMBER')),
+          )),
+          optional(field('operator', kw('OF'))),
           field('right', $.parenthesized_expression),
         )),
       );
@@ -2017,7 +2247,17 @@ module.exports = grammar({
       field('right', choice($.subquery, $.list)),
     )),
 
-    list: $ => parens(commaSep1($._expression)),
+    // A list in a rule of its own has the same parse states in each place
+    // that holds it.
+    _expressions: $ => commaSep1($._expression),
+
+    _table_references: $ => commaSep1($._table_reference),
+
+    _assignments: $ => commaSep1($.assignment),
+
+    _object_references: $ => commaSep1($.object_reference),
+
+    list: $ => parens($._expressions),
 
     between_expression: $ => prec.left(PREC.between, seq(
       field('left', $._expression),
@@ -2028,18 +2268,28 @@ module.exports = grammar({
       field('high', $._expression),
     )),
 
-    like_expression: $ => prec.left(PREC.compare, seq(
-      field('left', $._expression),
-      optional(kw('NOT')),
-      field('operator', choice(kw('LIKE'), kw('REGEXP'), kw('RLIKE'), kws('SOUNDS', 'LIKE'))),
-      field('right', $._expression),
-      optional(seq(kw('ESCAPE'), field('escape', $._expression))),
-    )),
+    like_expression: $ => choice(
+      prec.left(PREC.compare, seq(
+        field('left', $._expression),
+        optional(kw('NOT')),
+        field('operator', choice(kw('LIKE'), kw('REGEXP'), kw('RLIKE'))),
+        field('right', $._expression),
+        optional(seq(kw('ESCAPE'), field('escape', $._expression))),
+      )),
+      prec.left(PREC.compare, seq(
+        prec(PREC.operatorName, seq(
+          field('left', $._expression),
+          field('operator', alias($.identifier, 'SOUNDS')),
+        )),
+        field('operator', kw('LIKE')),
+        field('right', $._expression),
+      )),
+    ),
 
     collate_expression: $ => prec.left(PREC.collate, seq(
       field('value', $._expression),
       kw('COLLATE'),
-      field('collation', choice($.identifier, $.string)),
+      field('collation', $._collation_name),
     )),
 
     assignment_expression: $ => prec.right(PREC.assign, seq(
@@ -2050,14 +2300,29 @@ module.exports = grammar({
 
     // Names and literals
 
-    object_reference: $ => seq(
-      optional(seq(field('schema', $.identifier), '.')),
-      field('name', $.identifier),
+    object_reference: $ => choice(
+      field('name', $._name),
+      seq(field('schema', $._name), '.', field('name', $._member_name)),
     ),
 
-    identifier: $ => choice($._identifier, $._quoted_identifier),
+    // A name is an identifier or a quoted identifier, and both are the node
+    // identifier.
+    _name: $ => choice($.identifier, alias($._quoted_identifier, $.identifier)),
 
-    _identifier: _ => /[A-Za-z_\u0080-￿][A-Za-z0-9_$\u0080-￿]*/,
+    // A name after a dot can be any keyword, also a reserved word.
+    _member_name: $ => choice(
+      reserved('label', $.identifier),
+      alias($._quoted_identifier, $.identifier),
+    ),
+
+    // A function name can be a reserved word that MySQL also uses as the
+    // name of a function, such as LEFT or REPLACE.
+    _function_name: $ => choice(
+      reserved('function_name', $.identifier),
+      alias($._quoted_identifier, $.identifier),
+    ),
+
+    identifier: _ => /[A-Za-z_\u0080-￿][A-Za-z0-9_$\u0080-￿]*/,
 
     _quoted_identifier: _ => /`([^`]|``)*`/,
 
@@ -2094,44 +2359,3 @@ module.exports = grammar({
     )),
   },
 });
-
-/**
- * Returns the rules after INSERT or REPLACE and its modifiers.
- *
- * @param {GrammarSymbols<string>} $
- */
-function insertBody($) {
-  return [
-    optional(kw('INTO')),
-    field('table', $.object_reference),
-    optional($.partition_list),
-    choice(
-      seq(
-        optional($.column_list),
-        $.values_clause,
-        optional(seq(kw('AS'), field('alias', $.identifier), optional($.column_list))),
-      ),
-      seq(kw('SET'), commaSep1($.assignment)),
-      seq(optional($.column_list), $.select_statement),
-    ),
-  ];
-}
-
-/**
- * Returns the rules of a view after VIEW.
- *
- * @param {GrammarSymbols<string>} $
- */
-function viewBody($) {
-  return [
-    field('name', $.object_reference),
-    optional($.column_list),
-    kw('AS'),
-    $.select_statement,
-    optional(seq(
-      kw('WITH'),
-      optional(choice(kw('CASCADED'), kw('LOCAL'))),
-      kws('CHECK', 'OPTION'),
-    )),
-  ];
-}
