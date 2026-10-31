@@ -1,0 +1,480 @@
+================================================================================
+Create and alter a tablespace
+================================================================================
+
+CREATE TABLESPACE dbspace LOCATION '/data/dbs';
+CREATE TABLESPACE indexspace OWNER genevieve LOCATION '/data/indexes' WITH (random_page_cost = 1.1);
+ALTER TABLESPACE index_space RENAME TO fast_raid;
+ALTER TABLESPACE t SET (seq_page_cost = 2) OWNER TO u;
+ALTER TABLESPACE t RESET (seq_page_cost);
+
+---
+
+(source_file
+  (create_tablespace_statement
+    (identifier)
+    (string))
+  (create_tablespace_statement
+    (identifier)
+    (identifier)
+    (string)
+    (option_list
+      (option
+        (identifier)
+        (number))))
+  (alter_object_statement
+    (object_reference
+      (identifier))
+    (rename
+      (identifier)))
+  (alter_object_statement
+    (object_reference
+      (identifier))
+    (option_list
+      (option
+        (identifier)
+        (number)))
+    (owner_to
+      (identifier)))
+  (alter_object_statement
+    (object_reference
+      (identifier))
+    (option_list
+      (option
+        (identifier)))))
+
+================================================================================
+Create and alter a collation
+================================================================================
+
+CREATE COLLATION french (locale = 'fr_FR.utf8');
+CREATE COLLATION IF NOT EXISTS german_phonebook (provider = icu, locale = 'de-u-co-phonebk', deterministic = false);
+CREATE COLLATION german FROM "de_DE";
+ALTER COLLATION "de_DE" RENAME TO german;
+ALTER COLLATION s.c REFRESH VERSION;
+
+---
+
+(source_file
+  (create_collation_statement
+    (object_reference
+      (identifier))
+    (definition_list
+      (definition
+        (identifier)
+        (string))))
+  (create_collation_statement
+    (object_reference
+      (identifier))
+    (definition_list
+      (definition
+        (identifier)
+        (type
+          (identifier)))
+      (definition
+        (identifier)
+        (string))
+      (definition
+        (identifier)
+        (boolean))))
+  (create_collation_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)))
+  (alter_object_statement
+    (object_reference
+      (identifier))
+    (rename
+      (identifier)))
+  (alter_object_statement
+    (object_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+Create and alter a conversion
+================================================================================
+
+CREATE CONVERSION myconv FOR 'UTF8' TO 'LATIN1' FROM myfunc;
+CREATE DEFAULT CONVERSION s.c FOR 'LATIN1' TO 'UTF8' FROM f;
+ALTER CONVERSION iso_8859_1_to_utf8 OWNER TO joe;
+
+---
+
+(source_file
+  (create_conversion_statement
+    (object_reference
+      (identifier))
+    (string)
+    (string)
+    (object_reference
+      (identifier)))
+  (create_conversion_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (string)
+    (string)
+    (object_reference
+      (identifier)))
+  (alter_object_statement
+    (object_reference
+      (identifier))
+    (owner_to
+      (identifier))))
+
+================================================================================
+Create text search objects
+================================================================================
+
+CREATE TEXT SEARCH CONFIGURATION my_config (PARSER = default);
+CREATE TEXT SEARCH DICTIONARY my_russian (
+    template = snowball,
+    language = russian,
+    stopwords = myrussian
+);
+CREATE TEXT SEARCH PARSER p (START = s, GETTOKEN = g, END = e, LEXTYPES = l);
+CREATE TEXT SEARCH TEMPLATE t (LEXIZE = dsimple_lexize);
+
+---
+
+(source_file
+  (create_text_search_statement
+    (object_reference
+      (identifier))
+    (definition_list
+      (definition
+        (identifier))))
+  (create_text_search_statement
+    (object_reference
+      (identifier))
+    (definition_list
+      (definition
+        (identifier)
+        (type
+          (identifier)))
+      (definition
+        (identifier)
+        (type
+          (identifier)))
+      (definition
+        (identifier)
+        (type
+          (identifier)))))
+  (create_text_search_statement
+    (object_reference
+      (identifier))
+    (definition_list
+      (definition
+        (identifier)
+        (type
+          (identifier)))
+      (definition
+        (identifier)
+        (type
+          (identifier)))
+      (definition
+        (identifier)
+        (type
+          (identifier)))
+      (definition
+        (identifier)
+        (type
+          (identifier)))))
+  (create_text_search_statement
+    (object_reference
+      (identifier))
+    (definition_list
+      (definition
+        (identifier)
+        (type
+          (identifier))))))
+
+================================================================================
+Alter text search objects
+================================================================================
+
+ALTER TEXT SEARCH CONFIGURATION my_config
+  ALTER MAPPING REPLACE english WITH swedish;
+ALTER TEXT SEARCH CONFIGURATION c ADD MAPPING FOR word, asciiword WITH english_stem, simple;
+ALTER TEXT SEARCH CONFIGURATION c DROP MAPPING IF EXISTS FOR url;
+ALTER TEXT SEARCH DICTIONARY my_dict ( StopWords = newrussian );
+ALTER TEXT SEARCH PARSER p RENAME TO q;
+
+---
+
+(source_file
+  (alter_object_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)))
+  (alter_object_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (identifier)
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)))
+  (alter_object_statement
+    (object_reference
+      (identifier))
+    (identifier))
+  (alter_object_statement
+    (object_reference
+      (identifier))
+    (definition_list
+      (definition
+        (identifier)
+        (type
+          (identifier)))))
+  (alter_object_statement
+    (object_reference
+      (identifier))
+    (rename
+      (identifier))))
+
+================================================================================
+Create and alter extended statistics
+================================================================================
+
+CREATE STATISTICS s1 (dependencies) ON a, b FROM t1;
+CREATE STATISTICS IF NOT EXISTS s2 (mcv, ndistinct) ON (a + b), lower(c) FROM t2;
+CREATE STATISTICS ON a, b FROM t;
+ALTER STATISTICS s1 SET STATISTICS 100;
+ALTER STATISTICS IF EXISTS s1 RENAME TO s2;
+
+---
+
+(source_file
+  (create_statistics_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (column_reference
+      (identifier))
+    (column_reference
+      (identifier))
+    (table_reference
+      (object_reference
+        (identifier))))
+  (create_statistics_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (identifier)
+    (parenthesized_expression
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier))))
+    (function_call
+      (identifier)
+      (arguments
+        (column_reference
+          (identifier))))
+    (table_reference
+      (object_reference
+        (identifier))))
+  (create_statistics_statement
+    (column_reference
+      (identifier))
+    (column_reference
+      (identifier))
+    (table_reference
+      (object_reference
+        (identifier))))
+  (alter_object_statement
+    (object_reference
+      (identifier))
+    (number))
+  (alter_object_statement
+    (object_reference
+      (identifier))
+    (rename
+      (identifier))))
+
+================================================================================
+Create a cast
+================================================================================
+
+CREATE CAST (bigint AS int4) WITH FUNCTION int4(bigint) AS ASSIGNMENT;
+CREATE CAST (text AS mytype) WITHOUT FUNCTION AS IMPLICIT;
+CREATE CAST (a AS b) WITH INOUT;
+
+---
+
+(source_file
+  (create_cast_statement
+    (type
+      (identifier))
+    (type
+      (identifier))
+    (function_signature
+      (object_reference
+        (identifier))
+      (function_parameters
+        (function_parameter
+          (type
+            (identifier))))))
+  (create_cast_statement
+    (type
+      (identifier))
+    (type
+      (identifier)))
+  (create_cast_statement
+    (type
+      (identifier))
+    (type
+      (identifier))))
+
+================================================================================
+Create and alter a language
+================================================================================
+
+CREATE LANGUAGE plsample HANDLER plsample_call_handler;
+CREATE OR REPLACE TRUSTED PROCEDURAL LANGUAGE l HANDLER h INLINE i VALIDATOR v;
+ALTER LANGUAGE plsample RENAME TO plother;
+ALTER PROCEDURAL LANGUAGE l OWNER TO u;
+
+---
+
+(source_file
+  (create_language_statement
+    (identifier)
+    (object_reference
+      (identifier)))
+  (create_language_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)))
+  (alter_object_statement
+    (object_reference
+      (identifier))
+    (rename
+      (identifier)))
+  (alter_object_statement
+    (object_reference
+      (identifier))
+    (owner_to
+      (identifier))))
+
+================================================================================
+Create a transform
+================================================================================
+
+CREATE TRANSFORM FOR hstore LANGUAGE plpython3u (
+    FROM SQL WITH FUNCTION hstore_to_plpython(internal),
+    TO SQL WITH FUNCTION plpython_to_hstore(internal)
+);
+
+---
+
+(source_file
+  (create_transform_statement
+    (type
+      (identifier))
+    (identifier)
+    (function_signature
+      (object_reference
+        (identifier))
+      (function_parameters
+        (function_parameter
+          (type
+            (identifier)))))
+    (function_signature
+      (object_reference
+        (identifier))
+      (function_parameters
+        (function_parameter
+          (type
+            (identifier)))))))
+
+================================================================================
+Create an access method
+================================================================================
+
+CREATE ACCESS METHOD heptree TYPE INDEX HANDLER heptree_handler;
+CREATE ACCESS METHOD heap2 TYPE TABLE HANDLER s.heap_tableam_handler;
+
+---
+
+(source_file
+  (create_access_method_statement
+    (identifier)
+    (object_reference
+      (identifier)))
+  (create_access_method_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+Alter a large object
+================================================================================
+
+ALTER LARGE OBJECT 1234 OWNER TO u;
+
+---
+
+(source_file
+  (alter_object_statement
+    (number)
+    (owner_to
+      (identifier))))
+
+================================================================================
+Alter the system
+================================================================================
+
+ALTER SYSTEM SET wal_level = replica;
+ALTER SYSTEM RESET wal_level;
+ALTER SYSTEM RESET ALL;
+
+---
+
+(source_file
+  (alter_system_statement
+    (setting_name
+      (identifier))
+    (identifier))
+  (alter_system_statement
+    (setting_name
+      (identifier)))
+  (alter_system_statement))
+
+================================================================================
+Wait for a location of the log
+================================================================================
+
+WAIT FOR LSN '0/306EE20';
+WAIT FOR LSN '0/306EE20' WITH (MODE 'standby_write', TIMEOUT '100ms', NO_THROW);
+
+---
+
+(source_file
+  (wait_statement
+    (string))
+  (wait_statement
+    (string)
+    (option_list
+      (option
+        (identifier)
+        (string))
+      (option
+        (identifier)
+        (string))
+      (option
+        (identifier)))))

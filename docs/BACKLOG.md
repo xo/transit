@@ -125,6 +125,18 @@ It also leaves out these forms of the statements that define objects:
 - A column named `exclude` or `period` at the place where `EXCLUDE` or
   `PERIOD` can start a constraint or a column of a key. PostgreSQL does not
   reserve these words, but the grammar reads them as keywords there.
+- A body in SQL of `CREATE FUNCTION` before an option, as in
+  `CREATE FUNCTION f() RETURNS int RETURN 1 LANGUAGE sql`. The grammar
+  takes `RETURN` and `BEGIN ATOMIC` only after the options. An expression
+  that an option can follow has parse states of its own, and that costs
+  about 700 parse states and 22 large states. Find a cheaper form.
+- A statement other than a query, `INSERT`, `UPDATE`, `DELETE` and `MERGE`
+  in `BEGIN ATOMIC`. `END` is also a statement, so the full list of
+  statements makes a conflict.
+- An operator of the grammar, such as `=` or `<>`, as the value of an
+  option of `ALTER OPERATOR`, as in `SET (COMMUTATOR = =)`. The value of an
+  option in `SET` can be an operator that is not a token of the grammar,
+  such as `===`.
 
 ## The setup of the repository
 

@@ -198,14 +198,14 @@ PostgreSQL 19 (D122). It covers the lexical structure, the expressions, the
 types, the function calls and the full `SELECT`, with `WITH`, `VALUES` and
 `TABLE`. It also covers `INSERT`, `UPDATE`, `DELETE`, `MERGE`, `COPY`, the
 statements of transactions, of prepared statements and of cursors, and the
-utility statements, such as `EXPLAIN`, `SET` and `VACUUM`. It covers
-`CREATE`, `ALTER` and `DROP` of tables, indexes, views, materialized views,
-sequences, schemas, databases, types, domains and extensions, `DROP` of the
-objects of each kind, `COMMENT ON` and `SECURITY LABEL`. It does not read
-the other statements that define objects yet, such as `CREATE FUNCTION`
-and `GRANT`. The variables
-of psql are part of the usql grammar, which gives this grammar a
-placeholder of the same length in place of each variable (D101). The
+utility statements, such as `EXPLAIN`, `SET` and `VACUUM`. It covers each
+statement that defines objects, such as `CREATE TABLE`, `CREATE FUNCTION`,
+`CREATE TRIGGER`, `CREATE ROLE`, `GRANT` and `CREATE PUBLICATION`, and each
+other command of the manual. `docs/BACKLOG.md` lists the forms that it
+leaves out. The body of a function is a string, which the grammar does not
+parse. The variables of psql are part of the usql grammar, which gives this
+grammar a placeholder of the same length in place of each variable (D101).
+The
 package `plpgsql` of the same module still holds the grammar of
 [gmr/tree-sitter-postgres](https://github.com/gmr/tree-sitter-postgres) at
 `v1.2.4`, until xo writes it too.

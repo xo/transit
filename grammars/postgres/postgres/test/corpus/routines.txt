@@ -1,0 +1,997 @@
+================================================================================
+Create a function with a body in a string
+================================================================================
+
+CREATE FUNCTION add(integer, integer) RETURNS integer
+    AS 'select $1 + $2;'
+    LANGUAGE SQL
+    IMMUTABLE
+    RETURNS NULL ON NULL INPUT;
+
+---
+
+(source_file
+  (create_function_statement
+    (function_signature
+      (object_reference
+        (identifier))
+      (function_parameters
+        (function_parameter
+          (type
+            (identifier)))
+        (function_parameter
+          (type
+            (identifier)))))
+    (type
+      (identifier))
+    (function_body
+      (string))
+    (identifier)))
+
+================================================================================
+Create a function in PL/pgSQL with a dollar-quoted body
+================================================================================
+
+CREATE OR REPLACE FUNCTION increment(i integer) RETURNS integer AS $$
+        BEGIN
+                RETURN i + 1;
+        END;
+$$ LANGUAGE plpgsql;
+
+---
+
+(source_file
+  (create_function_statement
+    (function_signature
+      (object_reference
+        (identifier))
+      (function_parameters
+        (function_parameter
+          (identifier)
+          (type
+            (identifier)))))
+    (type
+      (identifier))
+    (function_body
+      (dollar_quoted_string
+        (string_content)))
+    (identifier)))
+
+================================================================================
+Create a function with defaults, modes and options
+================================================================================
+
+CREATE FUNCTION dup(in int, out f1 int, f2 OUT text DEFAULT 'x', VARIADIC r int[] = '{}')
+    RETURNS SETOF record
+    LANGUAGE sql STABLE NOT LEAKPROOF CALLED ON NULL INPUT
+    EXTERNAL SECURITY DEFINER PARALLEL SAFE COST 10 ROWS 100
+    SUPPORT s.f_support SET search_path = admin, pg_temp
+    TRANSFORM FOR TYPE hstore
+    AS $$ SELECT $1, CAST($1 AS text) || ' is text' $$;
+
+---
+
+(source_file
+  (create_function_statement
+    (function_signature
+      (object_reference
+        (identifier))
+      (function_parameters
+        (function_parameter
+          (type
+            (identifier)))
+        (function_parameter
+          (identifier)
+          (type
+            (identifier)))
+        (function_parameter
+          (identifier)
+          (type
+            (identifier))
+          (string))
+        (function_parameter
+          (identifier)
+          (type
+            (identifier))
+          (string))))
+    (type
+      (identifier))
+    (identifier)
+    (identifier)
+    (number)
+    (number)
+    (object_reference
+      (identifier)
+      (identifier))
+    (setting_name
+      (identifier))
+    (identifier)
+    (identifier)
+    (type
+      (identifier))
+    (function_body
+      (dollar_quoted_string
+        (string_content)))))
+
+================================================================================
+Create a function that returns a table
+================================================================================
+
+CREATE FUNCTION f(t.c%TYPE) RETURNS TABLE (a int, b text) WINDOW STRICT VOLATILE
+    AS 'obj_file', 'link_symbol' LANGUAGE c;
+
+---
+
+(source_file
+  (create_function_statement
+    (function_signature
+      (object_reference
+        (identifier))
+      (function_parameters
+        (function_parameter
+          (type
+            (identifier)
+            (identifier)))))
+    (column_definitions
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))))
+    (function_body
+      (string))
+    (string)
+    (identifier)))
+
+================================================================================
+Create a function with a body in SQL after RETURN
+================================================================================
+
+CREATE FUNCTION add(a integer, b integer) RETURNS integer
+    LANGUAGE SQL
+    IMMUTABLE
+    RETURN a + b;
+
+---
+
+(source_file
+  (create_function_statement
+    (function_signature
+      (object_reference
+        (identifier))
+      (function_parameters
+        (function_parameter
+          (identifier)
+          (type
+            (identifier)))
+        (function_parameter
+          (identifier)
+          (type
+            (identifier)))))
+    (type
+      (identifier))
+    (identifier)
+    (binary_expression
+      (column_reference
+        (identifier))
+      (operator)
+      (column_reference
+        (identifier)))))
+
+================================================================================
+Create a procedure with BEGIN ATOMIC
+================================================================================
+
+CREATE PROCEDURE insert_data(a integer, b integer)
+LANGUAGE SQL
+BEGIN ATOMIC
+  INSERT INTO tbl VALUES (a);
+  INSERT INTO tbl VALUES (b);
+END;
+
+---
+
+(source_file
+  (create_function_statement
+    (function_signature
+      (object_reference
+        (identifier))
+      (function_parameters
+        (function_parameter
+          (identifier)
+          (type
+            (identifier)))
+        (function_parameter
+          (identifier)
+          (type
+            (identifier)))))
+    (identifier)
+    (atomic_block
+      (insert_statement
+        (object_reference
+          (identifier))
+        (values
+          (value_list
+            (column_reference
+              (identifier)))))
+      (insert_statement
+        (object_reference
+          (identifier))
+        (values
+          (value_list
+            (column_reference
+              (identifier))))))))
+
+================================================================================
+Alter a function
+================================================================================
+
+ALTER FUNCTION sqrt(integer) RENAME TO square_root;
+ALTER FUNCTION check_password(text) SET search_path = admin, pg_temp;
+ALTER FUNCTION check_password(text) RESET search_path;
+ALTER PROCEDURE insert_data(integer, integer) OWNER TO joe;
+ALTER ROUTINE r SET SCHEMA s;
+ALTER FUNCTION f(int) IMMUTABLE STRICT COST 5 RESTRICT;
+ALTER FUNCTION f NO DEPENDS ON EXTENSION e;
+ALTER AGGREGATE myavg(integer) RENAME TO my_average;
+
+---
+
+(source_file
+  (alter_function_statement
+    (function_signature
+      (object_reference
+        (identifier))
+      (function_parameters
+        (function_parameter
+          (type
+            (identifier)))))
+    (rename
+      (identifier)))
+  (alter_function_statement
+    (function_signature
+      (object_reference
+        (identifier))
+      (function_parameters
+        (function_parameter
+          (type
+            (identifier)))))
+    (setting_name
+      (identifier))
+    (identifier)
+    (identifier))
+  (alter_function_statement
+    (function_signature
+      (object_reference
+        (identifier))
+      (function_parameters
+        (function_parameter
+          (type
+            (identifier)))))
+    (setting_name
+      (identifier)))
+  (alter_function_statement
+    (function_signature
+      (object_reference
+        (identifier))
+      (function_parameters
+        (function_parameter
+          (type
+            (identifier)))
+        (function_parameter
+          (type
+            (identifier)))))
+    (owner_to
+      (identifier)))
+  (alter_function_statement
+    (function_signature
+      (object_reference
+        (identifier)))
+    (set_schema
+      (identifier)))
+  (alter_function_statement
+    (function_signature
+      (object_reference
+        (identifier))
+      (function_parameters
+        (function_parameter
+          (type
+            (identifier)))))
+    (number))
+  (alter_function_statement
+    (function_signature
+      (object_reference
+        (identifier)))
+    (identifier))
+  (alter_function_statement
+    (function_signature
+      (object_reference
+        (identifier))
+      (function_parameters
+        (function_parameter
+          (type
+            (identifier)))))
+    (rename
+      (identifier))))
+
+================================================================================
+Create an aggregate
+================================================================================
+
+CREATE AGGREGATE avg (float8)
+(
+    sfunc = float8_accum,
+    stype = float8[],
+    finalfunc = float8_avg,
+    initcond = '{0,0,0}',
+    sortop = >,
+    parallel = safe
+);
+
+---
+
+(source_file
+  (create_aggregate_statement
+    (object_reference
+      (identifier))
+    (function_parameters
+      (function_parameter
+        (type
+          (identifier))))
+    (definition_list
+      (definition
+        (identifier)
+        (type
+          (identifier)))
+      (definition
+        (identifier)
+        (type
+          (identifier)))
+      (definition
+        (identifier)
+        (type
+          (identifier)))
+      (definition
+        (identifier)
+        (string))
+      (definition
+        (identifier)
+        (operator))
+      (definition
+        (identifier)
+        (type
+          (identifier))))))
+
+================================================================================
+Create an ordered-set aggregate and an aggregate in the old form
+================================================================================
+
+CREATE AGGREGATE percentile_disc (float8 ORDER BY anyelement) (
+    sfunc = ordered_set_transition, stype = internal, hypothetical);
+CREATE AGGREGATE sum2 (basetype = int4, sfunc = int4pl, stype = int4, initcond = '0');
+
+---
+
+(source_file
+  (create_aggregate_statement
+    (object_reference
+      (identifier))
+    (function_parameters
+      (function_parameter
+        (type
+          (identifier)))
+      (function_parameter
+        (type
+          (identifier))))
+    (definition_list
+      (definition
+        (identifier)
+        (type
+          (identifier)))
+      (definition
+        (identifier)
+        (type
+          (identifier)))
+      (definition
+        (identifier))))
+  (create_aggregate_statement
+    (object_reference
+      (identifier))
+    (definition_list
+      (definition
+        (identifier)
+        (type
+          (identifier)))
+      (definition
+        (identifier)
+        (type
+          (identifier)))
+      (definition
+        (identifier)
+        (type
+          (identifier)))
+      (definition
+        (identifier)
+        (string)))))
+
+================================================================================
+Create an operator
+================================================================================
+
+CREATE OPERATOR === (
+    LEFTARG = box,
+    RIGHTARG = box,
+    FUNCTION = area_equal_function,
+    COMMUTATOR = ===,
+    NEGATOR = !==,
+    RESTRICT = area_restriction_function,
+    JOIN = area_join_function,
+    HASHES, MERGES
+);
+
+---
+
+(source_file
+  (create_operator_statement
+    (operator)
+    (definition_list
+      (definition
+        (identifier)
+        (type
+          (identifier)))
+      (definition
+        (identifier)
+        (type
+          (identifier)))
+      (definition
+        (identifier)
+        (type
+          (identifier)))
+      (definition
+        (identifier)
+        (operator))
+      (definition
+        (identifier)
+        (operator))
+      (definition
+        (identifier)
+        (type
+          (identifier)))
+      (definition
+        (identifier)
+        (type
+          (identifier)))
+      (definition
+        (identifier))
+      (definition
+        (identifier)))))
+
+================================================================================
+Create an operator in a schema
+================================================================================
+
+CREATE OPERATOR s.<^ (leftarg = int, rightarg = int, procedure = f, commutator = OPERATOR(s.>^));
+
+---
+
+(source_file
+  (create_operator_statement
+    (identifier)
+    (operator)
+    (definition_list
+      (definition
+        (identifier)
+        (type
+          (identifier)))
+      (definition
+        (identifier)
+        (type
+          (identifier)))
+      (definition
+        (identifier)
+        (type
+          (identifier)))
+      (definition
+        (identifier)
+        (qualified_operator
+          (identifier)
+          (operator))))))
+
+================================================================================
+Alter an operator
+================================================================================
+
+ALTER OPERATOR @@ (text, text) OWNER TO joe;
+ALTER OPERATOR && (int[], int[]) SET (RESTRICT = _int_contsel, JOIN = _int_contjoinsel);
+ALTER OPERATOR === (boolean, real) SET (COMMUTATOR = ====);
+
+---
+
+(source_file
+  (alter_operator_statement
+    (operator_signature
+      (operator)
+      (type
+        (identifier))
+      (type
+        (identifier)))
+    (owner_to
+      (identifier)))
+  (alter_operator_statement
+    (operator_signature
+      (operator)
+      (type
+        (identifier))
+      (type
+        (identifier)))
+    (option_list
+      (option
+        (identifier)
+        (identifier))
+      (option
+        (identifier)
+        (identifier))))
+  (alter_operator_statement
+    (operator_signature
+      (operator)
+      (type
+        (identifier))
+      (type
+        (identifier)))
+    (option_list
+      (option
+        (identifier)
+        (operator)))))
+
+================================================================================
+Create an operator class
+================================================================================
+
+CREATE OPERATOR CLASS gist__int_ops
+    DEFAULT FOR TYPE _int4 USING gist FAMILY f AS
+        OPERATOR        3       &&,
+        OPERATOR        6       = (anyarray, anyarray),
+        OPERATOR        15      <-> (point, point) FOR ORDER BY float_ops,
+        OPERATOR        20      @@ (_int4, query_int) FOR SEARCH,
+        FUNCTION        1       g_int_consistent (internal, _int4, smallint, oid, internal),
+        FUNCTION        2       (_int4, _int4) g_int_union (internal, internal),
+        STORAGE         _int4;
+
+---
+
+(source_file
+  (create_operator_class_statement
+    (object_reference
+      (identifier))
+    (type
+      (identifier))
+    (identifier)
+    (object_reference
+      (identifier))
+    (operator_class_item
+      (number)
+      (operator))
+    (operator_class_item
+      (number)
+      (operator)
+      (type
+        (identifier))
+      (type
+        (identifier)))
+    (operator_class_item
+      (number)
+      (operator)
+      (type
+        (identifier))
+      (type
+        (identifier))
+      (object_reference
+        (identifier)))
+    (operator_class_item
+      (number)
+      (operator)
+      (type
+        (identifier))
+      (type
+        (identifier)))
+    (operator_class_item
+      (number)
+      (function_signature
+        (object_reference
+          (identifier))
+        (function_parameters
+          (function_parameter
+            (type
+              (identifier)))
+          (function_parameter
+            (type
+              (identifier)))
+          (function_parameter
+            (type
+              (identifier)))
+          (function_parameter
+            (type
+              (identifier)))
+          (function_parameter
+            (type
+              (identifier))))))
+    (operator_class_item
+      (number)
+      (type
+        (identifier))
+      (type
+        (identifier))
+      (function_signature
+        (object_reference
+          (identifier))
+        (function_parameters
+          (function_parameter
+            (type
+              (identifier)))
+          (function_parameter
+            (type
+              (identifier))))))
+    (operator_class_item
+      (type
+        (identifier)))))
+
+================================================================================
+Create and alter an operator family
+================================================================================
+
+CREATE OPERATOR FAMILY integer_ops USING btree;
+ALTER OPERATOR FAMILY integer_ops USING btree ADD
+  OPERATOR 1 < (int4, int2),
+  FUNCTION 1 btint42cmp(int4, int2);
+ALTER OPERATOR FAMILY integer_ops USING btree DROP
+  OPERATOR 1 (int4, int2),
+  FUNCTION 1 (int4, int2);
+ALTER OPERATOR CLASS c USING gist RENAME TO d;
+
+---
+
+(source_file
+  (create_operator_family_statement
+    (object_reference
+      (identifier))
+    (identifier))
+  (alter_operator_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (operator_class_item
+      (number)
+      (operator)
+      (type
+        (identifier))
+      (type
+        (identifier)))
+    (operator_class_item
+      (number)
+      (function_signature
+        (object_reference
+          (identifier))
+        (function_parameters
+          (function_parameter
+            (type
+              (identifier)))
+          (function_parameter
+            (type
+              (identifier)))))))
+  (alter_operator_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (operator_class_item
+      (number)
+      (type
+        (identifier))
+      (type
+        (identifier)))
+    (operator_class_item
+      (number)
+      (type
+        (identifier))
+      (type
+        (identifier))))
+  (alter_operator_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (rename
+      (identifier))))
+
+================================================================================
+Create a trigger
+================================================================================
+
+CREATE OR REPLACE TRIGGER check_update
+    BEFORE UPDATE OF balance, owner OR DELETE ON accounts
+    FOR EACH ROW
+    WHEN (OLD.balance IS DISTINCT FROM NEW.balance)
+    EXECUTE FUNCTION check_account_update('x', 1);
+
+---
+
+(source_file
+  (create_trigger_statement
+    (identifier)
+    (trigger_event
+      (identifier)
+      (identifier))
+    (trigger_event)
+    (object_reference
+      (identifier))
+    (parenthesized_expression
+      (is_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (distinct_from
+          (column_reference
+            (identifier)
+            (identifier)))))
+    (function_call
+      (identifier)
+      (arguments
+        (string)
+        (number)))))
+
+================================================================================
+Create a trigger with transition tables
+================================================================================
+
+CREATE TRIGGER paired_items_update
+    AFTER UPDATE ON paired_items
+    REFERENCING NEW TABLE AS newtab OLD TABLE AS oldtab
+    FOR EACH STATEMENT
+    EXECUTE PROCEDURE check_matching_pairs();
+
+---
+
+(source_file
+  (create_trigger_statement
+    (identifier)
+    (trigger_event)
+    (object_reference
+      (identifier))
+    (identifier)
+    (identifier)
+    (function_call
+      (identifier)
+      (arguments))))
+
+================================================================================
+Create a constraint trigger
+================================================================================
+
+CREATE CONSTRAINT TRIGGER c AFTER INSERT OR TRUNCATE ON t FROM s.r
+    DEFERRABLE INITIALLY DEFERRED FOR ROW EXECUTE FUNCTION f();
+
+---
+
+(source_file
+  (create_trigger_statement
+    (identifier)
+    (trigger_event)
+    (trigger_event)
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (function_call
+      (identifier)
+      (arguments))))
+
+================================================================================
+Create an event trigger
+================================================================================
+
+CREATE EVENT TRIGGER abort_ddl ON ddl_command_start
+   WHEN TAG IN ('CREATE TABLE', 'DROP TABLE') AND tag IN ('x')
+   EXECUTE FUNCTION abort_any_command();
+
+---
+
+(source_file
+  (create_event_trigger_statement
+    (identifier)
+    (identifier)
+    (event_filter
+      (identifier)
+      (string)
+      (string))
+    (event_filter
+      (identifier)
+      (string))
+    (function_call
+      (identifier)
+      (arguments))))
+
+================================================================================
+Alter triggers
+================================================================================
+
+ALTER TRIGGER emp_stamp ON emp RENAME TO emp_track_chgs;
+ALTER TRIGGER emp_stamp ON emp DEPENDS ON EXTENSION emplib;
+ALTER EVENT TRIGGER abort_ddl DISABLE;
+ALTER EVENT TRIGGER abort_ddl ENABLE REPLICA;
+
+---
+
+(source_file
+  (alter_trigger_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (rename
+      (identifier)))
+  (alter_trigger_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (identifier))
+  (alter_event_trigger_statement
+    (identifier))
+  (alter_event_trigger_statement
+    (identifier)))
+
+================================================================================
+Create a rule
+================================================================================
+
+CREATE RULE "_RETURN" AS
+    ON SELECT TO t1
+    DO INSTEAD
+        SELECT * FROM t2;
+CREATE OR REPLACE RULE notify_me AS ON UPDATE TO mytable WHERE new.a <> old.a DO ALSO NOTIFY mytable;
+
+---
+
+(source_file
+  (create_rule_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (all_columns)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (create_rule_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)
+          (identifier))))
+    (notify_statement
+      (identifier))))
+
+================================================================================
+Create a rule with a list of actions
+================================================================================
+
+CREATE RULE r AS ON INSERT TO t DO INSTEAD (
+    INSERT INTO a VALUES (new.x);
+    UPDATE b SET y = new.y;
+);
+CREATE RULE n AS ON DELETE TO t DO NOTHING;
+
+---
+
+(source_file
+  (create_rule_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (insert_statement
+      (object_reference
+        (identifier))
+      (values
+        (value_list
+          (column_reference
+            (identifier)
+            (identifier)))))
+    (update_statement
+      (table_reference
+        (object_reference
+          (identifier)))
+      (set_clause
+        (assignment
+          (identifier)
+          (column_reference
+            (identifier)
+            (identifier))))))
+  (create_rule_statement
+    (identifier)
+    (object_reference
+      (identifier))))
+
+================================================================================
+Alter a rule
+================================================================================
+
+ALTER RULE notify_all ON emp RENAME TO notify_me;
+
+---
+
+(source_file
+  (alter_rule_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (rename
+      (identifier))))
+
+================================================================================
+Create a policy
+================================================================================
+
+CREATE POLICY account_managers ON accounts AS RESTRICTIVE FOR ALL TO managers, CURRENT_USER
+    USING (manager = current_user) WITH CHECK (true);
+
+---
+
+(source_file
+  (create_policy_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (identifier)
+    (identifier)
+    (parenthesized_expression
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (function_call
+          (identifier))))
+    (parenthesized_expression
+      (boolean))))
+
+================================================================================
+Alter a policy
+================================================================================
+
+ALTER POLICY account_managers ON accounts RENAME TO managers;
+ALTER POLICY p ON t TO public USING (a > 0) WITH CHECK (a < 10);
+
+---
+
+(source_file
+  (alter_policy_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (rename
+      (identifier)))
+  (alter_policy_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (identifier)
+    (parenthesized_expression
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))
+    (parenthesized_expression
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))))

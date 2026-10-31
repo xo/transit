@@ -59,7 +59,7 @@ const RESERVED_WORDS = [
   'CURRENT_CATALOG',
   'CURRENT_DATE', 'CURRENT_ROLE', 'CURRENT_TIME', 'CURRENT_TIMESTAMP',
   'CURRENT_USER', 'DEFAULT', 'DEFERRABLE', 'DESC', 'DISTINCT', 'DO',
-  'ELSE', 'END', 'EXCEPT', 'FALSE', 'FETCH', 'FOR', 'FOREIGN', 'FROM', 'GROUP',
+  'ELSE', 'END', 'EXCEPT', 'FALSE', 'FETCH', 'FOR', 'FOREIGN', 'FROM', 'GRANT', 'GROUP',
   'HAVING', 'IN', 'INITIALLY', 'INTERSECT', 'INTO', 'LATERAL', 'LEADING', 'LIMIT',
   'LOCALTIME', 'LOCALTIMESTAMP', 'NOT', 'NULL', 'OFFSET', 'ON', 'ONLY', 'OR',
   'ORDER', 'PLACING', 'PRIMARY', 'REFERENCES', 'RETURNING', 'SELECT', 'SESSION_USER', 'SOME',
@@ -188,6 +188,12 @@ module.exports = grammar({
     // subquery in an expression or in FROM.
     [$.parenthesized_query, $.subquery],
     [$.join],
+    // The first list of CREATE AGGREGATE can be the types of the arguments
+    // or, in the old form, the definitions.
+    [$.definition, $.type],
+    // The action of a rule in parentheses can be a list of statements or a
+    // parenthesized query.
+    [$.select_statement, $.parenthesized_query],
   ],
 
   rules: {
@@ -258,6 +264,51 @@ module.exports = grammar({
       $.drop_statement,
       $.comment_statement,
       $.security_label_statement,
+      $.create_function_statement,
+      $.alter_function_statement,
+      $.create_aggregate_statement,
+      $.create_operator_statement,
+      $.create_operator_class_statement,
+      $.create_operator_family_statement,
+      $.alter_operator_statement,
+      $.create_trigger_statement,
+      $.alter_trigger_statement,
+      $.create_event_trigger_statement,
+      $.alter_event_trigger_statement,
+      $.create_rule_statement,
+      $.alter_rule_statement,
+      $.create_policy_statement,
+      $.alter_policy_statement,
+      $.create_role_statement,
+      $.alter_role_statement,
+      $.grant_statement,
+      $.revoke_statement,
+      $.alter_default_privileges_statement,
+      $.reassign_owned_statement,
+      $.drop_owned_statement,
+      $.create_publication_statement,
+      $.alter_publication_statement,
+      $.create_subscription_statement,
+      $.alter_subscription_statement,
+      $.create_foreign_data_wrapper_statement,
+      $.alter_foreign_data_wrapper_statement,
+      $.create_server_statement,
+      $.alter_server_statement,
+      $.create_user_mapping_statement,
+      $.alter_user_mapping_statement,
+      $.import_foreign_schema_statement,
+      $.create_tablespace_statement,
+      $.create_collation_statement,
+      $.create_conversion_statement,
+      $.create_text_search_statement,
+      $.create_statistics_statement,
+      $.create_cast_statement,
+      $.create_language_statement,
+      $.create_transform_statement,
+      $.create_access_method_statement,
+      $.alter_object_statement,
+      $.alter_system_statement,
+      $.wait_statement,
     ),
 
     // The statements that change rows: INSERT, UPDATE, DELETE and MERGE. A
@@ -701,6 +752,8 @@ module.exports = grammar({
       optional('='),
       optional(field('value', choice(
         $._option_value,
+        $.operator,
+        $.qualified_operator,
         '*',
         parens(commaSep1($._option_value)),
       ))),
@@ -860,10 +913,14 @@ module.exports = grammar({
       repeat($._table_option),
     ),
 
-    // GLOBAL and LOCAL are noise words before TEMPORARY.
+    // GLOBAL and LOCAL are noise words before TEMPORARY. FOREIGN makes a
+    // foreign table, which takes SERVER and OPTIONS. The grammar also
+    // accepts FOREIGN in CREATE TABLE AS and in the other statements that
+    // take TEMPORARY.
     _temporary: _ => choice(
       seq(optional(choice(kw('GLOBAL'), kw('LOCAL'))), choice(kw('TEMPORARY'), kw('TEMP'))),
       kw('UNLOGGED'),
+      kw('FOREIGN'),
     ),
 
     _if_not_exists: _ => kws('IF', 'NOT', 'EXISTS'),
@@ -908,6 +965,7 @@ module.exports = grammar({
       seq(kw('COLLATE'), field('collation', $.object_reference)),
       seq(kw('COMPRESSION'), field('compression', $._label)),
       seq(kw('STORAGE'), field('storage', $._label)),
+      $.options_clause,
       $.column_constraint,
       $._constraint_attribute,
     ),
@@ -1054,6 +1112,8 @@ module.exports = grammar({
         choice(kws('PRESERVE', 'ROWS'), kws('DELETE', 'ROWS'), kw('DROP')),
       ),
       seq(kw('TABLESPACE'), field('tablespace', $._name)),
+      seq(kw('SERVER'), field('server', $._name)),
+      $.options_clause,
     ),
 
     create_table_as_statement: $ => seq(
@@ -1077,6 +1137,7 @@ module.exports = grammar({
     // parse states.
     alter_table_statement: $ => seq(
       kw('ALTER'),
+      optional(kw('FOREIGN')),
       kw('TABLE'),
       $._alter_target,
       commaSep1($._alter_table_action),
@@ -1155,6 +1216,7 @@ module.exports = grammar({
         seq(kw('RESET'), $.option_list),
         seq(kws('SET', 'STORAGE'), field('storage', $._label)),
         seq(kws('SET', 'COMPRESSION'), field('compression', $._label)),
+        $.options_clause,
       ),
     ),
 
@@ -1260,6 +1322,7 @@ module.exports = grammar({
         parens(commaSep1($.partition_definition)),
       ),
       seq(optional(kw('NO')), kws('DEPENDS', 'ON', 'EXTENSION'), field('extension', $._name)),
+      $.options_clause,
     ),
 
     partition_definition: $ => seq(
@@ -1617,6 +1680,7 @@ module.exports = grammar({
         field('language', $._name),
       ),
       seq(kws('LARGE', 'OBJECT'), field('oid', $.number)),
+      seq(kws('USER', 'MAPPING'), optional($._if_exists), $._user_mapping),
       seq(kw('COLUMN'), field('column', $.column_reference)),
       seq(
         choice(kw('CONSTRAINT'), kw('POLICY'), kw('RULE'), kw('TRIGGER')),
@@ -1655,6 +1719,8 @@ module.exports = grammar({
         choice(kw('CONFIGURATION'), kw('DICTIONARY'), kw('PARSER'), kw('TEMPLATE')),
       ),
       kw('TYPE'),
+      kw('USER'),
+      kw('GROUP'),
       kw('VIEW'),
     ),
 
@@ -1674,11 +1740,16 @@ module.exports = grammar({
       seq(kws('ORDER', 'BY'), commaSep1($.function_parameter)),
     ))),
 
+    // A parameter of CREATE FUNCTION can have a default value. The mode
+    // can also come after the name.
     function_parameter: $ => seq(
-      optional(choice(kw('IN'), kw('OUT'), kw('INOUT'), kw('VARIADIC'))),
-      optional(field('name', $._name)),
-      field('type', $.type),
+      optional($._parameter_mode),
+      optional(seq(field('name', $._name), optional($._parameter_mode))),
+      $._function_type,
+      optional(seq(choice(kw('DEFAULT'), '='), field('default', $._expression))),
     ),
+
+    _parameter_mode: _ => choice(kw('IN'), kw('OUT'), kw('INOUT'), kw('VARIADIC')),
 
     // An operator with the types of its left and right operands, where
     // NONE stands for no operand.
@@ -1702,6 +1773,901 @@ module.exports = grammar({
       $._object,
       kw('IS'),
       field('label', choice($.string, $.null)),
+    ),
+
+    // Functions, procedures, aggregates and operators
+
+    // CREATE FUNCTION and CREATE PROCEDURE. The body is a string in the
+    // language that LANGUAGE names, or a body in SQL after RETURN or BEGIN
+    // ATOMIC. The body and the language are children of the statement, so
+    // that an injection can find both.
+    create_function_statement: $ => seq(
+      kw('CREATE'),
+      optional(kws('OR', 'REPLACE')),
+      choice(kw('FUNCTION'), kw('PROCEDURE')),
+      $.function_signature,
+      optional(seq(
+        kw('RETURNS'),
+        choice(
+          $._function_type,
+          seq(kw('TABLE'), $.column_definitions),
+        ),
+      )),
+      repeat($._function_option),
+      optional($._sql_body),
+    ),
+
+    // A type of an argument or of a result can be SETOF a type, or the
+    // type of a column with %TYPE.
+    _function_type: $ => seq(
+      optional(kw('SETOF')),
+      field('type', $.type),
+      optional(seq('%', kw('TYPE'))),
+    ),
+
+    // The options of a function, which ALTER FUNCTION also takes.
+    _function_option: $ => choice(
+      $._language,
+      seq(kw('TRANSFORM'), commaSep1(seq(kws('FOR', 'TYPE'), field('transform', $.type)))),
+      kw('WINDOW'),
+      kw('IMMUTABLE'),
+      kw('STABLE'),
+      kw('VOLATILE'),
+      seq(optional(kw('NOT')), kw('LEAKPROOF')),
+      kws('CALLED', 'ON', 'NULL', 'INPUT'),
+      kws('RETURNS', 'NULL', 'ON', 'NULL', 'INPUT'),
+      kw('STRICT'),
+      seq(optional(kw('EXTERNAL')), kw('SECURITY'), choice(kw('INVOKER'), kw('DEFINER'))),
+      seq(kw('PARALLEL'), field('parallel', $._label)),
+      seq(kw('COST'), field('cost', $.number)),
+      seq(kw('ROWS'), field('rows', $.number)),
+      seq(kw('SUPPORT'), field('support', $.object_reference)),
+      $._set_parameter,
+      seq(
+        kw('AS'),
+        field('body', $.function_body),
+        optional(seq(',', field('symbol', $.string))),
+      ),
+    ),
+
+    // The body of a function in a string. The function names its language
+    // with LANGUAGE.
+    function_body: $ => choice($.string, $.dollar_quoted_string),
+
+    // A body in SQL: RETURN and an expression, or BEGIN ATOMIC and a list
+    // of statements, each with a semicolon after it. The grammar takes the
+    // queries and the statements that change rows in the list, because END
+    // is also a statement. PostgreSQL takes the body among the options, but
+    // the grammar takes it only after them. An expression that the options
+    // can follow has parse states of its own, and that costs about 700
+    // parse states and 22 large states.
+    _sql_body: $ => choice(
+      seq(kw('RETURN'), field('return', $._expression)),
+      $.atomic_block,
+    ),
+
+    atomic_block: $ => seq(
+      kws('BEGIN', 'ATOMIC'),
+      repeat(seq(optional(choice($.select_statement, $._modifying_statement)), ';')),
+      kw('END'),
+    ),
+
+    // ALTER FUNCTION, ALTER PROCEDURE, ALTER ROUTINE and ALTER AGGREGATE.
+    alter_function_statement: $ => seq(
+      kw('ALTER'),
+      choice(kw('FUNCTION'), kw('PROCEDURE'), kw('ROUTINE'), kw('AGGREGATE')),
+      $.function_signature,
+      repeat1(choice(
+        $._function_option,
+        kw('RESTRICT'),
+        $.rename,
+        $.owner_to,
+        $.set_schema,
+        $._depends_on_extension,
+      )),
+    ),
+
+    // CREATE AGGREGATE takes the types of its arguments and a list of
+    // definitions. The old form has no types, so the first list can be the
+    // types or the definitions.
+    create_aggregate_statement: $ => seq(
+      kw('CREATE'),
+      optional(kws('OR', 'REPLACE')),
+      kw('AGGREGATE'),
+      field('name', $.object_reference),
+      optional($.function_parameters),
+      $.definition_list,
+    ),
+
+    // The definitions of CREATE AGGREGATE, CREATE OPERATOR, CREATE
+    // COLLATION and CREATE TEXT SEARCH, such as (SFUNC = int4pl, STYPE =
+    // int4). A value can be a type or an operator.
+    definition_list: $ => parens(commaSep1($.definition)),
+
+    definition: $ => seq(
+      field('name', $._label),
+      optional(seq(
+        '=',
+        field('value', choice(
+          $.string,
+          $._signed_number,
+          $.boolean,
+          kw('DEFAULT'),
+          $.type,
+          $._operator,
+          $.qualified_operator,
+        )),
+      )),
+    ),
+
+    create_operator_statement: $ => seq(
+      kw('CREATE'),
+      kw('OPERATOR'),
+      optional(seq(field('schema', $._name), '.')),
+      field('name', $._operator),
+      $.definition_list,
+    ),
+
+    // CREATE OPERATOR CLASS lists the operators, the functions and the
+    // storage type of the class.
+    create_operator_class_statement: $ => seq(
+      kw('CREATE'),
+      kws('OPERATOR', 'CLASS'),
+      field('name', $.object_reference),
+      optional(kw('DEFAULT')),
+      kws('FOR', 'TYPE'),
+      field('type', $.type),
+      kw('USING'),
+      field('method', $._name),
+      optional(seq(kw('FAMILY'), field('family', $.object_reference))),
+      kw('AS'),
+      commaSep1($.operator_class_item),
+    ),
+
+    // An operator or a function of an operator class or of an operator
+    // family, with its strategy number or its support number.
+    operator_class_item: $ => prec.right(choice(
+      // DROP of an item of an operator family names no operator.
+      seq(
+        kw('OPERATOR'),
+        field('number', $.number),
+        optional(seq(
+          optional(seq(field('schema', $._name), '.')),
+          field('operator', $._operator),
+        )),
+        optional(parens(commaSep1($.type))),
+        optional(choice(
+          kws('FOR', 'SEARCH'),
+          seq(kws('FOR', 'ORDER', 'BY'), field('sort_family', $.object_reference)),
+        )),
+      ),
+      seq(
+        kw('FUNCTION'),
+        field('number', $.number),
+        optional(parens(commaSep1($.type))),
+        optional($.function_signature),
+      ),
+      seq(kw('STORAGE'), field('type', $.type)),
+    )),
+
+    create_operator_family_statement: $ => seq(
+      kw('CREATE'),
+      kws('OPERATOR', 'FAMILY'),
+      field('name', $.object_reference),
+      kw('USING'),
+      field('method', $._name),
+    ),
+
+    // ALTER OPERATOR, ALTER OPERATOR CLASS and ALTER OPERATOR FAMILY.
+    alter_operator_statement: $ => seq(
+      kw('ALTER'),
+      choice(
+        seq(kw('OPERATOR'), $.operator_signature),
+        seq(
+          kw('OPERATOR'),
+          choice(kw('CLASS'), kw('FAMILY')),
+          field('name', $.object_reference),
+          kw('USING'),
+          field('method', $._name),
+        ),
+      ),
+      $._alter_actions,
+    ),
+
+    _depends_on_extension: $ => seq(
+      optional(kw('NO')),
+      kws('DEPENDS', 'ON', 'EXTENSION'),
+      field('extension', $._name),
+    ),
+
+    // The actions of the statements that alter an object other than a
+    // table or a function. The grammar accepts each action for each kind
+    // of object, so that the actions are in the same parse states. The
+    // actions come one after the other, with no commas. ALTER FUNCTION has
+    // actions of its own, because the options of a function in this list
+    // cost 20 large states.
+    _alter_actions: $ => repeat1($._alter_action),
+
+    _alter_action: $ => choice(
+      $.rename,
+      $.owner_to,
+      $.set_schema,
+      $._depends_on_extension,
+      $.definition_list,
+      seq(kw('SET'), $.option_list),
+      seq(kw('RESET'), $.option_list),
+      seq(kws('SET', 'STATISTICS'), choice($._signed_number, kw('DEFAULT'))),
+      kws('REFRESH', 'VERSION'),
+      seq(kw('ENABLE'), optional(choice(kw('REPLICA'), kw('ALWAYS')))),
+      kw('DISABLE'),
+      // The roles and the expressions of a policy.
+      seq(kw('TO'), commaSep1($._role)),
+      seq(kw('USING'), field('using', $.parenthesized_expression)),
+      seq(kws('WITH', 'CHECK'), field('check', $.parenthesized_expression)),
+      seq(kw('WITH'), $.option_list),
+      // The items of an operator family.
+      seq(choice(kw('ADD'), kw('DROP')), commaSep1($.operator_class_item)),
+      // The tables and the schemas of a publication.
+      seq(choice(kw('ADD'), kw('SET'), kw('DROP')), $._publication_objects),
+      // The publications and the connection of a subscription.
+      seq(kw('CONNECTION'), field('connection', $.string)),
+      seq(
+        choice(kw('ADD'), kw('SET'), kw('DROP')),
+        kw('PUBLICATION'),
+        commaSep1(field('publication', $._name)),
+      ),
+      seq(kw('REFRESH'), choice(kw('PUBLICATION'), kw('SEQUENCES'))),
+      seq(kw('SKIP'), $.option_list),
+      seq(kw('SERVER'), field('server', $._name)),
+      // The handler, the validator, the version and the options of a
+      // foreign-data wrapper or a server.
+      $._wrapper_option,
+      seq(kw('VERSION'), field('version', $.string)),
+      // The mappings of a text search configuration.
+      seq(
+        choice(kw('ADD'), kw('ALTER')),
+        kw('MAPPING'),
+        optional(seq(kw('FOR'), commaSep1($._name))),
+        choice(
+          seq(kw('WITH'), commaSep1(field('dictionary', $.object_reference))),
+          seq(
+            kw('REPLACE'),
+            field('dictionary', $.object_reference),
+            kw('WITH'),
+            field('dictionary', $.object_reference),
+          ),
+        ),
+      ),
+      seq(kws('DROP', 'MAPPING'), optional($._if_exists), kw('FOR'), commaSep1($._name)),
+    ),
+
+    // Triggers, rules and policies
+
+    create_trigger_statement: $ => seq(
+      kw('CREATE'),
+      optional(kws('OR', 'REPLACE')),
+      optional(kw('CONSTRAINT')),
+      kw('TRIGGER'),
+      field('name', $._name),
+      choice(kw('BEFORE'), kw('AFTER'), kws('INSTEAD', 'OF')),
+      $.trigger_event,
+      repeat(seq(kw('OR'), $.trigger_event)),
+      kw('ON'),
+      field('table', $.object_reference),
+      repeat(choice(
+        seq(kw('FROM'), field('referenced_table', $.object_reference)),
+        $._constraint_attribute,
+        seq(
+          kw('REFERENCING'),
+          repeat1(seq(
+            choice(kw('OLD'), kw('NEW')),
+            kw('TABLE'),
+            optional(kw('AS')),
+            field('transition', $._name),
+          )),
+        ),
+        seq(kw('FOR'), optional(kw('EACH')), choice(kw('ROW'), kw('STATEMENT'))),
+        seq(kw('WHEN'), field('condition', $.parenthesized_expression)),
+      )),
+      $._execute_function,
+    ),
+
+    trigger_event: $ => choice(
+      kw('INSERT'),
+      seq(kw('UPDATE'), optional(seq(kw('OF'), commaSep1(field('column', $._name))))),
+      kw('DELETE'),
+      kw('TRUNCATE'),
+    ),
+
+    _execute_function: $ => seq(
+      kw('EXECUTE'),
+      choice(kw('FUNCTION'), kw('PROCEDURE')),
+      field('function', $.function_call),
+    ),
+
+    alter_trigger_statement: $ => seq(
+      kw('ALTER'),
+      kw('TRIGGER'),
+      field('name', $._name),
+      kw('ON'),
+      optional(kw('ONLY')),
+      field('table', $.object_reference),
+      $._alter_actions,
+    ),
+
+    // The filter of an event trigger, such as WHEN TAG IN ('CREATE TABLE').
+    create_event_trigger_statement: $ => seq(
+      kw('CREATE'),
+      kws('EVENT', 'TRIGGER'),
+      field('name', $._name),
+      kw('ON'),
+      field('event', $._name),
+      optional(seq(
+        kw('WHEN'),
+        $.event_filter,
+        repeat(seq(kw('AND'), $.event_filter)),
+      )),
+      $._execute_function,
+    ),
+
+    event_filter: $ => seq(
+      field('variable', $._name),
+      kw('IN'),
+      parens(commaSep1($.string)),
+    ),
+
+    alter_event_trigger_statement: $ => seq(
+      kw('ALTER'),
+      kws('EVENT', 'TRIGGER'),
+      field('name', $._name),
+      $._alter_actions,
+    ),
+
+    // The action of a rule is NOTHING, a statement, or statements in
+    // parentheses with a semicolon between two of them.
+    create_rule_statement: $ => seq(
+      kw('CREATE'),
+      optional(kws('OR', 'REPLACE')),
+      kw('RULE'),
+      field('name', $._name),
+      kws('AS', 'ON'),
+      field('event', choice(kw('SELECT'), kw('INSERT'), kw('UPDATE'), kw('DELETE'))),
+      kw('TO'),
+      field('table', $.object_reference),
+      optional($.where_clause),
+      kw('DO'),
+      optional(choice(kw('ALSO'), kw('INSTEAD'))),
+      choice(
+        kw('NOTHING'),
+        $._rule_action,
+        prec.dynamic(1, parens(seq(
+          optional($._rule_action),
+          repeat(seq(';', optional($._rule_action))),
+        ))),
+      ),
+    ),
+
+    _rule_action: $ => choice(
+      $.select_statement,
+      $._modifying_statement,
+      $.notify_statement,
+    ),
+
+    alter_rule_statement: $ => seq(
+      kw('ALTER'),
+      kw('RULE'),
+      field('name', $._name),
+      kw('ON'),
+      field('table', $.object_reference),
+      $._alter_actions,
+    ),
+
+    create_policy_statement: $ => seq(
+      kw('CREATE'),
+      kw('POLICY'),
+      field('name', $._name),
+      kw('ON'),
+      field('table', $.object_reference),
+      optional(seq(kw('AS'), choice(kw('PERMISSIVE'), kw('RESTRICTIVE')))),
+      optional(seq(
+        kw('FOR'),
+        choice(kw('ALL'), kw('SELECT'), kw('INSERT'), kw('UPDATE'), kw('DELETE')),
+      )),
+      optional(seq(kw('TO'), commaSep1($._role))),
+      optional(seq(kw('USING'), field('using', $.parenthesized_expression))),
+      optional(seq(kws('WITH', 'CHECK'), field('check', $.parenthesized_expression))),
+    ),
+
+    alter_policy_statement: $ => seq(
+      kw('ALTER'),
+      kw('POLICY'),
+      field('name', $._name),
+      kw('ON'),
+      field('table', $.object_reference),
+      $._alter_actions,
+    ),
+
+    // Roles and privileges
+
+    // CREATE ROLE, CREATE USER and CREATE GROUP.
+    create_role_statement: $ => seq(
+      kw('CREATE'),
+      choice(kw('ROLE'), kw('USER'), kw('GROUP')),
+      field('name', $._name),
+      optional(kw('WITH')),
+      repeat($.role_option),
+    ),
+
+    // An option of a role, such as LOGIN, NOSUPERUSER or PASSWORD 'x'. The
+    // name of an option is not a keyword, but for the options that take
+    // more than one word.
+    role_option: $ => choice(
+      seq(field('name', $._label), optional(field('value', choice($.string, $._signed_number, $.null)))),
+      seq(kws('CONNECTION', 'LIMIT'), field('value', $._signed_number)),
+      seq(kw('ENCRYPTED'), field('name', $._label), field('value', $.string)),
+      seq(kws('VALID', 'UNTIL'), field('value', $.string)),
+      seq(
+        choice(
+          seq(kw('IN'), choice(kw('ROLE'), kw('GROUP'))),
+          kw('ROLE'),
+          kw('ADMIN'),
+          kw('USER'),
+        ),
+        commaSep1($._role),
+      ),
+    ),
+
+    // ALTER ROLE, ALTER USER and ALTER GROUP. ALL names each role for SET
+    // and RESET.
+    alter_role_statement: $ => seq(
+      kw('ALTER'),
+      choice(kw('ROLE'), kw('USER'), kw('GROUP')),
+      choice(field('name', $._role), kw('ALL')),
+      choice(
+        seq(optional(kw('WITH')), repeat1($.role_option)),
+        $.rename,
+        seq(optional(seq(kws('IN', 'DATABASE'), field('database', $._name))), $._set_parameter),
+        seq(choice(kw('ADD'), kw('DROP')), kw('USER'), commaSep1($._role)),
+      ),
+    ),
+
+    // GRANT gives privileges on objects, or the membership of roles. The
+    // grammar takes both forms in one rule, because a privilege and a role
+    // can both be a name.
+    grant_statement: $ => seq(
+      kw('GRANT'),
+      $._privileges,
+      optional(seq(kw('ON'), $._privilege_target)),
+      kw('TO'),
+      commaSep1($._grantee),
+      optional(seq(
+        kw('WITH'),
+        commaSep1(seq(field('option', $._label), choice(kw('OPTION'), $.boolean))),
+      )),
+      optional($._granted_by),
+    ),
+
+    revoke_statement: $ => seq(
+      kw('REVOKE'),
+      optional(seq(
+        choice(kw('GRANT'), kw('ADMIN'), kw('INHERIT'), kw('SET')),
+        kws('OPTION', 'FOR'),
+      )),
+      $._privileges,
+      optional(seq(kw('ON'), $._privilege_target)),
+      kw('FROM'),
+      commaSep1($._grantee),
+      optional($._granted_by),
+      optional($._drop_behavior),
+    ),
+
+    _privileges: $ => choice(
+      seq(kw('ALL'), optional(kw('PRIVILEGES')), optional($.column_list)),
+      commaSep1($.privilege),
+    ),
+
+    // A privilege, which can name columns, or a role.
+    privilege: $ => seq(
+      choice(
+        kw('SELECT'),
+        kw('INSERT'),
+        kw('UPDATE'),
+        kw('DELETE'),
+        kw('TRUNCATE'),
+        kw('REFERENCES'),
+        kw('TRIGGER'),
+        kw('MAINTAIN'),
+        kw('CREATE'),
+        kw('CONNECT'),
+        kw('TEMPORARY'),
+        kw('TEMP'),
+        kw('EXECUTE'),
+        kw('USAGE'),
+        kw('SET'),
+        kws('ALTER', 'SYSTEM'),
+        field('role', $._name),
+      ),
+      optional($.column_list),
+    ),
+
+    // The objects of GRANT and REVOKE. ALTER DEFAULT PRIVILEGES names a
+    // kind of object, such as TABLES.
+    _privilege_target: $ => choice(
+      seq(optional(kw('TABLE')), commaSep1(field('name', $.object_reference))),
+      seq(
+        kw('ALL'),
+        $._privilege_kinds,
+        kws('IN', 'SCHEMA'),
+        commaSep1(field('schema', $._name)),
+      ),
+      $._privilege_kinds,
+      seq(
+        choice(
+          kw('SEQUENCE'),
+          kw('DATABASE'),
+          kw('DOMAIN'),
+          kws('FOREIGN', 'DATA', 'WRAPPER'),
+          kws('FOREIGN', 'SERVER'),
+          kw('LANGUAGE'),
+          kw('PARAMETER'),
+          kw('SCHEMA'),
+          kw('TABLESPACE'),
+          kw('TYPE'),
+        ),
+        commaSep1(field('name', $.object_reference)),
+      ),
+      seq(
+        choice(kw('FUNCTION'), kw('PROCEDURE'), kw('ROUTINE')),
+        commaSep1($.function_signature),
+      ),
+      seq(kws('LARGE', 'OBJECT'), commaSep1(field('oid', $.number))),
+    ),
+
+    _privilege_kinds: _ => choice(
+      kw('TABLES'),
+      kw('SEQUENCES'),
+      kw('FUNCTIONS'),
+      kw('PROCEDURES'),
+      kw('ROUTINES'),
+      kw('TYPES'),
+      kw('SCHEMAS'),
+      kws('LARGE', 'OBJECTS'),
+    ),
+
+    _grantee: $ => seq(optional(kw('GROUP')), field('grantee', $._role)),
+
+    _granted_by: $ => seq(kws('GRANTED', 'BY'), field('grantor', $._role)),
+
+    alter_default_privileges_statement: $ => seq(
+      kws('ALTER', 'DEFAULT', 'PRIVILEGES'),
+      repeat(choice(
+        seq(kw('FOR'), choice(kw('ROLE'), kw('USER')), commaSep1(field('role', $._role))),
+        seq(kws('IN', 'SCHEMA'), commaSep1(field('schema', $._name))),
+      )),
+      choice($.grant_statement, $.revoke_statement),
+    ),
+
+    reassign_owned_statement: $ => seq(
+      kws('REASSIGN', 'OWNED', 'BY'),
+      commaSep1($._role),
+      kw('TO'),
+      field('owner', $._role),
+    ),
+
+    drop_owned_statement: $ => seq(
+      kws('DROP', 'OWNED', 'BY'),
+      commaSep1($._role),
+      optional($._drop_behavior),
+    ),
+
+    // Replication
+
+    create_publication_statement: $ => seq(
+      kw('CREATE'),
+      kw('PUBLICATION'),
+      field('name', $._name),
+      optional(seq(kw('FOR'), $._publication_objects)),
+      optional(seq(kw('WITH'), $.option_list)),
+    ),
+
+    // The tables and the schemas of a publication. A name after a comma
+    // continues the list of the keyword before it, but the grammar reads it
+    // as a table.
+    _publication_objects: $ => seq(
+      $._publication_object,
+      repeat(seq(',', choice(
+        $._publication_object,
+        $.publication_table,
+        field('schema', keywordName($, 'CURRENT_SCHEMA')),
+      ))),
+    ),
+
+    // ALL TABLES can leave out tables with EXCEPT.
+    _publication_object: $ => choice(
+      seq(kw('TABLE'), $.publication_table),
+      seq(
+        kws('ALL', 'TABLES'),
+        optional(seq(
+          kw('EXCEPT'),
+          parens(commaSep1(choice($._publication_object, $.publication_table))),
+        )),
+      ),
+      kws('ALL', 'SEQUENCES'),
+      seq(
+        kws('TABLES', 'IN', 'SCHEMA'),
+        field('schema', choice($._name, keywordName($, 'CURRENT_SCHEMA'))),
+      ),
+    ),
+
+    publication_table: $ => prec.right(seq(
+      optional(kw('ONLY')),
+      field('table', $.object_reference),
+      optional('*'),
+      optional($.column_list),
+      optional(seq(kw('WHERE'), field('condition', $.parenthesized_expression))),
+    )),
+
+    alter_publication_statement: $ => seq(
+      kw('ALTER'),
+      kw('PUBLICATION'),
+      field('name', $._name),
+      $._alter_actions,
+    ),
+
+    create_subscription_statement: $ => seq(
+      kw('CREATE'),
+      kw('SUBSCRIPTION'),
+      field('name', $._name),
+      choice(
+        seq(kw('CONNECTION'), field('connection', $.string)),
+        seq(kw('SERVER'), field('server', $._name)),
+      ),
+      kw('PUBLICATION'),
+      commaSep1(field('publication', $._name)),
+      optional(seq(kw('WITH'), $.option_list)),
+    ),
+
+    alter_subscription_statement: $ => seq(
+      kw('ALTER'),
+      kw('SUBSCRIPTION'),
+      field('name', $._name),
+      $._alter_actions,
+    ),
+
+    // Foreign data
+
+    create_foreign_data_wrapper_statement: $ => seq(
+      kw('CREATE'),
+      kws('FOREIGN', 'DATA', 'WRAPPER'),
+      field('name', $._name),
+      repeat($._wrapper_option),
+    ),
+
+    _wrapper_option: $ => choice(
+      seq(kw('CONNECTION'), field('connection', $.object_reference)),
+      kws('NO', 'CONNECTION'),
+      seq(kw('HANDLER'), field('handler', $.object_reference)),
+      kws('NO', 'HANDLER'),
+      seq(kw('VALIDATOR'), field('validator', $.object_reference)),
+      kws('NO', 'VALIDATOR'),
+      $.options_clause,
+    ),
+
+    // The options of a foreign-data wrapper, a server, a user mapping, a
+    // foreign table and its columns. ALTER can add, set or drop each one.
+    options_clause: $ => seq(kw('OPTIONS'), parens(commaSep1($.generic_option))),
+
+    generic_option: $ => seq(
+      optional(choice(kw('ADD'), kw('SET'), kw('DROP'))),
+      field('name', $._label),
+      optional(field('value', $.string)),
+    ),
+
+    alter_foreign_data_wrapper_statement: $ => seq(
+      kw('ALTER'),
+      kws('FOREIGN', 'DATA', 'WRAPPER'),
+      field('name', $._name),
+      $._alter_actions,
+    ),
+
+    create_server_statement: $ => seq(
+      kw('CREATE'),
+      kw('SERVER'),
+      optional($._if_not_exists),
+      field('name', $._name),
+      optional(seq(kw('TYPE'), field('type', $.string))),
+      optional(seq(kw('VERSION'), field('version', $.string))),
+      kws('FOREIGN', 'DATA', 'WRAPPER'),
+      field('wrapper', $._name),
+      optional($.options_clause),
+    ),
+
+    alter_server_statement: $ => seq(
+      kw('ALTER'),
+      kw('SERVER'),
+      field('name', $._name),
+      $._alter_actions,
+    ),
+
+    create_user_mapping_statement: $ => seq(
+      kw('CREATE'),
+      kws('USER', 'MAPPING'),
+      optional($._if_not_exists),
+      $._user_mapping,
+      optional($.options_clause),
+    ),
+
+    alter_user_mapping_statement: $ => seq(
+      kw('ALTER'),
+      kws('USER', 'MAPPING'),
+      $._user_mapping,
+      $.options_clause,
+    ),
+
+    _user_mapping: $ => seq(
+      kw('FOR'),
+      field('user', choice($._role, keywordName($, 'USER'))),
+      kw('SERVER'),
+      field('server', $._name),
+    ),
+
+    import_foreign_schema_statement: $ => seq(
+      kws('IMPORT', 'FOREIGN', 'SCHEMA'),
+      field('remote_schema', $._name),
+      optional(seq(
+        choice(kws('LIMIT', 'TO'), kw('EXCEPT')),
+        parens(commaSep1(field('table', $._name))),
+      )),
+      kws('FROM', 'SERVER'),
+      field('server', $._name),
+      kw('INTO'),
+      field('schema', $._name),
+      optional($.options_clause),
+    ),
+
+    // Other objects
+
+    create_tablespace_statement: $ => seq(
+      kw('CREATE'),
+      kw('TABLESPACE'),
+      field('name', $._name),
+      optional(seq(kw('OWNER'), field('owner', $._role))),
+      kw('LOCATION'),
+      field('location', $.string),
+      optional(seq(kw('WITH'), $.option_list)),
+    ),
+
+    create_collation_statement: $ => seq(
+      kw('CREATE'),
+      kw('COLLATION'),
+      optional($._if_not_exists),
+      field('name', $.object_reference),
+      choice(
+        $.definition_list,
+        seq(kw('FROM'), field('source', $.object_reference)),
+      ),
+    ),
+
+    create_conversion_statement: $ => seq(
+      kw('CREATE'),
+      optional(kw('DEFAULT')),
+      kw('CONVERSION'),
+      field('name', $.object_reference),
+      kw('FOR'),
+      field('source', $.string),
+      kw('TO'),
+      field('target', $.string),
+      kw('FROM'),
+      field('function', $.object_reference),
+    ),
+
+    create_text_search_statement: $ => seq(
+      kw('CREATE'),
+      kws('TEXT', 'SEARCH'),
+      choice(kw('CONFIGURATION'), kw('DICTIONARY'), kw('PARSER'), kw('TEMPLATE')),
+      field('name', $.object_reference),
+      $.definition_list,
+    ),
+
+    // The name of extended statistics can be left out.
+    create_statistics_statement: $ => seq(
+      kw('CREATE'),
+      kw('STATISTICS'),
+      optional(seq(optional($._if_not_exists), field('name', $.object_reference))),
+      optional(parens(commaSep1(field('kind', $._name)))),
+      kw('ON'),
+      commaSep1($._expression),
+      kw('FROM'),
+      commaSep1($._table_reference),
+    ),
+
+    create_cast_statement: $ => seq(
+      kw('CREATE'),
+      kw('CAST'),
+      parens(seq(field('source', $.type), kw('AS'), field('target', $.type))),
+      choice(
+        seq(kws('WITH', 'FUNCTION'), $.function_signature),
+        kws('WITHOUT', 'FUNCTION'),
+        kws('WITH', 'INOUT'),
+      ),
+      optional(seq(kw('AS'), choice(kw('ASSIGNMENT'), kw('IMPLICIT')))),
+    ),
+
+    create_language_statement: $ => seq(
+      kw('CREATE'),
+      optional(kws('OR', 'REPLACE')),
+      optional(kw('TRUSTED')),
+      optional(kw('PROCEDURAL')),
+      kw('LANGUAGE'),
+      field('name', $._name),
+      optional(seq(
+        kw('HANDLER'),
+        field('handler', $.object_reference),
+        optional(seq(kw('INLINE'), field('inline', $.object_reference))),
+        optional(seq(kw('VALIDATOR'), field('validator', $.object_reference))),
+      )),
+    ),
+
+    create_transform_statement: $ => seq(
+      kw('CREATE'),
+      optional(kws('OR', 'REPLACE')),
+      kws('TRANSFORM', 'FOR'),
+      field('type', $.type),
+      kw('LANGUAGE'),
+      field('language', $._name),
+      parens(commaSep1(seq(
+        choice(kw('FROM'), kw('TO')),
+        kws('SQL', 'WITH', 'FUNCTION'),
+        $.function_signature,
+      ))),
+    ),
+
+    create_access_method_statement: $ => seq(
+      kw('CREATE'),
+      kws('ACCESS', 'METHOD'),
+      field('name', $._name),
+      kw('TYPE'),
+      choice(kw('TABLE'), kw('INDEX')),
+      kw('HANDLER'),
+      field('handler', $.object_reference),
+    ),
+
+    // ALTER of the other kinds of object, which take the actions of
+    // _alter_actions.
+    alter_object_statement: $ => seq(
+      kw('ALTER'),
+      choice(
+        seq(
+          choice(
+            kw('COLLATION'),
+            kw('CONVERSION'),
+            seq(optional(kw('PROCEDURAL')), kw('LANGUAGE')),
+            kw('STATISTICS'),
+            kw('TABLESPACE'),
+            seq(
+              kws('TEXT', 'SEARCH'),
+              choice(kw('CONFIGURATION'), kw('DICTIONARY'), kw('PARSER'), kw('TEMPLATE')),
+            ),
+          ),
+          optional($._if_exists),
+          field('name', $.object_reference),
+        ),
+        seq(kws('LARGE', 'OBJECT'), field('oid', $.number)),
+      ),
+      $._alter_actions,
+    ),
+
+    alter_system_statement: $ => seq(
+      kws('ALTER', 'SYSTEM'),
+      $._set_parameter,
+    ),
+
+    // WAIT FOR LSN waits until the server replays a location of the
+    // write-ahead log.
+    wait_statement: $ => seq(
+      kws('WAIT', 'FOR', 'LSN'),
+      field('lsn', $.string),
+      optional(seq(kw('WITH'), $.option_list)),
     ),
 
     _query: $ => prec.right(seq(

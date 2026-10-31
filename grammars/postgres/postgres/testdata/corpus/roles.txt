@@ -1,0 +1,425 @@
+================================================================================
+Create a role
+================================================================================
+
+CREATE ROLE jonathan LOGIN;
+CREATE USER davide WITH PASSWORD 'jw8s0F4';
+CREATE ROLE miriam WITH LOGIN PASSWORD 'jw8s0F4' VALID UNTIL '2005-01-01';
+CREATE ROLE admin WITH CREATEDB CREATEROLE NOSUPERUSER CONNECTION LIMIT 10;
+
+---
+
+(source_file
+  (create_role_statement
+    (identifier)
+    (role_option
+      (identifier)))
+  (create_role_statement
+    (identifier)
+    (role_option
+      (identifier)
+      (string)))
+  (create_role_statement
+    (identifier)
+    (role_option
+      (identifier))
+    (role_option
+      (identifier)
+      (string))
+    (role_option
+      (string)))
+  (create_role_statement
+    (identifier)
+    (role_option
+      (identifier))
+    (role_option
+      (identifier))
+    (role_option
+      (identifier))
+    (role_option
+      (number))))
+
+================================================================================
+Create a role in other roles
+================================================================================
+
+CREATE ROLE r ENCRYPTED PASSWORD 'x' IN ROLE a, b ROLE c ADMIN d USER e SYSID 5 PASSWORD NULL;
+CREATE GROUP g WITH USER u1, u2;
+
+---
+
+(source_file
+  (create_role_statement
+    (identifier)
+    (role_option
+      (identifier)
+      (string))
+    (role_option
+      (identifier)
+      (identifier))
+    (role_option
+      (identifier))
+    (role_option
+      (identifier))
+    (role_option
+      (identifier))
+    (role_option
+      (identifier)
+      (number))
+    (role_option
+      (identifier)
+      (null)))
+  (create_role_statement
+    (identifier)
+    (role_option
+      (identifier)
+      (identifier))))
+
+================================================================================
+Alter a role
+================================================================================
+
+ALTER ROLE davide WITH PASSWORD 'hu8jmn3';
+ALTER ROLE davide WITH PASSWORD NULL;
+ALTER USER manuel VALID UNTIL 'Jan 31 2030';
+ALTER ROLE fred VALID UNTIL 'infinity';
+ALTER ROLE miriam CREATEROLE CREATEDB;
+ALTER ROLE chris RENAME TO christopher;
+
+---
+
+(source_file
+  (alter_role_statement
+    (identifier)
+    (role_option
+      (identifier)
+      (string)))
+  (alter_role_statement
+    (identifier)
+    (role_option
+      (identifier)
+      (null)))
+  (alter_role_statement
+    (identifier)
+    (role_option
+      (string)))
+  (alter_role_statement
+    (identifier)
+    (role_option
+      (string)))
+  (alter_role_statement
+    (identifier)
+    (role_option
+      (identifier))
+    (role_option
+      (identifier)))
+  (alter_role_statement
+    (identifier)
+    (rename
+      (identifier))))
+
+================================================================================
+Alter the settings of a role
+================================================================================
+
+ALTER ROLE worker_bee SET maintenance_work_mem = 100000;
+ALTER ROLE fred IN DATABASE devel SET client_min_messages = DEBUG;
+ALTER ROLE ALL RESET ALL;
+ALTER USER CURRENT_USER SET search_path TO a, b;
+
+---
+
+(source_file
+  (alter_role_statement
+    (identifier)
+    (setting_name
+      (identifier))
+    (number))
+  (alter_role_statement
+    (identifier)
+    (identifier)
+    (setting_name
+      (identifier))
+    (identifier))
+  (alter_role_statement)
+  (alter_role_statement
+    (identifier)
+    (setting_name
+      (identifier))
+    (identifier)
+    (identifier)))
+
+================================================================================
+Alter a group
+================================================================================
+
+ALTER GROUP staff ADD USER karl, john;
+ALTER GROUP workers DROP USER beth;
+
+---
+
+(source_file
+  (alter_role_statement
+    (identifier)
+    (identifier)
+    (identifier))
+  (alter_role_statement
+    (identifier)
+    (identifier)))
+
+================================================================================
+Grant privileges on tables
+================================================================================
+
+GRANT INSERT ON films TO PUBLIC;
+GRANT ALL PRIVILEGES ON kinds TO manuel;
+GRANT SELECT (a, b), UPDATE (c) ON TABLE t, s.u TO GROUP g, CURRENT_ROLE WITH GRANT OPTION GRANTED BY admin;
+
+---
+
+(source_file
+  (grant_statement
+    (privilege)
+    (object_reference
+      (identifier))
+    (identifier))
+  (grant_statement
+    (object_reference
+      (identifier))
+    (identifier))
+  (grant_statement
+    (privilege
+      (column_list
+        (identifier)
+        (identifier)))
+    (privilege
+      (column_list
+        (identifier)))
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier)
+    (identifier)
+    (identifier)
+    (identifier)))
+
+================================================================================
+Grant privileges on other objects
+================================================================================
+
+GRANT USAGE ON SCHEMA s TO u;
+GRANT EXECUTE ON FUNCTION f(int), g() TO u;
+GRANT SELECT ON ALL TABLES IN SCHEMA public, s TO reader;
+GRANT CREATE, CONNECT, TEMPORARY ON DATABASE d TO u;
+GRANT USAGE ON FOREIGN DATA WRAPPER w TO u;
+GRANT USAGE ON FOREIGN SERVER s TO u;
+GRANT SELECT, UPDATE ON LARGE OBJECT 1234 TO u;
+GRANT SET, ALTER SYSTEM ON PARAMETER work_mem TO u;
+GRANT MAINTAIN ON t TO u;
+
+---
+
+(source_file
+  (grant_statement
+    (privilege)
+    (object_reference
+      (identifier))
+    (identifier))
+  (grant_statement
+    (privilege)
+    (function_signature
+      (object_reference
+        (identifier))
+      (function_parameters
+        (function_parameter
+          (type
+            (identifier)))))
+    (function_signature
+      (object_reference
+        (identifier))
+      (function_parameters))
+    (identifier))
+  (grant_statement
+    (privilege)
+    (identifier)
+    (identifier)
+    (identifier))
+  (grant_statement
+    (privilege)
+    (privilege)
+    (privilege)
+    (object_reference
+      (identifier))
+    (identifier))
+  (grant_statement
+    (privilege)
+    (object_reference
+      (identifier))
+    (identifier))
+  (grant_statement
+    (privilege)
+    (object_reference
+      (identifier))
+    (identifier))
+  (grant_statement
+    (privilege)
+    (privilege)
+    (number)
+    (identifier))
+  (grant_statement
+    (privilege)
+    (privilege)
+    (object_reference
+      (identifier))
+    (identifier))
+  (grant_statement
+    (privilege)
+    (object_reference
+      (identifier))
+    (identifier)))
+
+================================================================================
+Grant membership in a role
+================================================================================
+
+GRANT admins TO joe;
+GRANT a, b TO c WITH ADMIN OPTION;
+GRANT a TO b WITH INHERIT TRUE, SET FALSE GRANTED BY c;
+
+---
+
+(source_file
+  (grant_statement
+    (privilege
+      (identifier))
+    (identifier))
+  (grant_statement
+    (privilege
+      (identifier))
+    (privilege
+      (identifier))
+    (identifier)
+    (identifier))
+  (grant_statement
+    (privilege
+      (identifier))
+    (identifier)
+    (identifier)
+    (boolean)
+    (identifier)
+    (boolean)
+    (identifier)))
+
+================================================================================
+Revoke privileges
+================================================================================
+
+REVOKE INSERT ON films FROM PUBLIC;
+REVOKE ALL PRIVILEGES ON kinds FROM manuel;
+REVOKE GRANT OPTION FOR SELECT ON t FROM u CASCADE;
+REVOKE admins FROM joe;
+REVOKE ADMIN OPTION FOR a FROM b GRANTED BY c RESTRICT;
+
+---
+
+(source_file
+  (revoke_statement
+    (privilege)
+    (object_reference
+      (identifier))
+    (identifier))
+  (revoke_statement
+    (object_reference
+      (identifier))
+    (identifier))
+  (revoke_statement
+    (privilege)
+    (object_reference
+      (identifier))
+    (identifier))
+  (revoke_statement
+    (privilege
+      (identifier))
+    (identifier))
+  (revoke_statement
+    (privilege
+      (identifier))
+    (identifier)
+    (identifier)))
+
+================================================================================
+Alter default privileges
+================================================================================
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA myschema GRANT SELECT ON TABLES TO PUBLIC;
+ALTER DEFAULT PRIVILEGES IN SCHEMA myschema GRANT INSERT ON TABLES TO webuser;
+ALTER DEFAULT PRIVILEGES FOR ROLE admin REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+ALTER DEFAULT PRIVILEGES FOR USER a, b IN SCHEMA s GRANT USAGE ON LARGE OBJECTS TO c;
+
+---
+
+(source_file
+  (alter_default_privileges_statement
+    (identifier)
+    (grant_statement
+      (privilege)
+      (identifier)))
+  (alter_default_privileges_statement
+    (identifier)
+    (grant_statement
+      (privilege)
+      (identifier)))
+  (alter_default_privileges_statement
+    (identifier)
+    (revoke_statement
+      (privilege)
+      (identifier)))
+  (alter_default_privileges_statement
+    (identifier)
+    (identifier)
+    (identifier)
+    (grant_statement
+      (privilege)
+      (identifier))))
+
+================================================================================
+Reassign and drop owned objects
+================================================================================
+
+REASSIGN OWNED BY old_role, CURRENT_USER TO new_role;
+DROP OWNED BY doomed_role CASCADE;
+
+---
+
+(source_file
+  (reassign_owned_statement
+    (identifier)
+    (identifier)
+    (identifier))
+  (drop_owned_statement
+    (identifier)))
+
+================================================================================
+Drop roles
+================================================================================
+
+DROP ROLE IF EXISTS jonathan, miriam;
+DROP USER davide;
+DROP GROUP staff;
+
+---
+
+(source_file
+  (drop_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier))))

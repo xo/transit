@@ -26,9 +26,11 @@
   "ACCESS"
   "ACTION"
   "ADD"
+  "ADMIN"
   "AFTER"
   "AGGREGATE"
   "ALL"
+  "ALSO"
   "ALTER"
   "ALWAYS"
   "ANALYSE"
@@ -39,8 +41,10 @@
   "AS"
   "ASC"
   "ASENSITIVE"
+  "ASSIGNMENT"
   "ASYMMETRIC"
   "AT"
+  "ATOMIC"
   "ATTACH"
   "ATTRIBUTE"
   "AUTHORIZATION"
@@ -55,6 +59,7 @@
   "BY"
   "CACHE"
   "CALL"
+  "CALLED"
   "CASCADE"
   "CASCADED"
   "CASE"
@@ -79,12 +84,15 @@
   "CONDITIONAL"
   "CONFIGURATION"
   "CONFLICT"
+  "CONNECT"
+  "CONNECTION"
   "CONSTRAINT"
   "CONSTRAINTS"
   "CONTENT"
   "CONTINUE"
   "CONVERSION"
   "COPY"
+  "COST"
   "CREATE"
   "CROSS"
   "CUBE"
@@ -99,6 +107,7 @@
   "DEFAULT"
   "DEFERRABLE"
   "DEFERRED"
+  "DEFINER"
   "DELETE"
   "DELIMITERS"
   "DEPENDS"
@@ -114,10 +123,12 @@
   "DOMAIN"
   "DOUBLE"
   "DROP"
+  "EACH"
   "ELSE"
   "EMPTY"
   "ENABLE"
   "ENCODING"
+  "ENCRYPTED"
   "END"
   "ENFORCED"
   "ENUM"
@@ -133,6 +144,7 @@
   "EXPLAIN"
   "EXPRESSION"
   "EXTENSION"
+  "EXTERNAL"
   "FALSE"
   "FAMILY"
   "FETCH"
@@ -149,11 +161,15 @@
   "FROM"
   "FULL"
   "FUNCTION"
+  "FUNCTIONS"
   "GENERATED"
   "GLOBAL"
+  "GRANT"
+  "GRANTED"
   "GROUP"
   "GROUPING"
   "GROUPS"
+  "HANDLER"
   "HASH"
   "HAVING"
   "HOLD"
@@ -162,6 +178,9 @@
   "IF"
   "ILIKE"
   "IMMEDIATE"
+  "IMMUTABLE"
+  "IMPLICIT"
+  "IMPORT"
   "IN"
   "INCLUDE"
   "INCLUDING"
@@ -171,13 +190,17 @@
   "INHERIT"
   "INHERITS"
   "INITIALLY"
+  "INLINE"
   "INNER"
   "INOUT"
+  "INPUT"
   "INSENSITIVE"
   "INSERT"
+  "INSTEAD"
   "INTERSECT"
   "INTERVAL"
   "INTO"
+  "INVOKER"
   "IS"
   "ISNULL"
   "ISOLATION"
@@ -192,6 +215,7 @@
   "LAST"
   "LATERAL"
   "LEADING"
+  "LEAKPROOF"
   "LEFT"
   "LEVEL"
   "LIKE"
@@ -200,9 +224,13 @@
   "LISTEN"
   "LOAD"
   "LOCAL"
+  "LOCATION"
   "LOCK"
   "LOCKED"
   "LOGGED"
+  "LSN"
+  "MAINTAIN"
+  "MAPPING"
   "MATCH"
   "MATCHED"
   "MATERIALIZED"
@@ -235,6 +263,7 @@
   "NULL"
   "NULLS"
   "OBJECT"
+  "OBJECTS"
   "OF"
   "OFFSET"
   "OIDS"
@@ -256,12 +285,15 @@
   "OVERRIDING"
   "OWNED"
   "OWNER"
+  "PARALLEL"
+  "PARAMETER"
   "PARSER"
   "PARTIAL"
   "PARTITION"
   "PARTITIONS"
   "PASSING"
   "PERIOD"
+  "PERMISSIVE"
   "PLACING"
   "PLANS"
   "POLICY"
@@ -272,16 +304,20 @@
   "PRESERVE"
   "PRIMARY"
   "PRIOR"
+  "PRIVILEGES"
   "PROCEDURAL"
   "PROCEDURE"
+  "PROCEDURES"
   "PROGRAM"
   "PUBLICATION"
   "QUOTES"
   "RANGE"
   "READ"
+  "REASSIGN"
   "RECURSIVE"
   "REF"
   "REFERENCES"
+  "REFERENCING"
   "REFRESH"
   "REINDEX"
   "RELATIVE"
@@ -294,18 +330,24 @@
   "RESET"
   "RESTART"
   "RESTRICT"
+  "RESTRICTIVE"
+  "RETURN"
   "RETURNING"
+  "RETURNS"
+  "REVOKE"
   "RIGHT"
   "ROLE"
   "ROLLBACK"
   "ROLLUP"
   "ROUTINE"
+  "ROUTINES"
   "ROW"
   "ROWS"
   "RULE"
   "SAVEPOINT"
   "SCALAR"
   "SCHEMA"
+  "SCHEMAS"
   "SCROLL"
   "SEARCH"
   "SECOND"
@@ -317,6 +359,7 @@
   "SERVER"
   "SESSION"
   "SET"
+  "SETOF"
   "SETS"
   "SHARE"
   "SHOW"
@@ -327,17 +370,23 @@
   "SOME"
   "SOURCE"
   "SPLIT"
+  "SQL"
+  "STABLE"
   "START"
+  "STATEMENT"
   "STATISTICS"
   "STDIN"
   "STDOUT"
   "STORAGE"
   "STORED"
+  "STRICT"
   "STRING"
   "SUBSCRIPTION"
+  "SUPPORT"
   "SYMMETRIC"
   "SYSTEM"
   "TABLE"
+  "TABLES"
   "TABLESAMPLE"
   "TABLESPACE"
   "TARGET"
@@ -356,7 +405,9 @@
   "TRIGGER"
   "TRUE"
   "TRUNCATE"
+  "TRUSTED"
   "TYPE"
+  "TYPES"
   "UNBOUNDED"
   "UNCOMMITTED"
   "UNCONDITIONAL"
@@ -365,12 +416,15 @@
   "UNKNOWN"
   "UNLISTEN"
   "UNLOGGED"
+  "UNTIL"
   "UPDATE"
+  "USAGE"
   "USER"
   "USING"
   "VACUUM"
   "VALID"
   "VALIDATE"
+  "VALIDATOR"
   "VALUE"
   "VALUES"
   "VARIADIC"
@@ -379,6 +433,8 @@
   "VERSION"
   "VIEW"
   "VIRTUAL"
+  "VOLATILE"
+  "WAIT"
   "WHEN"
   "WHERE"
   "WINDOW"
@@ -625,6 +681,51 @@
 
 (operator_signature
   schema: (identifier) @module)
+
+(definition
+  name: (identifier) @property)
+
+(generic_option
+  name: (identifier) @property)
+
+(role_option
+  name: (identifier) @property)
+
+(create_operator_statement
+  schema: (identifier) @module)
+
+(operator_class_item
+  schema: (identifier) @module)
+
+(create_trigger_statement
+  name: (identifier) @label)
+
+(alter_trigger_statement
+  name: (identifier) @label)
+
+(create_event_trigger_statement
+  name: (identifier) @label)
+
+(alter_event_trigger_statement
+  name: (identifier) @label)
+
+(create_rule_statement
+  name: (identifier) @label)
+
+(alter_rule_statement
+  name: (identifier) @label)
+
+(create_policy_statement
+  name: (identifier) @label)
+
+(alter_policy_statement
+  name: (identifier) @label)
+
+(trigger_event
+  column: (identifier) @variable.member)
+
+(event_filter
+  variable: (identifier) @variable.builtin)
 
 [
   (operator)

@@ -50,5 +50,5 @@ SELECT TRUE, FALSE, NULL;
 	}
 	// Output:
 	// (source_file (select_statement (select (boolean) (boolean) (null))))
-	// patterns in queries/highlights.scm: 81
+	// patterns in queries/highlights.scm: 96
 }

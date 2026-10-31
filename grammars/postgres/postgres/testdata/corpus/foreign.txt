@@ -1,0 +1,493 @@
+================================================================================
+Create a publication
+================================================================================
+
+CREATE PUBLICATION mypublication FOR TABLE users, departments;
+CREATE PUBLICATION active_departments FOR TABLE departments WHERE (active IS TRUE);
+CREATE PUBLICATION alltables FOR ALL TABLES;
+CREATE PUBLICATION insert_only FOR TABLE mydata WITH (publish = 'insert');
+
+---
+
+(source_file
+  (create_publication_statement
+    (identifier)
+    (publication_table
+      (object_reference
+        (identifier)))
+    (publication_table
+      (object_reference
+        (identifier))))
+  (create_publication_statement
+    (identifier)
+    (publication_table
+      (object_reference
+        (identifier))
+      (parenthesized_expression
+        (is_expression
+          (column_reference
+            (identifier))
+          (boolean)))))
+  (create_publication_statement
+    (identifier))
+  (create_publication_statement
+    (identifier)
+    (publication_table
+      (object_reference
+        (identifier)))
+    (option_list
+      (option
+        (identifier)
+        (string)))))
+
+================================================================================
+Create a publication of schemas, columns and sequences
+================================================================================
+
+CREATE PUBLICATION p FOR TABLE ONLY s.t * (a, b), TABLES IN SCHEMA marketing, CURRENT_SCHEMA;
+CREATE PUBLICATION p FOR ALL TABLES EXCEPT (TABLE t1, t2), ALL SEQUENCES;
+
+---
+
+(source_file
+  (create_publication_statement
+    (identifier)
+    (publication_table
+      (object_reference
+        (identifier)
+        (identifier))
+      (column_list
+        (identifier)
+        (identifier)))
+    (identifier)
+    (identifier))
+  (create_publication_statement
+    (identifier)
+    (publication_table
+      (object_reference
+        (identifier)))
+    (publication_table
+      (object_reference
+        (identifier)))))
+
+================================================================================
+Alter a publication
+================================================================================
+
+ALTER PUBLICATION noinsert SET (publish = 'update, delete');
+ALTER PUBLICATION mypublication ADD TABLE users (user_id, firstname), departments;
+ALTER PUBLICATION mypublication SET TABLE users (user_id, firstname, lastname), TABLE departments;
+ALTER PUBLICATION sales_publication ADD TABLES IN SCHEMA marketing, sales;
+ALTER PUBLICATION p DROP TABLE t;
+ALTER PUBLICATION p SET ALL TABLES;
+ALTER PUBLICATION p OWNER TO u;
+
+---
+
+(source_file
+  (alter_publication_statement
+    (identifier)
+    (option_list
+      (option
+        (identifier)
+        (string))))
+  (alter_publication_statement
+    (identifier)
+    (publication_table
+      (object_reference
+        (identifier))
+      (column_list
+        (identifier)
+        (identifier)))
+    (publication_table
+      (object_reference
+        (identifier))))
+  (alter_publication_statement
+    (identifier)
+    (publication_table
+      (object_reference
+        (identifier))
+      (column_list
+        (identifier)
+        (identifier)
+        (identifier)))
+    (publication_table
+      (object_reference
+        (identifier))))
+  (alter_publication_statement
+    (identifier)
+    (identifier)
+    (publication_table
+      (object_reference
+        (identifier))))
+  (alter_publication_statement
+    (identifier)
+    (publication_table
+      (object_reference
+        (identifier))))
+  (alter_publication_statement
+    (identifier))
+  (alter_publication_statement
+    (identifier)
+    (owner_to
+      (identifier))))
+
+================================================================================
+Create a subscription
+================================================================================
+
+CREATE SUBSCRIPTION mysub
+         CONNECTION 'host=192.168.1.50 port=5432 user=foo dbname=foodb'
+        PUBLICATION mypublication, insert_only
+               WITH (enabled = false);
+CREATE SUBSCRIPTION s SERVER foreign_server PUBLICATION p;
+
+---
+
+(source_file
+  (create_subscription_statement
+    (identifier)
+    (string)
+    (identifier)
+    (identifier)
+    (option_list
+      (option
+        (identifier)
+        (identifier))))
+  (create_subscription_statement
+    (identifier)
+    (identifier)
+    (identifier)))
+
+================================================================================
+Alter a subscription
+================================================================================
+
+ALTER SUBSCRIPTION mysub SET PUBLICATION insert_only WITH (refresh = false);
+ALTER SUBSCRIPTION mysub DISABLE;
+ALTER SUBSCRIPTION mysub CONNECTION 'host=x';
+ALTER SUBSCRIPTION mysub REFRESH PUBLICATION;
+ALTER SUBSCRIPTION mysub REFRESH SEQUENCES;
+ALTER SUBSCRIPTION mysub SKIP (lsn = '0/14C0378');
+ALTER SUBSCRIPTION mysub ADD PUBLICATION a, b;
+
+---
+
+(source_file
+  (alter_subscription_statement
+    (identifier)
+    (identifier)
+    (option_list
+      (option
+        (identifier)
+        (identifier))))
+  (alter_subscription_statement
+    (identifier))
+  (alter_subscription_statement
+    (identifier)
+    (string))
+  (alter_subscription_statement
+    (identifier))
+  (alter_subscription_statement
+    (identifier))
+  (alter_subscription_statement
+    (identifier)
+    (option_list
+      (option
+        (identifier)
+        (string))))
+  (alter_subscription_statement
+    (identifier)
+    (identifier)
+    (identifier)))
+
+================================================================================
+Create a foreign-data wrapper
+================================================================================
+
+CREATE FOREIGN DATA WRAPPER dummy;
+CREATE FOREIGN DATA WRAPPER file HANDLER file_fdw_handler NO VALIDATOR;
+CREATE FOREIGN DATA WRAPPER mywrapper OPTIONS (debug 'true');
+
+---
+
+(source_file
+  (create_foreign_data_wrapper_statement
+    (identifier))
+  (create_foreign_data_wrapper_statement
+    (identifier)
+    (object_reference
+      (identifier)))
+  (create_foreign_data_wrapper_statement
+    (identifier)
+    (options_clause
+      (generic_option
+        (identifier)
+        (string)))))
+
+================================================================================
+Alter a foreign-data wrapper
+================================================================================
+
+ALTER FOREIGN DATA WRAPPER dbi OPTIONS (ADD foo '1', DROP bar);
+ALTER FOREIGN DATA WRAPPER dbi VALIDATOR bob.myvalidator;
+ALTER FOREIGN DATA WRAPPER dbi CONNECTION f NO HANDLER;
+
+---
+
+(source_file
+  (alter_foreign_data_wrapper_statement
+    (identifier)
+    (options_clause
+      (generic_option
+        (identifier)
+        (string))
+      (generic_option
+        (identifier))))
+  (alter_foreign_data_wrapper_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier)))
+  (alter_foreign_data_wrapper_statement
+    (identifier)
+    (object_reference
+      (identifier))))
+
+================================================================================
+Create a server
+================================================================================
+
+CREATE SERVER myserver FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host 'foo', dbname 'foodb', port '5432');
+CREATE SERVER IF NOT EXISTS s TYPE 'oracle' VERSION '19' FOREIGN DATA WRAPPER w;
+
+---
+
+(source_file
+  (create_server_statement
+    (identifier)
+    (identifier)
+    (options_clause
+      (generic_option
+        (identifier)
+        (string))
+      (generic_option
+        (identifier)
+        (string))
+      (generic_option
+        (identifier)
+        (string))))
+  (create_server_statement
+    (identifier)
+    (string)
+    (string)
+    (identifier)))
+
+================================================================================
+Alter a server
+================================================================================
+
+ALTER SERVER foo OPTIONS (host 'foo', dbname 'foodb');
+ALTER SERVER foo VERSION '8.4' OPTIONS (SET host 'baz');
+ALTER SERVER foo RENAME TO bar;
+
+---
+
+(source_file
+  (alter_server_statement
+    (identifier)
+    (options_clause
+      (generic_option
+        (identifier)
+        (string))
+      (generic_option
+        (identifier)
+        (string))))
+  (alter_server_statement
+    (identifier)
+    (string)
+    (options_clause
+      (generic_option
+        (identifier)
+        (string))))
+  (alter_server_statement
+    (identifier)
+    (rename
+      (identifier))))
+
+================================================================================
+Create, alter and drop a user mapping
+================================================================================
+
+CREATE USER MAPPING FOR bob SERVER foo OPTIONS (user 'bob', password 'secret');
+CREATE USER MAPPING IF NOT EXISTS FOR CURRENT_USER SERVER foo;
+ALTER USER MAPPING FOR bob SERVER foo OPTIONS (SET password 'public');
+ALTER USER MAPPING FOR USER SERVER foo OPTIONS (DROP password);
+DROP USER MAPPING IF EXISTS FOR bob SERVER foo;
+
+---
+
+(source_file
+  (create_user_mapping_statement
+    (identifier)
+    (identifier)
+    (options_clause
+      (generic_option
+        (identifier)
+        (string))
+      (generic_option
+        (identifier)
+        (string))))
+  (create_user_mapping_statement
+    (identifier)
+    (identifier))
+  (alter_user_mapping_statement
+    (identifier)
+    (identifier)
+    (options_clause
+      (generic_option
+        (identifier)
+        (string))))
+  (alter_user_mapping_statement
+    (identifier)
+    (identifier)
+    (options_clause
+      (generic_option
+        (identifier))))
+  (drop_statement
+    (identifier)
+    (identifier)))
+
+================================================================================
+Create a foreign table
+================================================================================
+
+CREATE FOREIGN TABLE films (
+    code        char(5) NOT NULL,
+    title       varchar(40) OPTIONS (column_name 'name') NOT NULL,
+    did         integer
+)
+SERVER film_server OPTIONS (table_name 'films');
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (type
+        (type_modifiers
+          (number)))
+      (column_constraint))
+    (column_definition
+      (identifier)
+      (type
+        (identifier)
+        (type_modifiers
+          (number)))
+      (options_clause
+        (generic_option
+          (identifier)
+          (string)))
+      (column_constraint))
+    (column_definition
+      (identifier)
+      (type
+        (identifier)))
+    (identifier)
+    (options_clause
+      (generic_option
+        (identifier)
+        (string)))))
+
+================================================================================
+Create a foreign table as a partition
+================================================================================
+
+CREATE FOREIGN TABLE measurement_y2016m07
+    PARTITION OF measurement FOR VALUES FROM ('2016-07-01') TO ('2016-08-01')
+    SERVER server_07;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (partition_bound
+      (list
+        (string))
+      (list
+        (string)))
+    (identifier)))
+
+================================================================================
+Alter a foreign table
+================================================================================
+
+ALTER FOREIGN TABLE distributors ALTER COLUMN street SET NOT NULL;
+ALTER FOREIGN TABLE myschema.distributors OPTIONS (ADD opt1 'value', SET opt2 'value2', DROP opt3);
+ALTER FOREIGN TABLE t ALTER COLUMN c OPTIONS (SET column_name 'x');
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (alter_column
+      (identifier)))
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (alter_table_option
+      (options_clause
+        (generic_option
+          (identifier)
+          (string))
+        (generic_option
+          (identifier)
+          (string))
+        (generic_option
+          (identifier)))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (alter_column
+      (identifier)
+      (options_clause
+        (generic_option
+          (identifier)
+          (string))))))
+
+================================================================================
+Import a foreign schema
+================================================================================
+
+IMPORT FOREIGN SCHEMA foreign_films LIMIT TO (actors, directors)
+    FROM SERVER film_server INTO films OPTIONS (import_default 'true');
+IMPORT FOREIGN SCHEMA s EXCEPT (t) FROM SERVER f INTO l;
+
+---
+
+(source_file
+  (import_foreign_schema_statement
+    (identifier)
+    (identifier)
+    (identifier)
+    (identifier)
+    (identifier)
+    (options_clause
+      (generic_option
+        (identifier)
+        (string))))
+  (import_foreign_schema_statement
+    (identifier)
+    (identifier)
+    (identifier)
+    (identifier)))
