@@ -5,7 +5,7 @@ This document holds the plan for `github.com/xo/transit`. The decisions are in
 
 This plan was written on 2026-09-29, before any code existed (D3). Ken
 answered its open questions on that date, and later ones as they came. The
-decisions D1 to D124 record the answers and the other choices of Ken. A part
+decisions D1 to D125 record the answers and the other choices of Ken. A part
 of this plan that names a decision follows it. A new question
 goes at the end of this document until Ken answers it.
 
@@ -971,8 +971,9 @@ repository moves only to a new release tag, and a fixture grammar stays at
 the tag that `test/fixtures/fixtures.json` of upstream lists. No decision
 records them. On 2026-10-31, Ken chose to write the PostgreSQL, Oracle and
 SQL Server grammars and to tune the MySQL grammar, and questions 95 to 98
-asked for the versions. D121 to D124 record the answers. The next question
-is question 99.
+asked for the versions. D121 to D124 record the answers. The Oracle grammar raised
+questions 99 to 101, and D125 records the answers. The next question is
+question 102.
 
 No question is open.
 

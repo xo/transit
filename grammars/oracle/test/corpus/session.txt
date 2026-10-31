@@ -1,0 +1,313 @@
+================================================================================
+SET ROLE
+================================================================================
+
+SET ROLE dw_manager IDENTIFIED BY warehouse, app_user;
+SET ROLE ALL EXCEPT dw_manager;
+SET ROLE ALL;
+SET ROLE NONE;
+
+---
+
+(source_file
+  (set_role_statement
+    (identifier)
+    (identifier)
+    (identifier))
+  (set_role_statement
+    (identifier))
+  (set_role_statement)
+  (set_role_statement))
+
+================================================================================
+ALTER SESSION SET
+================================================================================
+
+ALTER SESSION SET NLS_DATE_FORMAT = 'YYYY MM DD HH24:MI:SS';
+ALTER SESSION SET current_schema = hr;
+ALTER SESSION SET optimizer_mode = all_rows sql_trace = TRUE;
+ALTER SESSION SET EDITION = ora$base;
+ALTER SESSION SET CONTAINER = cdb$root SERVICE = svc;
+ALTER SESSION SET ROW ARCHIVAL VISIBILITY = ACTIVE;
+ALTER SESSION SET events '10046 trace name context forever, level 12';
+ALTER SESSION SET plsql_warnings = 'ENABLE:ALL';
+
+---
+
+(source_file
+  (alter_session_statement
+    (parameter
+      (identifier)
+      (string)))
+  (alter_session_statement
+    (parameter
+      (identifier)
+      (column_reference
+        (identifier))))
+  (alter_session_statement
+    (parameter
+      (identifier)
+      (column_reference
+        (identifier)))
+    (parameter
+      (identifier)
+      (boolean)))
+  (alter_session_statement
+    (parameter
+      (identifier)
+      (column_reference
+        (identifier))))
+  (alter_session_statement
+    (parameter
+      (identifier)
+      (column_reference
+        (identifier)))
+    (parameter
+      (identifier)
+      (column_reference
+        (identifier))))
+  (alter_session_statement
+    (parameter
+      (column_reference
+        (identifier))))
+  (alter_session_statement
+    (parameter
+      (identifier)
+      (string)))
+  (alter_session_statement
+    (parameter
+      (identifier)
+      (string))))
+
+================================================================================
+The other forms of ALTER SESSION
+================================================================================
+
+ALTER SESSION ENABLE PARALLEL DML;
+ALTER SESSION FORCE PARALLEL QUERY PARALLEL 4;
+ALTER SESSION CLOSE DATABASE LINK remote;
+ALTER SESSION ADVISE COMMIT;
+ALTER SESSION ENABLE RESUMABLE TIMEOUT 3600 NAME 'load';
+ALTER SESSION SYNC WITH PRIMARY;
+
+---
+
+(source_file
+  (alter_session_statement
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_session_statement
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (number))
+  (alter_session_statement
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_session_statement
+    (keyword)
+    (keyword))
+  (alter_session_statement
+    (keyword)
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)
+    (string))
+  (alter_session_statement
+    (keyword)
+    (keyword)))
+
+================================================================================
+ALTER SYSTEM SET
+================================================================================
+
+ALTER SYSTEM SET resource_limit = TRUE;
+ALTER SYSTEM SET shared_servers = 2 SCOPE = BOTH SID = '*';
+ALTER SYSTEM SET control_files = '/u01/a.ctl', '/u02/b.ctl' SCOPE = SPFILE;
+ALTER SYSTEM SET log_archive_dest_1 = 'LOCATION=/arch' COMMENT = 'archive' DEFERRED CONTAINER = ALL;
+ALTER SYSTEM RESET open_cursors SCOPE = SPFILE;
+
+---
+
+(source_file
+  (alter_system_statement
+    (parameter
+      (identifier)
+      (boolean)))
+  (alter_system_statement
+    (parameter
+      (identifier)
+      (number))
+    (parameter
+      (identifier)
+      (column_reference
+        (identifier)))
+    (parameter
+      (identifier)
+      (string)))
+  (alter_system_statement
+    (parameter
+      (identifier)
+      (string)
+      (string))
+    (parameter
+      (identifier)
+      (column_reference
+        (identifier))))
+  (alter_system_statement
+    (parameter
+      (identifier)
+      (string))
+    (parameter
+      (string))
+    (parameter
+      (identifier))
+    (parameter
+      (identifier)))
+  (alter_system_statement
+    (parameter
+      (identifier))
+    (parameter
+      (identifier)
+      (column_reference
+        (identifier)))))
+
+================================================================================
+The other forms of ALTER SYSTEM
+================================================================================
+
+ALTER SYSTEM KILL SESSION '13, 8' IMMEDIATE;
+ALTER SYSTEM DISCONNECT SESSION '13, 8' POST_TRANSACTION;
+ALTER SYSTEM FLUSH SHARED_POOL;
+ALTER SYSTEM CHECKPOINT GLOBAL;
+ALTER SYSTEM SWITCH LOGFILE;
+ALTER SYSTEM ARCHIVE LOG ALL TO '/arch';
+ALTER SYSTEM ENABLE RESTRICTED SESSION;
+ALTER SYSTEM REGISTER;
+
+---
+
+(source_file
+  (alter_system_statement
+    (keyword)
+    (string))
+  (alter_system_statement
+    (keyword)
+    (string)
+    (keyword))
+  (alter_system_statement
+    (keyword)
+    (keyword))
+  (alter_system_statement
+    (keyword)
+    (keyword))
+  (alter_system_statement
+    (keyword)
+    (keyword))
+  (alter_system_statement
+    (keyword)
+    (keyword)
+    (string))
+  (alter_system_statement
+    (keyword)
+    (keyword))
+  (alter_system_statement
+    (keyword)))
+
+================================================================================
+EXPLAIN PLAN
+================================================================================
+
+EXPLAIN PLAN FOR SELECT last_name FROM employees;
+EXPLAIN PLAN SET STATEMENT_ID = 'Raise in Tokyo' INTO plan_table FOR UPDATE employees SET salary = salary * 1.10 WHERE department_id = 10;
+EXPLAIN PLAN INTO hr.plans FOR DELETE FROM t;
+
+---
+
+(source_file
+  (explain_plan_statement
+    (select_statement
+      (select
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (explain_plan_statement
+    (string)
+    (object_reference
+      (identifier))
+    (update_statement
+      (object_reference
+        (identifier))
+      (assignment
+        (column_reference
+          (identifier))
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))))
+  (explain_plan_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (delete_statement
+      (object_reference
+        (identifier)))))
+
+================================================================================
+CALL
+================================================================================
+
+CALL emp_mgmt.remove_dept(162);
+CALL warehouse_typ(456, 'Warehouse 456', 2236).ret_name() INTO :x;
+CALL my_function(1) INTO :x INDICATOR :y;
+CALL hr.pkg.p();
+
+---
+
+(source_file
+  (call_statement
+    (function_call
+      (identifier)
+      (identifier)
+      (arguments
+        (number))))
+  (call_statement
+    (field_expression
+      (function_call
+        (identifier)
+        (arguments
+          (number)
+          (string)
+          (number)))
+      (function_call
+        (identifier)
+        (arguments)))
+    (bind_variable))
+  (call_statement
+    (function_call
+      (identifier)
+      (arguments
+        (number)))
+    (bind_variable)
+    (bind_variable))
+  (call_statement
+    (function_call
+      (identifier)
+      (identifier)
+      (identifier)
+      (arguments))))

@@ -1,6 +1,6 @@
 # D124. xo writes the Oracle and SQL Server grammars
 
-Status: Decided, amends D106.
+Status: Decided, amends D106, amended by D125.
 
 The grammar of `grammars/oracle` comes from `andreasmaierde/tree-sitter-plsql`.
 Its repository has not changed since 2023, and the repository has no corpus

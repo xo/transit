@@ -142,4 +142,5 @@ An open question is not a decision. It goes at the end of
 | [D121](D121-the-go-backend-can-change-the-form-of-its-tables.md) | The Go backend can change the form of its tables | Decided, amends D74 |
 | [D122](D122-xo-writes-the-postgresql-grammars.md) | xo writes the PostgreSQL grammars | Decided, amends D106 |
 | [D123](D123-the-mysql-grammar-tunes-its-identifier-rules.md) | The MySQL grammar tunes its identifier rules | Decided |
-| [D124](D124-xo-writes-the-oracle-and-sql-server-grammars.md) | xo writes the Oracle and SQL Server grammars | Decided, amends D106 |
+| [D124](D124-xo-writes-the-oracle-and-sql-server-grammars.md) | xo writes the Oracle and SQL Server grammars | Decided, amends D106, amended by D125 |
+| [D125](D125-the-oracle-grammar-has-no-fixed-size-budget.md) | The Oracle grammar has no fixed size budget | Decided, amends D124 |

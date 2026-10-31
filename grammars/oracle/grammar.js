@@ -194,6 +194,8 @@ module.exports = grammar({
     // A parenthesized query can be the left side of a set operation, or a
     // subquery in an expression or in FROM.
     [$.parenthesized_query, $.subquery],
+    // ( after the table of INSERT can start its columns or its query.
+    [$.insert_into_clause],
   ],
 
   rules: {
@@ -207,6 +209,32 @@ module.exports = grammar({
 
     _statement: $ => choice(
       $.select_statement,
+      $.insert_statement,
+      $.update_statement,
+      $.delete_statement,
+      $.merge_statement,
+      $.commit_statement,
+      $.rollback_statement,
+      $.savepoint_statement,
+      $.set_transaction_statement,
+      $.set_constraints_statement,
+      $.set_role_statement,
+      $.lock_table_statement,
+      $.alter_session_statement,
+      $.alter_system_statement,
+      $.explain_plan_statement,
+      $.call_statement,
+      $.truncate_statement,
+      $.purge_statement,
+      $.flashback_table_statement,
+      $.flashback_database_statement,
+      $.analyze_statement,
+      $.audit_statement,
+      $.noaudit_statement,
+      $.comment_statement,
+      $.grant_statement,
+      $.revoke_statement,
+      $.rename_statement,
     ),
 
     // Queries
@@ -322,7 +350,8 @@ module.exports = grammar({
     // A query of values, as in VALUES (1, 'a'), (2, 'b').
     values: $ => seq(kw('VALUES'), commaSep1($.value_list)),
 
-    value_list: $ => parens(commaSep1($._expression)),
+    // DEFAULT is a value of a row of INSERT.
+    value_list: $ => parens(commaSep1(choice($._expression, kw('DEFAULT')))),
 
     from_clause: $ => seq(kw('FROM'), commaSep1($._table_reference)),
 
@@ -679,7 +708,11 @@ module.exports = grammar({
       ),
     ),
 
-    where_clause: $ => seq(kw('WHERE'), $._expression),
+    // WHERE CURRENT OF changes the row that a cursor of PL/SQL fetched last.
+    where_clause: $ => seq(
+      kw('WHERE'),
+      choice($._expression, seq(kws('CURRENT', 'OF'), field('cursor', $._name))),
+    ),
 
     start_with_clause: $ => seq(kws('START', 'WITH'), $._expression),
 
@@ -869,15 +902,11 @@ module.exports = grammar({
       choice(kw('ONLY'), kws('WITH', 'TIES')),
     ),
 
-    for_update_clause: $ => seq(
+    for_update_clause: $ => prec.right(seq(
       kws('FOR', 'UPDATE'),
       optional(seq(kw('OF'), commaSep1($.column_reference))),
-      optional(choice(
-        kw('NOWAIT'),
-        seq(kw('WAIT'), $.number),
-        kws('SKIP', 'LOCKED'),
-      )),
-    ),
+      optional(choice($.wait_clause, kws('SKIP', 'LOCKED'))),
+    )),
 
     subquery_restriction: $ => seq(
       kw('WITH'),
@@ -886,6 +915,490 @@ module.exports = grammar({
     ),
 
     subquery: $ => parens($._query),
+
+    // Changes of data
+
+    // The clauses after the first part of a statement that changes data
+    // come in any order, as the clauses of a query do.
+    insert_statement: $ => seq(
+      kw('INSERT'),
+      choice(
+        seq($.insert_into_clause, $._query, repeat($._dml_clause)),
+        seq(kw('ALL'), repeat1($._insert_target), $._query),
+        seq(
+          optional(choice(kw('ALL'), kw('FIRST'))),
+          repeat1($.insert_when_clause),
+          optional(seq(kw('ELSE'), repeat1($._insert_target))),
+          $._query,
+        ),
+      ),
+    ),
+
+    // The table of an INSERT, with its alias and its columns.
+    insert_into_clause: $ => seq(
+      kw('INTO'),
+      choice(
+        seq(field('table', $.object_reference), optional($.partition_extension)),
+        $.subquery,
+        seq(kw('TABLE'), parens(choice($._expression, $._query))),
+      ),
+      optional($._alias),
+      optional($.column_list),
+    ),
+
+    // A table of a multitable INSERT. VALUES after it gives the values of
+    // the row, and VALUES after the last one starts the query.
+    _insert_target: $ => prec.right(seq(
+      $.insert_into_clause,
+      optional($.values),
+      optional($.error_logging_clause),
+    )),
+
+    insert_when_clause: $ => seq(
+      kw('WHEN'),
+      field('condition', $._expression),
+      kw('THEN'),
+      repeat1($._insert_target),
+    ),
+
+    update_statement: $ => seq(
+      kw('UPDATE'),
+      $._dml_table,
+      kw('SET'),
+      commaSep1($.assignment),
+      repeat(choice($.from_clause, $.where_clause, $._dml_clause)),
+    ),
+
+    // SET a = 1, SET (a, b) = (SELECT ...) or SET VALUE (t) = expr.
+    assignment: $ => choice(
+      seq(
+        field('left', choice($.column_reference, $.column_list)),
+        '=',
+        field('right', choice($._expression, kw('DEFAULT'))),
+      ),
+      seq(
+        kw('VALUE'),
+        parens(field('left', $._name)),
+        '=',
+        field('right', $._expression),
+      ),
+    ),
+
+    delete_statement: $ => seq(
+      kw('DELETE'),
+      optional(kw('FROM')),
+      $._dml_table,
+      repeat(choice($.from_clause, $.where_clause, $._dml_clause)),
+    ),
+
+    merge_statement: $ => seq(
+      kws('MERGE', 'INTO'),
+      $._dml_table,
+      kw('USING'),
+      field('source', $._dml_table),
+      kw('ON'),
+      field('condition', $.parenthesized_expression),
+      repeat(choice(
+        $.merge_update_clause,
+        $.merge_insert_clause,
+        $.error_logging_clause,
+      )),
+    ),
+
+    merge_update_clause: $ => seq(
+      kws('WHEN', 'MATCHED', 'THEN', 'UPDATE', 'SET'),
+      commaSep1($.assignment),
+      optional($.where_clause),
+      optional(seq(kw('DELETE'), $.where_clause)),
+    ),
+
+    merge_insert_clause: $ => seq(
+      kws('WHEN', 'NOT', 'MATCHED', 'THEN', 'INSERT'),
+      optional(parens(commaSep1($.column_reference))),
+      $.values,
+      optional($.where_clause),
+    ),
+
+    // The table of UPDATE, DELETE and MERGE, with its alias. It takes fewer
+    // clauses than a table in FROM, so that it has fewer parse states.
+    _dml_table: $ => seq(
+      choice(
+        seq(field('table', $.object_reference), optional($.partition_extension)),
+        $.subquery,
+        seq(kw('TABLE'), parens(choice($._expression, $._query)), optional($.outer_join)),
+        seq(kw('ONLY'), parens(field('table', $.object_reference))),
+      ),
+      optional($._alias),
+    ),
+
+    _dml_clause: $ => choice(
+      $.returning_clause,
+      $.error_logging_clause,
+    ),
+
+    // RETURNING gives the values of the rows that the statement changed. OLD
+    // and NEW of 23ai give the value before or after an UPDATE.
+    returning_clause: $ => seq(
+      choice(kw('RETURNING'), kw('RETURN')),
+      commaSep1(seq(optional(choice(kw('OLD'), kw('NEW'))), $._select_item)),
+      $.into_clause,
+    ),
+
+    // ( after LOG ERRORS starts its tag, not the query of INSERT.
+    error_logging_clause: $ => prec.right(seq(
+      kws('LOG', 'ERRORS'),
+      optional(seq(kw('INTO'), field('table', $.object_reference))),
+      optional(parens(field('tag', $._expression))),
+      optional(seq(kws('REJECT', 'LIMIT'), choice($.number, kw('UNLIMITED')))),
+    )),
+
+    wait_clause: $ => choice(
+      kw('NOWAIT'),
+      seq(
+        kw('WAIT'),
+        choice(
+          seq($.number, optional(choice(kw('SECONDS'), kw('MILLISECONDS'), kw('MICROSECONDS')))),
+          kw('FOREVER'),
+        ),
+      ),
+    ),
+
+    // Transactions
+
+    commit_statement: $ => seq(
+      kw('COMMIT'),
+      optional(kw('WORK')),
+      repeat(choice(
+        seq(kw('COMMENT'), $.string),
+        kw('WRITE'),
+        kw('WAIT'),
+        kw('NOWAIT'),
+        kw('IMMEDIATE'),
+        kw('BATCH'),
+        seq(kw('FORCE'), choice(
+          seq($.string, optional(seq(',', $.number))),
+          seq(kw('CORRUPT_XID'), $.string),
+          kw('CORRUPT_XID_ALL'),
+        )),
+      )),
+    ),
+
+    rollback_statement: $ => seq(
+      kw('ROLLBACK'),
+      optional(kw('WORK')),
+      optional(choice(
+        seq(kw('TO'), optional(kw('SAVEPOINT')), field('savepoint', $._name)),
+        seq(kw('FORCE'), $.string),
+      )),
+    ),
+
+    savepoint_statement: $ => seq(kw('SAVEPOINT'), field('name', $._name)),
+
+    set_transaction_statement: $ => seq(
+      kws('SET', 'TRANSACTION'),
+      repeat1(choice(
+        seq(kw('READ'), choice(kw('ONLY'), kw('WRITE'))),
+        seq(kws('ISOLATION', 'LEVEL'), choice(kw('SERIALIZABLE'), kws('READ', 'COMMITTED'))),
+        seq(kws('USE', 'ROLLBACK', 'SEGMENT'), field('segment', $._name)),
+        seq(kw('NAME'), $.string),
+      )),
+    ),
+
+    set_constraints_statement: $ => seq(
+      kw('SET'),
+      choice(kw('CONSTRAINT'), kw('CONSTRAINTS')),
+      choice(kw('ALL'), commaSep1($.object_reference)),
+      choice(kw('IMMEDIATE'), kw('DEFERRED')),
+    ),
+
+    lock_table_statement: $ => seq(
+      kws('LOCK', 'TABLE'),
+      commaSep1(seq($.object_reference, optional($.partition_extension))),
+      kw('IN'),
+      repeat1(choice(kw('ROW'), kw('SHARE'), kw('EXCLUSIVE'), kw('UPDATE'))),
+      kw('MODE'),
+      optional($.wait_clause),
+    ),
+
+    // Sessions and the system
+
+    set_role_statement: $ => seq(
+      kws('SET', 'ROLE'),
+      choice(
+        commaSep1(seq(
+          field('role', $._name),
+          optional(seq(kws('IDENTIFIED', 'BY'), field('password', $._name))),
+        )),
+        seq(kw('ALL'), optional(seq(kw('EXCEPT'), commaSep1(field('role', $._name))))),
+        kw('NONE'),
+      ),
+    ),
+
+    // ALTER SESSION SET takes parameters. The other forms of ALTER SESSION
+    // and of ALTER SYSTEM are a list of words.
+    alter_session_statement: $ => seq(
+      kws('ALTER', 'SESSION'),
+      choice(
+        seq(kw('SET'), repeat1($.parameter)),
+        $._options,
+      ),
+    ),
+
+    alter_system_statement: $ => seq(
+      kws('ALTER', 'SYSTEM'),
+      choice(
+        seq(choice(kw('SET'), kw('RESET')), repeat1($.parameter)),
+        $._options,
+      ),
+    ),
+
+    // A parameter of the session or of the system, as in NLS_DATE_FORMAT =
+    // 'YYYY-MM-DD', SCOPE = SPFILE or EVENTS '10046 trace name context
+    // forever'. A parameter of the system can take a list of values.
+    parameter: $ => seq(
+      field('name', choice($._name, kw('COMMENT'), kws('ROW', 'ARCHIVAL', 'VISIBILITY'))),
+      optional(choice(
+        seq('=', commaSep1(field('value', choice($._expression, kw('ALL'), kw('CURRENT'))))),
+        field('value', $.string),
+      )),
+    ),
+
+    // A list of words, strings and numbers, for the forms of a statement
+    // that the grammar does not read word by word, as in ALTER SYSTEM KILL
+    // SESSION '12,345' IMMEDIATE. Each word is a keyword in the tree.
+    _options: $ => seq(
+      alias($.identifier, $.keyword),
+      repeat($._option),
+    ),
+
+    _option: $ => choice(
+      alias($.identifier, $.keyword),
+      $.string,
+      $.number,
+      '=',
+      ',',
+      ...['ALL', 'BY', 'DELETE', 'FOR', 'IDENTIFIED', 'IMMEDIATE', 'IN', 'INDEX', 'INTO',
+        'NULL', 'OFFLINE', 'ON', 'ONLINE', 'ROWS', 'SESSION', 'SET', 'TABLE', 'TO',
+        'UPDATE', 'VALIDATE', 'WITH'].map(kw),
+    ),
+
+    // EXPLAIN PLAN FOR a statement.
+    explain_plan_statement: $ => seq(
+      kws('EXPLAIN', 'PLAN'),
+      repeat(choice(
+        seq(kws('SET', 'STATEMENT_ID'), '=', field('id', $.string)),
+        seq(kw('INTO'), field('table', $.object_reference)),
+      )),
+      kw('FOR'),
+      field('statement', choice(
+        $.select_statement,
+        $.insert_statement,
+        $.update_statement,
+        $.delete_statement,
+        $.merge_statement,
+      )),
+    ),
+
+    call_statement: $ => seq(
+      kw('CALL'),
+      choice($.function_call, $.field_expression),
+      optional(seq(
+        kw('INTO'),
+        $.bind_variable,
+        optional(seq(optional(kw('INDICATOR')), $.bind_variable)),
+      )),
+    ),
+
+    // Objects
+
+    truncate_statement: $ => seq(
+      kw('TRUNCATE'),
+      choice(kw('TABLE'), kw('CLUSTER')),
+      field('name', $.object_reference),
+      repeat(choice(
+        seq(choice(kw('PRESERVE'), kw('PURGE')), kws('MATERIALIZED', 'VIEW', 'LOG')),
+        seq(kw('DROP'), optional(kw('ALL')), kw('STORAGE')),
+        kws('REUSE', 'STORAGE'),
+        kw('CASCADE'),
+      )),
+    ),
+
+    purge_statement: $ => seq(
+      kw('PURGE'),
+      choice(
+        seq(choice(kw('TABLE'), kw('INDEX')), field('name', $.object_reference)),
+        seq(
+          kw('TABLESPACE'),
+          optional(kw('SET')),
+          field('name', $._name),
+          optional(seq(kw('USER'), field('user', $._name))),
+        ),
+        kw('RECYCLEBIN'),
+        kw('DBA_RECYCLEBIN'),
+      ),
+    ),
+
+    flashback_table_statement: $ => seq(
+      kws('FLASHBACK', 'TABLE'),
+      commaSep1($.object_reference),
+      kw('TO'),
+      choice(
+        seq(choice(kw('SCN'), kw('TIMESTAMP')), field('value', $._expression)),
+        seq(kws('RESTORE', 'POINT'), field('restore_point', $._name)),
+        seq(kws('BEFORE', 'DROP'), optional(seq(kws('RENAME', 'TO'), field('new_name', $._name)))),
+      ),
+      optional(seq(choice(kw('ENABLE'), kw('DISABLE')), kw('TRIGGERS'))),
+    ),
+
+    flashback_database_statement: $ => seq(
+      kw('FLASHBACK'),
+      optional(kw('STANDBY')),
+      optional(kw('PLUGGABLE')),
+      kw('DATABASE'),
+      optional(field('name', $._name)),
+      kw('TO'),
+      choice(
+        seq(
+          optional(kw('BEFORE')),
+          choice(kw('SCN'), kw('TIMESTAMP')),
+          field('value', $._expression),
+        ),
+        seq(
+          optional(kw('BEFORE')),
+          kws('RESTORE', 'POINT'),
+          field('restore_point', $._name),
+        ),
+        kws('BEFORE', 'RESETLOGS'),
+      ),
+    ),
+
+    // The clauses after the table of ANALYZE, such as COMPUTE STATISTICS or
+    // VALIDATE STRUCTURE CASCADE, are a list of words.
+    analyze_statement: $ => seq(
+      kw('ANALYZE'),
+      choice(kw('TABLE'), kw('INDEX'), kw('CLUSTER')),
+      field('name', $.object_reference),
+      optional($.partition_extension),
+      repeat1($._option),
+    ),
+
+    // Each statement option or privilege of AUDIT is a privilege, as in
+    // AUDIT SELECT TABLE, UPDATE TABLE BY hr. The name of a unified audit
+    // policy is a privilege too, as in AUDIT POLICY p EXCEPT hr.
+    audit_statement: $ => seq(kw('AUDIT'), $._audit_body),
+
+    noaudit_statement: $ => seq(kw('NOAUDIT'), $._audit_body),
+
+    _audit_body: $ => seq(
+      commaSep1($.privilege),
+      optional(seq(kw('ON'), choice(kw('DEFAULT'), $._grant_object))),
+      repeat(choice(
+        seq(kw('BY'), choice(kw('SESSION'), kw('ACCESS'), commaSep1(field('user', $._name)))),
+        seq(kw('EXCEPT'), commaSep1(field('user', $._name))),
+        seq(kw('WHENEVER'), optional(kw('NOT')), kw('SUCCESSFUL')),
+        $._container,
+      )),
+    ),
+
+    comment_statement: $ => seq(
+      kws('COMMENT', 'ON'),
+      choice(
+        seq(kw('COLUMN'), field('column', $.column_reference)),
+        seq(
+          choice(
+            kw('TABLE'),
+            kws('MATERIALIZED', 'VIEW'),
+            kws('AUDIT', 'POLICY'),
+            kw('EDITION'),
+            kw('INDEXTYPE'),
+            kws('MINING', 'MODEL'),
+            kw('OPERATOR'),
+            kws('PROPERTY', 'GRAPH'),
+          ),
+          field('name', $.object_reference),
+        ),
+      ),
+      kw('IS'),
+      field('comment', $.string),
+    ),
+
+    // Privileges
+
+    // A system privilege, an object privilege or a role names one or more
+    // words, as in CREATE ANY TABLE. An object privilege can take columns.
+    grant_statement: $ => seq(
+      kw('GRANT'),
+      commaSep1($._privilege_item),
+      optional(seq(kw('ON'), $._grant_object)),
+      kw('TO'),
+      commaSep1($._grantee),
+      repeat(choice(
+        seq(kws('IDENTIFIED', 'BY'), field('password', $._name)),
+        seq(
+          kw('WITH'),
+          choice(kw('ADMIN'), kw('DELEGATE'), kw('GRANT'), kw('HIERARCHY')),
+          kw('OPTION'),
+        ),
+        $._container,
+      )),
+    ),
+
+    revoke_statement: $ => seq(
+      kw('REVOKE'),
+      commaSep1($._privilege_item),
+      optional(seq(kw('ON'), $._grant_object)),
+      kw('FROM'),
+      commaSep1($._grantee),
+      repeat(choice(
+        kws('CASCADE', 'CONSTRAINTS'),
+        kw('FORCE'),
+        $._container,
+      )),
+    ),
+
+    _privilege_item: $ => seq($.privilege, optional($.column_list)),
+
+    privilege: $ => prec.right(repeat1(choice(
+      $._name,
+      ...['ACCESS', 'ALL', 'ALTER', 'ANY', 'AUDIT', 'CLUSTER', 'COMMENT', 'CONNECT',
+        'CREATE', 'DELETE', 'DROP', 'GRANT', 'INDEX', 'INSERT', 'LOCK', 'PUBLIC',
+        'RENAME', 'RESOURCE', 'SELECT', 'SESSION', 'SET', 'SYNONYM', 'TABLE',
+        'TRIGGER', 'UPDATE', 'USER', 'VIEW'].map(kw),
+    ))),
+
+    // The object of a privilege, such as hr.employees, DIRECTORY d or
+    // SCHEMA hr.
+    _grant_object: $ => seq(
+      optional(choice(
+        kw('USER'),
+        kw('DIRECTORY'),
+        kw('EDITION'),
+        kw('SCHEMA'),
+        kws('MINING', 'MODEL'),
+        seq(kw('JAVA'), choice(kw('SOURCE'), kw('RESOURCE'))),
+        kws('SQL', 'TRANSLATION', 'PROFILE'),
+      )),
+      field('object', $.object_reference),
+    ),
+
+    // A user, a role or PUBLIC, or a program unit that gets a role.
+    _grantee: $ => choice(
+      field('grantee', $._name),
+      seq(
+        choice(kw('PROCEDURE'), kw('FUNCTION'), kw('PACKAGE')),
+        field('grantee', $.object_reference),
+      ),
+      field('grantee', kw('PUBLIC')),
+    ),
+
+    _container: $ => seq(kw('CONTAINER'), '=', choice(kw('CURRENT'), kw('ALL'))),
+
+    rename_statement: $ => seq(
+      kw('RENAME'),
+      field('name', $._name),
+      kw('TO'),
+      field('new_name', $._name),
+    ),
 
     // Expressions
 

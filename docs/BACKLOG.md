@@ -190,8 +190,10 @@ These faults remain:
 ### Finish the Oracle grammar
 
 The Oracle grammar that xo writes (D124) reads the queries of Oracle
-Database 23ai. The statements other than a query and the units of PL/SQL
-come in later parts. It leaves out these forms of a query:
+Database 23ai, the statements that change data, and the statements of
+transactions, of sessions and of privileges. The statements that define
+objects and the units of PL/SQL come in later parts. It leaves out these
+forms of a query:
 
 - The declarations of PL/SQL in `WITH`, as in
   `WITH FUNCTION f RETURN NUMBER IS BEGIN RETURN 1; END; SELECT f FROM dual`.
@@ -207,6 +209,26 @@ come in later parts. It leaves out these forms of a query:
   `t.*` as an argument. They cost about 25 large states. `USING *` parses.
 - `PARTITION BY` in the arguments, as in `APPROX_RANK(PARTITION BY a ORDER
   BY b)`, and `OF ANOMALY` of `PREDICTION_PROBABILITY`.
+
+It leaves out these forms of the other statements:
+
+- The clause `WAIT` of 23ai after `UPDATE` and `DELETE`, as in
+  `DELETE FROM t WHERE a = 1 WAIT 10`. The words `WAIT` and `NOWAIT` after
+  each expression of `WHERE` cost about 26 large states. `FOR UPDATE` of a
+  query takes the clause.
+- A record of PL/SQL as the values of `INSERT`, as in
+  `INSERT INTO t VALUES r`, and `SET ROW = r` of `UPDATE`. They come with
+  PL/SQL.
+- A name with a schema after `INTO` in the words of `ANALYZE`, as in
+  `LIST CHAINED ROWS INTO hr.chained_rows`. A dot in the list of words
+  conflicts with the name of the table.
+- A parameter of `ALTER SYSTEM SET` that holds a reserved word, as in
+  `SET ENCRYPTION KEY IDENTIFIED BY w`, and the privilege
+  `ON COMMIT REFRESH`, whose `ON` starts the object of `GRANT`.
+
+A keyword that Oracle does not reserve and that can come after the table of
+a statement, such as `LOG`, `RETURNING` or `WHEN`, is not an alias of the
+table there. So `DELETE FROM t log WHERE a = 1` has an error.
 
 The substitution variables of SQL*Plus, such as `&name` and `&&name`, are
 not part of the grammar. Ken decides whether usql or the Oracle grammar

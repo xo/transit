@@ -1,0 +1,165 @@
+================================================================================
+COMMIT
+================================================================================
+
+COMMIT;
+COMMIT WORK;
+
+---
+
+(source_file
+  (commit_statement)
+  (commit_statement))
+
+================================================================================
+COMMIT with a comment and WRITE
+================================================================================
+
+COMMIT COMMENT 'In-doubt transaction Code 36, Call (415) 555-2637';
+COMMIT WRITE BATCH NOWAIT;
+COMMIT WORK WRITE WAIT IMMEDIATE;
+
+---
+
+(source_file
+  (commit_statement
+    (string))
+  (commit_statement)
+  (commit_statement))
+
+================================================================================
+COMMIT FORCE
+================================================================================
+
+COMMIT FORCE '22.57.53', 1234;
+COMMIT FORCE CORRUPT_XID '1.2.3';
+COMMIT FORCE CORRUPT_XID_ALL;
+
+---
+
+(source_file
+  (commit_statement
+    (string)
+    (number))
+  (commit_statement
+    (string))
+  (commit_statement))
+
+================================================================================
+ROLLBACK
+================================================================================
+
+ROLLBACK;
+ROLLBACK WORK;
+ROLLBACK TO SAVEPOINT banda_sal;
+ROLLBACK WORK TO s1;
+ROLLBACK FORCE '25.32.87';
+
+---
+
+(source_file
+  (rollback_statement)
+  (rollback_statement)
+  (rollback_statement
+    (identifier))
+  (rollback_statement
+    (identifier))
+  (rollback_statement
+    (string)))
+
+================================================================================
+SAVEPOINT
+================================================================================
+
+SAVEPOINT banda_sal;
+
+---
+
+(source_file
+  (savepoint_statement
+    (identifier)))
+
+================================================================================
+SET TRANSACTION
+================================================================================
+
+SET TRANSACTION READ ONLY NAME 'Toronto';
+SET TRANSACTION READ WRITE;
+SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+SET TRANSACTION USE ROLLBACK SEGMENT rs_one;
+SET TRANSACTION NAME 'batch';
+
+---
+
+(source_file
+  (set_transaction_statement
+    (string))
+  (set_transaction_statement)
+  (set_transaction_statement)
+  (set_transaction_statement)
+  (set_transaction_statement
+    (identifier))
+  (set_transaction_statement
+    (string)))
+
+================================================================================
+SET CONSTRAINTS
+================================================================================
+
+SET CONSTRAINTS ALL IMMEDIATE;
+SET CONSTRAINT emp_job_nn, hr.emp_salary_min DEFERRED;
+
+---
+
+(source_file
+  (set_constraints_statement)
+  (set_constraints_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+LOCK TABLE
+================================================================================
+
+LOCK TABLE employees IN EXCLUSIVE MODE NOWAIT;
+LOCK TABLE hr.employees@remote IN SHARE MODE;
+LOCK TABLE employees, departments IN ROW EXCLUSIVE MODE WAIT 10;
+LOCK TABLE sales PARTITION (q1) IN SHARE ROW EXCLUSIVE MODE;
+LOCK TABLE t IN ROW SHARE MODE;
+LOCK TABLE t IN SHARE UPDATE MODE;
+
+---
+
+(source_file
+  (lock_table_statement
+    (object_reference
+      (identifier))
+    (wait_clause))
+  (lock_table_statement
+    (object_reference
+      (identifier)
+      (identifier)
+      (database_link
+        (identifier))))
+  (lock_table_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (wait_clause
+      (number)))
+  (lock_table_statement
+    (object_reference
+      (identifier))
+    (partition_extension
+      (identifier)))
+  (lock_table_statement
+    (object_reference
+      (identifier)))
+  (lock_table_statement
+    (object_reference
+      (identifier))))

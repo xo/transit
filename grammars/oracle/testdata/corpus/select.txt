@@ -827,7 +827,8 @@ SELECT a FROM t FOR UPDATE SKIP LOCKED;
         (identifier)
         (identifier))
       (column_reference
-        (identifier))))
+        (identifier))
+      (wait_clause)))
   (select_statement
     (select
       (column_reference
@@ -837,7 +838,8 @@ SELECT a FROM t FOR UPDATE SKIP LOCKED;
           (object_reference
             (identifier)))))
     (for_update_clause
-      (number)))
+      (wait_clause
+        (number))))
   (select_statement
     (select
       (column_reference

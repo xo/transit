@@ -198,7 +198,12 @@ Language Reference of Oracle Database 23ai (D124). It covers the lexical
 structure, with the strings of the form `q'[...]'`, the expressions, the
 types, the function calls with their analytic clauses, and the full
 `SELECT`, with `CONNECT BY`, `PIVOT`, `MODEL`, `MATCH_RECOGNIZE` and
-`JSON_TABLE`. It does not read the other statements and PL/SQL yet. A `/`
+`JSON_TABLE`. It also covers the statements that change data, such as
+`INSERT`, `UPDATE`, `DELETE` and `MERGE`, the statements of transactions
+and of sessions, such as `COMMIT` and `ALTER SESSION`, and `GRANT`,
+`REVOKE`, `COMMENT`, `TRUNCATE` and the other statements of the SQL
+Language Reference that do not create or change an object. It does not
+read the statements that define objects and PL/SQL yet. A `/`
 alone on its line ends a statement, as in a script of SQL*Plus. The
 grammar of `andreasmaierde/tree-sitter-plsql` stays in the golden set, but
 it has no Go package.

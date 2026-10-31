@@ -1,0 +1,489 @@
+================================================================================
+TRUNCATE
+================================================================================
+
+TRUNCATE TABLE employees_demo;
+TRUNCATE TABLE hr.employees PRESERVE MATERIALIZED VIEW LOG REUSE STORAGE;
+TRUNCATE TABLE t DROP ALL STORAGE CASCADE;
+TRUNCATE CLUSTER personnel REUSE STORAGE;
+
+---
+
+(source_file
+  (truncate_statement
+    (object_reference
+      (identifier)))
+  (truncate_statement
+    (object_reference
+      (identifier)
+      (identifier)))
+  (truncate_statement
+    (object_reference
+      (identifier)))
+  (truncate_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+PURGE
+================================================================================
+
+PURGE TABLE test;
+PURGE INDEX hr.emp_idx;
+PURGE TABLESPACE example USER oe;
+PURGE TABLESPACE SET ts1;
+PURGE RECYCLEBIN;
+PURGE DBA_RECYCLEBIN;
+
+---
+
+(source_file
+  (purge_statement
+    (object_reference
+      (identifier)))
+  (purge_statement
+    (object_reference
+      (identifier)
+      (identifier)))
+  (purge_statement
+    (identifier)
+    (identifier))
+  (purge_statement
+    (identifier))
+  (purge_statement)
+  (purge_statement))
+
+================================================================================
+FLASHBACK TABLE
+================================================================================
+
+FLASHBACK TABLE employees_test TO TIMESTAMP (SYSTIMESTAMP - INTERVAL '1' MINUTE);
+FLASHBACK TABLE a, hr.b TO SCN 715340 ENABLE TRIGGERS;
+FLASHBACK TABLE print_media TO BEFORE DROP RENAME TO print_media_old;
+FLASHBACK TABLE t TO RESTORE POINT before_load;
+
+---
+
+(source_file
+  (flashback_table_statement
+    (object_reference
+      (identifier))
+    (parenthesized_expression
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (typed_literal
+          (type)
+          (string)
+          (interval_qualifier)))))
+  (flashback_table_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (number))
+  (flashback_table_statement
+    (object_reference
+      (identifier))
+    (identifier))
+  (flashback_table_statement
+    (object_reference
+      (identifier))
+    (identifier)))
+
+================================================================================
+FLASHBACK DATABASE
+================================================================================
+
+FLASHBACK DATABASE TO SCN 1000;
+FLASHBACK STANDBY DATABASE TO TIMESTAMP SYSDATE - 1;
+FLASHBACK PLUGGABLE DATABASE pdb1 TO RESTORE POINT rp1;
+FLASHBACK DATABASE TO BEFORE RESETLOGS;
+FLASHBACK DATABASE TO BEFORE SCN 2000;
+
+---
+
+(source_file
+  (flashback_database_statement
+    (number))
+  (flashback_database_statement
+    (binary_expression
+      (pseudocolumn)
+      (operator)
+      (number)))
+  (flashback_database_statement
+    (identifier)
+    (identifier))
+  (flashback_database_statement)
+  (flashback_database_statement
+    (number)))
+
+================================================================================
+ANALYZE
+================================================================================
+
+ANALYZE TABLE orders COMPUTE STATISTICS;
+ANALYZE TABLE hr.employees ESTIMATE STATISTICS SAMPLE 10 PERCENT;
+ANALYZE INDEX inv_product_ix VALIDATE STRUCTURE;
+ANALYZE TABLE employees VALIDATE STRUCTURE CASCADE ONLINE;
+ANALYZE TABLE customers VALIDATE REF UPDATE SET DANGLING TO NULL;
+ANALYZE TABLE orders LIST CHAINED ROWS INTO chained_rows;
+ANALYZE TABLE sales PARTITION (q1) DELETE STATISTICS;
+ANALYZE CLUSTER personnel COMPUTE STATISTICS FOR TABLE FOR ALL INDEXES;
+
+---
+
+(source_file
+  (analyze_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword))
+  (analyze_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (number)
+    (keyword))
+  (analyze_statement
+    (object_reference
+      (identifier))
+    (keyword))
+  (analyze_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword))
+  (analyze_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword))
+  (analyze_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword))
+  (analyze_statement
+    (object_reference
+      (identifier))
+    (partition_extension
+      (identifier))
+    (keyword))
+  (analyze_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)))
+
+================================================================================
+AUDIT
+================================================================================
+
+AUDIT SELECT TABLE, UPDATE TABLE BY hr, oe;
+AUDIT SELECT ON hr.employees BY ACCESS WHENEVER SUCCESSFUL;
+AUDIT INSERT, UPDATE ON oe.customers WHENEVER NOT SUCCESSFUL;
+AUDIT ALL ON DEFAULT;
+AUDIT POLICY table_pol EXCEPT hr WHENEVER SUCCESSFUL;
+AUDIT CONTEXT NAMESPACE userenv ATTRIBUTES current_user, db_name BY hr;
+AUDIT CREATE ANY TABLE BY SESSION;
+
+---
+
+(source_file
+  (audit_statement
+    (privilege)
+    (privilege)
+    (identifier)
+    (identifier))
+  (audit_statement
+    (privilege)
+    (object_reference
+      (identifier)
+      (identifier)))
+  (audit_statement
+    (privilege)
+    (privilege)
+    (object_reference
+      (identifier)
+      (identifier)))
+  (audit_statement
+    (privilege))
+  (audit_statement
+    (privilege
+      (identifier)
+      (identifier))
+    (identifier))
+  (audit_statement
+    (privilege
+      (identifier)
+      (identifier)
+      (identifier)
+      (identifier)
+      (identifier))
+    (privilege
+      (identifier))
+    (identifier))
+  (audit_statement
+    (privilege)))
+
+================================================================================
+NOAUDIT
+================================================================================
+
+NOAUDIT SELECT TABLE BY hr;
+NOAUDIT POLICY table_pol BY hr;
+NOAUDIT ALL ON hr.employees;
+
+---
+
+(source_file
+  (noaudit_statement
+    (privilege)
+    (identifier))
+  (noaudit_statement
+    (privilege
+      (identifier)
+      (identifier))
+    (identifier))
+  (noaudit_statement
+    (privilege)
+    (object_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+COMMENT
+================================================================================
+
+COMMENT ON TABLE employees IS 'The employees of the company';
+COMMENT ON COLUMN hr.employees.job_id IS 'abbreviated job title';
+COMMENT ON COLUMN employees.salary IS '';
+COMMENT ON MATERIALIZED VIEW sales_mv IS 'sales';
+COMMENT ON AUDIT POLICY p IS 'policy';
+COMMENT ON MINING MODEL m IS 'model';
+COMMENT ON PROPERTY GRAPH g IS 'graph';
+
+---
+
+(source_file
+  (comment_statement
+    (object_reference
+      (identifier))
+    (string))
+  (comment_statement
+    (column_reference
+      (identifier)
+      (identifier)
+      (identifier))
+    (string))
+  (comment_statement
+    (column_reference
+      (identifier)
+      (identifier))
+    (string))
+  (comment_statement
+    (object_reference
+      (identifier))
+    (string))
+  (comment_statement
+    (object_reference
+      (identifier))
+    (string))
+  (comment_statement
+    (object_reference
+      (identifier))
+    (string))
+  (comment_statement
+    (object_reference
+      (identifier))
+    (string)))
+
+================================================================================
+GRANT of system privileges and roles
+================================================================================
+
+GRANT CREATE SESSION TO hr;
+GRANT CREATE ANY MATERIALIZED VIEW, ALTER ANY MATERIALIZED VIEW, DROP ANY MATERIALIZED VIEW, QUERY REWRITE TO dw_manager WITH ADMIN OPTION;
+GRANT dw_manager TO sh WITH DELEGATE OPTION;
+GRANT CONNECT, RESOURCE, UNLIMITED TABLESPACE TO app IDENTIFIED BY secret;
+GRANT SELECT ANY TABLE TO PUBLIC CONTAINER = ALL;
+
+---
+
+(source_file
+  (grant_statement
+    (privilege)
+    (identifier))
+  (grant_statement
+    (privilege
+      (identifier))
+    (privilege
+      (identifier))
+    (privilege
+      (identifier))
+    (privilege
+      (identifier)
+      (identifier))
+    (identifier))
+  (grant_statement
+    (privilege
+      (identifier))
+    (identifier))
+  (grant_statement
+    (privilege)
+    (privilege)
+    (privilege
+      (identifier)
+      (identifier))
+    (identifier)
+    (identifier))
+  (grant_statement
+    (privilege)))
+
+================================================================================
+GRANT of object privileges
+================================================================================
+
+GRANT SELECT ON hr.employees TO oe WITH GRANT OPTION;
+GRANT ALL ON bonuses TO hr WITH GRANT OPTION;
+GRANT REFERENCES (employee_id), UPDATE (employee_id, salary, commission_pct) ON hr.employees TO oe;
+GRANT READ ON DIRECTORY bfile_dir TO hr WITH GRANT OPTION;
+GRANT EXECUTE ON dbms_lock TO app;
+GRANT INHERIT PRIVILEGES ON USER sh TO hr;
+GRANT SELECT ANY TABLE ON SCHEMA hr TO app;
+
+---
+
+(source_file
+  (grant_statement
+    (privilege)
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier))
+  (grant_statement
+    (privilege)
+    (object_reference
+      (identifier))
+    (identifier))
+  (grant_statement
+    (privilege
+      (identifier))
+    (column_list
+      (identifier))
+    (privilege)
+    (column_list
+      (identifier)
+      (identifier)
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier))
+  (grant_statement
+    (privilege
+      (identifier))
+    (object_reference
+      (identifier))
+    (identifier))
+  (grant_statement
+    (privilege
+      (identifier))
+    (object_reference
+      (identifier))
+    (identifier))
+  (grant_statement
+    (privilege
+      (identifier)
+      (identifier))
+    (object_reference
+      (identifier))
+    (identifier))
+  (grant_statement
+    (privilege)
+    (object_reference
+      (identifier))
+    (identifier)))
+
+================================================================================
+GRANT of a role to a program unit
+================================================================================
+
+GRANT hr_admin TO PROCEDURE hr.update_salary;
+
+---
+
+(source_file
+  (grant_statement
+    (privilege
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+REVOKE
+================================================================================
+
+REVOKE DROP ANY TABLE FROM hr, oe;
+REVOKE dw_manager FROM sh;
+REVOKE UPDATE ON emp FROM PUBLIC;
+REVOKE REFERENCES ON hr.employees FROM oe CASCADE CONSTRAINTS;
+REVOKE READ ON DIRECTORY bfile_dir FROM hr FORCE;
+REVOKE ALL PRIVILEGES ON t FROM u CONTAINER = CURRENT;
+
+---
+
+(source_file
+  (revoke_statement
+    (privilege)
+    (identifier)
+    (identifier))
+  (revoke_statement
+    (privilege
+      (identifier))
+    (identifier))
+  (revoke_statement
+    (privilege)
+    (object_reference
+      (identifier)))
+  (revoke_statement
+    (privilege
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier))
+  (revoke_statement
+    (privilege
+      (identifier))
+    (object_reference
+      (identifier))
+    (identifier))
+  (revoke_statement
+    (privilege
+      (identifier))
+    (object_reference
+      (identifier))
+    (identifier)))
+
+================================================================================
+RENAME
+================================================================================
+
+RENAME departments_new TO emp_departments;
+
+---
+
+(source_file
+  (rename_statement
+    (identifier)
+    (identifier)))

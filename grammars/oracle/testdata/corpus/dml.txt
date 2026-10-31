@@ -1,0 +1,1200 @@
+================================================================================
+INSERT with VALUES
+================================================================================
+
+INSERT INTO departments VALUES (280, 'Recreation', DEFAULT, 1700);
+
+---
+
+(source_file
+  (insert_statement
+    (insert_into_clause
+      (object_reference
+        (identifier)))
+    (values
+      (value_list
+        (number)
+        (string)
+        (number)))))
+
+================================================================================
+INSERT with columns and an alias
+================================================================================
+
+INSERT INTO hr.employees e (employee_id, last_name) VALUES (1, 'Smith');
+
+---
+
+(source_file
+  (insert_statement
+    (insert_into_clause
+      (object_reference
+        (identifier)
+        (identifier))
+      (identifier)
+      (column_list
+        (identifier)
+        (identifier)))
+    (values
+      (value_list
+        (number)
+        (string)))))
+
+================================================================================
+INSERT with several rows
+================================================================================
+
+INSERT INTO t (a, b) VALUES (1, 'a'), (2, 'b');
+
+---
+
+(source_file
+  (insert_statement
+    (insert_into_clause
+      (object_reference
+        (identifier))
+      (column_list
+        (identifier)
+        (identifier)))
+    (values
+      (value_list
+        (number)
+        (string))
+      (value_list
+        (number)
+        (string)))))
+
+================================================================================
+INSERT with a query
+================================================================================
+
+INSERT INTO bonuses SELECT employee_id, salary * 1.1 FROM employees WHERE commission_pct > 0.25;
+
+---
+
+(source_file
+  (insert_statement
+    (insert_into_clause
+      (object_reference
+        (identifier)))
+    (select
+      (column_reference
+        (identifier))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))))))
+
+================================================================================
+INSERT with a query in parentheses
+================================================================================
+
+INSERT INTO t (a) (SELECT a FROM s);
+
+---
+
+(source_file
+  (insert_statement
+    (insert_into_clause
+      (object_reference
+        (identifier))
+      (column_list
+        (identifier)))
+    (parenthesized_query
+      (select
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))))
+
+================================================================================
+INSERT with WITH
+================================================================================
+
+INSERT INTO t WITH c AS (SELECT 1 a FROM dual) SELECT a FROM c;
+
+---
+
+(source_file
+  (insert_statement
+    (insert_into_clause
+      (object_reference
+        (identifier)))
+    (with_clause
+      (cte
+        (identifier)
+        (subquery
+          (select
+            (aliased_expression
+              (number)
+              (identifier))
+            (from_clause
+              (table_reference
+                (object_reference
+                  (identifier))))))))
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+INSERT into a partition and a subquery
+================================================================================
+
+INSERT INTO sales PARTITION (q1) VALUES (1);
+INSERT INTO (SELECT a, b FROM t WHERE a > 0 WITH CHECK OPTION) VALUES (1, 2);
+
+---
+
+(source_file
+  (insert_statement
+    (insert_into_clause
+      (object_reference
+        (identifier))
+      (partition_extension
+        (identifier)))
+    (values
+      (value_list
+        (number))))
+  (insert_statement
+    (insert_into_clause
+      (subquery
+        (select
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier))))
+          (where_clause
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (number))))
+        (subquery_restriction)))
+    (values
+      (value_list
+        (number)
+        (number)))))
+
+================================================================================
+INSERT into a table collection
+================================================================================
+
+INSERT INTO TABLE(SELECT h.people FROM hr_info h WHERE h.id = 1) VALUES (1, 'x');
+
+---
+
+(source_file
+  (insert_statement
+    (insert_into_clause
+      (select
+        (column_reference
+          (identifier)
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))
+            (identifier)))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier)
+              (identifier))
+            (operator)
+            (number)))))
+    (values
+      (value_list
+        (number)
+        (string)))))
+
+================================================================================
+INSERT with a hint
+================================================================================
+
+INSERT /*+ APPEND */ INTO t SELECT * FROM s;
+
+---
+
+(source_file
+  (insert_statement
+    (comment)
+    (insert_into_clause
+      (object_reference
+        (identifier)))
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+INSERT with RETURNING INTO
+================================================================================
+
+INSERT INTO employees (employee_id, salary) VALUES (1, 100) RETURNING salary * 2, last_name INTO :bnd1, :bnd2;
+
+---
+
+(source_file
+  (insert_statement
+    (insert_into_clause
+      (object_reference
+        (identifier))
+      (column_list
+        (identifier)
+        (identifier)))
+    (values
+      (value_list
+        (number)
+        (number)))
+    (returning_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number))
+      (column_reference
+        (identifier))
+      (into_clause
+        (bind_variable)
+        (bind_variable)))))
+
+================================================================================
+INSERT with RETURNING BULK COLLECT INTO
+================================================================================
+
+INSERT INTO t VALUES (1) RETURN a BULK COLLECT INTO l_ids;
+
+---
+
+(source_file
+  (insert_statement
+    (insert_into_clause
+      (object_reference
+        (identifier)))
+    (values
+      (value_list
+        (number)))
+    (returning_clause
+      (column_reference
+        (identifier))
+      (into_clause
+        (column_reference
+          (identifier))))))
+
+================================================================================
+INSERT with error logging
+================================================================================
+
+INSERT INTO raises SELECT employee_id, salary * 1.1 FROM employees LOG ERRORS INTO errlog ('my_bad') REJECT LIMIT 10;
+INSERT INTO t VALUES (1) LOG ERRORS REJECT LIMIT UNLIMITED;
+
+---
+
+(source_file
+  (insert_statement
+    (insert_into_clause
+      (object_reference
+        (identifier)))
+    (select
+      (column_reference
+        (identifier))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))
+    (error_logging_clause
+      (object_reference
+        (identifier))
+      (string)
+      (number)))
+  (insert_statement
+    (insert_into_clause
+      (object_reference
+        (identifier)))
+    (values
+      (value_list
+        (number)))
+    (error_logging_clause)))
+
+================================================================================
+INSERT ALL
+================================================================================
+
+INSERT ALL
+  INTO sales (prod_id, amount) VALUES (product_id, sales_sun)
+  INTO sales (prod_id, amount) VALUES (product_id, sales_mon)
+  INTO audit_log
+SELECT product_id, sales_sun, sales_mon FROM sales_input_table;
+
+---
+
+(source_file
+  (insert_statement
+    (insert_into_clause
+      (object_reference
+        (identifier))
+      (column_list
+        (identifier)
+        (identifier)))
+    (values
+      (value_list
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))))
+    (insert_into_clause
+      (object_reference
+        (identifier))
+      (column_list
+        (identifier)
+        (identifier)))
+    (values
+      (value_list
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))))
+    (insert_into_clause
+      (object_reference
+        (identifier)))
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+A conditional INSERT ALL
+================================================================================
+
+INSERT ALL
+  WHEN order_total <= 100000 THEN INTO small_orders
+  WHEN order_total > 100000 AND order_total <= 200000 THEN INTO medium_orders
+  ELSE INTO large_orders VALUES (order_id, order_total)
+SELECT order_id, order_total FROM orders;
+
+---
+
+(source_file
+  (insert_statement
+    (insert_when_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number))
+      (insert_into_clause
+        (object_reference
+          (identifier))))
+    (insert_when_clause
+      (binary_expression
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))
+      (insert_into_clause
+        (object_reference
+          (identifier))))
+    (insert_into_clause
+      (object_reference
+        (identifier)))
+    (values
+      (value_list
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))))
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+INSERT FIRST
+================================================================================
+
+INSERT FIRST
+  WHEN ottl < 100000 THEN INTO small_orders VALUES (oid, ottl, sid, cid) LOG ERRORS
+  WHEN ottl < 200000 THEN INTO medium_orders VALUES (oid, ottl, sid, cid) INTO audit_log VALUES (oid)
+SELECT o.order_id oid, o.order_total ottl FROM orders o;
+
+---
+
+(source_file
+  (insert_statement
+    (insert_when_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number))
+      (insert_into_clause
+        (object_reference
+          (identifier)))
+      (values
+        (value_list
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))))
+      (error_logging_clause))
+    (insert_when_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number))
+      (insert_into_clause
+        (object_reference
+          (identifier)))
+      (values
+        (value_list
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))))
+      (insert_into_clause
+        (object_reference
+          (identifier)))
+      (values
+        (value_list
+          (column_reference
+            (identifier)))))
+    (select
+      (aliased_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (identifier))
+      (aliased_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))
+          (identifier))))))
+
+================================================================================
+UPDATE
+================================================================================
+
+UPDATE employees SET commission_pct = NULL WHERE job_id = 'SH_CLERK';
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (null))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (string)))))
+
+================================================================================
+UPDATE with several columns and DEFAULT
+================================================================================
+
+UPDATE hr.employees e SET e.salary = e.salary * 1.1, e.commission_pct = DEFAULT, e.manager_id = (SELECT 1 FROM dual);
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier)
+    (assignment
+      (column_reference
+        (identifier)
+        (identifier))
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (number)))
+    (assignment
+      (column_reference
+        (identifier)
+        (identifier)))
+    (assignment
+      (column_reference
+        (identifier)
+        (identifier))
+      (subquery
+        (select
+          (number)
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier)))))))))
+
+================================================================================
+UPDATE of columns from a subquery
+================================================================================
+
+UPDATE employees a SET (salary, commission_pct) = (SELECT salary, commission_pct FROM employees b WHERE a.department_id = b.department_id) WHERE department_id IN (10, 20);
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (assignment
+      (column_list
+        (identifier)
+        (identifier))
+      (subquery
+        (select
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier))
+              (identifier)))
+          (where_clause
+            (binary_expression
+              (column_reference
+                (identifier)
+                (identifier))
+              (operator)
+              (column_reference
+                (identifier)
+                (identifier)))))))
+    (where_clause
+      (in_expression
+        (column_reference
+          (identifier))
+        (list
+          (number)
+          (number))))))
+
+================================================================================
+UPDATE with SET VALUE
+================================================================================
+
+UPDATE people_demo1 p SET VALUE(p) = (SELECT VALUE(q) FROM people_demo2 q WHERE p.department_id = q.department_id);
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (assignment
+      (identifier)
+      (subquery
+        (select
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier))))
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier))
+              (identifier)))
+          (where_clause
+            (binary_expression
+              (column_reference
+                (identifier)
+                (identifier))
+              (operator)
+              (column_reference
+                (identifier)
+                (identifier)))))))))
+
+================================================================================
+UPDATE of a partition and of a subquery
+================================================================================
+
+UPDATE sales PARTITION (sales_q1_1999) s SET s.promo_id = 494;
+UPDATE (SELECT a, b FROM t) v SET v.a = v.b;
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier))
+    (partition_extension
+      (identifier))
+    (identifier)
+    (assignment
+      (column_reference
+        (identifier)
+        (identifier))
+      (number)))
+  (update_statement
+    (subquery
+      (select
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))
+    (identifier)
+    (assignment
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier)))))
+
+================================================================================
+UPDATE of a table collection with ONLY
+================================================================================
+
+UPDATE TABLE(SELECT projs FROM dept d WHERE d.dno = 123) p SET p.budgets = p.budgets + 1;
+UPDATE ONLY (person_v) SET name = 'x';
+
+---
+
+(source_file
+  (update_statement
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))
+          (identifier)))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (operator)
+          (number))))
+    (identifier)
+    (assignment
+      (column_reference
+        (identifier)
+        (identifier))
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (number))))
+  (update_statement
+    (object_reference
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (string))))
+
+================================================================================
+UPDATE with FROM of 23ai
+================================================================================
+
+UPDATE hr.employees e SET e.salary = j.max_salary FROM hr.jobs j JOIN hr.departments d ON d.id = j.d WHERE e.job_id = j.job_id;
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier)
+    (assignment
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier)))
+    (from_clause
+      (join
+        (table_reference
+          (object_reference
+            (identifier)
+            (identifier))
+          (identifier))
+        (table_reference
+          (object_reference
+            (identifier)
+            (identifier))
+          (identifier))
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)
+            (identifier)))))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)
+          (identifier))))))
+
+================================================================================
+UPDATE with RETURNING OLD and NEW of 23ai
+================================================================================
+
+UPDATE employees SET salary = salary * 1.1 WHERE employee_id = 1 RETURNING OLD salary, NEW salary INTO :old_sal, :new_sal;
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))
+    (returning_clause
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (into_clause
+        (bind_variable)
+        (bind_variable)))))
+
+================================================================================
+UPDATE with WHERE CURRENT OF
+================================================================================
+
+UPDATE employees SET salary = salary + 1 WHERE CURRENT OF emp_cur;
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))
+    (where_clause
+      (identifier))))
+
+================================================================================
+DELETE
+================================================================================
+
+DELETE FROM employees WHERE job_id = 'SA_REP' AND commission_pct < .2;
+
+---
+
+(source_file
+  (delete_statement
+    (object_reference
+      (identifier))
+    (where_clause
+      (binary_expression
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (string))
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))))))
+
+================================================================================
+DELETE without FROM
+================================================================================
+
+DELETE employees e WHERE e.id = 1;
+
+---
+
+(source_file
+  (delete_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (number)))))
+
+================================================================================
+DELETE from a subquery and a partition
+================================================================================
+
+DELETE FROM (SELECT * FROM employees) WHERE job_id = 'SA_REP';
+DELETE FROM sales PARTITION (sales_q1_1998) WHERE amount_sold > 1000;
+
+---
+
+(source_file
+  (delete_statement
+    (subquery
+      (select
+        (all_columns)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (string))))
+  (delete_statement
+    (object_reference
+      (identifier))
+    (partition_extension
+      (identifier))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))))
+
+================================================================================
+DELETE with RETURNING and error logging
+================================================================================
+
+DELETE FROM employees WHERE job_id = 'SA_REP' RETURNING salary INTO :bnd1 LOG ERRORS INTO errlog;
+
+---
+
+(source_file
+  (delete_statement
+    (object_reference
+      (identifier))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (string)))
+    (returning_clause
+      (column_reference
+        (identifier))
+      (into_clause
+        (bind_variable)))
+    (error_logging_clause
+      (object_reference
+        (identifier)))))
+
+================================================================================
+DELETE with FROM of 23ai
+================================================================================
+
+DELETE FROM orders o FROM customers c WHERE o.customer_id = c.customer_id AND c.status = 'X';
+
+---
+
+(source_file
+  (delete_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (from_clause
+      (table_reference
+        (object_reference
+          (identifier))
+        (identifier)))
+    (where_clause
+      (binary_expression
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)
+            (identifier)))
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (operator)
+          (string))))))
+
+================================================================================
+MERGE
+================================================================================
+
+MERGE INTO bonuses d
+USING (SELECT employee_id, salary, department_id FROM hr.employees WHERE department_id = 80) s
+ON (d.employee_id = s.employee_id)
+WHEN MATCHED THEN UPDATE SET d.bonus = d.bonus + s.salary * .01
+  DELETE WHERE (s.salary > 8000)
+WHEN NOT MATCHED THEN INSERT (d.employee_id, d.bonus)
+  VALUES (s.employee_id, s.salary * .01)
+  WHERE (s.salary <= 8000);
+
+---
+
+(source_file
+  (merge_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (subquery
+      (select
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)
+              (identifier))))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number)))))
+    (identifier)
+    (parenthesized_expression
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)
+          (identifier))))
+    (merge_update_clause
+      (assignment
+        (column_reference
+          (identifier)
+          (identifier))
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (operator)
+          (binary_expression
+            (column_reference
+              (identifier)
+              (identifier))
+            (operator)
+            (number))))
+      (where_clause
+        (parenthesized_expression
+          (binary_expression
+            (column_reference
+              (identifier)
+              (identifier))
+            (operator)
+            (number)))))
+    (merge_insert_clause
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (values
+        (value_list
+          (column_reference
+            (identifier)
+            (identifier))
+          (binary_expression
+            (column_reference
+              (identifier)
+              (identifier))
+            (operator)
+            (number))))
+      (where_clause
+        (parenthesized_expression
+          (binary_expression
+            (column_reference
+              (identifier)
+              (identifier))
+            (operator)
+            (number)))))))
+
+================================================================================
+MERGE with a table as the source
+================================================================================
+
+MERGE INTO people_target pt USING people_source ps ON (pt.person_id = ps.person_id)
+WHEN MATCHED THEN UPDATE SET pt.first_name = ps.first_name WHERE pt.x <> ps.x
+WHEN NOT MATCHED THEN INSERT VALUES (ps.person_id, ps.first_name)
+LOG ERRORS INTO err$_people REJECT LIMIT 10;
+
+---
+
+(source_file
+  (merge_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (object_reference
+      (identifier))
+    (identifier)
+    (parenthesized_expression
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)
+          (identifier))))
+    (merge_update_clause
+      (assignment
+        (column_reference
+          (identifier)
+          (identifier))
+        (column_reference
+          (identifier)
+          (identifier)))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)
+            (identifier)))))
+    (merge_insert_clause
+      (values
+        (value_list
+          (column_reference
+            (identifier)
+            (identifier))
+          (column_reference
+            (identifier)
+            (identifier)))))
+    (error_logging_clause
+      (object_reference
+        (identifier))
+      (number))))
+
+================================================================================
+MERGE with only an INSERT
+================================================================================
+
+MERGE INTO t USING dual ON (1 = 0) WHEN NOT MATCHED THEN INSERT (a) VALUES (1);
+
+---
+
+(source_file
+  (merge_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (parenthesized_expression
+      (binary_expression
+        (number)
+        (operator)
+        (number)))
+    (merge_insert_clause
+      (column_reference
+        (identifier))
+      (values
+        (value_list
+          (number))))))
