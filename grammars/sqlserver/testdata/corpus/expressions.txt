@@ -1,0 +1,982 @@
+================================================================================
+Arithmetic operators
+================================================================================
+
+SELECT a + b * c - d / e % f
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (column_reference
+              (identifier))))
+        (operator)
+        (binary_expression
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (column_reference
+              (identifier)))
+          (operator)
+          (column_reference
+            (identifier)))))))
+
+================================================================================
+Precedence of the arithmetic operators
+================================================================================
+
+SELECT (a + b) * c, -a * b, a - -b
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (parenthesized_expression
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (column_reference
+              (identifier))))
+        (operator)
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (unary_expression
+          (operator)
+          (column_reference
+            (identifier)))
+        (operator)
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (unary_expression
+          (operator)
+          (column_reference
+            (identifier)))))))
+
+================================================================================
+Concatenation
+================================================================================
+
+SELECT 'a' + b + N'c'
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (binary_expression
+          (string)
+          (operator)
+          (column_reference
+            (identifier)))
+        (operator)
+        (string)))))
+
+================================================================================
+Bitwise operators
+================================================================================
+
+SELECT a & b, a | b, a ^ b, ~a, a & b | c ^ d
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)))
+      (unary_expression
+        (operator)
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (binary_expression
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (column_reference
+              (identifier)))
+          (operator)
+          (column_reference
+            (identifier)))
+        (operator)
+        (column_reference
+          (identifier))))))
+
+================================================================================
+Comparison operators
+================================================================================
+
+SELECT * FROM t WHERE a = 1 OR a <> 2 OR a != 3 OR a < 4 OR a > 5 OR a <= 6 OR a >= 7 OR a !< 8 OR a !> 9
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (binary_expression
+            (binary_expression
+              (binary_expression
+                (binary_expression
+                  (binary_expression
+                    (binary_expression
+                      (binary_expression
+                        (binary_expression
+                          (column_reference
+                            (identifier))
+                          (operator)
+                          (number))
+                        (binary_expression
+                          (column_reference
+                            (identifier))
+                          (operator)
+                          (number)))
+                      (binary_expression
+                        (column_reference
+                          (identifier))
+                        (operator)
+                        (number)))
+                    (binary_expression
+                      (column_reference
+                        (identifier))
+                      (operator)
+                      (number)))
+                  (binary_expression
+                    (column_reference
+                      (identifier))
+                    (operator)
+                    (number)))
+                (binary_expression
+                  (column_reference
+                    (identifier))
+                  (operator)
+                  (number)))
+              (binary_expression
+                (column_reference
+                  (identifier))
+                (operator)
+                (number)))
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (number)))
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number)))))))
+
+================================================================================
+AND, OR and NOT
+================================================================================
+
+SELECT * FROM t WHERE NOT a = 1 AND b = 2 OR c = 3
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (binary_expression
+            (unary_expression
+              (binary_expression
+                (column_reference
+                  (identifier))
+                (operator)
+                (number)))
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (number)))
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number)))))))
+
+================================================================================
+NOT binds less than a comparison
+================================================================================
+
+SELECT * FROM t WHERE NOT a = 1 AND NOT b LIKE 'x'
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (unary_expression
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (number)))
+          (unary_expression
+            (like_expression
+              (column_reference
+                (identifier))
+              (string))))))))
+
+================================================================================
+IS NULL
+================================================================================
+
+SELECT * FROM t WHERE a IS NULL AND b IS NOT NULL
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (is_expression
+            (column_reference
+              (identifier))
+            (null))
+          (is_expression
+            (column_reference
+              (identifier))
+            (null)))))))
+
+================================================================================
+IS DISTINCT FROM
+================================================================================
+
+SELECT * FROM t WHERE a IS DISTINCT FROM b AND c IS NOT DISTINCT FROM d
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (is_expression
+            (column_reference
+              (identifier))
+            (column_reference
+              (identifier)))
+          (is_expression
+            (column_reference
+              (identifier))
+            (column_reference
+              (identifier))))))))
+
+================================================================================
+BETWEEN
+================================================================================
+
+SELECT * FROM t WHERE a BETWEEN 1 AND 10 AND b NOT BETWEEN @x AND @y + 1
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (between_expression
+            (column_reference
+              (identifier))
+            (number)
+            (number))
+          (between_expression
+            (column_reference
+              (identifier))
+            (variable)
+            (binary_expression
+              (variable)
+              (operator)
+              (number))))))))
+
+================================================================================
+IN
+================================================================================
+
+SELECT * FROM t WHERE a IN (1, 2, 3) AND b NOT IN (SELECT b FROM u) AND c IN (@x)
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (binary_expression
+            (in_expression
+              (column_reference
+                (identifier))
+              (list
+                (number)
+                (number)
+                (number)))
+            (in_expression
+              (column_reference
+                (identifier))
+              (subquery
+                (select
+                  (column_reference
+                    (identifier))
+                  (from_clause
+                    (table_reference
+                      (object_reference
+                        (identifier))))))))
+          (in_expression
+            (column_reference
+              (identifier))
+            (parenthesized_expression
+              (variable))))))))
+
+================================================================================
+LIKE
+================================================================================
+
+SELECT * FROM t WHERE a LIKE 'x%' AND b NOT LIKE '[a-c]_' ESCAPE '\'
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (like_expression
+            (column_reference
+              (identifier))
+            (string))
+          (like_expression
+            (column_reference
+              (identifier))
+            (string)
+            (string)))))))
+
+================================================================================
+EXISTS
+================================================================================
+
+SELECT * FROM t WHERE EXISTS (SELECT 1 FROM u WHERE u.id = t.id) AND NOT EXISTS (SELECT * FROM v)
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (exists_expression
+            (subquery
+              (select
+                (number)
+                (from_clause
+                  (table_reference
+                    (object_reference
+                      (identifier))))
+                (where_clause
+                  (binary_expression
+                    (column_reference
+                      (identifier)
+                      (identifier))
+                    (operator)
+                    (column_reference
+                      (identifier)
+                      (identifier)))))))
+          (unary_expression
+            (exists_expression
+              (subquery
+                (select
+                  (all_columns)
+                  (from_clause
+                    (table_reference
+                      (object_reference
+                        (identifier)))))))))))))
+
+================================================================================
+ANY, SOME and ALL
+================================================================================
+
+SELECT * FROM t WHERE a > ALL (SELECT b FROM u) AND a = ANY (SELECT b FROM u) AND a < SOME (SELECT c FROM u)
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (binary_expression
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (quantified_expression
+                (subquery
+                  (select
+                    (column_reference
+                      (identifier))
+                    (from_clause
+                      (table_reference
+                        (object_reference
+                          (identifier))))))))
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (quantified_expression
+                (subquery
+                  (select
+                    (column_reference
+                      (identifier))
+                    (from_clause
+                      (table_reference
+                        (object_reference
+                          (identifier)))))))))
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (quantified_expression
+              (subquery
+                (select
+                  (column_reference
+                    (identifier))
+                  (from_clause
+                    (table_reference
+                      (object_reference
+                        (identifier)))))))))))))
+
+================================================================================
+A simple CASE
+================================================================================
+
+SELECT CASE a WHEN 1 THEN 'one' WHEN 2 THEN 'two' ELSE 'many' END FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (case_expression
+        (column_reference
+          (identifier))
+        (when_clause
+          (number)
+          (string))
+        (when_clause
+          (number)
+          (string))
+        (string))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+A searched CASE
+================================================================================
+
+SELECT CASE WHEN a > 0 THEN 'p' WHEN a < 0 THEN 'n' END AS sign FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (aliased_expression
+        (case_expression
+          (when_clause
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (number))
+            (string))
+          (when_clause
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (number))
+            (string)))
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Nested CASE
+================================================================================
+
+SELECT CASE WHEN a = 1 THEN CASE b WHEN 2 THEN 3 END ELSE 4 END
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (case_expression
+        (when_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number))
+          (case_expression
+            (column_reference
+              (identifier))
+            (when_clause
+              (number)
+              (number))))
+        (number)))))
+
+================================================================================
+COLLATE
+================================================================================
+
+SELECT name COLLATE Latin1_General_CI_AS FROM t ORDER BY name COLLATE SQL_Latin1_General_CP1_CS_AS
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (collate_expression
+        (column_reference
+          (identifier))
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))
+    (order_by_clause
+      (order_by_item
+        (collate_expression
+          (column_reference
+            (identifier))
+          (identifier))))))
+
+================================================================================
+AT TIME ZONE
+================================================================================
+
+SELECT d AT TIME ZONE 'Pacific Standard Time' AT TIME ZONE 'UTC', SYSDATETIMEOFFSET() AT TIME ZONE @tz
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (at_time_zone_expression
+        (at_time_zone_expression
+          (column_reference
+            (identifier))
+          (string))
+        (string))
+      (at_time_zone_expression
+        (function_call
+          (identifier)
+          (arguments))
+        (variable)))))
+
+================================================================================
+A subquery as a value
+================================================================================
+
+SELECT (SELECT MAX(a) FROM u) AS m, a + (SELECT 1) FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (aliased_expression
+        (subquery
+          (select
+            (function_call
+              (identifier)
+              (arguments
+                (column_reference
+                  (identifier))))
+            (from_clause
+              (table_reference
+                (object_reference
+                  (identifier))))))
+        (identifier))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (subquery
+          (select
+            (number))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Columns with their tables, schemas and databases
+================================================================================
+
+SELECT a, t.a, dbo.t.a, db.dbo.t.a, db..t.a FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier)
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier)
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Niladic functions
+================================================================================
+
+SELECT CURRENT_TIMESTAMP, CURRENT_DATE, CURRENT_USER, SESSION_USER, SYSTEM_USER, USER
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (niladic_function)
+      (niladic_function)
+      (niladic_function)
+      (niladic_function)
+      (niladic_function)
+      (niladic_function))))
+
+================================================================================
+Columns that start with $
+================================================================================
+
+SELECT $IDENTITY, $ROWGUID, $node_id, $PARTITION.pf(a) FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (pseudocolumn)
+      (pseudocolumn)
+      (pseudocolumn)
+      (field_expression
+        (pseudocolumn)
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Properties and methods of values
+================================================================================
+
+SELECT @g.STArea(), @p.X, c.Lat, (SELECT @g).STSrid, @x.value('(/a)[1]', 'int') FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (field_expression
+        (variable)
+        (identifier)
+        (arguments))
+      (field_expression
+        (variable)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (field_expression
+        (subquery
+          (select
+            (variable)))
+        (identifier))
+      (field_expression
+        (variable)
+        (identifier)
+        (arguments
+          (string)
+          (string)))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Methods on columns
+================================================================================
+
+SELECT T.c.value('@id', 'int'), loc.STDistance(@p) FROM @x.nodes('/r/a') AS T(c)
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (identifier)
+        (identifier)
+        (arguments
+          (string)
+          (string)))
+      (function_call
+        (identifier)
+        (identifier)
+        (arguments
+          (variable)))
+      (from_clause
+        (function_table
+          (field_expression
+            (variable)
+            (identifier)
+            (arguments
+              (string)))
+          (identifier)
+          (column_list
+            (identifier)))))))
+
+================================================================================
+Static methods of a type
+================================================================================
+
+SELECT geography::Point(47.6, -122.3, 4326), hierarchyid::GetRoot(), geometry::STGeomFromText('POINT(1 2)', 0)
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (identifier)
+        (arguments
+          (number)
+          (unary_expression
+            (operator)
+            (number))
+          (number)))
+      (function_call
+        (identifier)
+        (identifier)
+        (arguments))
+      (function_call
+        (identifier)
+        (identifier)
+        (arguments
+          (string)
+          (number))))))
+
+================================================================================
+Chained methods
+================================================================================
+
+SELECT CAST(x AS xml).value('.', 'int'), @h.GetAncestor(1).ToString()
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (field_expression
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier))
+            (type
+              (identifier))))
+        (identifier)
+        (arguments
+          (string)
+          (string)))
+      (field_expression
+        (field_expression
+          (variable)
+          (identifier)
+          (arguments
+            (number)))
+        (identifier)
+        (arguments)))))
+
+================================================================================
+NEXT VALUE FOR
+================================================================================
+
+SELECT NEXT VALUE FOR dbo.seq, NEXT VALUE FOR s OVER (ORDER BY a) FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (next_value_for
+        (object_reference
+          (identifier)
+          (identifier)))
+      (next_value_for
+        (object_reference
+          (identifier))
+        (over_clause
+          (window_specification
+            (order_by_clause
+              (order_by_item
+                (column_reference
+                  (identifier)))))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+ODBC escapes
+================================================================================
+
+SELECT {fn UCASE(name)}, {d '2026-11-01'}, {ts '2026-11-01 10:00:00'}, {t '10:00:00'} FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (odbc_escape
+        (keyword)
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier)))))
+      (odbc_escape
+        (keyword)
+        (string))
+      (odbc_escape
+        (keyword)
+        (string))
+      (odbc_escape
+        (keyword)
+        (string))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))

@@ -259,6 +259,24 @@ The words that only PL/SQL reserves, such as `BEGIN` and `END`, are not in
 the reserved set. A reserved set changes only the lexer, so these words
 save no parse states (D125).
 
+### Finish the SQL Server grammar
+
+The SQL Server grammar that xo writes (D124) reads the queries of
+Transact-SQL. The other statements and the procedural statements come in
+later parts. It leaves out these forms of a query:
+
+- `MATCH` and `SHORTEST_PATH` of the graph tables, as in
+  `WHERE MATCH(p-(f)->q)`, and `WITHIN GROUP (GRAPH PATH)`.
+
+These faults remain:
+
+- The reserved words that name functions, such as `LEFT`, `COALESCE` and
+  `CURRENT_USER`, are not in the reserved set, because each group of them
+  is one token. So such a word can be an alias, as in `SELECT a left`,
+  where the server finds an error.
+- `PRECISION` is not in the reserved set, because scripts read the column
+  `precision` of `sys.columns` with no brackets.
+
 ## The setup of the repository
 
 These items come in phase 1 and later, as the plan says.

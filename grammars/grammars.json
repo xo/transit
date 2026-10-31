@@ -11111,6 +11111,73 @@
       }
     },
     {
+      "name": "sqlserver",
+      "package": "sqlserver",
+      "repository": "https://github.com/xo/transit",
+      "commit": "",
+      "path": "grammars/sqlserver",
+      "license": "MIT",
+      "scanner": true,
+      "set": "xo",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "2c1ed7f9e363df1a3c72e07550465924e41728d5b2282ccc6418287ef14f47af",
+          "node_types": "e7488c107ee4523b302dbcf640de05e436fc74913842d1324c3e862e8923b43a",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "keyword lexer",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "d5b2f0d5b59e0827beb1606129dd38cae1cdf617227a5ac4d8c85c1c211e2617",
+          "node_types": "e7488c107ee4523b302dbcf640de05e436fc74913842d1324c3e862e8923b43a",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "keyword lexer",
+            "reserved words",
+            "reserved word set of a state",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "dynamic precedence",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      },
+      "corpus": {
+        "tests": 149,
+        "failures": 0,
+        "transit": "same"
+      }
+    },
+    {
       "name": "usql",
       "package": "usql",
       "repository": "https://github.com/xo/transit",

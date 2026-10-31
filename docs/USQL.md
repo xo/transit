@@ -154,7 +154,12 @@ PL/SQL, because PL/SQL is not in a quoted string in Oracle. A `/` alone on
 its line ends a statement or a PL/SQL unit, as in a script of SQL*Plus.
 usql gives such a line to the SQL grammar, and the Oracle grammar reads it
 as the end of a statement. The grammar reads a whole PL/SQL unit, such as
-a package body, as one statement. SQL++, InfluxQL, KSQL, PartiQL, ES|QL and
+a package body, as one statement. `Crary-Systems/tree-sitter-tsql` covers
+little of Transact-SQL, so xo writes the SQL Server grammar from the
+Transact-SQL reference of SQL Server 2025 in `grammars/sqlserver` (D124).
+A line with only `GO` and an optional count ends a batch in sqlcmd. It is
+not Transact-SQL, but the SQL Server grammar reads such a line as the end
+of a batch, so that a script with `GO` has no error. SQL++, InfluxQL, KSQL, PartiQL, ES|QL and
 PPL have no grammar at all. transit writes the missing grammars, and the
 usql grammar, in `grammars/` (D42, D104). The other missing grammars come
 after phase 5, in the order of the dialects of dbmeta (D106). `bigquery` and
@@ -172,10 +177,9 @@ for the flag `-dialect`, with these options of `usql.Options`:
 | `cql` | `github.com/xo/transit/grammars/cql` | `DollarQuotes`, `BlockComments`, `SlashComments`, `Batches` |
 | `generic` | `github.com/xo/transit/grammars/sql` | `BlockComments` |
 
-usql keeps this match itself. The repositories of `sqlserver` and `cql`
-have no highlight query, so xo wrote the highlight query of each of these
-packages (D113). xo writes the highlight query of `oracle` with its
-grammar.
+usql keeps this match itself. The repository of `cql` has no highlight
+query, so xo wrote the highlight query of its package (D113). xo writes the
+highlight queries of `oracle` and `sqlserver` with their grammars.
 
 The usql grammar ends a statement at each semicolon outside parentheses.
 The body of a stored program of MySQL, SQL Server or Oracle that is a

@@ -103,7 +103,7 @@ func loadGoPackageDefines(t *testing.T, gp goPackage, defines ...string) (*Gramm
 	if err != nil {
 		t.Fatal(err)
 	}
-	// a grammar with no test/corpus, such as TSQL, has only the error
+	// a grammar with no test/corpus, such as graphql, has only the error
 	// corpus, and a test of its own gives it other inputs
 	var examples []Example
 	if _, err := os.Stat(corpusDir); err == nil {

@@ -1,0 +1,23 @@
+{
+  "grammars": [
+    {
+      "name": "sqlserver",
+      "camelcase": "SqlServer",
+      "scope": "source.sqlserver",
+      "path": ".",
+      "file-types": [
+        "tsql"
+      ],
+      "highlights": "queries/highlights.scm",
+      "injection-regex": "^(sqlserver|tsql|mssql)$"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "A grammar of the Transact-SQL of SQL Server 2025",
+    "links": {
+      "repository": "https://github.com/xo/transit"
+    }
+  }
+}

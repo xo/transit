@@ -13,17 +13,18 @@ import (
 	"github.com/xo/transit/grammars/sqlserver"
 )
 
-// This example parses a text of the grammar TSQL, the input of the corpus case
-// "assignment_operator/assignment_operator PlusEqual", and prints its tree.
-// Then it compiles each query of the package, and prints the number of its
-// patterns.
+// This example parses a text of the grammar sqlserver, the input of the corpus
+// case "batches/Empty statements", and prints its tree. Then it compiles each
+// query of the package, and prints the number of its patterns.
 func ExampleLanguage() {
 	language := sqlserver.Language()
 	parser := transit.NewParser()
 	if err := parser.SetLanguage(language); err != nil {
 		log.Fatal(err)
 	}
-	src := []byte(`select @foo+=baz`)
+	src := []byte(`
+;;SELECT 1;;
+`)
 	tree, err := parser.Parse(context.Background(), src, nil)
 	if err != nil {
 		log.Fatal(err)
@@ -48,6 +49,6 @@ func ExampleLanguage() {
 		log.Fatal(err)
 	}
 	// Output:
-	// (tsql_file (batch (sql_clauses (dml_clause (select_statement_standalone (select_statement (query_expression (query_specification (select) (select_list (select_list_elem (LOCAL_ID_) (assignment_operator) (expression (full_column_name (id_)))))))))))))
-	// patterns in queries/highlights.scm: 35
+	// (source_file (select_statement (select (number))))
+	// patterns in queries/highlights.scm: 57
 }

@@ -141,11 +141,10 @@ package name can differ from the grammar name (D107):
 | Package | Grammar | Upstream repository | Tag |
 | --- | --- | --- | --- |
 | `github.com/xo/transit/grammars/sql` | `sql` | [DerekStride/tree-sitter-sql](https://github.com/DerekStride/tree-sitter-sql) | `v0.3.11` |
-| `github.com/xo/transit/grammars/sqlserver` | `TSQL` | [Crary-Systems/tree-sitter-tsql](https://github.com/Crary-Systems/tree-sitter-tsql) | `0.0.1` |
 | `github.com/xo/transit/grammars/cql` | `cql` | [shotover/tree-sitter-cql](https://github.com/shotover/tree-sitter-cql) | `v0.2.0` |
 
-The repositories of `sqlserver` and `cql` have no highlight query, so xo
-wrote `queries/highlights.scm` of these two packages (D113).
+The repository of `cql` has no highlight query, so xo wrote
+`queries/highlights.scm` of this package (D113).
 
 These packages hold the grammars of the languages of dbmeta that are not SQL
 (D21, D23). A module that holds the language of one dialect has the name of
@@ -216,6 +215,20 @@ declaration and statement of PL/SQL, and the conditional compilation with
 SQL*Plus. The package adds about 3.3 MB to a binary (D125). The
 grammar of `andreasmaierde/tree-sitter-plsql` stays in the golden set, but
 it has no Go package.
+
+The package `github.com/xo/transit/grammars/sqlserver` holds the grammar
+`sqlserver`, which xo writes from the Transact-SQL reference of SQL Server
+2025 (D124). It covers the lexical structure, with bracketed identifiers,
+variables such as `@name` and `@@ROWCOUNT`, temporary tables such as `#t`,
+binary and money constants and comments that nest. It covers the
+expressions, the types, the function calls with `OVER` and `WITHIN GROUP`,
+and the full `SELECT`, with `TOP`, `INTO`, `APPLY`, `PIVOT`, the table
+hints, `FOR SYSTEM_TIME`, the rowset functions such as `OPENJSON`, `FOR
+XML`, `FOR JSON` and `OPTION`. It does not read the other statements yet. A
+statement does not need a semicolon at its end. A line with only `GO` and
+an optional count ends a batch, as in sqlcmd. The package adds about 0.9 MB
+to a binary. The grammar of `Crary-Systems/tree-sitter-tsql` stays in the
+golden set, but it has no Go package.
 
 The package `github.com/xo/transit/grammars/postgres/postgres` holds the
 grammar `postgres`, which xo writes from the reference manual of

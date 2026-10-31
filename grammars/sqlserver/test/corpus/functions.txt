@@ -1,0 +1,1009 @@
+================================================================================
+Function calls
+================================================================================
+
+SELECT GETDATE(), ISNULL(a, 0), dbo.f(1, 2), db.dbo.f(), db..f() FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (number)))
+      (function_call
+        (identifier)
+        (identifier)
+        (arguments
+          (number)
+          (number)))
+      (function_call
+        (identifier)
+        (identifier)
+        (identifier)
+        (arguments))
+      (function_call
+        (identifier)
+        (identifier)
+        (arguments))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Aggregate functions
+================================================================================
+
+SELECT COUNT(*), COUNT(DISTINCT a), COUNT_BIG(ALL a), SUM(b), AVG(c) FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (all_columns)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Reserved words that are functions
+================================================================================
+
+SELECT COALESCE(a, b, 0), NULLIF(a, 0), LEFT(s, 2), RIGHT(s, 3) FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))
+          (number)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (number)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (number)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (number)))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+CAST and TRY_CAST
+================================================================================
+
+SELECT CAST(a AS int), TRY_CAST(b AS decimal(10, 2)), CAST(c AS nvarchar(max)) FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)
+            (type_modifiers
+              (number)
+              (number)))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)
+            (type_modifiers
+              (object_reference
+                (identifier))))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+CONVERT and TRY_CONVERT
+================================================================================
+
+SELECT CONVERT(varchar(10), d, 120), TRY_CONVERT(int, s), CONVERT(DOUBLE PRECISION, x) FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (convert_expression
+        (type
+          (identifier)
+          (type_modifiers
+            (number)))
+        (column_reference
+          (identifier))
+        (number))
+      (convert_expression
+        (type
+          (identifier))
+        (column_reference
+          (identifier)))
+      (convert_expression
+        (type)
+        (column_reference
+          (identifier)))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+PARSE and TRY_PARSE
+================================================================================
+
+SELECT PARSE('1/1/2026' AS date USING 'en-US'), TRY_PARSE(s AS money)
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (string)
+          (type
+            (identifier))
+          (string)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)))))))
+
+================================================================================
+IIF and CHOOSE
+================================================================================
+
+SELECT IIF(a > b, 'a', 'b'), CHOOSE(2, 'x', 'y', 'z') FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (column_reference
+              (identifier)))
+          (string)
+          (string)))
+      (function_call
+        (identifier)
+        (arguments
+          (number)
+          (string)
+          (string)
+          (string)))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+TRIM with characters
+================================================================================
+
+SELECT TRIM(s), TRIM('.,' FROM s), TRIM(LEADING '0' FROM s), TRIM(BOTH FROM s)
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (string)
+          (column_reference
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (string)
+          (column_reference
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier)))))))
+
+================================================================================
+Date functions with a part
+================================================================================
+
+SELECT DATEADD(day, 1, d), DATEDIFF(mm, a, b), DATEPART(year, d), DATE_BUCKET(week, 1, d) FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (number)
+          (column_reference
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (number)
+          (column_reference
+            (identifier))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Window functions with OVER
+================================================================================
+
+SELECT ROW_NUMBER() OVER (ORDER BY a), RANK() OVER (PARTITION BY b ORDER BY c DESC) FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments)
+        (over_clause
+          (window_specification
+            (order_by_clause
+              (order_by_item
+                (column_reference
+                  (identifier)))))))
+      (function_call
+        (identifier)
+        (arguments)
+        (over_clause
+          (window_specification
+            (column_reference
+              (identifier))
+            (order_by_clause
+              (order_by_item
+                (column_reference
+                  (identifier)))))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Window frames
+================================================================================
+
+SELECT SUM(a) OVER (ORDER BY d ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW),
+  AVG(a) OVER (PARTITION BY g ORDER BY d ROWS 2 PRECEDING),
+  SUM(a) OVER (ORDER BY d RANGE BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING),
+  COUNT(*) OVER (ORDER BY d GROUPS BETWEEN 1 PRECEDING AND 1 FOLLOWING)
+FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier)))
+        (over_clause
+          (window_specification
+            (order_by_clause
+              (order_by_item
+                (column_reference
+                  (identifier))))
+            (frame_clause
+              (frame_bound)
+              (frame_bound)))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier)))
+        (over_clause
+          (window_specification
+            (column_reference
+              (identifier))
+            (order_by_clause
+              (order_by_item
+                (column_reference
+                  (identifier))))
+            (frame_clause
+              (frame_bound
+                (number))))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier)))
+        (over_clause
+          (window_specification
+            (order_by_clause
+              (order_by_item
+                (column_reference
+                  (identifier))))
+            (frame_clause
+              (frame_bound)
+              (frame_bound)))))
+      (function_call
+        (identifier)
+        (arguments
+          (all_columns))
+        (over_clause
+          (window_specification
+            (order_by_clause
+              (order_by_item
+                (column_reference
+                  (identifier))))
+            (frame_clause
+              (frame_bound
+                (number))
+              (frame_bound
+                (number))))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+A named window
+================================================================================
+
+SELECT SUM(a) OVER w, AVG(a) OVER (w ROWS UNBOUNDED PRECEDING) FROM t WINDOW w AS (PARTITION BY g ORDER BY d)
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier)))
+        (over_clause
+          (identifier)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier)))
+        (over_clause
+          (window_specification
+            (identifier)
+            (frame_clause
+              (frame_bound)))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (window_clause
+        (window_definition
+          (identifier)
+          (window_specification
+            (column_reference
+              (identifier))
+            (order_by_clause
+              (order_by_item
+                (column_reference
+                  (identifier))))))))))
+
+================================================================================
+IGNORE NULLS
+================================================================================
+
+SELECT FIRST_VALUE(a) IGNORE NULLS OVER (ORDER BY d), LAST_VALUE(a) RESPECT NULLS OVER (ORDER BY d) FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier)))
+        (null_treatment)
+        (over_clause
+          (window_specification
+            (order_by_clause
+              (order_by_item
+                (column_reference
+                  (identifier)))))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier)))
+        (null_treatment)
+        (over_clause
+          (window_specification
+            (order_by_clause
+              (order_by_item
+                (column_reference
+                  (identifier)))))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+WITHIN GROUP
+================================================================================
+
+SELECT STRING_AGG(name, ', ') WITHIN GROUP (ORDER BY name), PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY v) OVER (PARTITION BY g) FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (string))
+        (within_group_clause
+          (order_by_clause
+            (order_by_item
+              (column_reference
+                (identifier))))))
+      (function_call
+        (identifier)
+        (arguments
+          (number))
+        (within_group_clause
+          (order_by_clause
+            (order_by_item
+              (column_reference
+                (identifier)))))
+        (over_clause
+          (window_specification
+            (column_reference
+              (identifier)))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+JSON functions
+================================================================================
+
+SELECT JSON_VALUE(doc, '$.a'), JSON_QUERY(doc, '$.b'), ISJSON(doc), JSON_MODIFY(doc, '$.c', 1) FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (string)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (string)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (string)
+          (number)))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+JSON_OBJECT and JSON_ARRAY
+================================================================================
+
+SELECT JSON_OBJECT('a' : 1, 'b' : c ABSENT ON NULL), JSON_ARRAY(1, NULL, 'x' NULL ON NULL)
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (string)
+          (number)
+          (string)
+          (column_reference
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (number)
+          (null)
+          (string))))))
+
+================================================================================
+The JSON functions of SQL Server 2025
+================================================================================
+
+SELECT JSON_ARRAYAGG(a ORDER BY b), JSON_OBJECTAGG(k : v), JSON_VALUE(doc, '$.n' RETURNING int),
+  JSON_QUERY(doc, '$.a' WITH ARRAY WRAPPER), JSON_CONTAINS(doc, 1, '$.a')
+FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (order_by_clause
+            (order_by_item
+              (column_reference
+                (identifier))))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (string)
+          (type
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (string)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (number)
+          (string)))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+The vector functions
+================================================================================
+
+SELECT VECTOR_DISTANCE('cosine', v, @q), VECTOR_NORM(v, 'norm2'), VECTORPROPERTY(v, 'Dimensions') FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (string)
+          (column_reference
+            (identifier))
+          (variable)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (string)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (string)))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+The AI functions of SQL Server 2025
+================================================================================
+
+SELECT AI_GENERATE_EMBEDDINGS(text USE MODEL my_model) FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (identifier)))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+The regular expressions of SQL Server 2025
+================================================================================
+
+SELECT REGEXP_REPLACE(s, '[0-9]+', '#'), REGEXP_SUBSTR(s, 'a+', 1, 1) FROM t WHERE REGEXP_LIKE(s, '^a')
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (string)
+          (string)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (string)
+          (number)
+          (number)))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier))
+            (string)))))))
+
+================================================================================
+Full-text predicates
+================================================================================
+
+SELECT * FROM t WHERE CONTAINS(body, '"x*"') OR FREETEXT((a, b), 'y')
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier))
+              (string)))
+          (function_call
+            (identifier)
+            (arguments
+              (list
+                (column_reference
+                  (identifier))
+                (column_reference
+                  (identifier)))
+              (string))))))))
+
+================================================================================
+IDENTITY in SELECT INTO
+================================================================================
+
+SELECT IDENTITY(int, 1, 1) AS id, a INTO #t FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (aliased_expression
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier))
+            (number)
+            (number)))
+        (identifier))
+      (column_reference
+        (identifier))
+      (into_clause
+        (object_reference
+          (identifier)))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+CHECKSUM of all columns
+================================================================================
+
+SELECT CHECKSUM(*), BINARY_CHECKSUM(t.*) FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (all_columns)))
+      (function_call
+        (identifier)
+        (arguments
+          (all_columns
+            (identifier))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Static methods of a type with a schema
+================================================================================
+
+SELECT tSQLt.Private::CreateUniqueObjectName(), dbo.MyType::Parse('1')
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (identifier)
+        (identifier)
+        (arguments))
+      (function_call
+        (identifier)
+        (identifier)
+        (identifier)
+        (arguments
+          (string))))))
+
+================================================================================
+The old form of a system function
+================================================================================
+
+SELECT * FROM ::fn_helpcollations()
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (function_table
+          (function_call
+            (identifier)
+            (arguments)))))))
+
+================================================================================
+LANGUAGE of a full-text function
+================================================================================
+
+SELECT * FROM CONTAINSTABLE(t, *, @s, LANGUAGE 1033) AS k JOIN FREETEXTTABLE(t, c, 'x', LANGUAGE N'English', 5) f ON 1 = 1
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (join
+          (function_table
+            (function_call
+              (identifier)
+              (arguments
+                (column_reference
+                  (identifier))
+                (all_columns)
+                (variable)
+                (keyword)
+                (number)))
+            (identifier))
+          (function_table
+            (function_call
+              (identifier)
+              (arguments
+                (column_reference
+                  (identifier))
+                (column_reference
+                  (identifier))
+                (string)
+                (keyword)
+                (string)
+                (number)))
+            (identifier))
+          (binary_expression
+            (number)
+            (operator)
+            (number)))))))
+
+================================================================================
+Function calls in function calls
+================================================================================
+
+SELECT UPPER(LEFT(LTRIM(RTRIM(s)), 1)) + LOWER(SUBSTRING(s, 2, LEN(s)))
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (function_call
+          (identifier)
+          (arguments
+            (function_call
+              (identifier)
+              (arguments
+                (function_call
+                  (identifier)
+                  (arguments
+                    (function_call
+                      (identifier)
+                      (arguments
+                        (column_reference
+                          (identifier))))))
+                (number)))))
+        (operator)
+        (function_call
+          (identifier)
+          (arguments
+            (function_call
+              (identifier)
+              (arguments
+                (column_reference
+                  (identifier))
+                (number)
+                (function_call
+                  (identifier)
+                  (arguments
+                    (column_reference
+                      (identifier))))))))))))

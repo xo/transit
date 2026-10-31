@@ -1,0 +1,310 @@
+================================================================================
+Types with a length
+================================================================================
+
+SELECT CAST(a AS varchar(10)), CAST(b AS nvarchar(max)), CAST(c AS varbinary(MAX)), CAST(d AS char)
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)
+            (type_modifiers
+              (number)))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)
+            (type_modifiers
+              (object_reference
+                (identifier))))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)
+            (type_modifiers
+              (object_reference
+                (identifier))))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)))))))
+
+================================================================================
+Types with a precision and a scale
+================================================================================
+
+SELECT CAST(a AS decimal(18, 4)), CAST(b AS numeric(5)), CAST(c AS datetime2(7)), CAST(d AS float(53))
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)
+            (type_modifiers
+              (number)
+              (number)))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)
+            (type_modifiers
+              (number)))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)
+            (type_modifiers
+              (number)))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)
+            (type_modifiers
+              (number))))))))
+
+================================================================================
+Types with two words
+================================================================================
+
+SELECT CAST(a AS DOUBLE PRECISION), CAST(b AS national character varying(20)), CAST(c AS char varying(5))
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)
+            (type_modifiers
+              (number)))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)
+            (type_modifiers
+              (number))))))))
+
+================================================================================
+Types with a schema
+================================================================================
+
+SELECT CAST(a AS dbo.MyType), CAST(b AS sys.sysname)
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)
+            (identifier)))))))
+
+================================================================================
+xml with a schema collection
+================================================================================
+
+SELECT CAST(a AS xml), CAST(b AS xml(CONTENT dbo.s)), CAST(c AS xml(DOCUMENT s))
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)
+            (type_modifiers
+              (object_reference
+                (identifier)
+                (identifier))))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)
+            (type_modifiers
+              (object_reference
+                (identifier)))))))))
+
+================================================================================
+vector and json of SQL Server 2025
+================================================================================
+
+SELECT CAST(a AS vector(3)), CAST(b AS vector(1536, float16)), CAST(c AS json)
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)
+            (type_modifiers
+              (number)))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)
+            (type_modifiers
+              (number)
+              (object_reference
+                (identifier))))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)))))))
+
+================================================================================
+Other built-in types
+================================================================================
+
+SELECT CAST(a AS bit), CAST(b AS uniqueidentifier), CAST(c AS money), CAST(d AS sql_variant),
+  CAST(e AS hierarchyid), CAST(f AS geography), CAST(g AS datetimeoffset(3)), CAST(h AS rowversion)
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)
+            (type_modifiers
+              (number)))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)))))))

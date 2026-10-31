@@ -1,0 +1,119 @@
+================================================================================
+GO
+================================================================================
+
+SELECT 1
+GO
+SELECT 2
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)))
+  (go_statement)
+  (select_statement
+    (select
+      (number))))
+
+================================================================================
+GO with a count
+================================================================================
+
+SELECT 1
+GO 5
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)))
+  (go_statement
+    (number)))
+
+================================================================================
+GO in any case with white space and a comment
+================================================================================
+
+SELECT 1
+  go
+Go 2 -- twice
+SELECT 2
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)))
+  (go_statement)
+  (go_statement
+    (number))
+  (comment)
+  (select_statement
+    (select
+      (number))))
+
+================================================================================
+GO at the start of the input
+================================================================================
+
+GO
+SELECT 1
+
+---
+
+(source_file
+  (go_statement)
+  (select_statement
+    (select
+      (number))))
+
+================================================================================
+GO after a semicolon
+================================================================================
+
+SELECT 1;
+GO
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)))
+  (go_statement))
+
+================================================================================
+go as a name
+================================================================================
+
+SELECT go FROM t GO_x
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))
+          (identifier))))))
+
+================================================================================
+Empty statements
+================================================================================
+
+;;SELECT 1;;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number))))

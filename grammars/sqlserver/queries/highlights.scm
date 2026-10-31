@@ -1,237 +1,303 @@
-; xo wrote this file, because the repository of the grammar has no highlight
-; query (D113). It uses only the capture names of styles/captures.txt.
-;
-; The grammar hides some keywords and the dots of a name in tokens that a
-; query cannot capture, such as FROM, OVER and ORDER BY. A pattern captures
-; the node that holds such a token, and the patterns of its children color
-; the rest of it. No two patterns capture the same node.
+; The highlights of the SQL Server grammar. xo wrote this file with the
+; grammar (D124). A keyword is an anonymous node with the name of the keyword
+; in upper case. The patterns for the constants and the names come after the
+; keywords, because the last pattern that captures a node counts, so a name
+; gets the capture of its place, such as a function or a table.
 
-; Nodes that hold a keyword that the grammar hides
+(comment) @comment
 
-[
-  (go_statement)
-  (query_specification)
-  (over_clause)
-  (partition_by_clause)
-  (order_by_clause)
-  (collation_)
-  (row_or_range_clause)
-  (window_frame_extent)
-] @keyword
-
-; Nodes that hold the hidden dots of a name
+(string) @string
 
 [
-  (full_table_name)
-  (func_proc_name_server_database_schema)
-  (func_proc_name_database_schema)
-  (func_proc_name_schema)
-  (partition_function)
-  (udt_elem)
-  (hierarchyid_static_method)
-] @punctuation.delimiter
-
-; A node that holds the hidden "=" of an alias, as in "SELECT n = id"
-
-(expression_elem
-  leftAlias: (column_alias)) @operator
-
-; Keywords
-
-[
-  (AS)
-  (as)
-  (AT_KEYWORD)
-  (LOGIN)
-  (NONE)
-  (OUTPUT)
-  (RECOMPILE)
-  (RESULT_SETS)
-  (UNDEFINED)
-  (USER)
-  (WITH)
-  (all_)
-  (asc_)
-  (default)
-  (desc_)
-  (distinct_)
-  (dollar_partition_)
-  (execute)
-  (ignore_nulls_)
-  (keyword)
-  (over_)
-  (respect_nulls_)
-  (select)
-  (window_frame_following)
-  (window_frame_preceding)
-  (within_group_)
-] @keyword
-
-; Functions that the grammar knows by name
-
-[
-  (avg_)
-  (binary_checksum_)
-  (checksum_)
-  (checksum_agg_)
-  (count_)
-  (count_big_)
-  (cume_dist_)
-  (dense_rank_)
-  (first_value_)
-  (get_descendant_)
-  (get_reparented_value_)
-  (getancestor_)
-  (getlevel_)
-  (getroot_)
-  (is_descendant_of_)
-  (lag_)
-  (last_value_)
-  (lead_)
-  (left_)
-  (max_)
-  (min_)
-  (ntile_)
-  (parse_)
-  (percent_rank_)
-  (percentile_cont_)
-  (percentile_disc_)
-  (rank_)
-  (right_)
-  (row_number_)
-  (stdev_)
-  (stdevp_)
-  (sum_)
-  (tostring_)
-  (var_)
-  (varp_)
-] @function.builtin
-
-(hierachyid_) @type.builtin
-
-; Literals
-
-(null_) @constant.builtin
-
-(string_lit) @string
-
-((constant) @string
-  (#match? @string "^N?'"))
-
-((constant) @number
-  (#match? @number "^-?[0-9]"))
-
-[
-  (integer)
-  (decimal_)
+  (number)
+  (money)
   (binary)
-  (money_)
 ] @number
 
-[
-  (float_)
-  (real_)
-] @number.float
+(variable) @variable.parameter
 
-; Variables and names
+(global_variable) @variable.builtin
 
-(LOCAL_ID_) @variable
+(pseudocolumn) @variable.builtin
 
-(execute_statement_arg_named) @variable.parameter
+(identifier) @variable
 
-(full_table_name
-  [
-    server: (id_)
-    database: (id_)
-    schema: (id_)
-  ] @namespace)
-
-(full_table_name
-  table: (id_) @type)
-
-(full_column_name
-  (id_) @field)
-
-(column_alias
-  (id_) @variable)
-
-(collation_
-  collation_name: (id_) @constant)
-
-(execute_body
-  linkedServer: (id_) @namespace)
-
-(execute_parameter
-  (id_) @variable)
-
-(func_proc_name_server_database_schema
-  [
-    server: (id_)
-    database: (id_)
-    schema: (id_)
-  ] @namespace)
-
-(func_proc_name_server_database_schema
-  procedure: (id_) @function.call)
-
-(func_proc_name_database_schema
-  [
-    database: (id_)
-    schema: (id_)
-  ] @namespace)
-
-(func_proc_name_database_schema
-  procedure: (id_) @function.call)
-
-(func_proc_name_schema
-  schema: (id_) @namespace)
-
-(func_proc_name_schema
-  procedure: (id_) @function.call)
-
-(partition_function
-  database: (id_) @namespace)
-
-(partition_function
-  func_name: (id_) @function.call)
-
-(udt_elem
-  udt_column_name: (id_) @field)
-
-(udt_elem
-  non_static_attr: (id_) @function.method.call)
-
-(hierarchyid_static_method
-  (id_) @variable)
-
-; Operators
+(keyword) @keyword
 
 [
-  "+"
-  "-"
+  "ABSENT"
+  "ALL"
+  "AND"
+  "ANY"
+  "APPLY"
+  "ARRAY"
+  "AS"
+  "ASC"
+  "AT"
+  "BETWEEN"
+  "BOTH"
+  "BROWSE"
+  "BULK"
+  "BY"
+  "CASE"
+  "COLLATE"
+  "CONTAINED"
+  "CONTAINSTABLE"
+  "CONTENT"
+  "CONVERT"
+  "CUBE"
+  "CURRENT"
+  "DEFAULT"
+  "DESC"
+  "DISTINCT"
+  "DOCUMENT"
+  "DOUBLE"
+  "ELSE"
+  "END"
+  "ESCAPE"
+  "EXCEPT"
+  "EXISTS"
+  "FETCH"
+  "FIRST"
+  "FOLLOWING"
+  "FOR"
+  "FOR SYSTEM_TIME"
+  "FREETEXTTABLE"
+  "FROM"
+  "GROUP"
+  "GROUPING"
+  "GROUPS"
+  "HAVING"
+  "IGNORE"
+  "IN"
+  "INTERSECT"
+  "INTO"
+  "IS"
+  "JOIN"
+  "JSON"
+  "LEADING"
+  "LIKE"
+  "MODEL"
+  "NATIONAL"
+  "NEXT"
+  "NEXT VALUE FOR"
+  "NOT"
+  "NULL"
+  "NULLS"
+  "OF"
+  "OFFSET"
+  "ON"
+  "ONLY"
+  "OPENDATASOURCE"
+  "OPENQUERY"
+  "OPENROWSET"
+  "OPENXML"
+  "OPTION"
+  "OR"
+  "ORDER"
+  "OVER"
+  "PARTITION"
+  "PERCENT"
+  "PIVOT"
+  "PRECEDING"
+  "PRECISION"
+  "RANGE"
+  "REPEATABLE"
+  "RESPECT"
+  "RETURNING"
+  "ROLLUP"
+  "ROW"
+  "ROWS"
+  "SELECT"
+  "SEMANTICKEYPHRASETABLE"
+  "SEMANTICSIMILARITYDETAILSTABLE"
+  "SEMANTICSIMILARITYTABLE"
+  "SETS"
+  "SOME"
+  "SYSTEM"
+  "TABLESAMPLE"
+  "THEN"
+  "TIES"
+  "TIME"
+  "TO"
+  "TOP"
+  "TRAILING"
+  "TRY_CONVERT"
+  "UNBOUNDED"
+  "UNION"
+  "UNPIVOT"
+  "USE"
+  "USING"
+  "VALUES"
+  "VARYING"
+  "WHEN"
+  "WHERE"
+  "WINDOW"
+  "WITH"
+  "WITHIN"
+  "WRAPPER"
+  "XML"
+  "XMLNAMESPACES"
+  "ZONE"
+] @keyword
+
+(go_statement
+  "GO" @keyword.directive)
+
+(null
+  _ @constant.builtin)
+
+(niladic_function) @function.builtin
+
+(type
+  name: (identifier) @type.builtin)
+
+(type
+  schema: (identifier) @module)
+
+(type
+  [
+    "DOUBLE"
+    "NATIONAL"
+    "PRECISION"
+    "VARYING"
+  ] @type.builtin)
+
+(function_call
+  name: _ @function.call)
+
+(function_call
+  schema: (identifier) @module)
+
+(function_call
+  database: (identifier) @module)
+
+(function_call
+  type: (identifier) @type)
+
+(convert_expression
+  [
+    "CONVERT"
+    "TRY_CONVERT"
+  ] @function.call)
+
+(next_value_for
+  sequence: (object_reference
+    name: (identifier) @type))
+
+(object_reference
+  server: (identifier) @module)
+
+(object_reference
+  database: (identifier) @module)
+
+(object_reference
+  schema: (identifier) @module)
+
+(object_reference
+  name: (identifier) @type)
+
+(table_reference
+  alias: (identifier) @variable)
+
+(derived_table
+  alias: (identifier) @variable)
+
+(function_table
+  alias: (identifier) @variable)
+
+(parenthesized_join
+  alias: (identifier) @variable)
+
+(cte
+  name: (identifier) @type)
+
+(xmlnamespaces
+  prefix: (identifier) @module)
+
+(window_definition
+  name: (identifier) @type)
+
+(window_specification
+  name: (identifier) @type)
+
+(over_clause
+  window: (identifier) @type)
+
+(column_reference
+  database: (identifier) @module)
+
+(column_reference
+  schema: (identifier) @module)
+
+(column_reference
+  table: (identifier) @type)
+
+(column_reference
+  name: (identifier) @variable.member)
+
+(all_columns) @punctuation.special
+
+(all_columns
+  database: (identifier) @module)
+
+(all_columns
+  schema: (identifier) @module)
+
+(all_columns
+  table: (identifier) @type)
+
+(field_expression
+  field: (identifier) @variable.member)
+
+(field_expression
+  field: (identifier) @function.method.call
+  (arguments))
+
+(aliased_expression
+  alias: (identifier) @variable)
+
+(column_list
+  (identifier) @variable.member)
+
+(column_definition
+  name: (identifier) @variable.member)
+
+(into_clause
+  filegroup: (identifier) @module)
+
+(pivot_clause
+  (identifier) @variable.member)
+
+(unpivot_clause
+  (identifier) @variable.member)
+
+(collate_expression
+  collation: (identifier) @variable.builtin)
+
+(column_definition
+  collation: (identifier) @variable.builtin)
+
+(arguments
+  model: (identifier) @type)
+
+(operator) @operator
+
+[
   "="
-  "+="
-  "-="
-  "*="
-  "/="
-  "%="
-  "&="
-  "^="
-  "|="
   "::"
-  (PLUS)
-  (assignment_operator)
-  (asterisk)
 ] @operator
-
-; Punctuation
 
 [
   "("
   ")"
+  "{"
+  "}"
 ] @punctuation.bracket
 
 [
   ","
+  "."
   ";"
+  ":"
 ] @punctuation.delimiter

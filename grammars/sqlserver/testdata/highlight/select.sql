@@ -1,0 +1,70 @@
+SELECT TOP (10) e.last_name, n = COUNT(*), @v += 1 FROM hr.dbo.employees AS e WITH (NOLOCK) JOIN d ON e.d = d.id;
+-- <- keyword
+--     ^ keyword
+--          ^ number
+--              ^ type
+--                ^ variable.member
+--                           ^ variable
+--                               ^ function.call
+--                                    ^ punctuation.bracket
+--                                     ^ punctuation.special
+--                                         ^ variable.parameter
+--                                            ^ operator
+--                                                 ^ keyword
+--                                                      ^ module
+--                                                         ^ module
+--                                                             ^ type
+--                                                                          ^ variable
+--                                                                            ^ keyword
+--                                                                                  ^ keyword
+--                                                                                          ^ keyword
+--                                                                                                 ^ keyword
+SELECT CAST(a AS nvarchar(max)), CONVERT(int, b, 1), NULL, CURRENT_TIMESTAMP, @@ROWCOUNT, $IDENTITY FROM #t;
+--     ^ function.call
+--               ^ type.builtin
+--                               ^ function.call
+--                                       ^ type.builtin
+--                                                   ^ constant.builtin
+--                                                         ^ function.builtin
+--                                                                            ^ variable.builtin
+--                                                                                        ^ variable.builtin
+--                                                                                                       ^ type
+SELECT N'x', 0x1F, $1.50, 1.5e3, [first name] FROM [dbo].[t]; -- a comment
+--     ^ string
+--           ^ number
+--                 ^ number
+--                        ^ number
+--                               ^ variable.member
+--                                                 ^ module
+--                                                       ^ type
+--                                                            ^ comment
+WITH c AS (SELECT 1 x) SELECT x FROM c ORDER BY x DESC OFFSET 1 ROWS FETCH NEXT 1 ROW ONLY OPTION (RECOMPILE);
+-- <- keyword
+--   ^ type
+--                                     ^ keyword
+--                                                     ^ keyword
+--                                                                   ^ keyword
+--                                                                                    ^ keyword
+--                                                                                         ^ keyword
+--                                                                                                 ^ keyword
+SELECT SUM(s) OVER (PARTITION BY d ORDER BY m ROWS UNBOUNDED PRECEDING), @x.value('/a', 'int'), geography::Point(1, 2, 4326) /* b */ FROM t
+--     ^ function.call
+--            ^ keyword
+--                  ^ keyword
+--                                                           ^ keyword
+--                                                                       ^ variable.parameter
+--                                                                          ^ function.method.call
+--                                                                                              ^ type
+--                                                                                                       ^ operator
+--                                                                                                         ^ function.call
+--                                                                                                                           ^ comment
+SELECT * FROM OPENJSON(@j) WITH (id int '$.id') AS j CROSS APPLY dbo.f(j.id) FOR JSON PATH, ROOT('r')
+--            ^ function.call
+--                               ^ variable.member
+--                                  ^ type.builtin
+--                                                 ^ variable
+--                                                         ^ keyword
+--                                                                           ^ keyword
+--                                                                               ^ keyword
+--                                                                                    ^ keyword
+--                                                                                          ^ keyword

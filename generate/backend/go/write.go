@@ -75,8 +75,8 @@ func (n goNames) name(cID string) string {
 
 // PackageName returns the name of the Go package of the grammar package in
 // the folder dir: the name of the folder in lowercase, as docs/GRAMMAR.md
-// says (D107). The folder sqlserver of the grammar TSQL gives the package
-// sqlserver. The folder go gives the package golang, as D26 names the
+// says (D107). The folder embeddedtemplate of the grammar embedded_template
+// gives the package embeddedtemplate. The folder go gives the package golang, as D26 names the
 // package of the Go backend (D77). In the Go module cache, the folder of a
 // module ends with "@" and the version, such as json@v0.1.0, and the name
 // ends before the "@". PackageName returns an error when the result is not

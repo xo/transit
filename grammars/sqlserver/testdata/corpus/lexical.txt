@@ -1,0 +1,326 @@
+================================================================================
+Identifiers in any case
+================================================================================
+
+SeLeCt Name, _x, a1$b, x@y, #t FROM T
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Bracketed identifiers
+================================================================================
+
+SELECT [first name], [a]]b], [select] FROM [dbo].[My Table]
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)
+            (identifier)))))))
+
+================================================================================
+Quoted identifiers
+================================================================================
+
+SELECT "first name", "a""b" FROM "dbo"."t"
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)
+            (identifier)))))))
+
+================================================================================
+Local variables
+================================================================================
+
+SELECT @a, @b_1, @select, @#x
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (variable)
+      (variable)
+      (variable)
+      (variable))))
+
+================================================================================
+System functions with @@
+================================================================================
+
+SELECT @@ROWCOUNT, @@ERROR, @@VERSION, @@SPID
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (global_variable)
+      (global_variable)
+      (global_variable)
+      (global_variable))))
+
+================================================================================
+Temporary tables
+================================================================================
+
+SELECT * FROM #t JOIN ##g ON #t.a = ##g.a
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (join
+          (table_reference
+            (object_reference
+              (identifier)))
+          (table_reference
+            (object_reference
+              (identifier)))
+          (binary_expression
+            (column_reference
+              (identifier)
+              (identifier))
+            (operator)
+            (column_reference
+              (identifier)
+              (identifier))))))))
+
+================================================================================
+A table variable
+================================================================================
+
+SELECT x.a FROM @t AS x
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier)
+        (identifier))
+      (from_clause
+        (table_reference
+          (variable)
+          (identifier))))))
+
+================================================================================
+Keywords that are not reserved are names
+================================================================================
+
+SELECT name, type, status, value, date, text, data, next, model FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Reserved words after a dot
+================================================================================
+
+SELECT t.[key], t.user, t.select FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Line comments
+================================================================================
+
+SELECT 1 -- a comment
+-- another comment
+FROM t --
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (comment)
+      (comment)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (comment))
+
+================================================================================
+Block comments
+================================================================================
+
+SELECT /* a */ 1 /* b
+c */ FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (comment)
+      (number)
+      (comment)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Nested block comments
+================================================================================
+
+SELECT /* a /* b */ c */ 1 /* /* */ */ FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (comment)
+      (number)
+      (comment)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+A block comment that does not end
+================================================================================
+
+SELECT 1 /* a /* b */
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)))
+  (comment))
+
+================================================================================
+A minus and a line comment
+================================================================================
+
+SELECT 5-3, 5--3
+FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (number)
+        (operator)
+        (number))
+      (number)
+      (comment)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Unicode identifiers
+================================================================================
+
+SELECT né, 名前 FROM t
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))

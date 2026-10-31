@@ -111,14 +111,14 @@ folder `go` gives the package `golang`, because `go` is a keyword of Go
 (D77, D86). A folder whose name is not a Go package name stops the generator
 with an error. A Go package name has no underscore, as the `go-pedantry`
 skill says. The name of the grammar does not change. `Language.Name` gives
-it, and the queries and the injections use it. The grammar `TSQL` lives in
-`grammars/sqlserver`, so its package is `sqlserver`, and `Language.Name`
-gives `TSQL`.
+it, and the queries and the injections use it. The grammar `cypher` lives in
+`grammars/neo4j`, so its package is `neo4j`, and `Language.Name` gives
+`cypher`.
 
 If the language of a grammar is the language of one dialect of dbmeta, the
 folder of its module has the name of the dialect. The table of D107 lists
-them. `Crary-Systems/tree-sitter-tsql` lives in `grammars/sqlserver`, and
-the Oracle grammar that xo writes lives in `grammars/oracle`. The folder of
+them. The SQL Server grammar that xo writes lives in `grammars/sqlserver`,
+and the Oracle grammar that xo writes lives in `grammars/oracle`. The folder of
 any other module has the name of the upstream repository without the `tree-sitter-` prefix and with each `-`
 removed. `tree-sitter-embedded-template` becomes `embeddedtemplate`. If two
 grammars or two repositories get the same name, ask Ken.
@@ -136,7 +136,10 @@ names. `tree-sitter.json` of `grammars/postgres` names `xo/transit`, so the
 packages `postgres` and `plpgsql` take the entries of xo (D122). The
 Oracle grammar that xo writes has the name `oracle`, and the grammar of
 `andreasmaierde/tree-sitter-plsql` has the name `plsql`, so each has one
-entry, and only `oracle` has a Go package (D124).
+entry, and only `oracle` has a Go package (D124). In the same way, the SQL
+Server grammar that xo writes has the name `sqlserver`, and the grammar of
+`Crary-Systems/tree-sitter-tsql` has the name `TSQL`, and only `sqlserver`
+has a Go package.
 
 ## The layout of a grammar
 
@@ -158,8 +161,8 @@ A repository that holds one grammar, such as JSON, looks like this:
 | `grammars/json/example_test.go` | `ExampleLanguage`, the example that pkg.go.dev shows for `Language`, as "The example" below says (D115) | `transit generate` |
 | `grammars/json/example_more_test.go` | more example functions, if a person writes them, as in `json` and `html` (D53, D115) | a person |
 | `grammars/json/queries/*.scm` | `queries/*.scm` of the upstream repository | copied |
-| `grammars/json/queries/highlights.scm` | the highlight query, if the upstream repository has none, as in `sqlserver` and `cql` (D113) | a person |
-| `grammars/json/highlight_test.go` | a test that makes sure of the capture name of each word that it names in a text, if the grammar has no comment node to hold the assertions of `testdata/highlight`, as in `sqlserver` and `cql` | a person |
+| `grammars/json/queries/highlights.scm` | the highlight query, if the upstream repository has none, as in `cql` (D113) | a person |
+| `grammars/json/highlight_test.go` | a test that makes sure of the capture name of each word that it names in a text, if the grammar has no comment node to hold the assertions of `testdata/highlight`, as in `cql` | a person |
 | `grammars/json/testdata/corpus/` | `test/corpus/` of the upstream repository | copied |
 | `grammars/json/testdata/highlight/` | `test/highlight/`, if it exists | copied |
 | `grammars/json/testdata/failing.txt` | the names of the corpus cases that fail upstream, if a case fails, as "Tests" below says | the golden harness |
@@ -198,7 +201,7 @@ If the upstream repository of a grammar has no highlight query, xo writes
 comment says that xo wrote it. It uses only the capture names of
 `styles/captures.txt`. After you add the file, generate the package again,
 so that `parser.go` embeds `queries/`. A grammar can hide a keyword in a
-token that a query cannot capture, such as `FROM` of `sqlserver`. Then the
+token that a query cannot capture. Then the
 query captures the node that holds the token, and the patterns of its
 children color the rest of the node.
 
@@ -303,7 +306,9 @@ Each one follows these rules, in addition to the rest of this document:
    injection query of `postgres` gives the body of a function or of a `DO`
    block to `plpgsql` or to `postgres`, as its `LANGUAGE` says. Oracle
    does not put PL/SQL in a quoted string, so the Oracle grammar reads SQL
-   and PL/SQL in one grammar, and it has no injection query (D124).
+   and PL/SQL in one grammar, and it has no injection query (D124). The SQL
+   Server grammar reads the procedural statements of Transact-SQL in the
+   same way.
 7. A SQL grammar keeps its parse tables small (D122, D123). The token
    `identifier` is the word of the grammar, so one token covers each
    keyword that the language does not reserve. The reserved words of the
@@ -315,7 +320,11 @@ Each one follows these rules, in addition to the rest of this document:
    physical options of a table, with one identifier that takes an empty
    reserved set, as the comment at the top of `grammars/oracle/grammar.js`
    says. Then a reserved word in the list does not give a large state of
-   its own.
+   its own. The SQL Server grammar reads the reserved words that name
+   functions, such as `LEFT` and `CURRENT_USER`, with one token for each
+   group of them, and not with one keyword for each word. Then each state
+   where an expression starts has fewer than 64 columns, and it does not
+   take the large form.
    The parser cannot merge two states when only one of them takes a token
    of the external scanner. So a statement of PL/SQL ends at a `;` or at a
    `/` alone on its line, as a statement of SQL does, and the states after
@@ -327,8 +336,8 @@ stage" in `AGENTS.md`, and its golden files are made again.
 The folder `grammars/<name>` is the module of the grammar, and it is laid
 out as the checkout of a grammar repository and as a grammar module at once.
 `grammars/usql` holds one grammar, `usql`, at the root of the module. Its
-package is `usql`. `grammars/mysql` and `grammars/oracle` are laid out the
-same way. `grammars/postgres` holds the grammars `postgres` and
+package is `usql`. `grammars/mysql`, `grammars/oracle` and
+`grammars/sqlserver` are laid out the same way. `grammars/postgres` holds the grammars `postgres` and
 `plpgsql` in the folders of their packages, `grammars/postgres/postgres`
 and `grammars/postgres/plpgsql`. Each folder holds the same files as
 `grammars/usql` but `options.go` and `testdata/options/`, and the
