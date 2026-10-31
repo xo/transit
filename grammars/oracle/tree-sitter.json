@@ -1,0 +1,25 @@
+{
+  "grammars": [
+    {
+      "name": "oracle",
+      "camelcase": "Oracle",
+      "scope": "source.oracle",
+      "path": ".",
+      "file-types": [
+        "pls",
+        "pks",
+        "pkb"
+      ],
+      "highlights": "queries/highlights.scm",
+      "injection-regex": "^(oracle|plsql)$"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "A grammar of the SQL and the PL/SQL of Oracle Database 23ai",
+    "links": {
+      "repository": "https://github.com/xo/transit"
+    }
+  }
+}

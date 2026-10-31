@@ -10914,6 +10914,71 @@
       }
     },
     {
+      "name": "oracle",
+      "package": "oracle",
+      "repository": "https://github.com/xo/transit",
+      "commit": "",
+      "path": "grammars/oracle",
+      "license": "MIT",
+      "scanner": true,
+      "set": "xo",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "46b3b18740846a27a3534a3f4a3ba83731d7f300674b4b20e49077d3dde5002d",
+          "node_types": "ea58f64284caf63b80ad8ebdb1ad80a778aad04a5d5bde17960bb27ff3647e12",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "keyword lexer",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "1e739eb18a5887c4cfc6582bc21c1c57ac64152949d76a811252fc5d1dbfde10",
+          "node_types": "ea58f64284caf63b80ad8ebdb1ad80a778aad04a5d5bde17960bb27ff3647e12",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "keyword lexer",
+            "reserved words",
+            "reserved word set of a state",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      },
+      "corpus": {
+        "tests": 121,
+        "failures": 0,
+        "transit": "same"
+      }
+    },
+    {
       "name": "plpgsql",
       "package": "plpgsql",
       "repository": "https://github.com/xo/transit",

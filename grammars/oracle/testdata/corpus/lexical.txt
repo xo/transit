@@ -1,0 +1,394 @@
+================================================================================
+Keywords in any case
+================================================================================
+
+select A from T;
+SeLeCt b FrOm u
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Quoted identifiers
+================================================================================
+
+SELECT "First Name", "select" FROM "My Table" "t";
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))
+          (identifier))))))
+
+================================================================================
+Identifiers with dollar and number signs
+================================================================================
+
+SELECT v$session.sid, sys.obj# FROM v$session;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Strings with a quote doubled
+================================================================================
+
+SELECT 'it''s', '' FROM dual;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string)
+      (string)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+National strings
+================================================================================
+
+SELECT N'abc', n'x' FROM dual;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string)
+      (string)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Strings with the alternative quoting
+================================================================================
+
+SELECT q'[it's]', Q'{a}b}', q'(x)', q'<y>', q'!z!', nq'[n]', NQ'#w#' FROM dual;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string)
+      (string)
+      (string)
+      (string)
+      (string)
+      (string)
+      (string)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+A string with the alternative quoting and a bracket inside
+================================================================================
+
+SELECT q'[a]b]' FROM dual;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Numbers
+================================================================================
+
+SELECT 1, 1.5, .5, 1e10, 2.5E-3, 1.5f, 2D, 10e3d FROM dual;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Line comments
+================================================================================
+
+SELECT 1 -- one
+, 2 --two
+FROM dual; -- end
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (comment)
+      (number)
+      (comment)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (comment))
+
+================================================================================
+Block comments and hints
+================================================================================
+
+SELECT /*+ FULL(t) */ a /* the column */ FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (comment)
+      (column_reference
+        (identifier))
+      (comment)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+A slash alone on its line ends a statement
+================================================================================
+
+SELECT 1 FROM dual
+/
+SELECT 2 FROM dual;
+/
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (select_statement
+    (select
+      (number)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+A slash with white space around it
+================================================================================
+
+SELECT 1 FROM dual;
+  /
+SELECT 2 FROM dual
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (select_statement
+    (select
+      (number)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+A slash at the start of the input
+================================================================================
+
+/
+SELECT 1 FROM dual
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+A slash in an expression is a division
+================================================================================
+
+SELECT 4
+/ 2 FROM dual;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (number)
+        (operator)
+        (number))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Empty statements
+================================================================================
+
+;
+;SELECT 1 FROM dual;;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Bind variables
+================================================================================
+
+SELECT :name, :1, :b_2 FROM t WHERE a = :x;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (bind_variable)
+      (bind_variable)
+      (bind_variable)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (bind_variable))))))
+
+================================================================================
+A field of a bind variable
+================================================================================
+
+SELECT :new.salary, :old.id FROM dual;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (bind_variable)
+        (identifier))
+      (column_reference
+        (bind_variable)
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Reserved words after a dot
+================================================================================
+
+SELECT t.level, t.date, s.nextval FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))

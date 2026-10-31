@@ -118,8 +118,8 @@ gives `TSQL`.
 If the language of a grammar is the language of one dialect of dbmeta, the
 folder of its module has the name of the dialect. The table of D107 lists
 them. `Crary-Systems/tree-sitter-tsql` lives in `grammars/sqlserver`, and
-`andreasmaierde/tree-sitter-plsql` in `grammars/oracle`. The folder of any other module has the name of the
-upstream repository without the `tree-sitter-` prefix and with each `-`
+the Oracle grammar that xo writes lives in `grammars/oracle`. The folder of
+any other module has the name of the upstream repository without the `tree-sitter-` prefix and with each `-`
 removed. `tree-sitter-embedded-template` becomes `embeddedtemplate`. If two
 grammars or two repositories get the same name, ask Ken.
 
@@ -133,7 +133,10 @@ for a grammar that xo writes in place of the grammar of another
 repository. The grammars `postgres` and `plpgsql` of
 `gmr/tree-sitter-postgres` and the grammars that xo writes have the same
 names. `tree-sitter.json` of `grammars/postgres` names `xo/transit`, so the
-packages `postgres` and `plpgsql` take the entries of xo (D122).
+packages `postgres` and `plpgsql` take the entries of xo (D122). The
+Oracle grammar that xo writes has the name `oracle`, and the grammar of
+`andreasmaierde/tree-sitter-plsql` has the name `plsql`, so each has one
+entry, and only `oracle` has a Go package (D124).
 
 ## The layout of a grammar
 
@@ -155,7 +158,7 @@ A repository that holds one grammar, such as JSON, looks like this:
 | `grammars/json/example_test.go` | `ExampleLanguage`, the example that pkg.go.dev shows for `Language`, as "The example" below says (D115) | `transit generate` |
 | `grammars/json/example_more_test.go` | more example functions, if a person writes them, as in `json` and `html` (D53, D115) | a person |
 | `grammars/json/queries/*.scm` | `queries/*.scm` of the upstream repository | copied |
-| `grammars/json/queries/highlights.scm` | the highlight query, if the upstream repository has none, as in `sqlserver`, `oracle` and `cql` (D113) | a person |
+| `grammars/json/queries/highlights.scm` | the highlight query, if the upstream repository has none, as in `sqlserver` and `cql` (D113) | a person |
 | `grammars/json/highlight_test.go` | a test that makes sure of the capture name of each word that it names in a text, if the grammar has no comment node to hold the assertions of `testdata/highlight`, as in `sqlserver` and `cql` | a person |
 | `grammars/json/testdata/corpus/` | `test/corpus/` of the upstream repository | copied |
 | `grammars/json/testdata/highlight/` | `test/highlight/`, if it exists | copied |
@@ -314,7 +317,8 @@ stage" in `AGENTS.md`, and its golden files are made again.
 The folder `grammars/<name>` is the module of the grammar, and it is laid
 out as the checkout of a grammar repository and as a grammar module at once.
 `grammars/usql` holds one grammar, `usql`, at the root of the module. Its
-package is `usql`. `grammars/postgres` holds the grammars `postgres` and
+package is `usql`. `grammars/mysql` and `grammars/oracle` are laid out the
+same way. `grammars/postgres` holds the grammars `postgres` and
 `plpgsql` in the folders of their packages, `grammars/postgres/postgres`
 and `grammars/postgres/plpgsql`. Each folder holds the same files as
 `grammars/usql` but `options.go` and `testdata/options/`, and the

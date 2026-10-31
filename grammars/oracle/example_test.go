@@ -3,6 +3,7 @@
 package oracle_test
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"log"
@@ -12,10 +13,23 @@ import (
 	"github.com/xo/transit/grammars/oracle"
 )
 
-// This example compiles each query of the package oracle, and prints the number
-// of its patterns.
+// This example parses a text of the grammar oracle, the input of the corpus
+// case "select/A query without FROM", and prints its tree. Then it compiles
+// each query of the package, and prints the number of its patterns.
 func ExampleLanguage() {
 	language := oracle.Language()
+	parser := transit.NewParser()
+	if err := parser.SetLanguage(language); err != nil {
+		log.Fatal(err)
+	}
+	src := []byte(`
+SELECT 1, SYSDATE;
+`)
+	tree, err := parser.Parse(context.Background(), src, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(tree.RootNode())
 	walk := func(name string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() || path.Ext(name) != ".scm" {
 			return err
@@ -35,5 +49,6 @@ func ExampleLanguage() {
 		log.Fatal(err)
 	}
 	// Output:
-	// patterns in queries/highlights.scm: 37
+	// (source_file (select_statement (select (number) (pseudocolumn))))
+	// patterns in queries/highlights.scm: 60
 }

@@ -8,6 +8,14 @@ import (
 	"github.com/xo/transit/internal/grammartest"
 )
 
+// TestCorpus parses each case of testdata/corpus, and compares its tree with
+// the expected tree, as tree-sitter test does. It expects the cases of
+// testdata/failing.txt to fail, because they fail upstream.
+func TestCorpus(t *testing.T) {
+	t.Parallel()
+	grammartest.Corpus(t, Language(), "testdata/corpus")
+}
+
 // TestQueries makes sure that each file of queries compiles.
 func TestQueries(t *testing.T) {
 	t.Parallel()

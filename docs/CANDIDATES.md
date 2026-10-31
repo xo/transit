@@ -255,7 +255,9 @@ grammars of `gmr/tree-sitter-postgres` are among them. They follow the
 PostgreSQL source, as dbmeta does. A SQL grammar that does not exist is
 written in transit (D42). xo writes the PostgreSQL grammars in place of
 those of `gmr/tree-sitter-postgres`, which stay in the golden set without a
-Go package (D122).
+Go package (D122). xo writes the Oracle grammar in place of that of
+`andreasmaierde/tree-sitter-plsql`, which stays in the golden set without
+a Go package (D124).
 
 ## The dialects of dbmeta
 

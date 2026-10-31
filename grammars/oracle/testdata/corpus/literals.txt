@@ -1,0 +1,84 @@
+================================================================================
+Date and timestamp literals
+================================================================================
+
+SELECT DATE '2026-10-31', TIMESTAMP '2026-10-31 10:00:00.5', TIMESTAMP '2026-10-31 10:00:00 -08:00' FROM dual;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (typed_literal
+        (string))
+      (typed_literal
+        (type)
+        (string))
+      (typed_literal
+        (type)
+        (string))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Interval literals
+================================================================================
+
+SELECT INTERVAL '1' DAY, INTERVAL '1-2' YEAR TO MONTH, INTERVAL '4 5:12' DAY TO MINUTE, INTERVAL '400' DAY(3), INTERVAL '30.12345' SECOND(2, 4) FROM dual;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (typed_literal
+        (type)
+        (string)
+        (interval_qualifier))
+      (typed_literal
+        (type)
+        (string)
+        (interval_qualifier))
+      (typed_literal
+        (type)
+        (string)
+        (interval_qualifier))
+      (typed_literal
+        (type)
+        (string)
+        (interval_qualifier
+          (type_modifiers
+            (number))))
+      (typed_literal
+        (type)
+        (string)
+        (interval_qualifier
+          (type_modifiers
+            (number)
+            (number))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+A column named timestamp
+================================================================================
+
+SELECT timestamp, interval FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))

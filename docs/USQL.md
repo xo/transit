@@ -146,7 +146,14 @@ grammar, and most dialects have only it. `gmr/tree-sitter-postgres` follows
 the PostgreSQL source, and its package adds about 15 MB to a binary, so xo
 writes the PostgreSQL grammar and the PL/pgSQL grammar from the manual in
 `grammars/postgres` (D122). MySQL had no grammar of its own, so transit writes one in
-`grammars/mysql` (D106). Its package adds about 1 MB to a binary (D123). SQL++, InfluxQL, KSQL, PartiQL, ES|QL and
+`grammars/mysql` (D106). Its package adds about 1 MB to a binary (D123).
+`andreasmaierde/tree-sitter-plsql` has not changed since 2023 and has no
+corpus, so xo writes the Oracle grammar from the references of Oracle
+Database 23ai in `grammars/oracle` (D124). One grammar reads SQL and
+PL/SQL, because PL/SQL is not in a quoted string in Oracle. A `/` alone on
+its line ends a statement or a PL/SQL unit, as in a script of SQL*Plus.
+usql gives such a line to the SQL grammar, and the Oracle grammar reads it
+as the end of a statement. SQL++, InfluxQL, KSQL, PartiQL, ES|QL and
 PPL have no grammar at all. transit writes the missing grammars, and the
 usql grammar, in `grammars/` (D42, D104). The other missing grammars come
 after phase 5, in the order of the dialects of dbmeta (D106). `bigquery` and
@@ -164,9 +171,10 @@ for the flag `-dialect`, with these options of `usql.Options`:
 | `cql` | `github.com/xo/transit/grammars/cql` | `DollarQuotes`, `BlockComments`, `SlashComments`, `Batches` |
 | `generic` | `github.com/xo/transit/grammars/sql` | `BlockComments` |
 
-usql keeps this match itself. The repositories of `sqlserver`, `oracle` and
-`cql` have no highlight query, so xo wrote the highlight query of each of
-these packages (D113).
+usql keeps this match itself. The repositories of `sqlserver` and `cql`
+have no highlight query, so xo wrote the highlight query of each of these
+packages (D113). xo writes the highlight query of `oracle` with its
+grammar.
 
 The usql grammar ends a statement at each semicolon outside parentheses.
 The body of a stored program of MySQL, SQL Server or Oracle that is a

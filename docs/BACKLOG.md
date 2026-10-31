@@ -187,6 +187,31 @@ These faults remain:
 - The words of an interval unit that MySQL reserves, such as `DAY_HOUR`,
   are one token with the other units, so they are not in the reserved set.
 
+### Finish the Oracle grammar
+
+The Oracle grammar that xo writes (D124) reads the queries of Oracle
+Database 23ai. The statements other than a query and the units of PL/SQL
+come in later parts. It leaves out these forms of a query:
+
+- The declarations of PL/SQL in `WITH`, as in
+  `WITH FUNCTION f RETURN NUMBER IS BEGIN RETURN 1; END; SELECT f FROM dual`.
+  The body is PL/SQL, which a later part adds.
+- `GRAPH_TABLE` of the property graphs of 23ai, the analytic views, and the
+  operations of `JSON_TRANSFORM`, such as `SET '$.a' = 1`.
+- `FROM FIRST` and `FROM LAST` after `NTH_VALUE`. `FROM` after a function
+  call can also start the `FROM` of the query, and the parser cannot tell
+  the two apart with one token of lookahead.
+- A measure of a reference model with the name of the model, as in
+  `r.b[1]`. It costs about 240 parse states.
+- An argument with an alias, as in `PREDICTION(m USING 'F' gender)`, and
+  `t.*` as an argument. They cost about 25 large states. `USING *` parses.
+- `PARTITION BY` in the arguments, as in `APPROX_RANK(PARTITION BY a ORDER
+  BY b)`, and `OF ANOMALY` of `PREDICTION_PROBABILITY`.
+
+The substitution variables of SQL*Plus, such as `&name` and `&&name`, are
+not part of the grammar. Ken decides whether usql or the Oracle grammar
+reads them.
+
 ## The setup of the repository
 
 These items come in phase 1 and later, as the plan says.

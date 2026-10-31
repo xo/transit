@@ -142,11 +142,10 @@ package name can differ from the grammar name (D107):
 | --- | --- | --- | --- |
 | `github.com/xo/transit/grammars/sql` | `sql` | [DerekStride/tree-sitter-sql](https://github.com/DerekStride/tree-sitter-sql) | `v0.3.11` |
 | `github.com/xo/transit/grammars/sqlserver` | `TSQL` | [Crary-Systems/tree-sitter-tsql](https://github.com/Crary-Systems/tree-sitter-tsql) | `0.0.1` |
-| `github.com/xo/transit/grammars/oracle` | `plsql` | [andreasmaierde/tree-sitter-plsql](https://github.com/andreasmaierde/tree-sitter-plsql) | the branch `main` at `28aebef` |
 | `github.com/xo/transit/grammars/cql` | `cql` | [shotover/tree-sitter-cql](https://github.com/shotover/tree-sitter-cql) | `v0.2.0` |
 
-The repositories of `sqlserver`, `oracle` and `cql` have no highlight query,
-so xo wrote `queries/highlights.scm` of these three packages (D113).
+The repositories of `sqlserver` and `cql` have no highlight query, so xo
+wrote `queries/highlights.scm` of these two packages (D113).
 
 These packages hold the grammars of the languages of dbmeta that are not SQL
 (D21, D23). A module that holds the language of one dialect has the name of
@@ -192,6 +191,17 @@ part. The option `BeginEndBlocks` of `usql.Options` keeps the body in one
 statement (D112). It is off by default. One identifier token covers each
 keyword that MySQL does not reserve, and the reserved words of MySQL 8.4
 are not identifiers, so the package adds about 1 MB to a binary (D123).
+
+The package `github.com/xo/transit/grammars/oracle` holds the grammar
+`oracle`, which xo writes from the SQL Language Reference and the PL/SQL
+Language Reference of Oracle Database 23ai (D124). It covers the lexical
+structure, with the strings of the form `q'[...]'`, the expressions, the
+types, the function calls with their analytic clauses, and the full
+`SELECT`, with `CONNECT BY`, `PIVOT`, `MODEL`, `MATCH_RECOGNIZE` and
+`JSON_TABLE`. It does not read the other statements and PL/SQL yet. A `/`
+alone on its line ends a statement, as in a script of SQL*Plus. The
+grammar of `andreasmaierde/tree-sitter-plsql` stays in the golden set, but
+it has no Go package.
 
 The package `github.com/xo/transit/grammars/postgres/postgres` holds the
 grammar `postgres`, which xo writes from the reference manual of

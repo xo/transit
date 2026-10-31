@@ -1,0 +1,337 @@
+================================================================================
+The built-in types
+================================================================================
+
+SELECT CAST(a AS VARCHAR2(10)), CAST(b AS VARCHAR2(10 CHAR)), CAST(c AS NUMBER(10, 2)), CAST(d AS NUMBER(*, 2)), CAST(e AS NUMBER), CAST(f AS CHAR(1 BYTE)) FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (type_modifiers
+              (number)))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (type_modifiers
+              (number)))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (type_modifiers
+              (number)
+              (number)))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (type_modifiers
+              (number)))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (type_modifiers
+              (number)))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+The types of dates and intervals
+================================================================================
+
+SELECT CAST(a AS DATE), CAST(b AS TIMESTAMP(6)), CAST(c AS TIMESTAMP WITH TIME ZONE), CAST(d AS TIMESTAMP(3) WITH LOCAL TIME ZONE), CAST(e AS INTERVAL YEAR(2) TO MONTH), CAST(f AS INTERVAL DAY(2) TO SECOND(6)) FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (type_modifiers
+              (number)))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (type_modifiers
+              (number)))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (interval_qualifier
+              (type_modifiers
+                (number))))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (interval_qualifier
+              (type_modifiers
+                (number))
+              (type_modifiers
+                (number))))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+The types of the standard
+================================================================================
+
+SELECT CAST(a AS DOUBLE PRECISION), CAST(b AS CHARACTER VARYING(10)), CAST(c AS NATIONAL CHARACTER(5)), CAST(d AS NCHAR VARYING(3)), CAST(e AS INTEGER), CAST(f AS DECIMAL(5, 2)), CAST(g AS SMALLINT), CAST(h AS FLOAT(10)) FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (type_modifiers
+              (number)))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (type_modifiers
+              (number)))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (type_modifiers
+              (number)))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (type_modifiers
+              (number)
+              (number)))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (type_modifiers
+              (number)))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+The other types
+================================================================================
+
+SELECT CAST(a AS BINARY_FLOAT), CAST(b AS RAW(16)), CAST(c AS ROWID), CAST(d AS BOOLEAN), CAST(e AS JSON), CAST(f AS VECTOR(3, FLOAT32)), CAST(g AS CLOB), CAST(h AS LONG RAW) FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (type_modifiers
+              (number)))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)
+            (type_modifiers
+              (number)
+              (identifier)))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type)))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+A user-defined type with a schema
+================================================================================
+
+SELECT CAST(MULTISET(SELECT a FROM u) AS hr.num_list) FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (multiset_expression
+            (subquery
+              (select
+                (column_reference
+                  (identifier))
+                (from_clause
+                  (table_reference
+                    (object_reference
+                      (identifier)))))))
+          (type
+            (identifier)
+            (identifier))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+The type of a column and of a row
+================================================================================
+
+SELECT CAST(a AS t.a%TYPE), CAST(b AS t%ROWTYPE) FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))

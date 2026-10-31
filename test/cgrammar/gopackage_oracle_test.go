@@ -1,67 +1,80 @@
 package cgrammar
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 
-	"github.com/xo/transit"
 	"github.com/xo/transit/grammars/oracle"
 )
 
 func init() {
-	goPackages = append(goPackages, goPackage{"plsql", oracle.Language})
+	goPackages = append(goPackages, goPackage{"oracle", oracle.Language})
 }
 
-// TestOracleExamplesMatchC compares the trees and the edits of the files of
-// examples/ of tree-sitter-plsql. The repository has no test/corpus, so the
-// tests of gopackage_test.go have no input for it.
-func TestOracleExamplesMatchC(t *testing.T) {
+// oracleScannerInputs are inputs that reach each branch of the scanner of
+// the Oracle grammar: each kind of comment, a comment that does not end,
+// each delimiter of a string with the alternative quoting, such a string
+// that does not end, a / alone on its line and a / that is a division.
+var oracleScannerInputs = []string{
+	// comments
+	"SELECT 1 -- a\r\n;",
+	"SELECT 1 --",
+	"SELECT 5--3\nFROM dual;",
+	"SELECT 5 - -3 FROM dual;",
+	"SELECT 5 -",
+	"SELECT /* a */ 1 FROM dual;",
+	"SELECT /* a * / ** b */ 1 FROM dual;",
+	"SELECT /*+ FULL(t) */ * FROM t;",
+	"SELECT /* a",
+	// strings with the alternative quoting
+	"SELECT q'[a'b]' FROM dual;",
+	"SELECT Q'{a}b}' FROM dual;",
+	"SELECT q'(a)', q'<b>', q'!c!', q'''' FROM dual;",
+	"SELECT nq'[a]', Nq'[b]', nQ'[c]' FROM dual;",
+	"SELECT q'[a",
+	"SELECT q'",
+	"SELECT q' a' FROM dual;",
+	"SELECT q, n, nx, qx FROM t;",
+	"SELECT n'a', N'b' FROM dual;",
+	// a / alone on its line
+	"SELECT 1 FROM dual\n/\nSELECT 2 FROM dual",
+	"SELECT 1 FROM dual;\n  /  \r\nSELECT 2 FROM dual;\n/",
+	"/\nSELECT 1 FROM dual",
+	"SELECT 4\n/ 2 FROM dual;",
+	"SELECT 4 / 2 FROM dual;",
+	"SELECT 4 /\n2 FROM dual;",
+	"SELECT 1 FROM dual\n/ x",
+	// white space and other characters
+	" \t\r\n\f\vSELECT 1 FROM dual;",
+	"SELECT 'a -- b', \"c /* d\" FROM dual;",
+	"SELECT é FROM t;",
+	"",
+}
+
+// TestGoPackageScannerOracle compares the Go scanner of the Oracle grammar
+// with the C scanner, call by call, on every corpus input and the inputs
+// that reach each branch of the scanner.
+func TestGoPackageScannerOracle(t *testing.T) {
 	t.Parallel()
-	compareExampleFiles(t, goPackage{"plsql", oracle.Language}, "examples/*.sql")
+	g, examples := loadGoPackage(t, goPackage{"oracle", oracle.Language})
+	inputs := make([][]byte, 0, len(examples)+len(oracleScannerInputs))
+	for _, e := range examples {
+		inputs = append(inputs, e.Input)
+	}
+	for _, s := range oracleScannerInputs {
+		inputs = append(inputs, []byte(s))
+	}
+	n, calls := compareScanners(t, g, oracle.Language(), inputs)
+	if calls == 0 {
+		t.Errorf("the scanner was not called on %d inputs", n)
+	}
+	t.Logf("%d inputs, %d scanner calls", n, calls)
 }
 
-// compareExampleFiles parses each file of the checkout of the grammar of a
-// grammar package whose path matches pattern, with the Go runtime and the Go
-// package, and with the C runtime and the C grammar. It compares the trees
-// node by node, and the trees after each edit of compareEdits.
-func compareExampleFiles(t *testing.T, gp goPackage, pattern string) {
-	t.Helper()
-	g, _ := loadGoPackage(t, gp)
-	root, cache := setup(t)
-	dir, _ := grammarDirs(cache, goPackageEntry(t, root, gp.name))
-	files, err := filepath.Glob(filepath.Join(dir, pattern))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(files) == 0 {
-		t.Fatalf("no file of %s matches %s", dir, pattern)
-	}
-	p := transit.NewParser()
-	if err := p.SetLanguage(gp.language()); err != nil {
-		t.Fatal(err)
-	}
-	goGrammar := *g
-	goGrammar.Language = gp.language()
-	for _, file := range files {
-		src, err := os.ReadFile(file)
-		if err != nil {
-			t.Fatal(err)
-		}
-		want, _, err := g.CParse(src)
-		if err != nil {
-			t.Fatal(err)
-		}
-		tree, err := goParse(p, src)
-		if err != nil {
-			t.Fatalf("%s: %v", filepath.Base(file), err)
-		}
-		if d := Diff(want, GoSnapshot(tree.RootNode(), "")); d != "" {
-			t.Errorf("%s: the trees differ at %s", filepath.Base(file), d)
-		}
-		if msg := compareEdits(&goGrammar, src); msg != "" {
-			t.Errorf("%s: %s", filepath.Base(file), msg)
-		}
-	}
-	t.Logf("%d files", len(files))
+// TestGoPackageScannerOracleDeserialize gives Deserialize of the Go scanner
+// and of the C scanner of the Oracle grammar the same random bytes, and
+// compares the bytes that Serialize writes after it.
+func TestGoPackageScannerOracleDeserialize(t *testing.T) {
+	t.Parallel()
+	g, _ := loadGoPackage(t, goPackage{"oracle", oracle.Language})
+	jsCompareDeserialize(t, tablesOf(g.Language).ExternalScanner.Create, tablesOf(oracle.Language()).ExternalScanner.Create)
 }
