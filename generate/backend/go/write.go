@@ -364,7 +364,13 @@ func numbers[T ~uint16 | ~uint32](w *writer, name, doc, typ string, v []T, rowLe
 // writeLargeTables writes the tables that go/format does not read, each in a
 // form that gofmt keeps as it is.
 func writeLargeTables(w *writer, t *abi.Language) {
-	numbers(w, "parseTable", "ts_parse_table, one row of SymbolCount entries for each large state", "uint16", t.ParseTable, int(t.SymbolCount))
+	if len(t.ParseTable) > 0 {
+		starts := make([]uint32, t.LargeStateCount+1)
+		for i := range starts {
+			starts[i] = uint32(i) * t.SymbolCount
+		}
+		uint16Table(w, "parseTable", "ts_parse_table, one row of SymbolCount values for each large state", t.ParseTable, starts, 0)
+	}
 	writeSmallParseTable(w, t)
 	numbers(w, "smallParseTableMap", "ts_small_parse_table_map", "uint32", t.SmallParseTableMap, 0)
 	writeParseActions(w, t)
@@ -470,6 +476,35 @@ func writeSmallParseTable(w *writer, t *abi.Language) {
 		}
 	}
 	w.printf("\n}\n\n")
+}
+
+// tableLineSize is the size in bytes of the values of most lines of a
+// uint16Table. The compiler takes time in proportion to the square of the
+// number of strings that a constant joins, so a line holds many states.
+const tableLineSize = 1 << 13
+
+// uint16Table writes a table of uint16 values as a constant string of
+// abi.Uint16Table. The values of state firstState+k are the values from
+// starts[k] to starts[k+1]. Each line holds the values of whole states,
+// after a comment with the numbers of the states. A line ends after the
+// state that brings it to tableLineSize bytes or more.
+func uint16Table(w *writer, name, doc string, t abi.Uint16Table, starts []uint32, firstState uint32) {
+	w.comment(fmt.Sprintf("%s is %s. Each value is two bytes in little-endian order, plus abi.Uint16TableBias.", name, doc))
+	w.printf("const %s abi.Uint16Table = \"\"", name)
+	for k := 0; k < len(starts)-1; {
+		end := k + 1
+		for end < len(starts)-1 && 2*(starts[end]-starts[k]) < tableLineSize {
+			end++
+		}
+		if end == k+1 {
+			w.printf(" +\n\t// state %d", firstState+uint32(k))
+		} else {
+			w.printf(" +\n\t// states %d to %d", firstState+uint32(k), firstState+uint32(end-1))
+		}
+		w.printf("\n\t%s", strconv.Quote(string(t.From(starts[k])[:2*(starts[end]-starts[k])])))
+		k = end
+	}
+	w.printf("\n\n")
 }
 
 // writeParseActions writes ts_parse_actions, one group of actions on each

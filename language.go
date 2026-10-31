@@ -95,6 +95,12 @@ type LanguageMetadata struct {
 // Language is TSLanguage.
 type Language struct {
 	tables abi.Language
+
+	// _ keeps a Language larger than 576 bytes, so that the Go runtime
+	// allocates it in the size class of 640 bytes, as it did before D121
+	// made ParseTable a string. In the size class of 576 bytes, a first
+	// parse took 4 to 9 percent more time on the machine of D73.
+	_ [8]byte
 }
 
 // NewLanguage builds a language from its tables. Only code under
@@ -176,10 +182,12 @@ func (p lookaheadPhase) String() string {
 //
 // LookaheadIterator is LookaheadIterator and TSLookaheadIterator. In C, data
 // and group_end point into a parse table. In Go, data is the table from the
-// start of the state, and pos and groupEnd are indices into it.
+// start of the state, and pos and groupEnd are indices into it. data holds
+// the values of a small state, and row holds the values of a large state.
 type LookaheadIterator struct {
 	language     *Language
 	data         []uint16
+	row          abi.Uint16Table
 	pos          int
 	groupEnd     int
 	tableValue   uint16
@@ -239,7 +247,7 @@ func (l *Language) lookup(state StateID, symbol Symbol) uint16 {
 		}
 		return 0
 	}
-	return l.tables.ParseTable[uint32(state)*l.tables.SymbolCount+uint32(symbol)]
+	return l.tables.ParseTable.At(uint32(state)*l.tables.SymbolCount + uint32(symbol))
 }
 
 // hasActions is ts_language_has_actions.
@@ -258,6 +266,7 @@ func (l *Language) hasActions(state StateID, symbol Symbol) bool {
 func (l *Language) lookaheads(state StateID) LookaheadIterator {
 	isSmallState := uint32(state) >= l.tables.LargeStateCount
 	var data []uint16
+	var row abi.Uint16Table
 	groupEnd := 0
 	var groupCount uint16
 	if isSmallState {
@@ -266,11 +275,12 @@ func (l *Language) lookaheads(state StateID) LookaheadIterator {
 		groupEnd = 1
 		groupCount = data[0]
 	} else {
-		data = l.tables.ParseTable[uint32(state)*l.tables.SymbolCount:]
+		row = l.tables.ParseTable.From(uint32(state) * l.tables.SymbolCount)
 	}
 	return LookaheadIterator{
 		language:     l,
 		data:         data,
+		row:          row,
 		groupEnd:     groupEnd,
 		groupCount:   groupCount,
 		isSmallState: isSmallState,
@@ -315,12 +325,12 @@ func (it *LookaheadIterator) next() bool {
 		// For large parse states, iterate through every symbol until one
 		// is found that has valid actions.
 		symbolCount := it.language.tables.SymbolCount
-		row := it.data[:symbolCount]
+		row := it.row
 		symbol := it.symbol + 1
 		if it.phase == lookaheadFresh {
 			symbol = 0
 		}
-		for int(symbol) < len(row) && row[symbol] == 0 {
+		for uint32(symbol) < symbolCount && row.At(uint32(symbol)) == 0 {
 			symbol++
 		}
 		if uint32(symbol) >= symbolCount {
@@ -328,7 +338,7 @@ func (it *LookaheadIterator) next() bool {
 			return false
 		}
 		it.symbol = symbol
-		it.tableValue = row[symbol]
+		it.tableValue = row.At(uint32(symbol))
 	}
 
 	// Depending on if the symbol is terminal or non-terminal, the table value either

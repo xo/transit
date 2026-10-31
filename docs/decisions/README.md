@@ -92,7 +92,7 @@ An open question is not a decision. It goes at the end of
 | [D71](D071-inject-takes-utf-8-and-a-rust-oracle-tests-it.md) | The package inject takes UTF-8, and a Rust oracle tests it | Decided |
 | [D72](D072-the-api-of-inject-gives-every-layer-at-once.md) | The API of inject gives every layer at once | Decided |
 | [D73](D073-the-measurements-of-the-prototype.md) | The measurements of the prototype of phase 3 | Decided |
-| [D74](D074-the-go-backend-writes-literal-tables-and-a-lexer-as-data.md) | The Go backend writes literal tables and a lexer as data | Decided |
+| [D74](D074-the-go-backend-writes-literal-tables-and-a-lexer-as-data.md) | The Go backend writes literal tables and a lexer as data | Decided, amended by D121 |
 | [D75](D075-phase-4-starts-before-the-review-of-api-md.md) | Phase 4 starts before the review of API.md | Decided |
 | [D76](D076-nodetype-holds-node-types-json.md) | NodeType holds node-types.json | Decided |
 | [D77](D077-the-rules-of-a-generated-grammar-package.md) | The rules of a generated grammar package | Decided, amended by D82 |
@@ -124,7 +124,7 @@ An open question is not a decision. It goes at the end of
 | [D103](D103-ken-accepts-the-target-api.md) | Ken accepts the target API | Decided, amended by D119 |
 | [D104](D104-a-grammar-that-xo-writes-lives-in-grammars.md) | A grammar that xo writes lives in grammars | Decided, amends D42 |
 | [D105](D105-ken-accepts-the-usql-grammar.md) | Ken accepts the usql grammar | Decided, amends D101 and D102, amended by D108 |
-| [D106](D106-the-grammars-of-phase-5.md) | The grammars of phase 5 | Decided, amends D42, amended by D107 |
+| [D106](D106-the-grammars-of-phase-5.md) | The grammars of phase 5 | Decided, amends D42, amended by D107, D122 and D124 |
 | [D107](D107-a-grammar-module-takes-the-name-of-its-dialect.md) | A grammar module takes the name of its dialect | Decided, amends D26 and D106, amended by D108 and D110 |
 | [D108](D108-the-usql-grammar-is-one-language-that-takes-options.md) | The usql grammar is one language that takes options | Decided, amends D101, D105 and D107, amended by D112 and D114 |
 | [D109](D109-the-grammar-modules-fit-a-runner-of-ci.md) | The grammar modules fit a runner of CI | Decided |
@@ -139,3 +139,7 @@ An open question is not a decision. It goes at the end of
 | [D118](D118-the-nightly-tier-of-ci-starts.md) | The nightly tier of CI starts | Decided, amends D36 |
 | [D119](D119-the-go-api-gets-the-forms-that-upstream-tests-need.md) | The Go API gets the forms that the upstream tests need | Decided, amends D103 |
 | [D120](D120-transit-does-not-report-the-nul-byte-fault.md) | transit does not report the NUL byte fault upstream | Decided |
+| [D121](D121-the-go-backend-can-change-the-form-of-its-tables.md) | The Go backend can change the form of its tables | Decided, amends D74 |
+| [D122](D122-xo-writes-the-postgresql-grammars.md) | xo writes the PostgreSQL grammars | Decided, amends D106 |
+| [D123](D123-the-mysql-grammar-tunes-its-identifier-rules.md) | The MySQL grammar tunes its identifier rules | Decided |
+| [D124](D124-xo-writes-the-oracle-and-sql-server-grammars.md) | xo writes the Oracle and SQL Server grammars | Decided, amends D106 |

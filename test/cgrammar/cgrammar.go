@@ -179,7 +179,7 @@ func tables(l *C.TSLanguage) *abi.Language {
 		KeywordCaptureToken:    uint16(l.keyword_capture_token),
 	}
 
-	t.ParseTable = u16s(l.parse_table, largeStateCount*symbolCount)
+	t.ParseTable = abi.NewUint16Table(u16s(l.parse_table, largeStateCount*symbolCount))
 
 	// The small parse table ends at the end of the groups of its last state.
 	for _, index := range array(l.small_parse_table_map, stateCount-largeStateCount) {
@@ -325,7 +325,7 @@ func parseActions(l *C.TSLanguage, t *abi.Language, tokenCount int) []abi.ParseA
 	symbolCount := int(t.SymbolCount)
 	for state := range int(t.LargeStateCount) {
 		for symbol := range tokenCount {
-			last = max(last, int(t.ParseTable[state*symbolCount+symbol]))
+			last = max(last, int(t.ParseTable.At(uint32(state*symbolCount+symbol))))
 		}
 	}
 	for _, index := range t.SmallParseTableMap {

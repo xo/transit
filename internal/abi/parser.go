@@ -172,6 +172,58 @@ type ReduceAction struct {
 	ProductionID      uint16
 }
 
+// Uint16Table is a table of uint16 values, such as ts_parse_table, in a
+// string. The Go backend writes the table as a string literal, which the
+// compiler builds much faster than a slice literal of the same values, and
+// At reads a value in place. The table is static data, and no copy of it is
+// on the heap (D121).
+//
+// Each value is two bytes in little-endian order, and the bytes hold the
+// value plus Uint16TableBias, modulo 1<<16. Most values of a parse table
+// are 0 or small, so most bytes are then printable ASCII, which a string
+// literal holds as one character and not as an escape of four.
+type Uint16Table string
+
+// Uint16TableBias is the number that a Uint16Table adds to each value. A 0
+// is two spaces.
+const Uint16TableBias = 0x2020
+
+// NewUint16Table returns the table of the values v.
+func NewUint16Table(v []uint16) Uint16Table {
+	b := make([]byte, 2*len(v))
+	for i, x := range v {
+		x += Uint16TableBias
+		b[2*i] = byte(x)
+		b[2*i+1] = byte(x >> 8)
+	}
+	return Uint16Table(b)
+}
+
+// Len returns the number of values of the table.
+func (t Uint16Table) Len() int {
+	return len(t) / 2
+}
+
+// At returns the value at index i.
+func (t Uint16Table) At(i uint32) uint16 {
+	j := 2 * int(i)
+	return (uint16(t[j+1])<<8 | uint16(t[j])) - Uint16TableBias
+}
+
+// From returns the values of the table from index i.
+func (t Uint16Table) From(i uint32) Uint16Table {
+	return t[2*i:]
+}
+
+// Values returns a copy of the values of the table.
+func (t Uint16Table) Values() []uint16 {
+	v := make([]uint16, t.Len())
+	for i := range v {
+		v[i] = t.At(uint32(i))
+	}
+	return v
+}
+
 // LexerMode is TSLexerMode, the lex mode of a parse state.
 type LexerMode struct {
 	LexState          uint16
@@ -323,7 +375,7 @@ type Language struct {
 	ProductionIDCount      uint32
 	FieldCount             uint32
 	MaxAliasSequenceLength uint16
-	ParseTable             []uint16
+	ParseTable             Uint16Table
 	SmallParseTable        []uint16
 	SmallParseTableMap     []uint32
 	ParseActions           []ParseActionEntry

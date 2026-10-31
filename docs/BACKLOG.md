@@ -33,6 +33,14 @@ an `Option<Conflict>`, and only `log_conflict` reads it. The Go checks
 return a bool, because nothing reads the conflict yet. Port `Conflict` and
 `log_conflict` with the logger.
 
+### Measure the small parse table as a string
+
+D121 writes the dense parse table as a string and keeps the small parse
+table as a literal. With the small parse table as a string too, a cold build
+of postgres takes 0.77 s in place of 1.08 s, and of sql 0.61 s in place of
+1.11 s. Its parse cost was measured only without the pad of `Language`.
+Measure it with the pad, and change the form if D121 still holds.
+
 ## The runtime
 
 ### Compare the highlight test with the upstream tool

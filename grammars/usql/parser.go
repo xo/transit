@@ -292,19 +292,12 @@ var fieldNames = []string{
 	FieldValue: "value",
 }
 
-// parseTable is ts_parse_table, one row of SymbolCount entries for each large state.
-var parseTable = []uint16{
-	// state 0
-	1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0,
-	// state 1
-	5, 7, 7, 7, 7, 3, 9, 11, 13, 0, 15, 17, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 19, 21, 23, 25, 0, 0, 0, 0,
-	7, 0, 67, 3, 7, 3, 6, 5, 0, 0, 0, 0, 0, 7, 3, 7,
-	0, 0, 0, 0,
-}
+// parseTable is ts_parse_table, one row of SymbolCount values for each large
+// state. Each value is two bytes in little-endian order, plus
+// abi.Uint16TableBias.
+const parseTable abi.Uint16Table = "" +
+	// states 0 to 1
+	"! ! ! ! ! # ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !                                     % ' ' ' ' # ) + -   / 1                         3 5 7 9         '   c # ' # & %           ' # '         "
 
 // smallParseTable is ts_small_parse_table. The entries of a small state
 // are its number of groups, and for each group its value, its number of

@@ -143,7 +143,7 @@ A repository that holds one grammar, such as JSON, looks like this:
 | `grammars/json/LICENSE` | the license file of the upstream repository | copied |
 | `grammars/json/grammar.json` | `src/grammar.json` of the upstream repository | copied |
 | `grammars/json/tree-sitter.json` | `tree-sitter.json` of the upstream repository, which gives the version of the grammar | copied |
-| `grammars/json/parser.go` | `Language`, the constants, `Queries`, `NodeTypes`, `Keywords`, the tables and the lexer | `transit generate` |
+| `grammars/json/parser.go` | `Language`, the constants, `Queries`, `NodeTypes`, `Keywords`, the tables and the lexer. The dense parse table is a string constant, and the other tables are Go literals (D121) | `transit generate` |
 | `grammars/json/node-types.json` | the node types, which `parser.go` embeds | `transit generate` |
 | `grammars/json/grammar_test.go` | the tests of "Tests" below, which call the package `internal/grammartest` | `transit generate` |
 | `grammars/json/scanner.go` | the external scanner, if the grammar has one | a person, as a port |

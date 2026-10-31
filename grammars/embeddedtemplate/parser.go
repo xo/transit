@@ -205,21 +205,12 @@ var symbolMetadata = []abi.SymbolMetadata{
 	AliasSymComment:          {Visible: true, Named: true},
 }
 
-// parseTable is ts_parse_table, one row of SymbolCount entries for each large state.
-var parseTable = []uint16{
-	// state 0
-	1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0,
-	0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	// state 1
-	3, 0, 0, 5, 7, 9, 11, 9, 11, 0, 0, 0, 13, 15, 13, 15,
-	15, 0, 17, 19, 26, 0, 2, 2, 2, 2, 2, 2, 0, 4,
-	// state 2
-	21, 0, 0, 5, 7, 9, 11, 9, 11, 0, 0, 0, 13, 15, 13, 15,
-	15, 0, 17, 19, 0, 0, 3, 3, 3, 3, 3, 3, 0, 4,
-	// state 3
-	23, 0, 0, 25, 28, 31, 34, 31, 34, 0, 0, 0, 37, 40, 37, 40,
-	40, 0, 43, 46, 0, 0, 3, 3, 3, 3, 3, 3, 0, 4,
-}
+// parseTable is ts_parse_table, one row of SymbolCount values for each large
+// state. Each value is two bytes in little-endian order, plus
+// abi.Uint16TableBias.
+const parseTable abi.Uint16Table = "" +
+	// states 0 to 3
+	"! ! !             ! ! !           !                         #     % ' ) + ) +       - / - / /   1 3 :   \" \" \" \" \" \"   $ 5     % ' ) + ) +       - / - / /   1 3     # # # # # #   $ 7     9 < ? B ? B       E H E H H   K N     # # # # # #   $ "
 
 // smallParseTable is ts_small_parse_table. The entries of a small state
 // are its number of groups, and for each group its value, its number of

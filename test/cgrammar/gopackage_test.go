@@ -138,7 +138,7 @@ func compareTables(want, got *abi.Language) []string {
 	eq("ProductionIDCount", want.ProductionIDCount == got.ProductionIDCount)
 	eq("FieldCount", want.FieldCount == got.FieldCount)
 	eq("MaxAliasSequenceLength", want.MaxAliasSequenceLength == got.MaxAliasSequenceLength)
-	eq("ParseTable", slices.Equal(want.ParseTable, got.ParseTable))
+	eq("ParseTable", want.ParseTable == got.ParseTable)
 	eq("SmallParseTable", slices.Equal(want.SmallParseTable, got.SmallParseTable))
 	eq("SmallParseTableMap", slices.Equal(want.SmallParseTableMap, got.SmallParseTableMap))
 	eq("ParseActions", sameParseActions(want.ParseActions, got.ParseActions))

@@ -51,6 +51,10 @@ from there when Ken asks (D117). On 2026-10-28, it ported every upstream
 commit up to `dfe77085`. `upstream.txt` names the upstream commit that
 transit matches.
 
+On 2026-10-31, the Go backend writes the dense parse table as a string
+constant that the runtime reads in place (D121). The other tables are still
+Go literals.
+
 [ts]: https://github.com/tree-sitter/tree-sitter
 
 ## Standing rules
@@ -101,8 +105,8 @@ A bare number, such as D3, names a decision of this repository, in
 `docs/decisions/`. A decision of another repository names that repository,
 such as dbmeta D110. An open question has a number, and it is at the end of
 `docs/PLAN.md` until Ken answers it. The numbers do not repeat: questions 1
-to 94 are answered, no question is open, and the next question is question
-95.
+to 98 are answered, no question is open, and the next question is question
+99.
 
 ## Hard rules
 
@@ -192,7 +196,7 @@ these files:
 | `inject/` | the package `inject`, which finds the injections of a text and parses their layers. `highlight.go` ports the injection part of `crates/highlight/src/highlight.rs` (D27, D72). `replace.go` and `states_at.go` port no upstream file. They hold `WithReplacer` and `Layer.StatesAt` (D28, D101, D111) |
 | `states_at.go` | `StatesAt`, the first API that upstream does not have (D57, D70). It ports no upstream file (D28) |
 | `node_type.go` | `NodeType`, the form of `node-types.json` that the `NodeTypes` function of a grammar package returns. It ports no upstream file (D28) |
-| `internal/abi/` | the tables of a grammar in the shape of `TSLanguage`, a port of `lib/src/parser.h` (D63), `LexTable`, which runs a lex table that the Go backend writes as data (D74), and `TablesOf`, which gives a grammar package the tables of a language, for the options of the usql grammar (D108) |
+| `internal/abi/` | the tables of a grammar in the shape of `TSLanguage`, a port of `lib/src/parser.h` (D63), `Uint16Table`, the string form of the dense parse table (D121), `LexTable`, which runs a lex table that the Go backend writes as data (D74), and `TablesOf`, which gives a grammar package the tables of a language, for the options of the usql grammar (D108) |
 | `internal/wctype/` | the character functions of `<wctype.h>` and `<ctype.h>` that the Go scanners call, which the test module sets to the C locale (D39, D46) |
 | `internal/grammartest/` | the tests of a grammar package, which its `grammar_test.go` calls: the corpus, the queries, the highlight tests and the generator. `grammartest.go` and `query_testing.go` port parts of `crates/cli/src/test.rs` and `query_testing.rs`, and `spans.go` gives the highlights to `test/cmd/stylesvg` |
 | `internal/corpus/` | the reader of the corpus of a grammar package, of the `tree-sitter.json` of its module and of its `testdata/failing.txt`, for the corpus test and for the example that the Go backend writes (D115). `test.go` ports the parts of `crates/cli/src/test.rs` that read a corpus |
@@ -252,7 +256,7 @@ go vet ./...
 go test -race -count=1 ./...
 golangci-lint run ./...
 (cd test && go vet ./... && go test -race -count=1 -timeout 60m ./... && golangci-lint run ./...)
-for m in grammars/*/go.mod; do (cd "$(dirname "$m")" && go vet ./... && go test -race -count=1 -timeout 60m -skip TestGenerator ./... && GOGC=25 go test -count=1 -timeout 60m -run TestGenerator ./... && GOGC=25 golangci-lint run --concurrency 1 --disable dupl,goconst,gosec ./...) || exit 1; done
+for m in grammars/*/go.mod; do (cd "$(dirname "$m")" && go vet ./... && go test -race -count=1 -timeout 60m -skip TestGenerator ./... && GOGC=25 go test -count=1 -timeout 60m -run TestGenerator ./... && GOGC=25 golangci-lint run --concurrency 1 --disable dupl,goconst,gosec,unqueryvet ./...) || exit 1; done
 (cd styles && go vet ./... && go test -race -count=1 ./... && golangci-lint run ./...)
 (cd _example && go vet ./... && go test -race -count=1 ./... && GOGC=25 golangci-lint run --concurrency 1 ./...)
 ```
@@ -263,6 +267,8 @@ have their own `go.mod`, so `./...` in the root does not reach them. The
 last four commands run the same commands in those modules. The sample
 programs import the package `postgres`, so their lint runs with `GOGC=25`
 and one job at a time, as the lint of the test module does in CI (D109).
+The lint of a grammar module also turns off `unqueryvet`, because it takes
+minutes on a parse table that is a string constant (D121).
 The package `test/cgrammar` of the test module builds the C runtime and the fixture grammars from the
 checkout of upstream and the cache of the golden harness, and it skips its
 tests when they are missing. The tests of `inject` also build the Rust oracle

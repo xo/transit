@@ -1452,14 +1452,14 @@ func (g *generator) addParseTable() error {
 
 	t := &g.out.tables
 	symbolCount := len(g.parseTable.Symbols)
-	t.ParseTable = make([]uint16, g.largeStateCount*symbolCount)
+	parseTable := make([]uint16, g.largeStateCount*symbolCount)
 
 	var terminalEntries []terminalEntry
 	var nonterminalEntries []nonterminalEntry
 
 	for i := range g.parseTable.States[:g.largeStateCount] {
 		state := &g.parseTable.States[i]
-		row := t.ParseTable[i*symbolCount : (i+1)*symbolCount]
+		row := parseTable[i*symbolCount : (i+1)*symbolCount]
 
 		// Ensure the entries are in a deterministic order, since they are
 		// internally represented as a hash map.
@@ -1491,6 +1491,7 @@ func (g *generator) addParseTable() error {
 			row[g.symbolValue(entry.symbol)] = uint16(entryID)
 		}
 	}
+	t.ParseTable = abi.NewUint16Table(parseTable)
 
 	if g.largeStateCount < len(g.parseTable.States) {
 		var small []uint16

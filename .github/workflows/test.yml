@@ -82,8 +82,10 @@ jobs:
       run: golangci-lint run --concurrency 1 ./...
     - name: Lint the grammar modules
       # dupl, goconst and gosec find nothing in a grammar package and take
-      # most of the memory on the generated parser.go of postgres (D109)
-      run: for m in grammars/*/go.mod; do (cd "$(dirname "$m")" && golangci-lint run --concurrency 1 --disable dupl,goconst,gosec ./...) || exit 1; done
+      # most of the memory on the generated parser.go of postgres (D109).
+      # unqueryvet reads each string that a constant joins, and it takes
+      # minutes on the parse table of postgres, a string constant (D121)
+      run: for m in grammars/*/go.mod; do (cd "$(dirname "$m")" && golangci-lint run --concurrency 1 --disable dupl,goconst,gosec,unqueryvet ./...) || exit 1; done
     - name: Lint the styles module
       working-directory: styles
       run: golangci-lint run ./...

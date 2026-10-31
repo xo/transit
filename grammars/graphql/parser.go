@@ -537,29 +537,12 @@ var symbolMetadata = []abi.SymbolMetadata{
 	AuxSymDirectivesRepeat1:               {},
 }
 
-// parseTable is ts_parse_table, one row of SymbolCount entries for each large state.
-var parseTable = []uint16{
-	// state 0
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 3, 3, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	// state 1
-	0, 5, 7, 0, 9, 11, 13, 15, 17, 19, 21, 0, 0, 0, 0, 0,
-	0, 0, 23, 23, 23, 0, 25, 0, 27, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 29, 0, 0, 31, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 3, 368, 369,
-	2, 106, 106, 106, 95, 137, 137, 93, 93, 93, 93, 93, 93, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 103, 165, 95, 135, 135, 135, 135, 135,
-	135, 0, 0, 136, 0, 0, 0, 0, 0, 0, 0, 170, 0, 0, 0, 0,
-	0, 0, 103, 0, 0, 0, 0, 0, 95, 0, 0, 0, 0, 0, 0, 0,
-	0, 171, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-}
+// parseTable is ts_parse_table, one row of SymbolCount values for each large
+// state. Each value is two bytes in little-endian order, plus
+// abi.Uint16TableBias.
+const parseTable abi.Uint16Table = "" +
+	// states 0 to 1
+	"! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !   !   ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !   # #                                                                                                                                                                   % '   ) + - / 1 3 5               7 7 7   9   ;                   =     ?                                             # # \x90!\x91!\" \x8a \x8a \x8a \x7f \xa9 \xa9 } } } } } }                       \x87 \xc5 \x7f \xa7 \xa7 \xa7 \xa7 \xa7 \xa7     \xa8               \xca             \x87           \x7f                 \xcb \"                       "
 
 // smallParseTable is ts_small_parse_table. The entries of a small state
 // are its number of groups, and for each group its value, its number of

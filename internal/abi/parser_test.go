@@ -160,3 +160,28 @@ func TestLexTableLex(t *testing.T) {
 		}
 	}
 }
+
+// TestUint16Table makes sure that a Uint16Table gives back each value that
+// it holds, from the start of the table and from an index, and that a 0 is
+// two spaces.
+func TestUint16Table(t *testing.T) {
+	values := []uint16{0, 1, 0x5e, 0x5f, 0xdfdf, 0xdfe0, 0xffff, 0x2020, 300}
+	table := NewUint16Table(values)
+	if got := table.Len(); got != len(values) {
+		t.Fatalf("Len is %d, want %d", got, len(values))
+	}
+	for i, want := range values {
+		if got := table.At(uint32(i)); got != want {
+			t.Errorf("At(%d) is %#x, want %#x", i, got, want)
+		}
+	}
+	if got := table.Values(); !slices.Equal(got, values) {
+		t.Errorf("Values is %#x, want %#x", got, values)
+	}
+	if got := table.From(4).Values(); !slices.Equal(got, values[4:]) {
+		t.Errorf("From(4) is %#x, want %#x", got, values[4:])
+	}
+	if got := string(NewUint16Table([]uint16{0})); got != "  " {
+		t.Errorf("a 0 is %q, want two spaces", got)
+	}
+}

@@ -48,13 +48,13 @@ func testTables() *abi.Language {
 		ProductionIDCount:      2,
 		FieldCount:             2,
 		MaxAliasSequenceLength: 3,
-		ParseTable: []uint16{
+		ParseTable: abi.NewUint16Table([]uint16{
 			// state 0: "+" is an extra, identifier shifts to 2, and
 			// expression goes to 1
 			0, 3, 1, 1, 0, 0,
 			// state 1: the end accepts, and "+" reduces or shifts to 3
 			8, 5, 0, 0, 0, 0,
-		},
+		}),
 		SmallParseTable: []uint16{
 			// state 2: two groups
 			2,

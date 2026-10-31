@@ -1,6 +1,6 @@
 # D74. The Go backend writes literal tables and a lexer as data
 
-Status: Decided.
+Status: Decided, amended by D121.
 
 D31 leaves the form of the tables and of the lexer that the Go backend writes
 to phase 4, and D73 records the measurements of phase 3. From them, Ken
