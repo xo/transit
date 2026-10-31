@@ -623,3 +623,40 @@ SELECT PREDICTION(m USING *), PREDICTION_PROBABILITY(m, 1 USING *), PREDICTION(m
         (table_reference
           (object_reference
             (identifier)))))))
+
+================================================================================
+Arguments with an alias and all the columns of a table
+================================================================================
+
+SELECT PREDICTION(m USING 'F' gender, 50 age), COUNT(t.*), JSON_OBJECT(t.*) FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (aliased_expression
+            (string)
+            (identifier))
+          (aliased_expression
+            (number)
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (all_columns
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (all_columns
+            (identifier))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))

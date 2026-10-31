@@ -189,8 +189,8 @@ INSERT INTO (SELECT a, b FROM t WHERE a > 0 WITH CHECK OPTION) VALUES (1, 2);
               (column_reference
                 (identifier))
               (operator)
-              (number))))
-        (subquery_restriction)))
+              (number)))
+          (subquery_restriction))))
     (values
       (value_list
         (number)
@@ -1198,3 +1198,39 @@ MERGE INTO t USING dual ON (1 = 0) WHEN NOT MATCHED THEN INSERT (a) VALUES (1);
       (values
         (value_list
           (number))))))
+
+================================================================================
+WAIT after UPDATE and DELETE
+================================================================================
+
+UPDATE t SET a = 1 WHERE b = 2 WAIT 10;
+DELETE FROM t WHERE a = 1 NOWAIT;
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (number))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))
+    (wait_clause
+      (number)))
+  (delete_statement
+    (object_reference
+      (identifier))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))
+    (wait_clause)))

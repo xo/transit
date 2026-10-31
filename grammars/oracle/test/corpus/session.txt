@@ -120,6 +120,7 @@ ALTER SESSION SYNC WITH PRIMARY;
     (string))
   (alter_session_statement
     (keyword)
+    (keyword)
     (keyword)))
 
 ================================================================================
@@ -195,8 +196,11 @@ ALTER SYSTEM REGISTER;
 (source_file
   (alter_system_statement
     (keyword)
-    (string))
+    (keyword)
+    (string)
+    (keyword))
   (alter_system_statement
+    (keyword)
     (keyword)
     (string)
     (keyword))
@@ -212,8 +216,11 @@ ALTER SYSTEM REGISTER;
   (alter_system_statement
     (keyword)
     (keyword)
+    (keyword)
+    (keyword)
     (string))
   (alter_system_statement
+    (keyword)
     (keyword)
     (keyword))
   (alter_system_statement

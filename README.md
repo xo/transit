@@ -202,8 +202,12 @@ types, the function calls with their analytic clauses, and the full
 `INSERT`, `UPDATE`, `DELETE` and `MERGE`, the statements of transactions
 and of sessions, such as `COMMIT` and `ALTER SESSION`, and `GRANT`,
 `REVOKE`, `COMMENT`, `TRUNCATE` and the other statements of the SQL
-Language Reference that do not create or change an object. It does not
-read the statements that define objects and PL/SQL yet. A `/`
+Language Reference that do not create or change an object. It reads the
+statements that define objects: `CREATE`, `ALTER` and `DROP` of tables,
+indexes, views, materialized views, types, domains, property graphs and
+the other objects of the manual, with the columns, the constraints and the
+partitions of a table. The physical options of an object, such as
+`STORAGE`, are a list of words. It does not read PL/SQL yet. A `/`
 alone on its line ends a statement, as in a script of SQL*Plus. The
 grammar of `andreasmaierde/tree-sitter-plsql` stays in the golden set, but
 it has no Go package.

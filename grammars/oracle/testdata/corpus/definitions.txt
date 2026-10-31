@@ -1,0 +1,1560 @@
+================================================================================
+CREATE INDEX
+================================================================================
+
+CREATE INDEX emp_name_ix ON hr.employees (last_name, first_name DESC) TABLESPACE users;
+CREATE UNIQUE INDEX emp_email_uk ON employees (UPPER(email)) ONLINE COMPUTE STATISTICS;
+CREATE BITMAP INDEX emp_dept_bx ON employees (department_id) LOCAL NOLOGGING;
+
+---
+
+(source_file
+  (create_index_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (index_column
+      (column_reference
+        (identifier)))
+    (index_column
+      (column_reference
+        (identifier)))
+    (keyword)
+    (keyword))
+  (create_index_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (index_column
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier)))))
+    (keyword)
+    (keyword)
+    (keyword))
+  (create_index_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (index_column
+      (column_reference
+        (identifier)))
+    (keyword)
+    (keyword)))
+
+================================================================================
+CREATE INDEX with options
+================================================================================
+
+CREATE INDEX IF NOT EXISTS ctx_ix ON docs (text) INDEXTYPE IS ctxsys.context PARAMETERS ('sync (on commit)');
+CREATE SEARCH INDEX doc_ix ON docs (doc) FOR JSON;
+CREATE MULTIVALUE INDEX mv_ix ON docs d (d.doc.tags.string());
+CREATE INDEX cl_ix ON CLUSTER emp_dept;
+
+---
+
+(source_file
+  (create_index_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (index_column
+      (column_reference
+        (identifier)))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string))
+  (create_index_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (index_column
+      (column_reference
+        (identifier)))
+    (keyword)
+    (keyword))
+  (create_index_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (identifier)
+    (index_column
+      (field_expression
+        (column_reference
+          (identifier)
+          (identifier)
+          (identifier))
+        (function_call
+          (identifier)
+          (arguments)))))
+  (create_index_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))))
+
+================================================================================
+CREATE INDEX partitioned
+================================================================================
+
+CREATE INDEX s_ix ON sales (sold) GLOBAL PARTITION BY RANGE (sold) (PARTITION p1 VALUES LESS THAN (10), PARTITION p2 VALUES LESS THAN (MAXVALUE));
+CREATE INDEX s_lx ON sales (amount) LOCAL (PARTITION p1 TABLESPACE a, PARTITION p2 TABLESPACE b);
+
+---
+
+(source_file
+  (create_index_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (index_column
+      (column_reference
+        (identifier)))
+    (keyword)
+    (table_partitioning
+      (column_list
+        (identifier))
+      (partition_definition
+        (identifier)
+        (number))
+      (partition_definition
+        (identifier))))
+  (create_index_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (index_column
+      (column_reference
+        (identifier)))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)))
+
+================================================================================
+CREATE BITMAP JOIN INDEX
+================================================================================
+
+CREATE BITMAP INDEX sales_cust_bjx ON sales (c.cust_city) FROM sales s, customers c WHERE s.cust_id = c.cust_id LOCAL;
+
+---
+
+(source_file
+  (create_index_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (index_column
+      (column_reference
+        (identifier)
+        (identifier)))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)))
+
+================================================================================
+CREATE VECTOR INDEX
+================================================================================
+
+CREATE VECTOR INDEX v_ix ON docs (v) ORGANIZATION INMEMORY NEIGHBOR GRAPH DISTANCE COSINE WITH TARGET ACCURACY 95 PARAMETERS (TYPE HNSW, NEIGHBORS 40);
+
+---
+
+(source_file
+  (create_index_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (index_column
+      (column_reference
+        (identifier)))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (number)))
+
+================================================================================
+CREATE VIEW
+================================================================================
+
+CREATE OR REPLACE VIEW emp_v AS SELECT employee_id, last_name FROM employees WHERE department_id = 10 WITH CHECK OPTION CONSTRAINT emp_v_ck;
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))
+      (subquery_restriction
+        (identifier)))))
+
+================================================================================
+CREATE VIEW with columns and options
+================================================================================
+
+CREATE OR REPLACE FORCE EDITIONABLE VIEW hr.emp_v (id, name, CONSTRAINT emp_v_pk PRIMARY KEY (id) RELY DISABLE NOVALIDATE)
+  DEFAULT COLLATION binary_ci BEQUEATH DEFINER ANNOTATIONS (title 'Staff')
+  AS SELECT id, name FROM emp WITH READ ONLY;
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (column_definition
+      (identifier))
+    (column_definition
+      (identifier))
+    (table_constraint
+      (identifier)
+      (column_list
+        (identifier)))
+    (identifier)
+    (annotations
+      (annotation
+        (identifier)
+        (string)))
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (subquery_restriction))))
+
+================================================================================
+CREATE VIEW IF NOT EXISTS
+================================================================================
+
+CREATE VIEW IF NOT EXISTS v AS SELECT 1 FROM dual;
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (select
+      (number)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+CREATE JSON RELATIONAL DUALITY VIEW
+================================================================================
+
+CREATE OR REPLACE JSON RELATIONAL DUALITY VIEW dept_dv AS
+  SELECT JSON {'_id' : d.deptno,
+               'name' : d.dname WITH NOUPDATE,
+               'emps' : (SELECT JSON_ARRAYAGG(JSON {'id' : e.empno, 'name' : e.ename})
+                           FROM emp e WITH INSERT UPDATE
+                           WHERE e.deptno = d.deptno)}
+  FROM dept d WITH INSERT UPDATE DELETE;
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (select
+      (json_constructor
+        (keyword)
+        (string)
+        (column_reference
+          (identifier)
+          (identifier))
+        (string)
+        (column_reference
+          (identifier)
+          (identifier))
+        (string)
+        (subquery
+          (select
+            (function_call
+              (identifier)
+              (arguments
+                (json_constructor
+                  (keyword)
+                  (string)
+                  (column_reference
+                    (identifier)
+                    (identifier))
+                  (string)
+                  (column_reference
+                    (identifier)
+                    (identifier)))))
+            (from_clause
+              (table_reference
+                (object_reference
+                  (identifier))
+                (identifier)))
+            (subquery_restriction)
+            (where_clause
+              (binary_expression
+                (column_reference
+                  (identifier)
+                  (identifier))
+                (operator)
+                (column_reference
+                  (identifier)
+                  (identifier)))))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))
+          (identifier)))
+      (subquery_restriction))))
+
+================================================================================
+CREATE MATERIALIZED VIEW
+================================================================================
+
+CREATE MATERIALIZED VIEW sales_mv
+  BUILD IMMEDIATE REFRESH FAST ON COMMIT ENABLE QUERY REWRITE
+  AS SELECT region, SUM(amount) AS total FROM sales GROUP BY region;
+
+---
+
+(source_file
+  (create_materialized_view_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (select
+      (column_reference
+        (identifier))
+      (aliased_expression
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier))))
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (group_by_clause
+        (column_reference
+          (identifier))))))
+
+================================================================================
+CREATE MATERIALIZED VIEW with a refresh time
+================================================================================
+
+CREATE MATERIALIZED VIEW m REFRESH COMPLETE START WITH SYSDATE NEXT SYSDATE + 1/24 WITH PRIMARY KEY AS SELECT * FROM t@remote;
+
+---
+
+(source_file
+  (create_materialized_view_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (operator)
+    (number)
+    (operator)
+    (number)
+    (keyword)
+    (keyword)
+    (keyword)
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)
+            (database_link
+              (identifier))))))))
+
+================================================================================
+CREATE MATERIALIZED VIEW on a prebuilt table
+================================================================================
+
+CREATE MATERIALIZED VIEW m2 ON PREBUILT TABLE WITH REDUCED PRECISION REFRESH FORCE ON DEMAND AS SELECT a FROM t;
+
+---
+
+(source_file
+  (create_materialized_view_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+CREATE MATERIALIZED VIEW LOG
+================================================================================
+
+CREATE MATERIALIZED VIEW LOG ON sales WITH ROWID, SEQUENCE (region, amount) INCLUDING NEW VALUES;
+
+---
+
+(source_file
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)))
+
+================================================================================
+CREATE SEQUENCE
+================================================================================
+
+CREATE SEQUENCE hr.emp_seq START WITH 1 INCREMENT BY 1 MINVALUE -10 MAXVALUE 999999 NOCACHE NOCYCLE ORDER;
+CREATE SEQUENCE IF NOT EXISTS s2 SCALE EXTEND SESSION;
+
+---
+
+(source_file
+  (create_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)
+    (operator)
+    (number)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)))
+
+================================================================================
+CREATE SYNONYM
+================================================================================
+
+CREATE OR REPLACE PUBLIC SYNONYM emp FOR hr.employees;
+CREATE SYNONYM r FOR scott.t@remote.example.com;
+
+---
+
+(source_file
+  (create_synonym_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier)))
+  (create_synonym_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier)
+      (database_link
+        (identifier)
+        (identifier)
+        (identifier)))))
+
+================================================================================
+CREATE DATABASE LINK
+================================================================================
+
+CREATE SHARED PUBLIC DATABASE LINK remote.example.com CONNECT TO scott IDENTIFIED BY "tiger" USING 'orcl';
+
+---
+
+(source_file
+  (create_statement
+    (database_link
+      (identifier)
+      (identifier)
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (identifier)
+    (keyword)
+    (string)))
+
+================================================================================
+CREATE DIRECTORY and LIBRARY
+================================================================================
+
+CREATE OR REPLACE DIRECTORY data_dir AS '/u01/data';
+CREATE LIBRARY ext_lib AS '/u01/lib/ext.so';
+
+---
+
+(source_file
+  (create_statement
+    (object_reference
+      (identifier))
+    (string))
+  (create_statement
+    (object_reference
+      (identifier))
+    (string)))
+
+================================================================================
+CREATE USER
+================================================================================
+
+CREATE USER app IDENTIFIED BY "secret" DEFAULT TABLESPACE users TEMPORARY TABLESPACE temp QUOTA 10M ON users PROFILE default ACCOUNT UNLOCK;
+CREATE USER ext IDENTIFIED EXTERNALLY AS 'cn=ext';
+
+---
+
+(source_file
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (identifier)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (string)))
+
+================================================================================
+CREATE ROLE and PROFILE
+================================================================================
+
+CREATE ROLE app_role NOT IDENTIFIED;
+CREATE PROFILE app_prof LIMIT SESSIONS_PER_USER 2 PASSWORD_LIFE_TIME 180 FAILED_LOGIN_ATTEMPTS UNLIMITED;
+
+---
+
+(source_file
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)))
+
+================================================================================
+CREATE TABLESPACE
+================================================================================
+
+CREATE BIGFILE TABLESPACE data_ts DATAFILE '/u01/data01.dbf' SIZE 100M AUTOEXTEND ON NEXT 10M MAXSIZE UNLIMITED EXTENT MANAGEMENT LOCAL SEGMENT SPACE MANAGEMENT AUTO;
+CREATE TEMPORARY TABLESPACE temp2 TEMPFILE '/u01/temp02.dbf' SIZE 50M;
+
+---
+
+(source_file
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (string)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (string)
+    (keyword)
+    (number)
+    (keyword)))
+
+================================================================================
+CREATE CLUSTER
+================================================================================
+
+CREATE CLUSTER emp_dept (department_id NUMBER(4)) SIZE 512 STORAGE (INITIAL 100K);
+
+---
+
+(source_file
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)))
+
+================================================================================
+CREATE other objects
+================================================================================
+
+CREATE CONTEXT app_ctx USING app_pkg ACCESSED GLOBALLY;
+CREATE EDITION e2 AS CHILD OF ora$base;
+CREATE PLUGGABLE DATABASE pdb2 FROM pdb1@remote FILE_NAME_CONVERT = ('/a/', '/b/');
+CREATE AUDIT POLICY p ACTIONS SELECT ON hr.employees, DELETE ON hr.employees WHEN 'SYS_CONTEXT(''USERENV'', ''SESSION_USER'') = ''X''' EVALUATE PER SESSION;
+CREATE MATERIALIZED ZONEMAP z AS SELECT SYS_OP_ZONE_ID(rowid), MIN(a), MAX(a) FROM t GROUP BY SYS_OP_ZONE_ID(rowid);
+CREATE RESTORE POINT before_upgrade GUARANTEE FLASHBACK DATABASE;
+CREATE PFILE = '/tmp/init.ora' FROM SPFILE;
+
+---
+
+(source_file
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (database_link
+      (identifier))
+    (keyword)
+    (string)
+    (string))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (pseudocolumn)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (group_by_clause
+        (function_call
+          (identifier)
+          (arguments
+            (pseudocolumn))))))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword))
+  (create_statement
+    (string)
+    (keyword)
+    (keyword)))
+
+================================================================================
+CREATE TYPE as an object
+================================================================================
+
+CREATE OR REPLACE TYPE person_t FORCE AUTHID DEFINER AS OBJECT (
+  id NUMBER,
+  name VARCHAR2(50),
+  CONSTRUCTOR FUNCTION person_t (SELF IN OUT NOCOPY person_t, name VARCHAR2) RETURN SELF AS RESULT,
+  MEMBER FUNCTION get_name RETURN VARCHAR2 DETERMINISTIC,
+  MEMBER PROCEDURE set_name (p_name IN VARCHAR2 DEFAULT 'x'),
+  STATIC FUNCTION make (p_id NUMBER := 1) RETURN person_t,
+  MAP MEMBER FUNCTION sort_key RETURN NUMBER
+) NOT FINAL;
+
+---
+
+(source_file
+  (create_type_statement
+    (object_reference
+      (identifier))
+    (type_attribute
+      (identifier)
+      (type))
+    (type_attribute
+      (identifier)
+      (type
+        (type_modifiers
+          (number))))
+    (type_method
+      (identifier)
+      (parameters
+        (parameter_declaration
+          (identifier)
+          (type
+            (identifier)))
+        (parameter_declaration
+          (identifier)
+          (type))))
+    (type_method
+      (identifier)
+      (type))
+    (type_method
+      (identifier)
+      (parameters
+        (parameter_declaration
+          (identifier)
+          (type)
+          (string))))
+    (type_method
+      (identifier)
+      (parameters
+        (parameter_declaration
+          (identifier)
+          (type)
+          (number)))
+      (type
+        (identifier)))
+    (type_method
+      (identifier)
+      (type))))
+
+================================================================================
+CREATE TYPE under another type
+================================================================================
+
+CREATE TYPE student_t UNDER person_t (school VARCHAR2(50), OVERRIDING MEMBER FUNCTION get_name RETURN VARCHAR2) FINAL NOT INSTANTIABLE;
+
+---
+
+(source_file
+  (create_type_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (type_attribute
+      (identifier)
+      (type
+        (type_modifiers
+          (number))))
+    (type_method
+      (identifier)
+      (type))))
+
+================================================================================
+CREATE TYPE as a collection
+================================================================================
+
+CREATE TYPE phone_list AS VARRAY(10) OF VARCHAR2(20);
+CREATE TYPE emp_list IS TABLE OF person_t NOT NULL;
+CREATE OR REPLACE TYPE num_tab AS TABLE OF NUMBER;
+CREATE TYPE incomplete_t;
+
+---
+
+(source_file
+  (create_type_statement
+    (object_reference
+      (identifier))
+    (number)
+    (type
+      (type_modifiers
+        (number))))
+  (create_type_statement
+    (object_reference
+      (identifier))
+    (type
+      (identifier)))
+  (create_type_statement
+    (object_reference
+      (identifier))
+    (type))
+  (create_type_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+CREATE DOMAIN
+================================================================================
+
+CREATE DOMAIN IF NOT EXISTS email_d AS VARCHAR2(100) CONSTRAINT email_ck CHECK (REGEXP_LIKE(email_d, '^.+@.+$')) DISPLAY LOWER(email_d) ORDER UPPER(email_d) ANNOTATIONS (title 'Email');
+CREATE DOMAIN year_d AS NUMBER(4) STRICT DEFAULT ON NULL 2000 NOT NULL;
+CREATE DOMAIN status_d AS ENUM (active = 'A', inactive = 'I', unknown);
+CREATE DOMAIN addr_d AS (street AS VARCHAR2(40), city AS VARCHAR2(20)) CONSTRAINT addr_ck CHECK (city IS NOT NULL);
+CREATE FLEXIBLE DOMAIN temp_d (val, unit) CHOOSE DOMAIN USING (u VARCHAR2(1)) FROM (CASE u WHEN 'C' THEN celsius_d(val, unit) ELSE fahrenheit_d(val, unit) END);
+
+---
+
+(source_file
+  (create_domain_statement
+    (object_reference
+      (identifier))
+    (type
+      (type_modifiers
+        (number)))
+    (column_constraint
+      (identifier)
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (string))))
+    (function_call
+      (identifier)
+      (arguments
+        (column_reference
+          (identifier))))
+    (function_call
+      (identifier)
+      (arguments
+        (column_reference
+          (identifier))))
+    (annotations
+      (annotation
+        (identifier)
+        (string))))
+  (create_domain_statement
+    (object_reference
+      (identifier))
+    (type
+      (type_modifiers
+        (number)))
+    (default_clause
+      (number))
+    (column_constraint))
+  (create_domain_statement
+    (object_reference
+      (identifier))
+    (enum_item
+      (identifier)
+      (string))
+    (enum_item
+      (identifier)
+      (string))
+    (enum_item
+      (identifier)))
+  (create_domain_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (type
+      (type_modifiers
+        (number)))
+    (identifier)
+    (type
+      (type_modifiers
+        (number)))
+    (column_constraint
+      (identifier)
+      (is_expression
+        (column_reference
+          (identifier))
+        (null))))
+  (create_domain_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier))
+    (identifier)
+    (type
+      (type_modifiers
+        (number)))
+    (parenthesized_expression
+      (case_expression
+        (column_reference
+          (identifier))
+        (when_clause
+          (string)
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier))
+              (column_reference
+                (identifier)))))
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier))
+            (column_reference
+              (identifier))))))))
+
+================================================================================
+CREATE PROPERTY GRAPH
+================================================================================
+
+CREATE PROPERTY GRAPH IF NOT EXISTS bank_graph
+  VERTEX TABLES (
+    accounts KEY (id) LABEL account PROPERTIES (id, name AS owner),
+    persons AS p PROPERTIES ARE ALL COLUMNS EXCEPT (secret)
+  )
+  EDGE TABLES (
+    transfers KEY (txn_id)
+      SOURCE KEY (src) REFERENCES accounts (id)
+      DESTINATION KEY (dst) REFERENCES accounts (id)
+      LABEL transfer NO PROPERTIES
+  );
+
+---
+
+(source_file
+  (create_property_graph_statement
+    (object_reference
+      (identifier))
+    (graph_element_table
+      (object_reference
+        (identifier))
+      (column_list
+        (identifier))
+      (identifier)
+      (column_reference
+        (identifier))
+      (aliased_expression
+        (column_reference
+          (identifier))
+        (identifier)))
+    (graph_element_table
+      (object_reference
+        (identifier))
+      (identifier)
+      (column_list
+        (identifier)))
+    (graph_element_table
+      (object_reference
+        (identifier))
+      (column_list
+        (identifier))
+      (column_list
+        (identifier))
+      (identifier)
+      (column_list
+        (identifier))
+      (column_list
+        (identifier))
+      (identifier)
+      (column_list
+        (identifier))
+      (identifier))))
+
+================================================================================
+CREATE SCHEMA AUTHORIZATION
+================================================================================
+
+CREATE SCHEMA AUTHORIZATION hr
+  CREATE TABLE t1 (a NUMBER)
+  CREATE VIEW v1 AS SELECT a FROM t1
+  GRANT SELECT ON v1 TO scott;
+
+---
+
+(source_file
+  (create_schema_statement
+    (identifier)
+    (create_table_statement
+      (object_reference
+        (identifier))
+      (column_definition
+        (identifier)
+        (type)))
+    (create_view_statement
+      (object_reference
+        (identifier))
+      (select
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))
+    (grant_statement
+      (privilege)
+      (object_reference
+        (identifier))
+      (identifier))))
+
+================================================================================
+ALTER statements of other objects
+================================================================================
+
+ALTER INDEX emp_name_ix REBUILD ONLINE TABLESPACE users;
+ALTER INDEX emp_name_ix RENAME TO emp_name_ix2;
+ALTER SEQUENCE emp_seq INCREMENT BY 10 MAXVALUE 100;
+ALTER USER app IDENTIFIED BY "new" QUOTA UNLIMITED ON users ACCOUNT LOCK;
+ALTER USER app GRANT CONNECT THROUGH proxy_user;
+ALTER VIEW emp_v COMPILE;
+ALTER MATERIALIZED VIEW sales_mv REFRESH COMPLETE;
+ALTER TRIGGER emp_trg DISABLE;
+ALTER PROCEDURE p COMPILE REUSE SETTINGS;
+ALTER TYPE person_t ADD ATTRIBUTE (email VARCHAR2(50)) CASCADE;
+ALTER TABLESPACE users ADD DATAFILE '/u01/users02.dbf' SIZE 10M;
+ALTER DATABASE OPEN;
+ALTER PLUGGABLE DATABASE ALL OPEN READ WRITE;
+ALTER PUBLIC DATABASE LINK remote.example.com CONNECT TO scott IDENTIFIED BY tiger;
+ALTER PROFILE app_prof LIMIT SESSIONS_PER_USER 4;
+ALTER DOMAIN email_d ADD DISPLAY UPPER(email_d);
+
+---
+
+(source_file
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)
+    (number))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (identifier)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (number)
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (number)
+    (keyword))
+  (alter_statement
+    (keyword))
+  (alter_statement
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_statement
+    (database_link
+      (identifier)
+      (identifier)
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (number))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)))
+
+================================================================================
+DROP statements
+================================================================================
+
+DROP TABLE hr.employees CASCADE CONSTRAINTS PURGE;
+DROP TABLE IF EXISTS t;
+DROP INDEX emp_name_ix ONLINE FORCE;
+DROP VIEW emp_v;
+DROP MATERIALIZED VIEW sales_mv PRESERVE TABLE;
+DROP MATERIALIZED VIEW LOG ON sales;
+DROP SEQUENCE emp_seq;
+DROP PUBLIC SYNONYM emp FORCE;
+DROP USER app CASCADE;
+DROP TABLESPACE data_ts INCLUDING CONTENTS AND DATAFILES CASCADE CONSTRAINTS;
+DROP TYPE person_t FORCE;
+DROP TYPE BODY person_t;
+DROP PACKAGE BODY app_pkg;
+DROP PROCEDURE p;
+DROP PUBLIC DATABASE LINK remote.example.com;
+DROP DOMAIN email_d FORCE PRESERVE;
+DROP PROPERTY GRAPH bank_graph;
+DROP PLUGGABLE DATABASE pdb2 INCLUDING DATAFILES;
+DROP DATABASE;
+
+---
+
+(source_file
+  (drop_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (keyword))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (keyword))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (keyword))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (database_link
+      (identifier)
+      (identifier)
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword))
+  (drop_statement))
+
+================================================================================
+ASSOCIATE and DISASSOCIATE STATISTICS
+================================================================================
+
+ASSOCIATE STATISTICS WITH COLUMNS hr.employees.salary, employees.bonus USING stats_t DEFAULT COST (100, 5, 0);
+ASSOCIATE STATISTICS WITH FUNCTIONS f1, hr.f2 DEFAULT SELECTIVITY 10;
+ASSOCIATE STATISTICS WITH INDEXTYPES ctxsys.context USING NULL WITH SYSTEM MANAGED STORAGE TABLES;
+DISASSOCIATE STATISTICS FROM PACKAGES app_pkg FORCE;
+
+---
+
+(source_file
+  (associate_statistics_statement
+    (column_reference
+      (identifier)
+      (identifier)
+      (identifier))
+    (column_reference
+      (identifier)
+      (identifier))
+    (object_reference
+      (identifier))
+    (number)
+    (number)
+    (number))
+  (associate_statistics_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (number))
+  (associate_statistics_statement
+    (object_reference
+      (identifier)
+      (identifier)))
+  (disassociate_statistics_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+CREATE INDEX with quoted names and FILTER BY
+================================================================================
+
+CREATE INDEX "CTX"."IX" ON "CTX"."DOCS" ("TEXT") INDEXTYPE IS "CTXSYS"."CONTEXT" FILTER BY model, price PARAMETERS ('sync (every "sysdate+1")');
+
+---
+
+(source_file
+  (create_index_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (index_column
+      (column_reference
+        (identifier)))
+    (keyword)
+    (keyword)
+    (identifier)
+    (identifier)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string)))
+
+================================================================================
+CREATE VIEW of an object type
+================================================================================
+
+CREATE OR REPLACE VIEW oc_customers OF customer_typ WITH OBJECT OID (customer_id) AS SELECT c.customer_id, c.name FROM customers c;
+CREATE OR REPLACE VIEW db_summary OF XMLType WITH OBJECT ID ('DB_SUMMARY') AS SELECT 1 FROM dual;
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (column_reference
+      (identifier))
+    (select
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))
+          (identifier)))))
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (string)
+    (select
+      (number)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+CREATE TYPE with REF attributes
+================================================================================
+
+CREATE TYPE order_item_typ AS OBJECT (line_id NUMBER(3), product_ref REF product_typ);
+CREATE TYPE cat_list AS TABLE OF REF category_typ;
+
+---
+
+(source_file
+  (create_type_statement
+    (object_reference
+      (identifier))
+    (type_attribute
+      (identifier)
+      (type
+        (type_modifiers
+          (number))))
+    (type_attribute
+      (identifier)
+      (type
+        (object_reference
+          (identifier)))))
+  (create_type_statement
+    (object_reference
+      (identifier))
+    (type
+      (object_reference
+        (identifier)))))
+
+================================================================================
+CREATE JSON DUALITY VIEW with an array in brackets
+================================================================================
+
+CREATE JSON DUALITY VIEW team_dv AS
+  SELECT JSON {'_id' : t.team_id, 'players' : [SELECT JSON {'id' : p.player_id} FROM player p WITH INSERT WHERE p.team_id = t.team_id]}
+  FROM team t WITH INSERT UPDATE DELETE;
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (select
+      (json_constructor
+        (keyword)
+        (string)
+        (column_reference
+          (identifier)
+          (identifier))
+        (string)
+        (select
+          (json_constructor
+            (keyword)
+            (string)
+            (column_reference
+              (identifier)
+              (identifier)))
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier))
+              (identifier)))
+          (subquery_restriction)
+          (where_clause
+            (binary_expression
+              (column_reference
+                (identifier)
+                (identifier))
+              (operator)
+              (column_reference
+                (identifier)
+                (identifier))))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))
+          (identifier)))
+      (subquery_restriction))))

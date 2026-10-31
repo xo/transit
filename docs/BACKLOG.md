@@ -190,10 +190,10 @@ These faults remain:
 ### Finish the Oracle grammar
 
 The Oracle grammar that xo writes (D124) reads the queries of Oracle
-Database 23ai, the statements that change data, and the statements of
-transactions, of sessions and of privileges. The statements that define
-objects and the units of PL/SQL come in later parts. It leaves out these
-forms of a query:
+Database 23ai, the statements that change data, the statements of
+transactions, of sessions and of privileges, and the statements that
+define objects. The units of PL/SQL come in a later part. It leaves out
+these forms of a query:
 
 - The declarations of PL/SQL in `WITH`, as in
   `WITH FUNCTION f RETURN NUMBER IS BEGIN RETURN 1; END; SELECT f FROM dual`.
@@ -203,36 +203,45 @@ forms of a query:
 - `FROM FIRST` and `FROM LAST` after `NTH_VALUE`. `FROM` after a function
   call can also start the `FROM` of the query, and the parser cannot tell
   the two apart with one token of lookahead.
-- A measure of a reference model with the name of the model, as in
-  `r.b[1]`. It costs about 240 parse states.
-- An argument with an alias, as in `PREDICTION(m USING 'F' gender)`, and
-  `t.*` as an argument. They cost about 25 large states. `USING *` parses.
 - `PARTITION BY` in the arguments, as in `APPROX_RANK(PARTITION BY a ORDER
   BY b)`, and `OF ANOMALY` of `PREDICTION_PROBABILITY`.
 
 It leaves out these forms of the other statements:
 
-- The clause `WAIT` of 23ai after `UPDATE` and `DELETE`, as in
-  `DELETE FROM t WHERE a = 1 WAIT 10`. The words `WAIT` and `NOWAIT` after
-  each expression of `WHERE` cost about 26 large states. `FOR UPDATE` of a
-  query takes the clause.
 - A record of PL/SQL as the values of `INSERT`, as in
   `INSERT INTO t VALUES r`, and `SET ROW = r` of `UPDATE`. They come with
   PL/SQL.
-- A name with a schema after `INTO` in the words of `ANALYZE`, as in
-  `LIST CHAINED ROWS INTO hr.chained_rows`. A dot in the list of words
-  conflicts with the name of the table.
 - A parameter of `ALTER SYSTEM SET` that holds a reserved word, as in
   `SET ENCRYPTION KEY IDENTIFIED BY w`, and the privilege
   `ON COMMIT REFRESH`, whose `ON` starts the object of `GRANT`.
 
+It leaves out these forms of the statements that define objects:
+
+- `CREATE TYPE BODY` and the bodies of the methods. They are PL/SQL, which
+  a later part adds.
+- The source text of `CREATE JAVA SOURCE ... AS` and of
+  `CREATE MLE MODULE ... AS`. It is Java or JavaScript, not SQL.
+- The form of GraphQL of `CREATE JSON RELATIONAL DUALITY VIEW`, as in
+  `AS dept @insert { _id: deptno }`, and `UNNEST` in the form of SQL.
+- `DOMAIN d (a, b)` as an element of `CREATE TABLE`, which gives a domain
+  of several columns to the columns. With this form, a column with the
+  name `domain` would have an error.
+- `CREATE OUTLINE ... ON` a statement. The statement is a list of words.
+- `SCOPE FOR` and `REF ... WITH ROWID` of a column of type `REF`.
+
+The physical options of a table, an index, a materialized view and the
+other objects are a list of words, as are the clauses of `ALTER` but
+`ALTER TABLE`. The words of a time of refresh, as in `NEXT SYSDATE + 1`,
+and the `FROM` and the `WHERE` of a bitmap join index are words of such a
+list too. An expression there costs large parse states, because many words
+can come after it. A column without parentheses after `ADD` or `MODIFY`
+of `ALTER TABLE` is the last clause of the statement, for the same reason.
+
 A keyword that Oracle does not reserve and that can come after the table of
 a statement, such as `LOG`, `RETURNING` or `WHEN`, is not an alias of the
-table there. So `DELETE FROM t log WHERE a = 1` has an error.
-
-The substitution variables of SQL*Plus, such as `&name` and `&&name`, are
-not part of the grammar. Ken decides whether usql or the Oracle grammar
-reads them.
+table there. So `DELETE FROM t log WHERE a = 1` has an error. In the same
+way, a view with the name `log` after `DROP MATERIALIZED VIEW` has an
+error, because `LOG` continues the kind of the object.
 
 ## The setup of the repository
 

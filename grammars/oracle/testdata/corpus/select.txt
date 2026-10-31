@@ -1001,8 +1001,8 @@ SELECT * FROM (SELECT a FROM t WITH READ ONLY), (SELECT b FROM u WITH CHECK OPTI
               (from_clause
                 (table_reference
                   (object_reference
-                    (identifier)))))
-            (subquery_restriction)))
+                    (identifier))))
+              (subquery_restriction))))
         (derived_table
           (subquery
             (select
@@ -1011,9 +1011,9 @@ SELECT * FROM (SELECT a FROM t WITH READ ONLY), (SELECT b FROM u WITH CHECK OPTI
               (from_clause
                 (table_reference
                   (object_reference
-                    (identifier)))))
-            (subquery_restriction
-              (identifier))))))))
+                    (identifier))))
+              (subquery_restriction
+                (identifier)))))))))
 
 ================================================================================
 VALUES as a table
@@ -1842,3 +1842,68 @@ SELECT g.gram FROM base g NESTED data COLUMNS (gram, NESTED posting[*] COLUMNS (
                       (json_column
                         (identifier)
                         (string)))))))))))))
+
+================================================================================
+A measure of a reference model
+================================================================================
+
+SELECT c, y, s FROM sales
+  MODEL REFERENCE r ON (SELECT c, rate FROM rates) DIMENSION BY (c) MEASURES (rate)
+  MAIN m DIMENSION BY (c, y) MEASURES (s)
+  RULES (s['x', 2001] = s['x', 2000] * r.rate['x']);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (model_clause
+        (reference_model
+          (identifier)
+          (subquery
+            (select
+              (column_reference
+                (identifier))
+              (column_reference
+                (identifier))
+              (from_clause
+                (table_reference
+                  (object_reference
+                    (identifier))))))
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier)))
+        (identifier)
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))
+        (model_rules
+          (model_rule
+            (cell_reference
+              (identifier)
+              (string)
+              (number))
+            (binary_expression
+              (cell_reference
+                (identifier)
+                (string)
+                (number))
+              (operator)
+              (cell_reference
+                (identifier)
+                (identifier)
+                (string)))))))))

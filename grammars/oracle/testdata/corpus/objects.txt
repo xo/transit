@@ -153,20 +153,30 @@ ANALYZE CLUSTER personnel COMPUTE STATISTICS FOR TABLE FOR ALL INDEXES;
   (analyze_statement
     (object_reference
       (identifier))
-    (keyword))
-  (analyze_statement
-    (object_reference
-      (identifier))
     (keyword)
     (keyword))
   (analyze_statement
     (object_reference
       (identifier))
     (keyword)
+    (keyword)
+    (keyword)
     (keyword))
   (analyze_statement
     (object_reference
       (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (analyze_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
     (keyword)
     (keyword)
     (keyword))
@@ -175,10 +185,15 @@ ANALYZE CLUSTER personnel COMPUTE STATISTICS FOR TABLE FOR ALL INDEXES;
       (identifier))
     (partition_extension
       (identifier))
+    (keyword)
     (keyword))
   (analyze_statement
     (object_reference
       (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
     (keyword)
     (keyword)
     (keyword)))
@@ -487,3 +502,22 @@ RENAME departments_new TO emp_departments;
   (rename_statement
     (identifier)
     (identifier)))
+
+================================================================================
+ANALYZE with a table of chained rows
+================================================================================
+
+ANALYZE TABLE t LIST CHAINED ROWS INTO hr.chained_rows;
+
+---
+
+(source_file
+  (analyze_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)))

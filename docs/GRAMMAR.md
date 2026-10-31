@@ -309,7 +309,11 @@ Each one follows these rules, in addition to the rest of this document:
    than 64 columns takes the large form, which holds a column for each
    symbol of the grammar. The comment at the top of
    `grammars/mysql/grammar.js` gives the ways that keep the states few and
-   small.
+   small. The Oracle grammar reads a long list of options, such as the
+   physical options of a table, with one identifier that takes an empty
+   reserved set, as the comment at the top of `grammars/oracle/grammar.js`
+   says. Then a reserved word in the list does not give a large state of
+   its own.
 
 A change to such a grammar is a change to transit. It follows "Before you
 stage" in `AGENTS.md`, and its golden files are made again.
