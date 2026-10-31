@@ -133,6 +133,26 @@ It also leaves out these forms of the statements that define objects:
 - A statement other than a query, `INSERT`, `UPDATE`, `DELETE` and `MERGE`
   in `BEGIN ATOMIC`. `END` is also a statement, so the full list of
   statements makes a conflict.
+
+### Finish the PL/pgSQL grammar
+
+The grammar `plpgsql` that xo writes (D122) reads each expression and each
+SQL statement of a body as one token, and its injection query gives the
+token to the grammar `postgres`. These faults remain:
+
+- An expression alone, such as the condition of `IF`, is not a statement of
+  SQL, so the grammar `postgres` gives an `ERROR` node around it in its
+  layer. Its keywords, names and literals keep their colors, but a function
+  name gets the color of a variable. The grammar `postgres` can take an
+  expression alone as its whole input. That costs 203 parse states and 90
+  large states, and the package gets about 0.3 MB larger. Ken decides
+  whether usql, which reads no injection, pays for it.
+- The body of a function or of a `DO` block in single quotes gets no
+  injection, because its text holds the quotes and each quote in it is
+  doubled.
+- The count of `FETCH` and `MOVE` is a number or a name, where PostgreSQL
+  takes an expression. After `FORWARD` and `BACKWARD`, it is only a number,
+  because a name there can also be the cursor.
 - An operator of the grammar, such as `=` or `<>`, as the value of an
   option of `ALTER OPERATOR`, as in `SET (COMMUTATOR = =)`. The value of an
   option in `SET` can be an operator that is not a token of the grammar,

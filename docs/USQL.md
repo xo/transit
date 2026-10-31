@@ -144,8 +144,8 @@ its language and the grammars that exist for it on 2026-09-29.
 The grammars are weak. `DerekStride/tree-sitter-sql` is the one generic SQL
 grammar, and most dialects have only it. `gmr/tree-sitter-postgres` follows
 the PostgreSQL source, and its package adds about 15 MB to a binary, so xo
-writes the PostgreSQL grammar from the manual in `grammars/postgres`
-(D122). MySQL had no grammar of its own, so transit writes one in
+writes the PostgreSQL grammar and the PL/pgSQL grammar from the manual in
+`grammars/postgres` (D122). MySQL had no grammar of its own, so transit writes one in
 `grammars/mysql` (D106). SQL++, InfluxQL, KSQL, PartiQL, ES|QL and
 PPL have no grammar at all. transit writes the missing grammars, and the
 usql grammar, in `grammars/` (D42, D104). The other missing grammars come

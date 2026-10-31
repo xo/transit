@@ -713,14 +713,13 @@ module.exports = grammar({
 
     call_statement: $ => seq(kw('CALL'), $.function_call),
 
-    // The code of DO is a string in the language that LANGUAGE names, which
-    // is PL/pgSQL if LANGUAGE is not there.
+    // The code of DO is a body in the language that LANGUAGE names, which
+    // is PL/pgSQL if LANGUAGE is not there. It is the node function_body,
+    // as the body of a function is, so that one injection takes both.
     do_statement: $ => choice(
-      seq(kw('DO'), field('code', $._code), optional($._language)),
-      seq(kw('DO'), $._language, field('code', $._code)),
+      seq(kw('DO'), field('body', $.function_body), optional($._language)),
+      seq(kw('DO'), $._language, field('body', $.function_body)),
     ),
-
-    _code: $ => choice($.string, $.dollar_quoted_string),
 
     _language: $ => seq(kw('LANGUAGE'), field('language', choice($._name, $.string))),
 

@@ -1,0 +1,184 @@
+================================================================================
+OPEN FOR a query
+================================================================================
+
+BEGIN
+  OPEN curs1 FOR SELECT * FROM foo WHERE key = mykey;
+  OPEN curs1 SCROLL FOR SELECT 1;
+  OPEN curs1 NO SCROLL FOR SELECT 2;
+END
+
+---
+
+(source_file
+  (block
+    (open_statement
+      (identifier)
+      (sql_statement))
+    (open_statement
+      (identifier)
+      (sql_statement))
+    (open_statement
+      (identifier)
+      (sql_statement))))
+
+================================================================================
+OPEN FOR EXECUTE
+================================================================================
+
+BEGIN
+  OPEN curs1 FOR EXECUTE format('SELECT * FROM %I WHERE col1 = $1', tabname) USING keyvalue;
+  OPEN curs1 FOR EXECUTE 'SELECT 1';
+END
+
+---
+
+(source_file
+  (block
+    (open_statement
+      (identifier)
+      (sql_expression)
+      (using_clause
+        (sql_expression)))
+    (open_statement
+      (identifier)
+      (sql_expression))))
+
+================================================================================
+OPEN a bound cursor
+================================================================================
+
+BEGIN
+  OPEN curs2;
+  OPEN curs3(42);
+  OPEN curs3(key := 42);
+  OPEN curs4(a => 1, b + 1);
+END
+
+---
+
+(source_file
+  (block
+    (open_statement
+      (identifier))
+    (open_statement
+      (identifier)
+      (cursor_argument
+        (sql_expression)))
+    (open_statement
+      (identifier)
+      (cursor_argument
+        (identifier)
+        (sql_expression)))
+    (open_statement
+      (identifier)
+      (cursor_argument
+        (identifier)
+        (sql_expression))
+      (cursor_argument
+        (sql_expression)))))
+
+================================================================================
+FETCH
+================================================================================
+
+BEGIN
+  FETCH curs1 INTO rowvar;
+  FETCH curs2 INTO foo, bar, baz;
+  FETCH LAST FROM curs3 INTO x, y;
+  FETCH RELATIVE -2 FROM curs4 INTO x;
+  FETCH NEXT IN c INTO x;
+  FETCH ABSOLUTE n FROM c INTO x;
+  FETCH 3 FROM c INTO x;
+END
+
+---
+
+(source_file
+  (block
+    (fetch_statement
+      (identifier)
+      (variable
+        (identifier)))
+    (fetch_statement
+      (identifier)
+      (variable
+        (identifier))
+      (variable
+        (identifier))
+      (variable
+        (identifier)))
+    (fetch_statement
+      (direction)
+      (identifier)
+      (variable
+        (identifier))
+      (variable
+        (identifier)))
+    (fetch_statement
+      (direction
+        (number))
+      (identifier)
+      (variable
+        (identifier)))
+    (fetch_statement
+      (direction)
+      (identifier)
+      (variable
+        (identifier)))
+    (fetch_statement
+      (direction
+        (identifier))
+      (identifier)
+      (variable
+        (identifier)))
+    (fetch_statement
+      (direction
+        (number))
+      (identifier)
+      (variable
+        (identifier)))))
+
+================================================================================
+MOVE and CLOSE
+================================================================================
+
+BEGIN
+  MOVE curs1;
+  MOVE LAST FROM curs3;
+  MOVE RELATIVE -2 FROM curs4;
+  MOVE FORWARD 2 FROM curs4;
+  MOVE BACKWARD ALL FROM c;
+  MOVE FORWARD FROM c;
+  MOVE PRIOR IN c;
+  CLOSE curs1;
+END
+
+---
+
+(source_file
+  (block
+    (move_statement
+      (identifier))
+    (move_statement
+      (direction)
+      (identifier))
+    (move_statement
+      (direction
+        (number))
+      (identifier))
+    (move_statement
+      (direction
+        (number))
+      (identifier))
+    (move_statement
+      (direction)
+      (identifier))
+    (move_statement
+      (direction)
+      (identifier))
+    (move_statement
+      (direction)
+      (identifier))
+    (close_statement
+      (identifier))))

@@ -60,9 +60,9 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     env:
-      # the 31 MB parser.go of postgres makes a cold lint of a module that
-      # imports it need about 15 GB. With GOGC=25 and one job at a time, it
-      # needs about 9 GB
+      # the parser.go of a grammar package is large. With GOGC=25 and one
+      # job at a time, a cold lint of a module that imports one fits in the
+      # memory of a runner (D109)
       GOGC: 25
     steps:
     - name: Checkout code

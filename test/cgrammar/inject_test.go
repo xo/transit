@@ -80,11 +80,11 @@ func injectLanguages(t *testing.T, root, cache, name string) []OracleLanguage {
 // goInjectConfigs loads the languages into the Go runtime, and returns the
 // inject configuration of each, by name. With packages, a language that
 // has a grammar package in goPackages gets the grammar package, and each
-// other language gets the tables of its C grammar. The package postgres
-// holds the grammar that xo writes, and the oracle runs the grammar of
-// gmr/tree-sitter-postgres, which has the same name (D122). So a language
-// gets its grammar package only when the package has as many symbols as
-// the C grammar.
+// other language gets the tables of its C grammar. The packages postgres
+// and plpgsql hold the grammars that xo writes, and the oracle can run the
+// grammars of gmr/tree-sitter-postgres, which have the same names (D122).
+// So a language gets its grammar package only when the package has as many
+// symbols as the C grammar.
 func goInjectConfigs(t *testing.T, languages []OracleLanguage, packages bool) map[string]*inject.Config {
 	t.Helper()
 	configs := map[string]*inject.Config{}

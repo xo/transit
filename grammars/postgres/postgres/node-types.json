@@ -9872,16 +9872,12 @@
     "type": "do_statement",
     "named": true,
     "fields": {
-      "code": {
+      "body": {
         "multiple": false,
         "required": true,
         "types": [
           {
-            "type": "dollar_quoted_string",
-            "named": true
-          },
-          {
-            "type": "string",
+            "type": "function_body",
             "named": true
           }
         ]

@@ -1,222 +1,184 @@
-==================
-Open cursor for query
-==================
+================================================================================
+OPEN FOR a query
+================================================================================
 
 BEGIN
-  OPEN curs FOR SELECT id FROM t;
+  OPEN curs1 FOR SELECT * FROM foo WHERE key = mykey;
+  OPEN curs1 SCROLL FOR SELECT 1;
+  OPEN curs1 NO SCROLL FOR SELECT 2;
 END
 
 ---
 
 (source_file
-  (pl_block
-    (kw_begin)
-    (proc_sect
-      (proc_stmt
-        (stmt_open
-          (kw_open)
-          (any_identifier
-            (identifier))
-          (kw_for)
-          (sql_expression))))
-    (kw_end)))
+  (block
+    (open_statement
+      (identifier)
+      (sql_statement))
+    (open_statement
+      (identifier)
+      (sql_statement))
+    (open_statement
+      (identifier)
+      (sql_statement))))
 
-==================
-Open cursor for execute
-==================
+================================================================================
+OPEN FOR EXECUTE
+================================================================================
 
 BEGIN
-  OPEN curs FOR EXECUTE 'SELECT 1';
+  OPEN curs1 FOR EXECUTE format('SELECT * FROM %I WHERE col1 = $1', tabname) USING keyvalue;
+  OPEN curs1 FOR EXECUTE 'SELECT 1';
 END
 
 ---
 
 (source_file
-  (pl_block
-    (kw_begin)
-    (proc_sect
-      (proc_stmt
-        (stmt_open
-          (kw_open)
-          (any_identifier
-            (identifier))
-          (kw_for)
-          (kw_execute)
-          (sql_expression))))
-    (kw_end)))
+  (block
+    (open_statement
+      (identifier)
+      (sql_expression)
+      (using_clause
+        (sql_expression)))
+    (open_statement
+      (identifier)
+      (sql_expression))))
 
-==================
-Fetch into variable
-==================
+================================================================================
+OPEN a bound cursor
+================================================================================
 
 BEGIN
-  FETCH curs INTO x;
+  OPEN curs2;
+  OPEN curs3(42);
+  OPEN curs3(key := 42);
+  OPEN curs4(a => 1, b + 1);
 END
 
 ---
 
 (source_file
-  (pl_block
-    (kw_begin)
-    (proc_sect
-      (proc_stmt
-        (stmt_fetch
-          (kw_fetch)
-          (any_identifier
-            (identifier))
-          (kw_into)
-          (into_target
-            (any_identifier
-              (identifier))))))
-    (kw_end)))
+  (block
+    (open_statement
+      (identifier))
+    (open_statement
+      (identifier)
+      (cursor_argument
+        (sql_expression)))
+    (open_statement
+      (identifier)
+      (cursor_argument
+        (identifier)
+        (sql_expression)))
+    (open_statement
+      (identifier)
+      (cursor_argument
+        (identifier)
+        (sql_expression))
+      (cursor_argument
+        (sql_expression)))))
 
-==================
-Fetch next from cursor
-==================
+================================================================================
+FETCH
+================================================================================
 
 BEGIN
-  FETCH NEXT FROM curs INTO x;
+  FETCH curs1 INTO rowvar;
+  FETCH curs2 INTO foo, bar, baz;
+  FETCH LAST FROM curs3 INTO x, y;
+  FETCH RELATIVE -2 FROM curs4 INTO x;
+  FETCH NEXT IN c INTO x;
+  FETCH ABSOLUTE n FROM c INTO x;
+  FETCH 3 FROM c INTO x;
 END
 
 ---
 
 (source_file
-  (pl_block
-    (kw_begin)
-    (proc_sect
-      (proc_stmt
-        (stmt_fetch
-          (kw_fetch)
-          (fetch_direction
-            (kw_next))
-          (kw_from)
-          (any_identifier
-            (identifier))
-          (kw_into)
-          (into_target
-            (any_identifier
-              (identifier))))))
-    (kw_end)))
+  (block
+    (fetch_statement
+      (identifier)
+      (variable
+        (identifier)))
+    (fetch_statement
+      (identifier)
+      (variable
+        (identifier))
+      (variable
+        (identifier))
+      (variable
+        (identifier)))
+    (fetch_statement
+      (direction)
+      (identifier)
+      (variable
+        (identifier))
+      (variable
+        (identifier)))
+    (fetch_statement
+      (direction
+        (number))
+      (identifier)
+      (variable
+        (identifier)))
+    (fetch_statement
+      (direction)
+      (identifier)
+      (variable
+        (identifier)))
+    (fetch_statement
+      (direction
+        (identifier))
+      (identifier)
+      (variable
+        (identifier)))
+    (fetch_statement
+      (direction
+        (number))
+      (identifier)
+      (variable
+        (identifier)))))
 
-==================
-Move cursor
-==================
+================================================================================
+MOVE and CLOSE
+================================================================================
 
 BEGIN
-  MOVE NEXT curs;
+  MOVE curs1;
+  MOVE LAST FROM curs3;
+  MOVE RELATIVE -2 FROM curs4;
+  MOVE FORWARD 2 FROM curs4;
+  MOVE BACKWARD ALL FROM c;
+  MOVE FORWARD FROM c;
+  MOVE PRIOR IN c;
+  CLOSE curs1;
 END
 
 ---
 
 (source_file
-  (pl_block
-    (kw_begin)
-    (proc_sect
-      (proc_stmt
-        (stmt_move
-          (kw_move)
-          (fetch_direction
-            (kw_next))
-          (any_identifier
-            (identifier)))))
-    (kw_end)))
-
-==================
-Close cursor
-==================
-
-BEGIN
-  CLOSE curs;
-END
-
----
-
-(source_file
-  (pl_block
-    (kw_begin)
-    (proc_sect
-      (proc_stmt
-        (stmt_close
-          (kw_close)
-          (any_identifier
-            (identifier)))))
-    (kw_end)))
-
-==================
-Open cursor for execute with using
-==================
-
-BEGIN
-  OPEN curs FOR EXECUTE 'SELECT $1' USING x, y;
-END
-
----
-
-(source_file
-  (pl_block
-    (kw_begin)
-    (proc_sect
-      (proc_stmt
-        (stmt_open
-          (kw_open)
-          (any_identifier
-            (identifier))
-          (kw_for)
-          (kw_execute)
-          (sql_expression)
-          (kw_using)
-          (sql_expression)
-          (sql_expression))))
-    (kw_end)))
-
-==================
-Open bound cursor with arguments
-==================
-
-BEGIN
-  OPEN curs (x, y);
-END
-
----
-
-(source_file
-  (pl_block
-    (kw_begin)
-    (proc_sect
-      (proc_stmt
-        (stmt_open
-          (kw_open)
-          (any_identifier
-            (identifier))
-          (sql_expression)
-          (sql_expression))))
-    (kw_end)))
-
-==================
-Fetch absolute from cursor
-==================
-
-BEGIN
-  FETCH ABSOLUTE 3 FROM curs INTO x;
-END
-
----
-
-(source_file
-  (pl_block
-    (kw_begin)
-    (proc_sect
-      (proc_stmt
-        (stmt_fetch
-          (kw_fetch)
-          (fetch_direction
-            (kw_absolute)
-            (sql_expression))
-          (kw_from)
-          (any_identifier
-            (identifier))
-          (kw_into)
-          (into_target
-            (any_identifier
-              (identifier))))))
-    (kw_end)))
+  (block
+    (move_statement
+      (identifier))
+    (move_statement
+      (direction)
+      (identifier))
+    (move_statement
+      (direction
+        (number))
+      (identifier))
+    (move_statement
+      (direction
+        (number))
+      (identifier))
+    (move_statement
+      (direction)
+      (identifier))
+    (move_statement
+      (direction)
+      (identifier))
+    (move_statement
+      (direction)
+      (identifier))
+    (close_statement
+      (identifier))))

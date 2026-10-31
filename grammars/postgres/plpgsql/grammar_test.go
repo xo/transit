@@ -5,6 +5,7 @@ package plpgsql
 import (
 	"testing"
 
+	"github.com/xo/transit/grammars/postgres/postgres"
 	"github.com/xo/transit/internal/grammartest"
 )
 
@@ -20,6 +21,17 @@ func TestCorpus(t *testing.T) {
 func TestQueries(t *testing.T) {
 	t.Parallel()
 	grammartest.Queries(t, Language(), Queries)
+}
+
+// TestHighlight highlights each file of testdata/highlight as the
+// highlighter of upstream does, and checks the assertions in its comments.
+// The part of the test that looks for each capture name in the package
+// styles waits for phase 5, because that package does not exist yet.
+func TestHighlight(t *testing.T) {
+	t.Parallel()
+	grammartest.Highlight(t, Language(), Queries, "testdata/highlight",
+		grammartest.Grammar{Language: postgres.Language(), Queries: postgres.Queries},
+	)
 }
 
 // TestNodeTypes makes sure that each node type is a symbol of the language.

@@ -3,7 +3,6 @@
 package plpgsql_test
 
 import (
-	"context"
 	"fmt"
 	"io/fs"
 	"log"
@@ -13,24 +12,10 @@ import (
 	"github.com/xo/transit/grammars/postgres/plpgsql"
 )
 
-// This example parses a text of the grammar plpgsql, the input of the corpus
-// case "blocks/Empty block", and prints its tree. Then it compiles each query
-// of the package, and prints the number of its patterns.
+// This example compiles each query of the package plpgsql, and prints the
+// number of its patterns.
 func ExampleLanguage() {
 	language := plpgsql.Language()
-	parser := transit.NewParser()
-	if err := parser.SetLanguage(language); err != nil {
-		log.Fatal(err)
-	}
-	src := []byte(`
-BEGIN
-END
-`)
-	tree, err := parser.Parse(context.Background(), src, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(tree.RootNode())
 	walk := func(name string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() || path.Ext(name) != ".scm" {
 			return err
@@ -50,7 +35,6 @@ END
 		log.Fatal(err)
 	}
 	// Output:
-	// (source_file (pl_block (kw_begin) (kw_end)))
-	// patterns in queries/highlights.scm: 26
-	// patterns in queries/injections.scm: 1
+	// patterns in queries/highlights.scm: 20
+	// patterns in queries/injections.scm: 2
 }

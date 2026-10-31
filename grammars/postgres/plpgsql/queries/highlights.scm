@@ -1,153 +1,161 @@
-; highlights.scm — tree-sitter-plpgsql syntax highlighting queries
-;
-; Note: SQL expressions are opaque (captured by external scanner).
-; Only PL/pgSQL structural tokens are highlighted here. SQL fragments
-; get their highlighting via language injection into the postgres grammar.
-
-; ── Comments ──────────────────────────────────────────────────────────────────
+; The highlights of the PL/pgSQL grammar. xo wrote this file with the
+; grammar (D122). A keyword is an anonymous node with the name of the
+; keyword in upper case. The SQL in a body is the node sql_expression or
+; sql_statement, which queries/injections.scm gives to the grammar
+; postgres, so this file does not color it. The patterns for the names come
+; after the general patterns, because the last pattern that captures a node
+; counts.
 
 (comment) @comment
 
-; ── Literals ──────────────────────────────────────────────────────────────────
+(string) @string
 
-(integer_literal) @number
-(string_literal) @string
+(number) @number
 
-(kw_null) @constant.builtin
-
-; ── Identifiers ───────────────────────────────────────────────────────────────
+(parameter) @variable.parameter
 
 (identifier) @variable
 
-; ── Labels ────────────────────────────────────────────────────────────────────
-
-(block_label (identifier) @label)
-(loop_label (identifier) @label)
-(end_label) @label
-
-; ── Operators ─────────────────────────────────────────────────────────────────
-
-[":=" "=" ".."] @operator
-
-; ── Punctuation ───────────────────────────────────────────────────────────────
-
-["(" ")"] @punctuation.bracket
-["[" "]"] @punctuation.bracket
-["<<" ">>"] @punctuation.bracket
-"," @punctuation.delimiter
-"." @punctuation.delimiter
-";" @punctuation.delimiter
-
-; ── Block structure keywords ──────────────────────────────────────────────────
-
 [
-  (kw_begin)
-  (kw_end)
-  (kw_declare)
+  "ABSOLUTE"
+  "ALIAS"
+  "ALL"
+  "AND"
+  "ARRAY"
+  "ASSERT"
+  "BACKWARD"
+  "BEGIN"
+  "BY"
+  "CASE"
+  "CHAIN"
+  "CLOSE"
+  "COLLATE"
+  "COMMIT"
+  "CONSTANT"
+  "CONTINUE"
+  "CURRENT"
+  "CURSOR"
+  "DEBUG"
+  "DECLARE"
+  "DEFAULT"
+  "DIAGNOSTICS"
+  "ELSE"
+  "ELSEIF"
+  "ELSIF"
+  "END"
+  "EXCEPTION"
+  "EXECUTE"
+  "EXIT"
+  "FETCH"
+  "FIRST"
+  "FOR"
+  "FOREACH"
+  "FORWARD"
+  "FROM"
+  "GET"
+  "IF"
+  "IN"
+  "INFO"
+  "INTO"
+  "IS"
+  "LAST"
+  "LOG"
+  "LOOP"
+  "MOVE"
+  "NEXT"
+  "NO"
+  "NOT"
+  "NOTICE"
+  "NULL"
+  "OPEN"
+  "OR"
+  "PERFORM"
+  "PRIOR"
+  "QUERY"
+  "RAISE"
+  "RELATIVE"
+  "RETURN"
+  "REVERSE"
+  "ROLLBACK"
+  "ROWTYPE"
+  "SCROLL"
+  "SLICE"
+  "SQLSTATE"
+  "STACKED"
+  "STRICT"
+  "THEN"
+  "TYPE"
+  "USING"
+  "WARNING"
+  "WHEN"
+  "WHILE"
 ] @keyword
 
-; ── Control flow keywords ────────────────────────────────────────────────────
+[
+  ":="
+  "="
+  "=>"
+  ".."
+  "%"
+  "-"
+] @operator
 
 [
-  (kw_if)
-  (kw_then)
-  (kw_elsif)
-  (kw_else)
-  (kw_case)
-  (kw_when)
-] @keyword
-
-; ── Loop keywords ────────────────────────────────────────────────────────────
+  "("
+  ")"
+  "["
+  "]"
+  "<<"
+  ">>"
+] @punctuation.bracket
 
 [
-  (kw_loop)
-  (kw_while)
-  (kw_for)
-  (kw_foreach)
-  (kw_in)
-  (kw_reverse)
-  (kw_by)
-  (kw_slice)
-  (kw_array)
-  (kw_exit)
-  (kw_continue)
-] @keyword
+  ","
+  "."
+  ";"
+] @punctuation.delimiter
 
-; ── Statement keywords ───────────────────────────────────────────────────────
+(compiler_option
+  "#" @keyword.directive
+  name: (identifier) @keyword.directive
+  value: (identifier) @constant)
 
-[
-  (kw_return)
-  (kw_perform)
-  (kw_execute)
-  (kw_call)
-  (kw_do)
-  (kw_raise)
-  (kw_assert)
-  (kw_get)
-  (kw_diagnostics)
-  (kw_open)
-  (kw_fetch)
-  (kw_move)
-  (kw_close)
-  (kw_into)
-  (kw_using)
-  (kw_strict)
-  (kw_next)
-  (kw_query)
-  (kw_from)
-] @keyword
+(type
+  (identifier) @type)
 
-; ── Declaration keywords ─────────────────────────────────────────────────────
+(label
+  name: (identifier) @label)
+
+(block
+  end_label: (identifier) @label)
 
 [
-  (kw_constant)
-  (kw_alias)
-  (kw_cursor)
-  (kw_scroll)
-  (kw_no)
-  (kw_is)
-  (kw_not)
-  (kw_default)
-  (kw_collate)
-  (kw_type)
-  (kw_rowtype)
-] @keyword
+  (loop_statement
+    end_label: (identifier) @label)
+  (while_statement
+    end_label: (identifier) @label)
+  (for_statement
+    end_label: (identifier) @label)
+  (foreach_statement
+    end_label: (identifier) @label)
+  (exit_statement
+    label: (identifier) @label)
+]
 
-; ── Exception keywords ───────────────────────────────────────────────────────
+(cursor_parameter
+  name: (identifier) @variable.parameter)
 
-[
-  (kw_exception)
-  (kw_or)
-  (kw_sqlstate)
-] @keyword
+(cursor_argument
+  name: (identifier) @variable.parameter)
 
-; ── Transaction keywords ─────────────────────────────────────────────────────
+(exception_handler
+  condition: (identifier) @constant)
 
-[
-  (kw_commit)
-  (kw_rollback)
-  (kw_chain)
-  (kw_and)
-] @keyword
+(raise_statement
+  condition: (identifier) @constant)
 
-; ── RAISE level keywords ─────────────────────────────────────────────────────
-
-(raise_level) @keyword
-
-; ── RAISE option keywords ────────────────────────────────────────────────────
+(diagnostics_item
+  item: (identifier) @constant.builtin)
 
 (raise_option
-  [
-    (kw_message)
-    (kw_detail)
-    (kw_hint)
-    (kw_errcode)
-  ] @keyword)
-
-; ── GET DIAGNOSTICS items ────────────────────────────────────────────────────
-
-(getdiag_item) @keyword
-
-; ── Fetch direction keywords ─────────────────────────────────────────────────
-
-(fetch_direction) @keyword
+  name: (identifier) @property)

@@ -141,7 +141,6 @@ package name can differ from the grammar name (D107):
 | Package | Grammar | Upstream repository | Tag |
 | --- | --- | --- | --- |
 | `github.com/xo/transit/grammars/sql` | `sql` | [DerekStride/tree-sitter-sql](https://github.com/DerekStride/tree-sitter-sql) | `v0.3.11` |
-| `github.com/xo/transit/grammars/postgres/plpgsql` | `plpgsql` | [gmr/tree-sitter-postgres](https://github.com/gmr/tree-sitter-postgres) | `v1.2.4` |
 | `github.com/xo/transit/grammars/sqlserver` | `TSQL` | [Crary-Systems/tree-sitter-tsql](https://github.com/Crary-Systems/tree-sitter-tsql) | `0.0.1` |
 | `github.com/xo/transit/grammars/oracle` | `plsql` | [andreasmaierde/tree-sitter-plsql](https://github.com/andreasmaierde/tree-sitter-plsql) | the branch `main` at `28aebef` |
 | `github.com/xo/transit/grammars/cql` | `cql` | [shotover/tree-sitter-cql](https://github.com/shotover/tree-sitter-cql) | `v0.2.0` |
@@ -202,13 +201,19 @@ utility statements, such as `EXPLAIN`, `SET` and `VACUUM`. It covers each
 statement that defines objects, such as `CREATE TABLE`, `CREATE FUNCTION`,
 `CREATE TRIGGER`, `CREATE ROLE`, `GRANT` and `CREATE PUBLICATION`, and each
 other command of the manual. `docs/BACKLOG.md` lists the forms that it
-leaves out. The body of a function is a string, which the grammar does not
-parse. The variables of psql are part of the usql grammar, which gives this
-grammar a placeholder of the same length in place of each variable (D101).
-The
-package `plpgsql` of the same module still holds the grammar of
-[gmr/tree-sitter-postgres](https://github.com/gmr/tree-sitter-postgres) at
-`v1.2.4`, until xo writes it too.
+leaves out. The variables of psql are part of the usql grammar, which gives
+this grammar a placeholder of the same length in place of each variable
+(D101).
+
+The package `github.com/xo/transit/grammars/postgres/plpgsql` of the same
+module holds the grammar `plpgsql`, which xo writes from the chapter on
+PL/pgSQL of the same manual (D122). It reads the statements of PL/pgSQL in
+the body of a function or of a `DO` block. Each expression and each SQL
+statement in the body is one node, `sql_expression` or `sql_statement`, and
+the injection query of `plpgsql` gives its text to the grammar `postgres`.
+The body of a function or of a `DO` block in dollar quotes is the node
+`function_body` of `postgres`, and the injection query of `postgres` gives
+it to `plpgsql` or to `postgres`, as the `LANGUAGE` of the statement says.
 
 Some grammars ship queries written for Neovim, which transit does not support
 now. [docs/NEOVIM.md](docs/NEOVIM.md) lists them.

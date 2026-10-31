@@ -2,44 +2,100 @@ package plpgsql
 
 import "github.com/xo/transit/internal/abi"
 
-// The scanner of PL/pgSQL. PL/pgSQL holds the SQL of PostgreSQL in many
-// places of its grammar, and each place ends the SQL at its own terminator.
-// The condition of IF ends at THEN, the expression of WHILE and FOR ends at
-// LOOP, the expression of a dynamic EXECUTE ends at INTO, USING or ;, and a
-// normal SQL statement ends at a semicolon. The PL/pgSQL parser of
-// PostgreSQL calls functions such as read_sql_expression() and
-// read_sql_construct(), which get the terminators of the place.
-//
-// The scanner follows that model with several external tokens. The grammar
-// chooses the token of the place, and the scanner reads the SQL as one token
-// until it reaches a terminator of that token. The postgres grammar parses
-// and highlights the token later, through an injection.
-
-// The external tokens of the grammar, in the order of externals in
-// grammar.json. They are enum TokenType.
+// The external tokens, the C enum TokenType, in the order of externals in
+// grammar.js.
 const (
-	sqlStatement = iota
-	sqlUntilSemicolon
-	sqlUntilThen
-	sqlUntilWhen
-	sqlUntilLoop
-	sqlUntilAssignment
-	sqlUntilRange
-	sqlUntilByOrLoop
-	sqlUntilIntoUsingOrSemicolon
-	sqlUntilUsingOrSemicolon
-	sqlUntilUsingOrLoop
-	sqlUntilCommaOrSemicolon
-	sqlUntilCommaUsingOrSemicolon
-	sqlUntilCommaOrLoop
-	sqlUntilCommaOrRparen
-	sqlUntilFromOrInto
-	sqlUntilSemicolonGuarded
+	comment = iota
+	sqlStatement
+	sqlSemicolon
+	sqlReturn
+	sqlQuery
+	sqlThen
+	sqlWhen
+	sqlLoop
+	sqlRange
+	sqlBy
+	sqlList
+	sqlListLoop
+	sqlArgument
+	sqlSubscript
+	dollarQuotedString
+	errorSentinel
 )
 
-// scanner is a port of plpgsql/src/scanner.c of tree-sitter-postgres at
-// v1.2.4 (9b27ba5c8700f9bf808221a0f6d17fe6515da787). It keeps no state, so
-// it serializes no bytes.
+// The ends of a token, besides the semicolon, which ends each token.
+const (
+	endThen = 1 << iota
+	endWhen
+	endLoop
+	endRange
+	endBy
+	endComma
+	endInto
+	endUsing
+	endParen
+	endBracket
+)
+
+// ends is ENDS. It holds the ends of each token of SQL.
+var ends = [...]uint16{
+	comment:      0,
+	sqlStatement: 0,
+	sqlSemicolon: 0,
+	sqlReturn:    0,
+	sqlQuery:     0,
+	sqlThen:      endThen,
+	sqlWhen:      endWhen,
+	sqlLoop:      endLoop,
+	sqlRange:     endRange | endLoop,
+	sqlBy:        endBy | endLoop,
+	sqlList:      endComma | endInto | endUsing,
+	sqlListLoop:  endComma | endUsing | endLoop,
+	sqlArgument:  endComma | endParen,
+	sqlSubscript: endBracket,
+}
+
+// commands is COMMANDS. It holds the first words of the SQL commands that a
+// body can hold. The commands of transactions, cursors and dynamic SQL are
+// statements of PL/pgSQL, so they are not in the list.
+var commands = [...]string{
+	"alter", "analyse", "analyze", "call", "checkpoint", "cluster", "comment",
+	"copy", "create", "deallocate", "delete", "discard", "do", "drop",
+	"explain", "grant", "import", "insert", "listen", "load", "lock",
+	"merge", "notify", "prepare", "reassign", "refresh", "reindex", "release",
+	"repack", "reset", "revoke", "savepoint", "security", "select", "set",
+	"show", "table", "truncate", "unlisten", "update", "vacuum", "values",
+	"with",
+}
+
+// maxWord is MAX_WORD, the longest word that the scanner compares, in
+// bytes.
+const maxWord = 16
+
+// maxTag is MAX_TAG, the longest tag of a dollar-quoted string that the
+// scanner reads, in characters.
+const maxTag = 64
+
+// word is Word. It is a word of the SQL, in lower case. length is
+// maxWord + 1 when the word is longer than maxWord or holds a character
+// outside ASCII, so that it matches no word that the scanner compares.
+type word struct {
+	text   [maxWord]byte
+	length int
+}
+
+// scanner is a port of src/scanner.c of the grammar. It reads the comments,
+// the dollar-quoted strings and the pieces of SQL in a body of PL/pgSQL. A
+// comment is -- to the end of the line, or /* ... */, which can hold other
+// block comments. A piece of SQL is one token, which ends where its place
+// in the grammar ends, as PostgreSQL reads it: at a semicolon, or at a word
+// such as THEN or LOOP, or at a character such as a comma, when the word or
+// the character is outside parentheses, brackets and CASE expressions. Each
+// external token of the grammar is one place, with its own ends. The
+// scanner reads past the strings, the quoted identifiers, the dollar-quoted
+// strings and the comments in the SQL, so that an end in them does not end
+// the token. A token does not end with a comment or with white space. The
+// scanner keeps no state.
 type scanner struct{}
 
 // newScanner is tree_sitter_plpgsql_external_scanner_create.
@@ -47,745 +103,373 @@ func newScanner() *scanner {
 	return &scanner{}
 }
 
-// Serialize is tree_sitter_plpgsql_external_scanner_serialize.
-func (s *scanner) Serialize([]byte) int {
-	return 0
+// advance is advance.
+func advance(lexer *abi.Lexer) { lexer.Advance(false) }
+
+// skip is skip.
+func skip(lexer *abi.Lexer) { lexer.Advance(true) }
+
+// isSpace is is_space. It reports whether c is white space.
+func isSpace(c int32) bool {
+	return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v'
 }
 
-// Deserialize is tree_sitter_plpgsql_external_scanner_deserialize.
-func (s *scanner) Deserialize([]byte) {}
+// isDigit is is_digit. It reports whether c is a decimal digit.
+func isDigit(c int32) bool { return c >= '0' && c <= '9' }
 
-// skipWhitespace is skip_whitespace.
-func skipWhitespace(lexer *abi.Lexer) {
-	for lexer.Lookahead == ' ' || lexer.Lookahead == '\t' ||
-		lexer.Lookahead == '\n' || lexer.Lookahead == '\r' {
-		lexer.Advance(true)
-	}
+// isWordStart is is_word_start. It reports whether c can start a word: a
+// letter, an underscore or a character outside ASCII.
+func isWordStart(c int32) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || c >= 0x80
 }
 
-// The C scanner has its own functions for ASCII, so that a Wasm build of the
-// grammar needs no function of the C library. Zed and other editors can
-// give a Wasm module of a grammar no ctype function of the C library.
+// isWordChar is is_word_char. It reports whether c can be in a word after
+// its first character.
+func isWordChar(c int32) bool { return isWordStart(c) || isDigit(c) || c == '$' }
 
-// isASCIIAlpha is is_ascii_alpha.
-func isASCIIAlpha(c int32) bool {
-	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
-}
+// isTagChar is is_tag_char. It reports whether c can be in the tag of a
+// dollar-quoted string.
+func isTagChar(c int32) bool { return isWordStart(c) || isDigit(c) }
 
-// isASCIIDigit is is_ascii_digit.
-func isASCIIDigit(c int32) bool {
-	return c >= '0' && c <= '9'
-}
-
-// isASCIIAlnum is is_ascii_alnum.
-func isASCIIAlnum(c int32) bool {
-	return isASCIIAlpha(c) || isASCIIDigit(c)
-}
-
-// asciiToLower is ascii_tolower. It returns a C char, the low byte of the
-// character.
-func asciiToLower(c int32) byte {
-	if c >= 'A' && c <= 'Z' {
-		return byte(c + ('a' - 'A'))
-	}
-	return byte(c)
-}
-
-// isTagStartChar is is_tag_start_char.
-func isTagStartChar(c int32) bool {
-	return isASCIIAlpha(c) || c == '_' || c >= 0x80
-}
-
-// isTagChar is is_tag_char.
-func isTagChar(c int32) bool {
-	return isTagStartChar(c) || isASCIIDigit(c)
-}
-
-// scanMode is ScanMode, the terminators of the token that the scanner reads.
-type scanMode struct {
-	symbol                      uint16
-	stopSemicolon               bool
-	stopThen                    bool
-	stopWhen                    bool
-	stopLoop                    bool
-	stopInto                    bool
-	stopUsing                   bool
-	stopComma                   bool
-	stopAssignment              bool
-	stopRange                   bool
-	stopBy                      bool
-	stopFrom                    bool
-	refusePLpgSQLStatementStart bool
-	loopYieldsLoopToken         bool
-	// refuseFirstReturnOpenKw and refuseFirstForInKw refuse to start the
-	// token on a word that must be a keyword of PL/pgSQL in the place:
-	// NEXT, QUERY or EXECUTE after RETURN, and EXECUTE after OPEN ... FOR
-	// (refuseFirstReturnOpenKw), or EXECUTE or REVERSE after FOR ... IN
-	// (refuseFirstForInKw).
-	refuseFirstReturnOpenKw bool
-	refuseFirstForInKw      bool
-}
-
-// modeFor is mode_for.
-func modeFor(symbol uint16) scanMode {
-	mode := scanMode{symbol: symbol}
-
-	switch symbol {
-	case sqlStatement:
-		mode.stopSemicolon = true
-		mode.refusePLpgSQLStatementStart = true
-	case sqlUntilSemicolon:
-		mode.stopSemicolon = true
-	case sqlUntilThen:
-		mode.stopSemicolon = true
-		mode.stopThen = true
-	case sqlUntilWhen:
-		mode.stopSemicolon = true
-		mode.stopWhen = true
-	case sqlUntilLoop:
-		mode.stopSemicolon = true
-		mode.stopLoop = true
-	case sqlUntilAssignment:
-		mode.stopSemicolon = true
-		mode.stopAssignment = true
-	case sqlUntilRange:
-		mode.stopSemicolon = true
-		mode.stopRange = true
-	case sqlUntilByOrLoop:
-		mode.stopSemicolon = true
-		mode.stopBy = true
-		mode.stopLoop = true
-	case sqlUntilIntoUsingOrSemicolon:
-		mode.stopSemicolon = true
-		mode.stopInto = true
-		mode.stopUsing = true
-	case sqlUntilUsingOrSemicolon:
-		mode.stopSemicolon = true
-		mode.stopUsing = true
-	case sqlUntilUsingOrLoop:
-		mode.stopSemicolon = true
-		mode.stopUsing = true
-		mode.stopLoop = true
-	case sqlUntilCommaOrSemicolon:
-		mode.stopSemicolon = true
-		mode.stopComma = true
-	case sqlUntilCommaUsingOrSemicolon:
-		mode.stopSemicolon = true
-		mode.stopComma = true
-		mode.stopUsing = true
-	case sqlUntilCommaOrLoop:
-		mode.stopSemicolon = true
-		mode.stopComma = true
-		mode.stopLoop = true
-	case sqlUntilCommaOrRparen:
-		mode.stopSemicolon = true
-		mode.stopComma = true
-	case sqlUntilFromOrInto:
-		mode.stopSemicolon = true
-		mode.stopFrom = true
-		mode.stopInto = true
-	case sqlUntilSemicolonGuarded:
-		mode.stopSemicolon = true
-		mode.refuseFirstReturnOpenKw = true
-	}
-
-	return mode
-}
-
-// wordExecute is the word EXECUTE, which starts a statement of PL/pgSQL. The
-// C scanner compares a word with it in three places.
-const wordExecute = "execute"
-
-// isPLpgSQLStatementStart is is_plpgsql_statement_start.
-func isPLpgSQLStatementStart(word []byte) bool {
-	switch string(word) {
-	case "begin", "declare", "end", "exception", "if", "case", "loop",
-		"while", "for", "foreach", "return", "raise", "assert", wordExecute,
-		"perform", "call", "do", "get", "open", "fetch", "move", "close",
-		"null", "exit", "continue", "commit", "rollback", "elsif", "elseif",
-		"else", "when":
-		return true
-	}
-	return false
-}
-
-// isSQLStatementStart is is_sql_statement_start.
-func isSQLStatementStart(word []byte) bool {
-	switch string(word) {
-	case "select", "insert", "update", "delete", "merge", "with", "values",
-		"create", "alter", "drop", "truncate", "grant", "revoke", "analyze",
-		"analyse", "explain", "vacuum", "lock", "notify", "listen",
-		"unlisten", "refresh", "reindex", "copy", "set", "reset", "show",
-		"discard", "prepare", "deallocate":
-		return true
-	}
-	return false
-}
-
-// isKeywordTerminator is is_keyword_terminator. The C function writes the
-// symbol of the token through a pointer, and the Go function returns it.
-func isKeywordTerminator(mode *scanMode, word []byte) (uint16, bool) {
-	resultSymbol := mode.symbol
-	if mode.stopLoop && string(word) == "loop" {
-		if mode.loopYieldsLoopToken {
-			resultSymbol = sqlUntilLoop
+// readWord is read_word. It reads a word into w.
+func readWord(lexer *abi.Lexer, w *word) {
+	w.length = 0
+	for isWordChar(lexer.Lookahead) {
+		c := lexer.Lookahead
+		if w.length < maxWord && c < 0x80 {
+			if c >= 'A' && c <= 'Z' {
+				c += 'a' - 'A'
+			}
+			w.text[w.length] = byte(c)
+			w.length++
+		} else {
+			w.length = maxWord + 1
 		}
-		return resultSymbol, true
+		advance(lexer)
 	}
-	return resultSymbol, (mode.stopThen && string(word) == "then") ||
-		(mode.stopWhen && string(word) == "when") ||
-		(mode.stopInto && string(word) == "into") ||
-		(mode.stopUsing && string(word) == "using") ||
-		(mode.stopBy && string(word) == "by") ||
-		(mode.stopFrom && string(word) == "from")
 }
 
-// finishToken is finish_token.
-func finishToken(lexer *abi.Lexer, symbol uint16, hasContent bool) bool {
-	if !hasContent {
+// matches is word_is. It reports whether w is the word s, which is in lower
+// case.
+func (w *word) matches(s string) bool {
+	return w.length <= maxWord && string(w.text[:w.length]) == s
+}
+
+// endsAt is ends_at. It reports whether the word w ends a token with the
+// ends e.
+func endsAt(e uint16, w *word) bool {
+	return (e&endThen != 0 && w.matches("then")) || (e&endWhen != 0 && w.matches("when")) ||
+		(e&endLoop != 0 && w.matches("loop")) || (e&endBy != 0 && w.matches("by")) ||
+		(e&endInto != 0 && w.matches("into")) || (e&endUsing != 0 && w.matches("using"))
+}
+
+// refuses is refuses. It reports whether the token kind cannot start with
+// the word w, because the grammar takes the word as a keyword in its place.
+func refuses(kind int, w *word) bool {
+	switch kind {
+	case sqlReturn:
+		return w.matches("next") || w.matches("query")
+	case sqlQuery:
+		return w.matches("execute")
+	case sqlRange:
+		return w.matches("reverse") || w.matches("execute")
+	case sqlStatement:
+		for _, c := range commands {
+			if w.matches(c) {
+				return false
+			}
+		}
+		return true
+	default:
 		return false
 	}
-	lexer.ResultSymbol = symbol
+}
+
+// skipLineComment is skip_line_comment. It reads a comment to the end of
+// the line. The -- of the comment is already read.
+func skipLineComment(lexer *abi.Lexer) {
+	for !lexer.EOF() && lexer.Lookahead != '\n' && lexer.Lookahead != '\r' {
+		advance(lexer)
+	}
+}
+
+// skipBlockComment is skip_block_comment. It reads a block comment to its
+// end, or to the end of the input. The /* of the comment is already read. A
+// block comment inside it must end before it ends.
+func skipBlockComment(lexer *abi.Lexer) {
+	depth := uint(1)
+	for !lexer.EOF() {
+		switch lexer.Lookahead {
+		case '*':
+			advance(lexer)
+			if lexer.Lookahead == '/' {
+				advance(lexer)
+				depth--
+				if depth == 0 {
+					return
+				}
+			}
+		case '/':
+			advance(lexer)
+			if lexer.Lookahead == '*' {
+				advance(lexer)
+				depth++
+			}
+		default:
+			advance(lexer)
+		}
+	}
+}
+
+// skipQuoted is skip_quoted. It reads a string or a quoted identifier to
+// its closing quote, or to the end of the input. A quote is doubled in it.
+// With escapes, a backslash escapes the character after it, as in E'...'.
+// The opening quote is not read yet.
+func skipQuoted(lexer *abi.Lexer, quote int32, escapes bool) {
+	advance(lexer)
+	for !lexer.EOF() {
+		c := lexer.Lookahead
+		advance(lexer)
+		switch {
+		case c == '\\' && escapes:
+			if !lexer.EOF() {
+				advance(lexer)
+			}
+		case c == quote:
+			if lexer.Lookahead != quote {
+				return
+			}
+			advance(lexer)
+		}
+	}
+}
+
+// skipDollar is skip_dollar. It reads what starts with a dollar sign: a
+// parameter such as $1, or a dollar-quoted string to its closing tag or to
+// the end of the input. The $ is already read. When no $ ends the tag, the
+// scanner reads only the characters of the tag. skipDollar reports whether
+// it read a dollar-quoted string.
+func skipDollar(lexer *abi.Lexer) bool {
+	if isDigit(lexer.Lookahead) {
+		for isDigit(lexer.Lookahead) {
+			advance(lexer)
+		}
+		return false
+	}
+	var tag [maxTag]int32
+	length := 0
+	if isWordStart(lexer.Lookahead) {
+		for isTagChar(lexer.Lookahead) {
+			if length == maxTag {
+				return false
+			}
+			tag[length] = lexer.Lookahead
+			length++
+			advance(lexer)
+		}
+	}
+	if lexer.Lookahead != '$' {
+		return false
+	}
+	advance(lexer)
+	for !lexer.EOF() {
+		if lexer.Lookahead != '$' {
+			advance(lexer)
+			continue
+		}
+		advance(lexer)
+		i := 0
+		for i < length && lexer.Lookahead == tag[i] {
+			advance(lexer)
+			i++
+		}
+		if i == length && lexer.Lookahead == '$' {
+			advance(lexer)
+			return true
+		}
+	}
 	return true
 }
 
-// consumeSingleQuotedString is consume_single_quoted_string. The C function
-// returns true on each path, and no caller reads it, so the Go function
-// returns nothing.
-func consumeSingleQuotedString(lexer *abi.Lexer) {
-	lexer.Advance(false)
-	for lexer.Lookahead != 0 {
-		if lexer.Lookahead == '\'' {
-			lexer.Advance(false)
-			if lexer.Lookahead != '\'' {
-				return
-			}
-			lexer.Advance(false)
-		} else {
-			lexer.Advance(false)
+// scanSQL is scan_sql. It reads a token of SQL of the kind kind. count is
+// the number of the parts of the token that are already read. The token
+// ends after the last part that is not a comment, before its end.
+func scanSQL(lexer *abi.Lexer, kind int, count uint) bool {
+	e := ends[kind]
+	depth := uint(0)
+	cases := uint(0)
+loop:
+	for {
+		for isSpace(lexer.Lookahead) {
+			advance(lexer)
 		}
+		if lexer.EOF() {
+			break
+		}
+		c := lexer.Lookahead
+		if c == ';' {
+			break
+		}
+		if isWordStart(c) {
+			var w word
+			readWord(lexer, &w)
+			if depth == 0 && cases == 0 && endsAt(e, &w) {
+				break
+			}
+			if count == 0 && refuses(kind, &w) {
+				return false
+			}
+			switch {
+			case w.matches("case"):
+				cases++
+			case w.matches("end") && cases > 0:
+				cases--
+			case w.matches("e") && lexer.Lookahead == '\'':
+				skipQuoted(lexer, '\'', true)
+			}
+			count++
+			lexer.MarkEnd()
+			// An assignment to a variable can start with the name of a
+			// command, and an argument of a cursor can start with the name
+			// of its parameter. Then the grammar reads the name.
+			if count == 1 && (kind == sqlStatement || kind == sqlArgument) {
+				for isSpace(lexer.Lookahead) {
+					advance(lexer)
+				}
+				if kind == sqlStatement &&
+					(lexer.Lookahead == '=' || lexer.Lookahead == '[' || lexer.Lookahead == '.') {
+					return false
+				}
+				if lexer.Lookahead == ':' || (kind == sqlArgument && lexer.Lookahead == '=') {
+					first := lexer.Lookahead
+					advance(lexer)
+					if (first == ':' && lexer.Lookahead == '=') || (first == '=' && lexer.Lookahead == '>') {
+						return false
+					}
+					count++
+					lexer.MarkEnd()
+				}
+			}
+			continue
+		}
+		if kind == sqlStatement && count == 0 {
+			return false
+		}
+		switch {
+		case c == '-' || c == '/':
+			advance(lexer)
+			if c == '-' && lexer.Lookahead == '-' {
+				advance(lexer)
+				skipLineComment(lexer)
+				continue
+			}
+			if c == '/' && lexer.Lookahead == '*' {
+				advance(lexer)
+				skipBlockComment(lexer)
+				continue
+			}
+		case c == '\'' || c == '"':
+			skipQuoted(lexer, c, false)
+		case c == '$':
+			advance(lexer)
+			skipDollar(lexer)
+		case isDigit(c):
+			for isTagChar(lexer.Lookahead) {
+				advance(lexer)
+			}
+		case c == '.':
+			advance(lexer)
+			if lexer.Lookahead == '.' {
+				if depth == 0 && cases == 0 && e&endRange != 0 {
+					break loop
+				}
+				advance(lexer)
+			}
+		case c == '(' || c == '[':
+			depth++
+			advance(lexer)
+		case c == ')' || c == ']':
+			end := uint16(endBracket)
+			if c == ')' {
+				end = endParen
+			}
+			if depth == 0 && e&end != 0 {
+				break loop
+			}
+			if depth > 0 {
+				depth--
+			}
+			advance(lexer)
+		case c == ',':
+			if depth == 0 && e&endComma != 0 {
+				break loop
+			}
+			advance(lexer)
+		default:
+			advance(lexer)
+		}
+		count++
+		lexer.MarkEnd()
 	}
+	lexer.ResultSymbol = uint16(kind)
+	return count > 0
 }
 
-// consumeDoubleQuotedIdentifier is consume_double_quoted_identifier. It
-// returns nothing, as consumeSingleQuotedString does.
-func consumeDoubleQuotedIdentifier(lexer *abi.Lexer) {
-	lexer.Advance(false)
-	for lexer.Lookahead != 0 {
-		if lexer.Lookahead == '"' {
-			lexer.Advance(false)
-			if lexer.Lookahead != '"' {
-				return
-			}
-			lexer.Advance(false)
-		} else {
-			lexer.Advance(false)
-		}
-	}
-}
+// Serialize is tree_sitter_plpgsql_external_scanner_serialize. The scanner
+// keeps no state, so it writes no bytes.
+func (*scanner) Serialize([]byte) int { return 0 }
 
-// consumeDollarQuotedString is consume_dollar_quoted_string. It returns
-// nothing, as consumeSingleQuotedString does.
-//
-// The C function keeps each character of the tag as a char, and it compares
-// the char as an unsigned char with the lookahead. So the tag keeps the low
-// byte of each character, and a character above 0xff never matches its
-// byte.
-func consumeDollarQuotedString(lexer *abi.Lexer) {
-	lexer.Advance(false) // the opening $
+// Deserialize is tree_sitter_plpgsql_external_scanner_deserialize.
+func (*scanner) Deserialize([]byte) {}
 
-	var tag [64]byte
-	tagLen := 0
-	if isTagStartChar(lexer.Lookahead) {
-		for {
-			if tagLen >= 63 {
-				return
-			}
-			tag[tagLen] = byte(lexer.Lookahead)
-			tagLen++
-			lexer.Advance(false)
-			if !isTagChar(lexer.Lookahead) {
+// Scan is tree_sitter_plpgsql_external_scanner_scan.
+func (*scanner) Scan(lexer *abi.Lexer, validSymbols []bool) bool {
+	kind := -1
+	if !validSymbols[errorSentinel] {
+		for k := sqlStatement; k <= sqlSubscript; k++ {
+			if validSymbols[k] {
+				kind = k
 				break
 			}
 		}
 	}
-
-	if lexer.Lookahead != '$' {
-		return // It is not a dollar quote, and the scanner read a $ of SQL.
+	for isSpace(lexer.Lookahead) {
+		skip(lexer)
 	}
-	lexer.Advance(false)
-
-	for lexer.Lookahead != 0 {
-		if lexer.Lookahead == '$' {
-			lexer.Advance(false)
-			i := 0
-			for i < tagLen && lexer.Lookahead == int32(tag[i]) {
-				lexer.Advance(false)
-				i++
-			}
-			if i == tagLen && lexer.Lookahead == '$' {
-				lexer.Advance(false)
-				return
-			}
-			continue
-		}
-		lexer.Advance(false)
-	}
-}
-
-// scanSQL is scan_sql. The C function does not read valid_symbols, so the
-// Go function does not take it.
-func scanSQL(lexer *abi.Lexer, mode scanMode) bool {
-	skipWhitespace(lexer)
-
-	if lexer.Lookahead == 0 {
-		return false
-	}
-
-	depth := 0
-	hasContent := false
-	sawFirstWord := false
-	disableAssignmentStop := false
-
-	for lexer.Lookahead != 0 {
-		if depth == 0 {
-			if mode.stopSemicolon && lexer.Lookahead == ';' {
-				lexer.MarkEnd()
-				return finishToken(lexer, mode.symbol, hasContent)
-			}
-
-			if mode.stopComma && lexer.Lookahead == ',' {
-				lexer.MarkEnd()
-				return finishToken(lexer, mode.symbol, hasContent)
-			}
-		}
-
-		if lexer.Lookahead == '(' || lexer.Lookahead == '[' {
-			depth++
-			lexer.Advance(false)
-			hasContent = true
-			continue
-		}
-
-		if lexer.Lookahead == ')' || lexer.Lookahead == ']' {
-			if depth > 0 {
-				depth--
-				lexer.Advance(false)
-				hasContent = true
-				continue
-			}
-			lexer.MarkEnd()
-			return finishToken(lexer, mode.symbol, hasContent)
-		}
-
-		if lexer.Lookahead == '\'' {
-			consumeSingleQuotedString(lexer)
-			hasContent = true
-			continue
-		}
-
-		if lexer.Lookahead == '"' {
-			consumeDoubleQuotedIdentifier(lexer)
-			hasContent = true
-			continue
-		}
-
-		if lexer.Lookahead == '$' {
-			consumeDollarQuotedString(lexer)
-			hasContent = true
-			continue
-		}
-
-		if lexer.Lookahead == '-' {
-			lexer.Advance(false)
-			if lexer.Lookahead == '-' {
-				if !hasContent {
-					return false
-				}
-				for lexer.Lookahead != 0 && lexer.Lookahead != '\n' {
-					lexer.Advance(false)
-				}
-				hasContent = true
-				continue
-			}
-			hasContent = true
-			continue
-		}
-
-		if lexer.Lookahead == '/' {
-			lexer.Advance(false)
-			if lexer.Lookahead == '*' {
-				if !hasContent {
-					return false
-				}
-				lexer.Advance(false)
-				commentDepth := 1
-				for lexer.Lookahead != 0 && commentDepth > 0 {
-					switch lexer.Lookahead {
-					case '/':
-						lexer.Advance(false)
-						if lexer.Lookahead == '*' {
-							commentDepth++
-							lexer.Advance(false)
-						}
-					case '*':
-						lexer.Advance(false)
-						if lexer.Lookahead == '/' {
-							commentDepth--
-							lexer.Advance(false)
-						}
-					default:
-						lexer.Advance(false)
-					}
-				}
-				hasContent = true
-				continue
-			}
-			hasContent = true
-			continue
-		}
-
-		if depth == 0 && !hasContent && lexer.Lookahead == '<' {
-			lexer.MarkEnd()
-			lexer.Advance(false)
-			if lexer.Lookahead == '<' {
-				return finishToken(lexer, mode.symbol, hasContent)
-			}
-			hasContent = true
-			continue
-		}
-
-		if depth == 0 && lexer.Lookahead == ':' {
-			lexer.MarkEnd()
-			lexer.Advance(false)
-			if lexer.Lookahead == '=' {
-				if mode.stopAssignment && !disableAssignmentStop {
-					return finishToken(lexer, mode.symbol, hasContent)
-				}
-				lexer.Advance(false)
-				hasContent = true
-				continue
-			}
-			if lexer.Lookahead == ':' {
-				lexer.Advance(false)
-				hasContent = true
-				continue
-			}
-			hasContent = true
-			continue
-		}
-
-		if depth == 0 && lexer.Lookahead == '=' {
-			lexer.MarkEnd()
-			if mode.stopAssignment && !disableAssignmentStop {
-				return finishToken(lexer, mode.symbol, hasContent)
-			}
-			lexer.Advance(false)
-			hasContent = true
-			continue
-		}
-
-		if depth == 0 && lexer.Lookahead == '.' {
-			lexer.MarkEnd()
-			lexer.Advance(false)
-			if lexer.Lookahead == '.' {
-				if mode.stopRange {
-					return finishToken(lexer, mode.symbol, hasContent)
-				}
-				lexer.Advance(false)
-				hasContent = true
-				continue
-			}
-			hasContent = true
-			continue
-		}
-
-		if depth == 0 && isASCIIAlpha(lexer.Lookahead) {
-			lexer.MarkEnd()
-
-			var buf [32]byte
-			n := 0
-			for isASCIIAlnum(lexer.Lookahead) || lexer.Lookahead == '_' {
-				if n < 31 {
-					buf[n] = asciiToLower(lexer.Lookahead)
-					n++
-				}
-				lexer.Advance(false)
-			}
-			// The C array word ends with a 0 after the n characters.
-			word := buf[:n]
-
-			if !sawFirstWord {
-				sawFirstWord = true
-				if mode.refusePLpgSQLStatementStart && isPLpgSQLStatementStart(word) {
-					return false
-				}
-				if mode.refuseFirstReturnOpenKw &&
-					(string(word) == "next" ||
-						string(word) == "query" ||
-						string(word) == wordExecute) {
-					return false
-				}
-				if mode.refuseFirstForInKw &&
-					(string(word) == wordExecute ||
-						string(word) == "reverse") {
-					return false
-				}
-				if mode.stopAssignment && isSQLStatementStart(word) {
-					disableAssignmentStop = true
-				}
-			}
-
-			if resultSymbol, ok := isKeywordTerminator(&mode, word); ok {
-				return finishToken(lexer, resultSymbol, hasContent)
-			}
-
-			hasContent = true
-			continue
-		}
-
-		if isASCIIAlpha(lexer.Lookahead) || lexer.Lookahead == '_' || lexer.Lookahead >= 0x80 {
-			for isASCIIAlnum(lexer.Lookahead) || lexer.Lookahead == '_' ||
-				lexer.Lookahead == '$' || lexer.Lookahead >= 0x80 {
-				lexer.Advance(false)
-			}
-			hasContent = true
-			continue
-		}
-
-		lexer.Advance(false)
-		hasContent = true
-	}
-
-	lexer.MarkEnd()
-	return finishToken(lexer, mode.symbol, hasContent)
-}
-
-// scanAssignmentOrStatement is scan_assignment_or_statement. It gives the
-// token SQL_STATEMENT when it reaches ';' before an assignment operator, and
-// SQL_UNTIL_ASSIGNMENT when it reaches ':=' or '=' first. The C function does
-// not read valid_symbols, so the Go function does not take it.
-func scanAssignmentOrStatement(lexer *abi.Lexer) bool {
-	skipWhitespace(lexer)
-	if lexer.Lookahead == 0 {
-		return false
-	}
-
-	depth := 0
-	hasContent := false
-	sawFirstWord := false
-	disableAssignmentStop := false
-
-	for lexer.Lookahead != 0 {
-		if depth == 0 && lexer.Lookahead == ';' {
-			lexer.MarkEnd()
-			if !hasContent {
+	c := lexer.Lookahead
+	if c == '-' || c == '/' {
+		advance(lexer)
+		if (c == '-' && lexer.Lookahead == '-') || (c == '/' && lexer.Lookahead == '*') {
+			if !validSymbols[comment] {
 				return false
 			}
-			lexer.ResultSymbol = sqlStatement
+			advance(lexer)
+			if c == '-' {
+				skipLineComment(lexer)
+			} else {
+				skipBlockComment(lexer)
+			}
+			lexer.MarkEnd()
+			lexer.ResultSymbol = comment
 			return true
 		}
-
-		if lexer.Lookahead == '(' || lexer.Lookahead == '[' {
-			depth++
-			lexer.Advance(false)
-			hasContent = true
-			continue
+		if kind < 0 || kind == sqlStatement {
+			return false
 		}
-
-		if lexer.Lookahead == ')' || lexer.Lookahead == ']' {
-			if depth > 0 {
-				depth--
-				lexer.Advance(false)
-				hasContent = true
-				continue
-			}
-			lexer.MarkEnd()
-			if !hasContent {
-				return false
-			}
-			lexer.ResultSymbol = sqlStatement
-			return true
-		}
-
-		if lexer.Lookahead == '\'' {
-			consumeSingleQuotedString(lexer)
-			hasContent = true
-			continue
-		}
-		if lexer.Lookahead == '"' {
-			consumeDoubleQuotedIdentifier(lexer)
-			hasContent = true
-			continue
-		}
-		if lexer.Lookahead == '$' {
-			consumeDollarQuotedString(lexer)
-			hasContent = true
-			continue
-		}
-
-		if lexer.Lookahead == '-' {
-			lexer.Advance(false)
-			if lexer.Lookahead == '-' {
-				if !hasContent {
-					return false
-				}
-				for lexer.Lookahead != 0 && lexer.Lookahead != '\n' {
-					lexer.Advance(false)
-				}
-				hasContent = true
-				continue
-			}
-			hasContent = true
-			continue
-		}
-
-		if lexer.Lookahead == '/' {
-			lexer.Advance(false)
-			if lexer.Lookahead == '*' {
-				if !hasContent {
-					return false
-				}
-				lexer.Advance(false)
-				commentDepth := 1
-				for lexer.Lookahead != 0 && commentDepth > 0 {
-					switch lexer.Lookahead {
-					case '/':
-						lexer.Advance(false)
-						if lexer.Lookahead == '*' {
-							commentDepth++
-							lexer.Advance(false)
-						}
-					case '*':
-						lexer.Advance(false)
-						if lexer.Lookahead == '/' {
-							commentDepth--
-							lexer.Advance(false)
-						}
-					default:
-						lexer.Advance(false)
-					}
-				}
-				hasContent = true
-				continue
-			}
-			hasContent = true
-			continue
-		}
-
-		if depth == 0 && !hasContent && lexer.Lookahead == '<' {
-			lexer.MarkEnd()
-			lexer.Advance(false)
-			if lexer.Lookahead == '<' {
-				// hasContent is false here, so the C function returns false
-				// before it sets the symbol.
-				return false
-			}
-			hasContent = true
-			continue
-		}
-
-		if depth == 0 && lexer.Lookahead == ':' {
-			lexer.MarkEnd()
-			lexer.Advance(false)
-			if lexer.Lookahead == '=' {
-				if !disableAssignmentStop {
-					return finishToken(lexer, sqlUntilAssignment, hasContent)
-				}
-				lexer.Advance(false)
-				hasContent = true
-				continue
-			}
-			if lexer.Lookahead == ':' {
-				lexer.Advance(false)
-			}
-			hasContent = true
-			continue
-		}
-
-		if depth == 0 && lexer.Lookahead == '=' {
-			lexer.MarkEnd()
-			if !disableAssignmentStop {
-				return finishToken(lexer, sqlUntilAssignment, hasContent)
-			}
-			lexer.Advance(false)
-			hasContent = true
-			continue
-		}
-
-		if depth == 0 && isASCIIAlpha(lexer.Lookahead) {
-			lexer.MarkEnd()
-			var buf [32]byte
-			n := 0
-			for isASCIIAlnum(lexer.Lookahead) || lexer.Lookahead == '_' {
-				if n < 31 {
-					buf[n] = asciiToLower(lexer.Lookahead)
-					n++
-				}
-				lexer.Advance(false)
-			}
-			// The C array word ends with a 0 after the n characters.
-			word := buf[:n]
-
-			if !sawFirstWord {
-				sawFirstWord = true
-				if isPLpgSQLStatementStart(word) {
-					return false
-				}
-				if isSQLStatementStart(word) {
-					disableAssignmentStop = true
-				}
-			}
-
-			hasContent = true
-			continue
-		}
-
-		if isASCIIAlpha(lexer.Lookahead) || lexer.Lookahead == '_' || lexer.Lookahead >= 0x80 {
-			for isASCIIAlnum(lexer.Lookahead) || lexer.Lookahead == '_' ||
-				lexer.Lookahead == '$' || lexer.Lookahead >= 0x80 {
-				lexer.Advance(false)
-			}
-			hasContent = true
-			continue
-		}
-
-		lexer.Advance(false)
-		hasContent = true
+		lexer.MarkEnd()
+		return scanSQL(lexer, kind, 1)
 	}
-
-	lexer.MarkEnd()
-	if !hasContent {
-		return false
-	}
-	lexer.ResultSymbol = sqlStatement
-	return true
-}
-
-// Scan is tree_sitter_plpgsql_external_scanner_scan.
-func (s *scanner) Scan(lexer *abi.Lexer, validSymbols []bool) bool {
-	if validSymbols[sqlUntilAssignment] && validSymbols[sqlStatement] {
-		return scanAssignmentOrStatement(lexer)
-	}
-
-	// FOR ... IN can start a range of integers (expr .. expr) or a query
-	// (query LOOP). The scanner reads once, and it chooses the token by the
-	// terminator that comes first. EXECUTE and REVERSE start the dynamic
-	// form and the reverse form, so they must be keywords and not the start
-	// of the token.
-	if validSymbols[sqlUntilRange] && validSymbols[sqlUntilLoop] {
-		mode := modeFor(sqlUntilRange)
-		mode.stopLoop = true
-		mode.loopYieldsLoopToken = true
-		mode.refuseFirstForInKw = true
-		return scanSQL(lexer, mode)
-	}
-
-	for symbol := uint16(sqlStatement); symbol <= sqlUntilSemicolonGuarded; symbol++ {
-		if validSymbols[symbol] {
-			return scanSQL(lexer, modeFor(symbol))
+	if kind < 0 {
+		if c != '$' || !validSymbols[dollarQuotedString] || validSymbols[errorSentinel] {
+			return false
 		}
+		advance(lexer)
+		if !skipDollar(lexer) {
+			return false
+		}
+		lexer.MarkEnd()
+		lexer.ResultSymbol = dollarQuotedString
+		return true
 	}
-
-	return false
+	return scanSQL(lexer, kind, 0)
 }

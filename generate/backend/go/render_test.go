@@ -281,10 +281,10 @@ func TestGrammarFolder(t *testing.T) {
 // TestFindRecord finds the entries of grammar packages in a record. Two
 // entries give the module folder sql, and the tree-sitter.json of the
 // module names the repository of one of them (D106). The module folder
-// postgres holds the grammar postgres that xo writes, which the
-// tree-sitter.json of the module names, and the grammar plpgsql of
-// gmr/tree-sitter-postgres, whose entry gives the folder (D122). A package
-// outside a checkout of transit has no record.
+// postgres holds the grammars postgres and plpgsql that xo writes, which
+// the tree-sitter.json of the module names, and each of them has an entry
+// of gmr/tree-sitter-postgres too, which gives the same folder (D122). A
+// package outside a checkout of transit has no record.
 func TestFindRecord(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
@@ -295,6 +295,7 @@ func TestFindRecord(t *testing.T) {
 			{"name": "sql", "repository": "https://github.com/m-novikov/tree-sitter-sql"},
 			{"name": "plpgsql", "repository": "https://github.com/gmr/tree-sitter-postgres"},
 			{"name": "postgres", "repository": "https://github.com/gmr/tree-sitter-postgres"},
+			{"name": "plpgsql", "repository": "https://github.com/xo/transit"},
 			{"name": "postgres", "repository": "https://github.com/xo/transit"}]}`,
 		"grammars/json/go.mod":               "module example.com/json\n",
 		"grammars/sql/go.mod":                "module example.com/sql\n",
@@ -318,7 +319,7 @@ func TestFindRecord(t *testing.T) {
 		{"grammars/json", "json", "https://github.com/tree-sitter/tree-sitter-json"},
 		{"grammars/sql", "sql", "https://github.com/DerekStride/tree-sitter-sql"},
 		{"grammars/postgres/postgres", "postgres", "https://github.com/xo/transit"},
-		{"grammars/postgres/plpgsql", "plpgsql", "https://github.com/gmr/tree-sitter-postgres"},
+		{"grammars/postgres/plpgsql", "plpgsql", "https://github.com/xo/transit"},
 	} {
 		rec, err := FindRecord(filepath.Join(root, c.dir), c.name)
 		if err != nil || rec == nil || rec.Repository != c.want {

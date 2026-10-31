@@ -13,9 +13,8 @@ func init() {
 	goPackages = append(goPackages, postgresPackages...)
 }
 
-// postgresPackages are the two packages of the module grammars/postgres:
-// postgres, which xo writes (D122), and plpgsql of tree-sitter-postgres.
-// Each has its own scanner.
+// postgresPackages are the two packages of the module grammars/postgres,
+// postgres and plpgsql, which xo writes (D122). Each has its own scanner.
 var postgresPackages = []goPackage{
 	{"postgres", postgres.Language},
 	{"plpgsql", plpgsql.Language},
@@ -44,23 +43,29 @@ var postgresScannerTexts = []string{
 }
 
 // plpgsqlScannerTexts are texts that reach each branch of the scanner of
-// plpgsql: each terminator, the nesting of brackets, the strings, the
-// quoted identifiers, the dollar quotes and the comments that the scanner
-// reads past, the first words that it refuses, and words outside ASCII.
+// plpgsql: each end of each token of SQL, the parentheses, the brackets and
+// the CASE expressions that hide an end, the first words that a token
+// refuses, the names of commands and of parameters before := and =>, the
+// strings with and without escapes, the quoted identifiers, the parameters,
+// the dollar quotes with each kind of tag, a tag of 64 characters and one of
+// 65, the comments inside and before a token, a - and a / that start no
+// comment, words outside ASCII and words longer than 16 bytes, and texts
+// with no end.
 var plpgsqlScannerTexts = []string{
-	"a := b + c; x = y; select x into y from z;",
-	"x > 1 then y; a when b; a loop b; a by b loop c; a .. b; a.b..c",
-	"f(a, b) into c using d, e; f[1] using x loop y; (a; b) ; a) b] c",
-	"a, b; a from b into c; 'a''b;' \"c\"\"d;\" $$e;$$ $t$f;$t$ $1; $x",
+	"select x into y from z; insert into t values (1); x := 1; comment := 2; set = 3; table.c := 4; a[1] := 5;",
+	"a > 1 then b; c when d; e loop f; 1..10 loop; g by h loop; i, j into k using l; m, n using o loop",
+	"f(a, b) then c; (a then b) then; [a, b] , c; d) e] f; g(h)) i; case when a then b end then c",
+	"next x; query y; execute z; reverse 1; key := 1; key => 2; a = b; a : b; a :: int",
+	"'a''b;' \"c\"\"d;\" e'x\\'y;' E'z' $1; $a$b;$a$ $$c;$$ $x $t$d;$tt$ $t$; $é$e$é$",
 	"a -- b; c\nd; a - b; -- x\n; a /* b /* c */ ; */ d; a / b; /* x */ y; /* z",
-	"<<label>> a; < b; a << b; a::int; a:b; a :=",
-	"begin; declare; end; return next x; return query select 1; open c for execute x;",
-	"execute x; reverse 1 .. 2 loop; next 1; query; select 1 = 2; update t set a = 1;",
-	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnop then; _x$y é ā; xéy then",
+	"-1; /2; --c\n-x; /*d*/ /x; - ; /",
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZ then; _x$y é ā then; xéy then; THEN; Loop; WHEN",
+	"$" + strings.Repeat("t", 64) + "$x$" + strings.Repeat("t", 64) + "$; $" + strings.Repeat("t", 65) + "$x",
 	"'unterminated",
 	"\"unterminated",
+	"e'unterminated\\",
 	"$tag$unterminated",
-	"$" + strings.Repeat("t", 64) + "$x",
+	"$$",
 	"",
 	"   ",
 }

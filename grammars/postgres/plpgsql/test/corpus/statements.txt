@@ -1,0 +1,378 @@
+================================================================================
+Assignments
+================================================================================
+
+BEGIN
+  tax := subtotal * 0.06;
+  my_record.user_id = 20;
+  my_array[j] := 20;
+  my_array[1:3] := array[1, 2, 3];
+  complex_array[n].realpart = 12.3;
+  $1 := -1;
+END
+
+---
+
+(source_file
+  (block
+    (assignment
+      (variable
+        (identifier))
+      (sql_expression))
+    (assignment
+      (variable
+        (identifier)
+        (identifier))
+      (sql_expression))
+    (assignment
+      (variable
+        (identifier)
+        (sql_expression))
+      (sql_expression))
+    (assignment
+      (variable
+        (identifier)
+        (sql_expression))
+      (sql_expression))
+    (assignment
+      (variable
+        (identifier)
+        (sql_expression)
+        (identifier))
+      (sql_expression))
+    (assignment
+      (variable
+        (parameter))
+      (sql_expression))))
+
+================================================================================
+An assignment to a variable with the name of a command
+================================================================================
+
+BEGIN
+  comment := 'x';
+  set = 1;
+  table.col := 2;
+END
+
+---
+
+(source_file
+  (block
+    (assignment
+      (variable
+        (identifier))
+      (sql_expression))
+    (assignment
+      (variable
+        (identifier))
+      (sql_expression))
+    (assignment
+      (variable
+        (identifier)
+        (identifier))
+      (sql_expression))))
+
+================================================================================
+SQL statements
+================================================================================
+
+BEGIN
+  CREATE TABLE mytable (id int primary key, data text);
+  INSERT INTO mytable VALUES (1, 'one'), (2, 'two');
+  UPDATE mytable SET data = 'x' WHERE id = 1 RETURNING id INTO STRICT myid;
+  DELETE FROM mytable WHERE id = 2;
+  SELECT * INTO myrec FROM emp WHERE empname = myname;
+  WITH t AS (SELECT 1) SELECT * FROM t;
+  CALL triple(myvar);
+  SET search_path = public;
+END
+
+---
+
+(source_file
+  (block
+    (sql_command
+      (sql_statement))
+    (sql_command
+      (sql_statement))
+    (sql_command
+      (sql_statement))
+    (sql_command
+      (sql_statement))
+    (sql_command
+      (sql_statement))
+    (sql_command
+      (sql_statement))
+    (sql_command
+      (sql_statement))
+    (sql_command
+      (sql_statement))))
+
+================================================================================
+PERFORM
+================================================================================
+
+BEGIN
+  PERFORM create_mv('cs_session_page_requests_mv', my_query);
+  PERFORM 1 FROM t WHERE a = b;
+END
+
+---
+
+(source_file
+  (block
+    (perform_statement
+      (sql_expression))
+    (perform_statement
+      (sql_expression))))
+
+================================================================================
+Dynamic commands
+================================================================================
+
+BEGIN
+  EXECUTE 'SELECT count(*) FROM mytable WHERE inserted_by = $1 AND inserted <= $2'
+    INTO c
+    USING checked_user, checked_date;
+  EXECUTE format('UPDATE tbl SET %I = $1 WHERE key = $2', colname) USING newvalue, keyvalue;
+  EXECUTE 'DELETE FROM t' USING a INTO STRICT b;
+  EXECUTE cmd;
+END
+
+---
+
+(source_file
+  (block
+    (execute_statement
+      (sql_expression)
+      (into_clause
+        (variable
+          (identifier)))
+      (using_clause
+        (sql_expression)
+        (sql_expression)))
+    (execute_statement
+      (sql_expression)
+      (using_clause
+        (sql_expression)
+        (sql_expression)))
+    (execute_statement
+      (sql_expression)
+      (using_clause
+        (sql_expression))
+      (into_clause
+        (variable
+          (identifier))))
+    (execute_statement
+      (sql_expression))))
+
+================================================================================
+GET DIAGNOSTICS
+================================================================================
+
+BEGIN
+  GET DIAGNOSTICS integer_var = ROW_COUNT;
+  GET CURRENT DIAGNOSTICS a := ROW_COUNT, b = PG_CONTEXT;
+  GET STACKED DIAGNOSTICS text_var1 = MESSAGE_TEXT, text_var2 = PG_EXCEPTION_DETAIL;
+END
+
+---
+
+(source_file
+  (block
+    (get_diagnostics_statement
+      (diagnostics_item
+        (variable
+          (identifier))
+        (identifier)))
+    (get_diagnostics_statement
+      (diagnostics_item
+        (variable
+          (identifier))
+        (identifier))
+      (diagnostics_item
+        (variable
+          (identifier))
+        (identifier)))
+    (get_diagnostics_statement
+      (diagnostics_item
+        (variable
+          (identifier))
+        (identifier))
+      (diagnostics_item
+        (variable
+          (identifier))
+        (identifier)))))
+
+================================================================================
+RETURN
+================================================================================
+
+BEGIN
+  RETURN;
+  RETURN x + 1;
+  RETURN (1, 2, 'three'::text);
+  RETURN NEXT;
+  RETURN NEXT r;
+  RETURN QUERY SELECT * FROM foo WHERE fooid > 0;
+  RETURN QUERY EXECUTE 'SELECT * FROM t WHERE a = $1' USING x;
+END
+
+---
+
+(source_file
+  (block
+    (return_statement)
+    (return_statement
+      (sql_expression))
+    (return_statement
+      (sql_expression))
+    (return_statement)
+    (return_statement
+      (sql_expression))
+    (return_statement
+      (sql_statement))
+    (return_statement
+      (sql_expression)
+      (using_clause
+        (sql_expression)))))
+
+================================================================================
+RAISE
+================================================================================
+
+BEGIN
+  RAISE;
+  RAISE NOTICE 'Calling cs_create_job(%)', v_job_id;
+  RAISE EXCEPTION 'Nonexistent ID --> %', user_id
+    USING HINT = 'Please check your user ID';
+  RAISE 'Duplicate user ID: %', user_id USING ERRCODE = 'unique_violation';
+  RAISE division_by_zero;
+  RAISE WARNING SQLSTATE '22012';
+  RAISE USING MESSAGE = 'Something', DETAIL := 'x';
+  RAISE DEBUG $$a "%" b$$, x;
+  RAISE LOG E'a\'b';
+  RAISE INFO 'x';
+END
+
+---
+
+(source_file
+  (block
+    (raise_statement)
+    (raise_statement
+      (string)
+      (sql_expression))
+    (raise_statement
+      (string)
+      (sql_expression)
+      (raise_option
+        (identifier)
+        (sql_expression)))
+    (raise_statement
+      (string)
+      (sql_expression)
+      (raise_option
+        (identifier)
+        (sql_expression)))
+    (raise_statement
+      (identifier))
+    (raise_statement
+      (sqlstate
+        (string)))
+    (raise_statement
+      (raise_option
+        (identifier)
+        (sql_expression))
+      (raise_option
+        (identifier)
+        (sql_expression)))
+    (raise_statement
+      (string)
+      (sql_expression))
+    (raise_statement
+      (string))
+    (raise_statement
+      (string))))
+
+================================================================================
+ASSERT
+================================================================================
+
+BEGIN
+  ASSERT x > 0;
+  ASSERT f(a, b), 'f failed: ' || a;
+END
+
+---
+
+(source_file
+  (block
+    (assert_statement
+      (sql_expression))
+    (assert_statement
+      (sql_expression)
+      (sql_expression))))
+
+================================================================================
+NULL, COMMIT and ROLLBACK
+================================================================================
+
+BEGIN
+  NULL;
+  COMMIT;
+  COMMIT AND CHAIN;
+  ROLLBACK AND NO CHAIN;
+  ROLLBACK;
+END
+
+---
+
+(source_file
+  (block
+    (null_statement)
+    (commit_statement)
+    (commit_statement)
+    (rollback_statement)
+    (rollback_statement)))
+
+================================================================================
+An expression with a CASE inside an IF
+================================================================================
+
+BEGIN
+  IF CASE WHEN a THEN b ELSE c END > 0 THEN
+    NULL;
+  END IF;
+END
+
+---
+
+(source_file
+  (block
+    (if_statement
+      (sql_expression)
+      (null_statement))))
+
+================================================================================
+Strings, dollar quotes and quoted identifiers in SQL
+================================================================================
+
+BEGIN
+  x := 'a;b' || "col;umn" || $q$c;d$q$ || $$e$$ || E'f\';g';
+  y := $1 + $2;
+END
+
+---
+
+(source_file
+  (block
+    (assignment
+      (variable
+        (identifier))
+      (sql_expression))
+    (assignment
+      (variable
+        (identifier))
+      (sql_expression))))

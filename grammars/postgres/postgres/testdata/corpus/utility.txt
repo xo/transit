@@ -172,11 +172,13 @@ DO LANGUAGE plpgsql 'BEGIN NULL; END';
 
 (source_file
   (do_statement
-    (dollar_quoted_string
-      (string_content)))
+    (function_body
+      (dollar_quoted_string
+        (string_content))))
   (do_statement
     (identifier)
-    (string)))
+    (function_body
+      (string))))
 
 ================================================================================
 Explain a query

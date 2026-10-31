@@ -1,0 +1,377 @@
+================================================================================
+An empty body
+================================================================================
+
+
+
+---
+
+(source_file)
+
+================================================================================
+A block with no statements
+================================================================================
+
+BEGIN
+END
+
+---
+
+(source_file
+  (block))
+
+================================================================================
+A block with a semicolon after END
+================================================================================
+
+BEGIN
+  NULL;
+END;
+
+---
+
+(source_file
+  (block
+    (null_statement)))
+
+================================================================================
+A block with a label
+================================================================================
+
+<<outer>>
+BEGIN
+  NULL;
+END outer;
+
+---
+
+(source_file
+  (block
+    (label
+      (identifier))
+    (null_statement)
+    (identifier)))
+
+================================================================================
+A nested block
+================================================================================
+
+<<outerblock>>
+DECLARE
+  quantity integer := 30;
+BEGIN
+  DECLARE
+    quantity integer := 80;
+  BEGIN
+    RAISE NOTICE 'Inner quantity here is %', quantity;
+    RAISE NOTICE 'Outer quantity here is %', outerblock.quantity;
+  END;
+  RETURN quantity;
+END;
+
+---
+
+(source_file
+  (block
+    (label
+      (identifier))
+    (declare_section
+      (variable_declaration
+        (identifier)
+        (type
+          (identifier))
+        (sql_expression)))
+    (block
+      (declare_section
+        (variable_declaration
+          (identifier)
+          (type
+            (identifier))
+          (sql_expression)))
+      (raise_statement
+        (string)
+        (sql_expression))
+      (raise_statement
+        (string)
+        (sql_expression)))
+    (return_statement
+      (sql_expression))))
+
+================================================================================
+Compiler options
+================================================================================
+
+#variable_conflict use_column
+#print_strict_params on
+BEGIN
+  NULL;
+END
+
+---
+
+(source_file
+  (compiler_option
+    (identifier)
+    (identifier))
+  (compiler_option
+    (identifier)
+    (identifier))
+  (block
+    (null_statement)))
+
+================================================================================
+Declarations of variables
+================================================================================
+
+DECLARE
+  user_id integer;
+  quantity numeric(5);
+  url varchar;
+  myrow tablename%ROWTYPE;
+  myfield tablename.columnname%TYPE;
+  arow RECORD;
+BEGIN
+END
+
+---
+
+(source_file
+  (block
+    (declare_section
+      (variable_declaration
+        (identifier)
+        (type
+          (identifier)))
+      (variable_declaration
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (number))))
+      (variable_declaration
+        (identifier)
+        (type
+          (identifier)))
+      (variable_declaration
+        (identifier)
+        (type
+          (identifier)))
+      (variable_declaration
+        (identifier)
+        (type
+          (identifier)
+          (identifier)))
+      (variable_declaration
+        (identifier)
+        (type
+          (identifier))))))
+
+================================================================================
+Declarations with defaults, CONSTANT, NOT NULL and COLLATE
+================================================================================
+
+DECLARE
+  quantity integer DEFAULT 32;
+  url varchar := 'http://mysite.com';
+  transaction_time CONSTANT timestamp with time zone := now();
+  total numeric(10, 2) NOT NULL = 0;
+  local_a text COLLATE "en_US";
+DECLARE
+  ints integer[3];
+  d double precision;
+BEGIN
+END
+
+---
+
+(source_file
+  (block
+    (declare_section
+      (variable_declaration
+        (identifier)
+        (type
+          (identifier))
+        (sql_expression))
+      (variable_declaration
+        (identifier)
+        (type
+          (identifier))
+        (sql_expression))
+      (variable_declaration
+        (identifier)
+        (type
+          (identifier)
+          (identifier)
+          (identifier)
+          (identifier))
+        (sql_expression))
+      (variable_declaration
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (number)
+            (number)))
+        (sql_expression))
+      (variable_declaration
+        (identifier)
+        (type
+          (identifier))
+        (identifier))
+      (variable_declaration
+        (identifier)
+        (type
+          (identifier)
+          (number)))
+      (variable_declaration
+        (identifier)
+        (type
+          (identifier)
+          (identifier))))))
+
+================================================================================
+Declarations of aliases
+================================================================================
+
+DECLARE
+  subtotal ALIAS FOR $1;
+  prior ALIAS FOR old;
+BEGIN
+  RETURN subtotal * 0.06;
+END
+
+---
+
+(source_file
+  (block
+    (declare_section
+      (alias_declaration
+        (identifier)
+        (parameter))
+      (alias_declaration
+        (identifier)
+        (identifier)))
+    (return_statement
+      (sql_expression))))
+
+================================================================================
+Declarations of cursors
+================================================================================
+
+DECLARE
+  curs1 refcursor;
+  curs2 CURSOR FOR SELECT * FROM tenk1;
+  curs3 CURSOR (key integer) FOR SELECT * FROM tenk1 WHERE unique1 = key;
+  curs4 NO SCROLL CURSOR IS SELECT 1;
+  curs5 SCROLL CURSOR (a int, b text) FOR SELECT a, b;
+BEGIN
+END
+
+---
+
+(source_file
+  (block
+    (declare_section
+      (variable_declaration
+        (identifier)
+        (type
+          (identifier)))
+      (cursor_declaration
+        (identifier)
+        (sql_statement))
+      (cursor_declaration
+        (identifier)
+        (cursor_parameter
+          (identifier)
+          (type
+            (identifier)))
+        (sql_statement))
+      (cursor_declaration
+        (identifier)
+        (sql_statement))
+      (cursor_declaration
+        (identifier)
+        (cursor_parameter
+          (identifier)
+          (type
+            (identifier)))
+        (cursor_parameter
+          (identifier)
+          (type
+            (identifier)))
+        (sql_statement)))))
+
+================================================================================
+Handlers of exceptions
+================================================================================
+
+BEGIN
+  UPDATE mytab SET firstname = 'Joe' WHERE lastname = 'Jones';
+  x := x + 1;
+  y := x / 0;
+EXCEPTION
+  WHEN division_by_zero THEN
+    RAISE NOTICE 'caught division_by_zero';
+    RETURN x;
+  WHEN unique_violation OR SQLSTATE '22012' THEN
+    NULL;
+  WHEN OTHERS THEN
+    RAISE;
+END;
+
+---
+
+(source_file
+  (block
+    (sql_command
+      (sql_statement))
+    (assignment
+      (variable
+        (identifier))
+      (sql_expression))
+    (assignment
+      (variable
+        (identifier))
+      (sql_expression))
+    (exception_section
+      (exception_handler
+        (identifier)
+        (raise_statement
+          (string))
+        (return_statement
+          (sql_expression)))
+      (exception_handler
+        (identifier)
+        (sqlstate
+          (string))
+        (null_statement))
+      (exception_handler
+        (identifier)
+        (raise_statement)))))
+
+================================================================================
+Comments
+================================================================================
+
+-- a line comment
+BEGIN
+  /* a block /* nested */ comment */
+  x := 1; -- after a statement
+  y := 2 /* inside */ + 3;
+END
+
+---
+
+(source_file
+  (comment)
+  (block
+    (comment)
+    (assignment
+      (variable
+        (identifier))
+      (sql_expression))
+    (comment)
+    (assignment
+      (variable
+        (identifier))
+      (sql_expression))))

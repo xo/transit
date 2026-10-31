@@ -4350,10 +4350,10 @@
             },
             {
               "type": "FIELD",
-              "name": "code",
+              "name": "body",
               "content": {
                 "type": "SYMBOL",
-                "name": "_code"
+                "name": "function_body"
               }
             },
             {
@@ -4388,26 +4388,13 @@
             },
             {
               "type": "FIELD",
-              "name": "code",
+              "name": "body",
               "content": {
                 "type": "SYMBOL",
-                "name": "_code"
+                "name": "function_body"
               }
             }
           ]
-        }
-      ]
-    },
-    "_code": {
-      "type": "CHOICE",
-      "members": [
-        {
-          "type": "SYMBOL",
-          "name": "string"
-        },
-        {
-          "type": "SYMBOL",
-          "name": "dollar_quoted_string"
         }
       ]
     },

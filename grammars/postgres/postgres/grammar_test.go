@@ -5,6 +5,7 @@ package postgres
 import (
 	"testing"
 
+	"github.com/xo/transit/grammars/postgres/plpgsql"
 	"github.com/xo/transit/internal/grammartest"
 )
 
@@ -28,7 +29,9 @@ func TestQueries(t *testing.T) {
 // styles waits for phase 5, because that package does not exist yet.
 func TestHighlight(t *testing.T) {
 	t.Parallel()
-	grammartest.Highlight(t, Language(), Queries, "testdata/highlight")
+	grammartest.Highlight(t, Language(), Queries, "testdata/highlight",
+		grammartest.Grammar{Language: plpgsql.Language(), Queries: plpgsql.Queries},
+	)
 }
 
 // TestNodeTypes makes sure that each node type is a symbol of the language.

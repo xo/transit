@@ -130,10 +130,10 @@ grammar name, `sql`. `DerekStride/tree-sitter-sql` gets `grammars/sql`, and
 golden harness take the entry of the repository that `tree-sitter.json` of
 the module names under `metadata.links.repository`. The same rule holds
 for a grammar that xo writes in place of the grammar of another
-repository. The entry of `gmr/tree-sitter-postgres` and the entry of the
-grammar `postgres` that xo writes both have the name `postgres`, and
-`tree-sitter.json` of `grammars/postgres` names `xo/transit`, so the
-package `postgres` takes the entry of xo (D122).
+repository. The grammars `postgres` and `plpgsql` of
+`gmr/tree-sitter-postgres` and the grammars that xo writes have the same
+names. `tree-sitter.json` of `grammars/postgres` names `xo/transit`, so the
+packages `postgres` and `plpgsql` take the entries of xo (D122).
 
 ## The layout of a grammar
 
@@ -179,10 +179,7 @@ as each grammar of `tree-sitter-postgres` has. Then its package holds that
 corpus only. `tree-sitter.json` of `tree-sitter-postgres` lists `postgres`
 and not `plpgsql`. Upstream runs the corpus of `plpgsql` in its own folder,
 so the package of a grammar that `tree-sitter.json` does not list runs each
-case of its corpus that names no grammar. The package `plpgsql` holds a
-copy of that `tree-sitter.json`, because the module `grammars/postgres` is
-now the module of the grammar `postgres` that xo writes (D122). The copy
-gives `plpgsql` the version of `tree-sitter-postgres`.
+case of its corpus that names no grammar.
 
 When `tree-sitter.json` lists a query file of another grammar, such as
 `node_modules/tree-sitter-javascript/queries/highlights.scm`, the package
@@ -297,7 +294,11 @@ Each one follows these rules, in addition to the rest of this document:
 5. Its license is the license of transit.
 6. A grammar that embeds another language, as the usql grammar embeds SQL,
    does it with an injection query, `queries/injections.scm`, and not by
-   copying the rules of the other grammar (D13, D27).
+   copying the rules of the other grammar (D13, D27). The grammar `plpgsql`
+   reads each expression and each SQL statement of a body as one token, and
+   its injection query gives the token to the grammar `postgres`. The
+   injection query of `postgres` gives the body of a function or of a `DO`
+   block to `plpgsql` or to `postgres`, as its `LANGUAGE` says.
 
 A change to such a grammar is a change to transit. It follows "Before you
 stage" in `AGENTS.md`, and its golden files are made again.
@@ -305,10 +306,13 @@ stage" in `AGENTS.md`, and its golden files are made again.
 The folder `grammars/<name>` is the module of the grammar, and it is laid
 out as the checkout of a grammar repository and as a grammar module at once.
 `grammars/usql` holds one grammar, `usql`, at the root of the module. Its
-package is `usql`. `grammars/postgres` holds the grammar `postgres` in the
-folder of its package, `grammars/postgres/postgres`, with the same files
-as `grammars/usql` but `options.go` and `testdata/options/`. The grammar is one language for every SQL dialect, and
-the options of the dialect change only its scanner (D108):
+package is `usql`. `grammars/postgres` holds the grammars `postgres` and
+`plpgsql` in the folders of their packages, `grammars/postgres/postgres`
+and `grammars/postgres/plpgsql`. Each folder holds the same files as
+`grammars/usql` but `options.go` and `testdata/options/`, and the
+`tree-sitter.json` of the module lists both grammars. The usql grammar is
+one language for every SQL dialect, and the options of the dialect change
+only its scanner (D108):
 
 | Path | What it holds | Who writes it |
 | --- | --- | --- |

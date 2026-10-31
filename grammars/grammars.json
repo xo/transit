@@ -10912,6 +10912,69 @@
       }
     },
     {
+      "name": "plpgsql",
+      "package": "plpgsql",
+      "repository": "https://github.com/xo/transit",
+      "commit": "",
+      "path": "grammars/postgres/plpgsql",
+      "license": "MIT",
+      "scanner": true,
+      "set": "xo",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "bd6f452a4d791f5da5bf32aa16005a0685dca4ac07bfa8542ac549764c143bb5",
+          "node_types": "ed80cdc021ef44144804ba16557b02055dfcdbf69414affa3c8a72ac12fef586",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "non-terminal alias map",
+            "keyword lexer",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "058b461ba780e60ae80d99f8f301ee6501d6aa4b7804ab7adb3b85081807365a",
+          "node_types": "ed80cdc021ef44144804ba16557b02055dfcdbf69414affa3c8a72ac12fef586",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "non-terminal alias map",
+            "keyword lexer",
+            "reserved words",
+            "reserved word set of a state",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      },
+      "corpus": {
+        "tests": 38,
+        "failures": 0,
+        "transit": "same"
+      }
+    },
+    {
       "name": "postgres",
       "package": "postgres",
       "repository": "https://github.com/xo/transit",
@@ -10923,8 +10986,8 @@
       "status": "available",
       "golden": {
         "abi14": {
-          "parser_c": "9a4bba7cf6f4edd0a325f4cda53a9ac7803100c7026cbfe6499ce577113ab8cb",
-          "node_types": "2893855210a6097ee979d9075bfed4c587c97d43d47f38f3f369ee98908593de",
+          "parser_c": "78f4c10d86d69c0dfd61565107d18c258b32e11bbef1df83c3350715bb900656",
+          "node_types": "40bf2036014f2e9265a96e665f57f28d54fefbe7e24f8b8808e5338129e28600",
           "paths": [
             "field map",
             "inherited field",
@@ -10947,8 +11010,8 @@
           ]
         },
         "abi15": {
-          "parser_c": "992c6d77d2b58dabfab2fdb1fb8e27b6ed9c842d1454aff470591e544ee3bbff",
-          "node_types": "2893855210a6097ee979d9075bfed4c587c97d43d47f38f3f369ee98908593de",
+          "parser_c": "19083b72a1eb84f0db06d33eaff27e4ded338d8bca042d3fd346bf6c1d2f5bd5",
+          "node_types": "40bf2036014f2e9265a96e665f57f28d54fefbe7e24f8b8808e5338129e28600",
           "paths": [
             "field map",
             "inherited field",

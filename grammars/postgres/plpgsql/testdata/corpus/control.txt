@@ -1,0 +1,341 @@
+================================================================================
+IF, ELSIF and ELSE
+================================================================================
+
+BEGIN
+  IF v_user_id <> 0 THEN
+    UPDATE users SET email = v_email WHERE user_id = v_user_id;
+  END IF;
+  IF number = 0 THEN
+    result := 'zero';
+  ELSIF number > 0 THEN
+    result := 'positive';
+  ELSEIF number < 0 THEN
+    result := 'negative';
+  ELSE
+    result := 'NULL';
+  END IF;
+END
+
+---
+
+(source_file
+  (block
+    (if_statement
+      (sql_expression)
+      (sql_command
+        (sql_statement)))
+    (if_statement
+      (sql_expression)
+      (assignment
+        (variable
+          (identifier))
+        (sql_expression))
+      (elsif_clause
+        (sql_expression)
+        (assignment
+          (variable
+            (identifier))
+          (sql_expression)))
+      (elsif_clause
+        (sql_expression)
+        (assignment
+          (variable
+            (identifier))
+          (sql_expression)))
+      (else_clause
+        (assignment
+          (variable
+            (identifier))
+          (sql_expression))))))
+
+================================================================================
+A simple CASE
+================================================================================
+
+BEGIN
+  CASE x
+    WHEN 1, 2 THEN
+      msg := 'one or two';
+    ELSE
+      msg := 'other value than one or two';
+  END CASE;
+END
+
+---
+
+(source_file
+  (block
+    (case_statement
+      (sql_expression)
+      (case_when_clause
+        (sql_expression)
+        (assignment
+          (variable
+            (identifier))
+          (sql_expression)))
+      (else_clause
+        (assignment
+          (variable
+            (identifier))
+          (sql_expression))))))
+
+================================================================================
+A searched CASE
+================================================================================
+
+BEGIN
+  CASE
+    WHEN x BETWEEN 0 AND 10 THEN
+      msg := 'value is between zero and ten';
+    WHEN x BETWEEN 11 AND 20 THEN
+      msg := 'value is between eleven and twenty';
+  END CASE;
+END
+
+---
+
+(source_file
+  (block
+    (case_statement
+      (case_when_clause
+        (sql_expression)
+        (assignment
+          (variable
+            (identifier))
+          (sql_expression)))
+      (case_when_clause
+        (sql_expression)
+        (assignment
+          (variable
+            (identifier))
+          (sql_expression))))))
+
+================================================================================
+LOOP, EXIT and CONTINUE
+================================================================================
+
+BEGIN
+  LOOP
+    count := count + 1;
+    EXIT WHEN count > 100;
+    CONTINUE WHEN count < 50;
+  END LOOP;
+  <<ablock>>
+  LOOP
+    EXIT ablock;
+    CONTINUE;
+    EXIT;
+  END LOOP ablock;
+END
+
+---
+
+(source_file
+  (block
+    (loop_statement
+      (assignment
+        (variable
+          (identifier))
+        (sql_expression))
+      (exit_statement
+        (sql_expression))
+      (exit_statement
+        (sql_expression)))
+    (loop_statement
+      (label
+        (identifier))
+      (exit_statement
+        (identifier))
+      (exit_statement)
+      (exit_statement)
+      (identifier))))
+
+================================================================================
+WHILE
+================================================================================
+
+BEGIN
+  WHILE amount_owed > 0 AND gift_certificate_balance > 0 LOOP
+    NULL;
+  END LOOP;
+  <<w>> WHILE NOT done LOOP
+    EXIT w WHEN done;
+  END LOOP w;
+END
+
+---
+
+(source_file
+  (block
+    (while_statement
+      (sql_expression)
+      (null_statement))
+    (while_statement
+      (label
+        (identifier))
+      (sql_expression)
+      (exit_statement
+        (identifier)
+        (sql_expression))
+      (identifier))))
+
+================================================================================
+FOR over integers
+================================================================================
+
+BEGIN
+  FOR i IN 1..10 LOOP
+    NULL;
+  END LOOP;
+  FOR i IN REVERSE 10..1 LOOP
+    NULL;
+  END LOOP;
+  FOR i IN REVERSE 10..1 BY 2 LOOP
+    NULL;
+  END LOOP;
+  <<f>> FOR i IN 1..array_length(a, 1) LOOP
+    NULL;
+  END LOOP f;
+END
+
+---
+
+(source_file
+  (block
+    (for_statement
+      (variable
+        (identifier))
+      (sql_expression)
+      (sql_expression)
+      (null_statement))
+    (for_statement
+      (variable
+        (identifier))
+      (sql_expression)
+      (sql_expression)
+      (null_statement))
+    (for_statement
+      (variable
+        (identifier))
+      (sql_expression)
+      (sql_expression)
+      (sql_expression)
+      (null_statement))
+    (for_statement
+      (label
+        (identifier))
+      (variable
+        (identifier))
+      (sql_expression)
+      (sql_expression)
+      (null_statement)
+      (identifier))))
+
+================================================================================
+FOR over a query
+================================================================================
+
+BEGIN
+  FOR mviews IN
+     SELECT n.nspname AS mv_schema
+       FROM pg_catalog.pg_class c
+      ORDER BY 1
+  LOOP
+    RETURN NEXT mviews;
+  END LOOP;
+  FOR a, b IN SELECT 1, 2 LOOP
+    NULL;
+  END LOOP;
+  FOR recordvar IN bound_cursorvar(1, 2) LOOP
+    NULL;
+  END LOOP;
+END
+
+---
+
+(source_file
+  (block
+    (for_statement
+      (variable
+        (identifier))
+      (sql_expression)
+      (return_statement
+        (sql_expression)))
+    (for_statement
+      (variable
+        (identifier))
+      (variable
+        (identifier))
+      (sql_expression)
+      (null_statement))
+    (for_statement
+      (variable
+        (identifier))
+      (sql_expression)
+      (null_statement))))
+
+================================================================================
+FOR over a dynamic query
+================================================================================
+
+BEGIN
+  FOR r IN EXECUTE 'SELECT * FROM ' || quote_ident(t) LOOP
+    NULL;
+  END LOOP;
+  FOR r IN EXECUTE 'SELECT $1, $2' USING a, b LOOP
+    NULL;
+  END LOOP;
+END
+
+---
+
+(source_file
+  (block
+    (for_statement
+      (variable
+        (identifier))
+      (sql_expression)
+      (null_statement))
+    (for_statement
+      (variable
+        (identifier))
+      (sql_expression)
+      (sql_expression)
+      (sql_expression)
+      (null_statement))))
+
+================================================================================
+FOREACH
+================================================================================
+
+BEGIN
+  FOREACH x IN ARRAY $1
+  LOOP
+    s := s + x;
+  END LOOP;
+  FOREACH x SLICE 1 IN ARRAY $1 LOOP
+    RAISE NOTICE 'row = %', x;
+  END LOOP;
+END
+
+---
+
+(source_file
+  (block
+    (foreach_statement
+      (variable
+        (identifier))
+      (sql_expression)
+      (assignment
+        (variable
+          (identifier))
+        (sql_expression)))
+    (foreach_statement
+      (variable
+        (identifier))
+      (number)
+      (sql_expression)
+      (raise_statement
+        (string)
+        (sql_expression)))))

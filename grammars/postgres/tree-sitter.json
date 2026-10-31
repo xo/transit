@@ -9,13 +9,23 @@
         "pgsql"
       ],
       "highlights": "queries/highlights.scm",
+      "injections": "queries/injections.scm",
       "injection-regex": "^(postgres|postgresql)$"
+    },
+    {
+      "name": "plpgsql",
+      "camelcase": "Plpgsql",
+      "scope": "source.plpgsql",
+      "path": "plpgsql",
+      "highlights": "queries/highlights.scm",
+      "injections": "queries/injections.scm",
+      "injection-regex": "^plpgsql$"
     }
   ],
   "metadata": {
     "version": "0.1.0",
     "license": "MIT",
-    "description": "A grammar of the SQL of PostgreSQL 19",
+    "description": "The grammars of the SQL of PostgreSQL 19 and of PL/pgSQL",
     "links": {
       "repository": "https://github.com/xo/transit"
     }
