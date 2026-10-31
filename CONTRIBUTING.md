@@ -16,7 +16,7 @@ Do not decide an open question on your own. Add it to the end of
 Ken accepted `docs/API.md` on 2026-10-01, and that ended phase 1 (D103).
 Phases 2 to 5 are done. On 2026-10-10, phase 6 ported every upstream commit
 up to `e9930e09`, and transit follows upstream from there. On 2026-10-28,
-transit reached `dfe77085`. The latest tag of each module is `v0.5.0`. The module `_example` has no tag. Code follows the
+transit reached `dfe77085`. The latest tag of each module is `v0.5.1`. The module `_example` has no tag. Code follows the
 plan and the decisions.
 
 ## The upstream checkout

@@ -3,8 +3,8 @@ module github.com/xo/transit/grammars/html
 go 1.27.1
 
 require (
-	github.com/xo/transit v0.5.0
-	github.com/xo/transit/grammars/javascript v0.5.0
+	github.com/xo/transit v0.5.1
+	github.com/xo/transit/grammars/javascript v0.5.1
 )
 
 replace github.com/xo/transit => ../..
