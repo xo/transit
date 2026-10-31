@@ -1,38 +1,23 @@
 {
-  "metadata": {
-    "version": "1.2.4",
-    "license": "BSD-3-Clause",
-    "description": "PostgreSQL grammar for tree-sitter, generated from PostgreSQL source",
-    "authors": [
-      {
-        "name": "Gavin M. Roy"
-      }
-    ],
-    "links": {
-      "repository": "https://github.com/gmr/tree-sitter-postgres"
-    }
-  },
   "grammars": [
     {
       "name": "postgres",
       "camelcase": "Postgres",
-      "scope": "source.sql",
+      "scope": "source.postgres",
       "path": "postgres",
       "file-types": [
-        "sql",
-        "psql",
         "pgsql"
       ],
       "highlights": "queries/highlights.scm",
-      "injection-regex": "^(sql|postgres|postgresql)$"
+      "injection-regex": "^(postgres|postgresql)$"
     }
   ],
-  "bindings": {
-    "c": true,
-    "go": true,
-    "node": true,
-    "python": true,
-    "rust": true,
-    "swift": true
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "A grammar of the SQL of PostgreSQL 19",
+    "links": {
+      "repository": "https://github.com/xo/transit"
+    }
   }
 }

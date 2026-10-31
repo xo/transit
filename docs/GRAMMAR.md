@@ -128,7 +128,12 @@ grammar name, `sql`. `DerekStride/tree-sitter-sql` gets `grammars/sql`, and
 `m-novikov/tree-sitter-sql` gets no Go package (D106). Two entries of
 `grammars/grammars.json` can give one module folder. Then the tests and the
 golden harness take the entry of the repository that `tree-sitter.json` of
-the module names under `metadata.links.repository`.
+the module names under `metadata.links.repository`. The same rule holds
+for a grammar that xo writes in place of the grammar of another
+repository. The entry of `gmr/tree-sitter-postgres` and the entry of the
+grammar `postgres` that xo writes both have the name `postgres`, and
+`tree-sitter.json` of `grammars/postgres` names `xo/transit`, so the
+package `postgres` takes the entry of xo (D122).
 
 ## The layout of a grammar
 
@@ -174,7 +179,10 @@ as each grammar of `tree-sitter-postgres` has. Then its package holds that
 corpus only. `tree-sitter.json` of `tree-sitter-postgres` lists `postgres`
 and not `plpgsql`. Upstream runs the corpus of `plpgsql` in its own folder,
 so the package of a grammar that `tree-sitter.json` does not list runs each
-case of its corpus that names no grammar.
+case of its corpus that names no grammar. The package `plpgsql` holds a
+copy of that `tree-sitter.json`, because the module `grammars/postgres` is
+now the module of the grammar `postgres` that xo writes (D122). The copy
+gives `plpgsql` the version of `tree-sitter-postgres`.
 
 When `tree-sitter.json` lists a query file of another grammar, such as
 `node_modules/tree-sitter-javascript/queries/highlights.scm`, the package
@@ -297,7 +305,9 @@ stage" in `AGENTS.md`, and its golden files are made again.
 The folder `grammars/<name>` is the module of the grammar, and it is laid
 out as the checkout of a grammar repository and as a grammar module at once.
 `grammars/usql` holds one grammar, `usql`, at the root of the module. Its
-package is `usql`. The grammar is one language for every SQL dialect, and
+package is `usql`. `grammars/postgres` holds the grammar `postgres` in the
+folder of its package, `grammars/postgres/postgres`, with the same files
+as `grammars/usql` but `options.go` and `testdata/options/`. The grammar is one language for every SQL dialect, and
 the options of the dialect change only its scanner (D108):
 
 | Path | What it holds | Who writes it |

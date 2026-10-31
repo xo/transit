@@ -27,7 +27,7 @@ func TestRun(t *testing.T) {
 		{"postgres", meta + "select id from :t", "bl", []string{"in the variable tbl", "variables: tbl\n"}},
 		{"postgres", meta + "select id from :tbl where id = 1 ", "\n;", []string{
 			"in a SQL statement of postgres",
-			"context: source_file > toplevel_stmt > stmt > SelectStmt",
+			"context: source_file > select_statement > select > where_clause",
 			"keywords: ", " AND ", " OR ",
 		}},
 		{"postgres", meta + "select 1; sel", "", []string{"in a SQL statement of postgres", "keywords: SELECT\n"}},

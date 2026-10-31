@@ -253,7 +253,9 @@ Only `DerekStride/tree-sitter-sql` meets the rule of tier 3. The set also
 takes every other SQL grammar in this table that is not archived (D18). Both
 grammars of `gmr/tree-sitter-postgres` are among them. They follow the
 PostgreSQL source, as dbmeta does. A SQL grammar that does not exist is
-written in transit (D42).
+written in transit (D42). xo writes the PostgreSQL grammars in place of
+those of `gmr/tree-sitter-postgres`, which stay in the golden set without a
+Go package (D122).
 
 ## The dialects of dbmeta
 

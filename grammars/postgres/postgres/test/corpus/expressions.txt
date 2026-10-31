@@ -1,0 +1,742 @@
+================================================================================
+Arithmetic and precedence
+================================================================================
+
+SELECT 1 + 2 * 3 - 4 / 5 % 6 ^ 7;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (binary_expression
+          (number)
+          (operator)
+          (binary_expression
+            (number)
+            (operator)
+            (number)))
+        (operator)
+        (binary_expression
+          (binary_expression
+            (number)
+            (operator)
+            (number))
+          (operator)
+          (binary_expression
+            (number)
+            (operator)
+            (number)))))))
+
+================================================================================
+Unary operators
+================================================================================
+
+SELECT -a, +b, - -c, NOT d;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (unary_expression
+        (operator)
+        (column_reference
+          (identifier)))
+      (unary_expression
+        (operator)
+        (column_reference
+          (identifier)))
+      (unary_expression
+        (operator)
+        (unary_expression
+          (operator)
+          (column_reference
+            (identifier))))
+      (unary_expression
+        (column_reference
+          (identifier))))))
+
+================================================================================
+Comparisons
+================================================================================
+
+SELECT a = b, a <> b, a != b, a < b, a <= b, a > b, a >= b;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier))))))
+
+================================================================================
+Boolean operators
+================================================================================
+
+SELECT a AND b OR NOT c AND d;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (binary_expression
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier)))
+        (binary_expression
+          (unary_expression
+            (column_reference
+              (identifier)))
+          (column_reference
+            (identifier)))))))
+
+================================================================================
+IS predicates
+================================================================================
+
+SELECT a IS NULL, a IS NOT NULL, a ISNULL, a NOTNULL, a IS TRUE, a IS NOT FALSE, a IS UNKNOWN;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (is_expression
+        (column_reference
+          (identifier))
+        (null))
+      (is_expression
+        (column_reference
+          (identifier))
+        (null))
+      (is_expression
+        (column_reference
+          (identifier)))
+      (is_expression
+        (column_reference
+          (identifier)))
+      (is_expression
+        (column_reference
+          (identifier))
+        (boolean))
+      (is_expression
+        (column_reference
+          (identifier))
+        (boolean))
+      (is_expression
+        (column_reference
+          (identifier))))))
+
+================================================================================
+IS DISTINCT FROM
+================================================================================
+
+SELECT a IS DISTINCT FROM b, a IS NOT DISTINCT FROM b;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (is_expression
+        (column_reference
+          (identifier))
+        (distinct_from
+          (column_reference
+            (identifier))))
+      (is_expression
+        (column_reference
+          (identifier))
+        (distinct_from
+          (column_reference
+            (identifier)))))))
+
+================================================================================
+IS NORMALIZED and IS JSON
+================================================================================
+
+SELECT a IS NFC NORMALIZED, a IS JSON OBJECT WITH UNIQUE KEYS, a IS NOT JSON;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (is_expression
+        (column_reference
+          (identifier)))
+      (is_expression
+        (column_reference
+          (identifier))
+        (json_predicate))
+      (is_expression
+        (column_reference
+          (identifier))
+        (json_predicate)))))
+
+================================================================================
+BETWEEN
+================================================================================
+
+SELECT a BETWEEN 1 AND 10, a NOT BETWEEN SYMMETRIC 10 AND 1 AND b;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (between_expression
+        (column_reference
+          (identifier))
+        (number)
+        (number))
+      (binary_expression
+        (between_expression
+          (column_reference
+            (identifier))
+          (number)
+          (number))
+        (column_reference
+          (identifier))))))
+
+================================================================================
+IN lists and subqueries
+================================================================================
+
+SELECT a IN (1, 2, 3), a NOT IN (SELECT b FROM t);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (in_expression
+        (column_reference
+          (identifier))
+        (list
+          (number)
+          (number)
+          (number)))
+      (in_expression
+        (column_reference
+          (identifier))
+        (subquery
+          (select
+            (column_reference
+              (identifier))
+            (from_clause
+              (table_reference
+                (object_reference
+                  (identifier))))))))))
+
+================================================================================
+LIKE, ILIKE and SIMILAR TO
+================================================================================
+
+SELECT a LIKE 'x%', a NOT ILIKE 'y%' ESCAPE '!', a SIMILAR TO '(b|c)%', a LIKE ANY (ARRAY['x', 'y']);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (like_expression
+        (column_reference
+          (identifier))
+        (string))
+      (like_expression
+        (column_reference
+          (identifier))
+        (string)
+        (string))
+      (like_expression
+        (column_reference
+          (identifier))
+        (string))
+      (like_expression
+        (column_reference
+          (identifier))
+        (quantified_expression
+          (array_constructor
+            (string)
+            (string)))))))
+
+================================================================================
+Quantified comparisons
+================================================================================
+
+SELECT a = ANY (ARRAY[1, 2]), a > ALL (SELECT b FROM t), a <> SOME (SELECT 1);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (quantified_expression
+          (array_constructor
+            (number)
+            (number))))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (quantified_expression
+          (select
+            (column_reference
+              (identifier))
+            (from_clause
+              (table_reference
+                (object_reference
+                  (identifier)))))))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (quantified_expression
+          (select
+            (number)))))))
+
+================================================================================
+A qualified operator
+================================================================================
+
+SELECT a OPERATOR(pg_catalog.+) b, OPERATOR(pg_catalog.-) c;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (column_reference
+          (identifier))
+        (qualified_operator
+          (identifier)
+          (operator))
+        (column_reference
+          (identifier)))
+      (unary_expression
+        (qualified_operator
+          (identifier)
+          (operator))
+        (column_reference
+          (identifier))))))
+
+================================================================================
+Casts
+================================================================================
+
+SELECT a::int, CAST(b AS varchar(10)), c::text[], d::numeric(10, 2)::text;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)
+          (type_modifiers
+            (number))))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (cast_expression
+          (column_reference
+            (identifier))
+          (type
+            (identifier)
+            (type_modifiers
+              (number)
+              (number))))
+        (type
+          (identifier))))))
+
+================================================================================
+Typed literals
+================================================================================
+
+SELECT date '2026-10-31', interval '1' day, interval '1 day 2 hours', timestamp with time zone '2026-10-31 12:00+00', int4 '1';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (typed_literal
+        (type)
+        (string))
+      (typed_literal
+        (type)
+        (string)
+        (interval_fields))
+      (typed_literal
+        (type)
+        (string))
+      (typed_literal
+        (type)
+        (type)
+        (type)
+        (type)
+        (string))
+      (typed_literal
+        (type)
+        (string)))))
+
+================================================================================
+AT TIME ZONE and AT LOCAL
+================================================================================
+
+SELECT ts AT TIME ZONE 'UTC', ts AT LOCAL;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (at_time_zone_expression
+        (column_reference
+          (identifier))
+        (string))
+      (at_time_zone_expression
+        (column_reference
+          (identifier))))))
+
+================================================================================
+COLLATE
+================================================================================
+
+SELECT a COLLATE "C", b COLLATE pg_catalog."default";
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (collate_expression
+        (column_reference
+          (identifier))
+        (object_reference
+          (identifier)))
+      (collate_expression
+        (column_reference
+          (identifier))
+        (object_reference
+          (identifier)
+          (identifier))))))
+
+================================================================================
+Subscripts and slices
+================================================================================
+
+SELECT a[1], a[1:2], a[:3], a[2:], a[1][2];
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (subscript_expression
+        (column_reference
+          (identifier))
+        (number))
+      (subscript_expression
+        (column_reference
+          (identifier))
+        (number)
+        (number))
+      (subscript_expression
+        (column_reference
+          (identifier))
+        (number))
+      (subscript_expression
+        (column_reference
+          (identifier))
+        (number))
+      (subscript_expression
+        (subscript_expression
+          (column_reference
+            (identifier))
+          (number))
+        (number)))))
+
+================================================================================
+Field selection
+================================================================================
+
+SELECT (a).b, (a).*, (f(x)).y, (a).b.c, t.*;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (field_selection
+        (parenthesized_expression
+          (column_reference
+            (identifier)))
+        (identifier))
+      (field_selection
+        (parenthesized_expression
+          (column_reference
+            (identifier))))
+      (field_selection
+        (parenthesized_expression
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier)))))
+        (identifier))
+      (field_selection
+        (field_selection
+          (parenthesized_expression
+            (column_reference
+              (identifier)))
+          (identifier))
+        (identifier))
+      (all_columns
+        (identifier)))))
+
+================================================================================
+Row constructors
+================================================================================
+
+SELECT ROW(1, 2), (1, 2, 3), ROW(), ROW(t.*);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (row_constructor
+        (number)
+        (number))
+      (row_constructor
+        (number)
+        (number)
+        (number))
+      (row_constructor)
+      (row_constructor
+        (all_columns
+          (identifier))))))
+
+================================================================================
+Array constructors
+================================================================================
+
+SELECT ARRAY[1, 2], ARRAY[[1, 2], [3, 4]], ARRAY[]::int[], ARRAY(SELECT 1);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (array_constructor
+        (number)
+        (number))
+      (array_constructor
+        (array_constructor
+          (number)
+          (number))
+        (array_constructor
+          (number)
+          (number)))
+      (cast_expression
+        (array_constructor)
+        (type
+          (identifier)))
+      (array_constructor
+        (subquery
+          (select
+            (number)))))))
+
+================================================================================
+EXISTS and scalar subqueries
+================================================================================
+
+SELECT EXISTS (SELECT 1), (SELECT max(a) FROM t), NOT EXISTS (SELECT 2);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (exists_expression
+        (subquery
+          (select
+            (number))))
+      (subquery
+        (select
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier))))
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier))))))
+      (unary_expression
+        (exists_expression
+          (subquery
+            (select
+              (number))))))))
+
+================================================================================
+CASE
+================================================================================
+
+SELECT CASE WHEN a > 0 THEN 'pos' WHEN a < 0 THEN 'neg' ELSE 'zero' END, CASE a WHEN 1 THEN 'one' END;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (case_expression
+        (when_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number))
+          (string))
+        (when_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number))
+          (string))
+        (string))
+      (case_expression
+        (column_reference
+          (identifier))
+        (when_clause
+          (number)
+          (string))))))
+
+================================================================================
+OVERLAPS
+================================================================================
+
+SELECT (a, b) OVERLAPS (c, d);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (row_constructor
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier)))
+        (row_constructor
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier)))))))
+
+================================================================================
+Column references
+================================================================================
+
+SELECT a, t.a, s.t.a, d.s.t.a;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier)
+        (identifier)
+        (identifier)))))
+
+================================================================================
+Constants
+================================================================================
+
+SELECT TRUE, FALSE, NULL;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (boolean)
+      (boolean)
+      (null))))

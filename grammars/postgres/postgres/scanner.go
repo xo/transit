@@ -1,123 +1,246 @@
 package postgres
 
-import "github.com/xo/transit/internal/abi"
+import (
+	"encoding/binary"
 
-// The external tokens of the grammar, in the order of externals in
-// grammar.json. They are enum TokenType.
-const (
-	dollarQuotedString = iota
+	"github.com/xo/transit/internal/abi"
 )
 
-// scanner is a port of postgres/src/scanner.c of tree-sitter-postgres at
-// v1.2.4 (9b27ba5c8700f9bf808221a0f6d17fe6515da787). It provides the token
-// dollar_quoted_string. A dollar-quoted string of PostgreSQL has the form
-// $tag$...$tag$, where the opening tag and the closing tag must be the same.
-// The scanner remembers the opening tag, and scans until the same tag comes
-// again, as the lexer of PostgreSQL does. It keeps no state, so it
-// serializes no bytes.
-type scanner struct{}
+// The external tokens, the C enum TokenType, in the order of externals in
+// grammar.js.
+const (
+	comment = iota
+	dollarQuoteStart
+	stringContent
+	dollarQuoteEnd
+)
+
+// maxTag is MAX_TAG, the longest tag that the scanner keeps, in
+// characters. With the byte of the length, the state fits in the
+// serialization buffer.
+const maxTag = 255
+
+// scanner is a port of src/scanner.c of the grammar. It reads the comments
+// and the dollar-quoted strings. A comment is -- to the end of the line, or
+// /* ... */, which can hold other block comments. A dollar-quoted string is
+// $tag$ ... $tag$, where the tag is empty or has the form of an identifier
+// without a dollar sign. The scanner gives the opening tag, the text and the
+// closing tag as three tokens, so that an injection can take the text. It
+// keeps the tag from the opening tag to the closing tag.
+type scanner struct {
+	// open is 1 from the opening tag of a dollar-quoted string to its
+	// closing tag.
+	open uint8
+	// length is the number of the characters of the tag.
+	length uint8
+	// tag holds the characters of the tag.
+	tag [maxTag]int32
+}
 
 // newScanner is tree_sitter_postgres_external_scanner_create.
 func newScanner() *scanner {
 	return &scanner{}
 }
 
-// Serialize is tree_sitter_postgres_external_scanner_serialize.
-func (s *scanner) Serialize([]byte) int {
-	return 0
+// advance is advance.
+func advance(lexer *abi.Lexer) { lexer.Advance(false) }
+
+// skip is skip.
+func skip(lexer *abi.Lexer) { lexer.Advance(true) }
+
+// isSpace is is_space. It reports whether c is white space.
+func isSpace(c int32) bool {
+	return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v'
+}
+
+// isTagStart is is_tag_start. It reports whether c can start a tag: a
+// letter, an underscore or a character outside ASCII.
+func isTagStart(c int32) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || c >= 0x80
+}
+
+// isTagChar is is_tag_char. It reports whether c can be in a tag after its
+// first character.
+func isTagChar(c int32) bool { return isTagStart(c) || (c >= '0' && c <= '9') }
+
+// scanLineComment is scan_line_comment. It reads a comment to the end of
+// the line. The -- of the comment is already read.
+func scanLineComment(lexer *abi.Lexer) bool {
+	for !lexer.EOF() && lexer.Lookahead != '\n' && lexer.Lookahead != '\r' {
+		advance(lexer)
+	}
+	lexer.MarkEnd()
+	lexer.ResultSymbol = comment
+	return true
+}
+
+// scanBlockComment is scan_block_comment. It reads a block comment to its
+// end, or to the end of the input. The /* of the comment is already read. A
+// block comment inside it must end before it ends.
+func scanBlockComment(lexer *abi.Lexer) bool {
+	depth := uint(1)
+loop:
+	for !lexer.EOF() {
+		switch lexer.Lookahead {
+		case '*':
+			advance(lexer)
+			if lexer.Lookahead == '/' {
+				advance(lexer)
+				depth--
+				if depth == 0 {
+					break loop
+				}
+			}
+		case '/':
+			advance(lexer)
+			if lexer.Lookahead == '*' {
+				advance(lexer)
+				depth++
+			}
+		default:
+			advance(lexer)
+		}
+	}
+	lexer.MarkEnd()
+	lexer.ResultSymbol = comment
+	return true
+}
+
+// scanStart is scan_start. It reads the opening tag of a dollar-quoted
+// string, and keeps its tag. The $ of the tag is already read.
+func (s *scanner) scanStart(lexer *abi.Lexer) bool {
+	var length uint8
+	if isTagStart(lexer.Lookahead) {
+		for isTagChar(lexer.Lookahead) {
+			if length == maxTag {
+				return false
+			}
+			s.tag[length] = lexer.Lookahead
+			length++
+			advance(lexer)
+		}
+	}
+	if lexer.Lookahead != '$' {
+		return false
+	}
+	advance(lexer)
+	lexer.MarkEnd()
+	s.open = 1
+	s.length = length
+	lexer.ResultSymbol = dollarQuoteStart
+	return true
+}
+
+// scanEnd is scan_end. It reports whether the closing tag comes next, and
+// reads as much of it as matches. The $ before the tag is already read.
+func (s *scanner) scanEnd(lexer *abi.Lexer) bool {
+	for i := range s.length {
+		if lexer.Lookahead != s.tag[i] {
+			return false
+		}
+		advance(lexer)
+	}
+	if lexer.Lookahead != '$' {
+		return false
+	}
+	advance(lexer)
+	return true
+}
+
+// scanContent is scan_content. It reads the text of a dollar-quoted string
+// up to its closing tag, or the closing tag when no text comes before it.
+// The text goes to the end of the input when the closing tag does not
+// come.
+func (s *scanner) scanContent(lexer *abi.Lexer, validSymbols []bool) bool {
+	text := false
+	for !lexer.EOF() {
+		if lexer.Lookahead == '$' {
+			lexer.MarkEnd()
+			advance(lexer)
+			if s.scanEnd(lexer) {
+				if text {
+					lexer.ResultSymbol = stringContent
+					return validSymbols[stringContent]
+				}
+				if !validSymbols[dollarQuoteEnd] {
+					return false
+				}
+				lexer.MarkEnd()
+				s.open = 0
+				s.length = 0
+				lexer.ResultSymbol = dollarQuoteEnd
+				return true
+			}
+		} else {
+			advance(lexer)
+		}
+		text = true
+	}
+	lexer.MarkEnd()
+	lexer.ResultSymbol = stringContent
+	return text && validSymbols[stringContent]
+}
+
+// Serialize is tree_sitter_postgres_external_scanner_serialize. The state
+// is open and the length of the tag in two bytes, and then each character
+// of the tag in four bytes, in little-endian order.
+func (s *scanner) Serialize(buf []byte) int {
+	buf[0] = s.open
+	buf[1] = s.length
+	for i := range int(s.length) {
+		binary.LittleEndian.PutUint32(buf[2+4*i:], uint32(s.tag[i]))
+	}
+	return 2 + 4*int(s.length)
 }
 
 // Deserialize is tree_sitter_postgres_external_scanner_deserialize.
-func (s *scanner) Deserialize([]byte) {}
-
-// The C scanner has its own functions for ASCII, so that a Wasm build of the
-// grammar imports no function of the C library.
-//
-// A tag of a dollar quote follows the rules of an identifier of PostgreSQL.
-// The first character is a letter, which is an ASCII letter or a character
-// whose first byte in UTF-8 is 0x80 or more, or an underscore. The other
-// characters can also be digits. A tag holds no dollar sign.
-
-// isTagStartChar is is_tag_start_char.
-func isTagStartChar(c int32) bool {
-	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-		c == '_' || c >= 0x80
-}
-
-// isTagChar is is_tag_char.
-func isTagChar(c int32) bool {
-	return isTagStartChar(c) || (c >= '0' && c <= '9')
-}
-
-// skipWhitespace is skip_whitespace.
-func skipWhitespace(lexer *abi.Lexer) {
-	for lexer.Lookahead == ' ' || lexer.Lookahead == '\t' ||
-		lexer.Lookahead == '\n' || lexer.Lookahead == '\r' {
-		lexer.Advance(true)
+func (s *scanner) Deserialize(buf []byte) {
+	s.open = 0
+	s.length = 0
+	if len(buf) < 2 {
+		return
+	}
+	n := buf[1]
+	if len(buf) < 2+4*int(n) {
+		return
+	}
+	if buf[0] != 0 {
+		s.open = 1
+	}
+	s.length = n
+	for i := range int(n) {
+		s.tag[i] = int32(binary.LittleEndian.Uint32(buf[2+4*i:]))
 	}
 }
 
 // Scan is tree_sitter_postgres_external_scanner_scan.
-//
-// The C function keeps each character of the tag as a char, and it compares
-// the char as an unsigned char with the lookahead. So the tag keeps the low
-// byte of each character, and a character above 0xff never matches its
-// byte.
 func (s *scanner) Scan(lexer *abi.Lexer, validSymbols []bool) bool {
-	if !validSymbols[dollarQuotedString] {
-		return false
+	if s.open != 0 && (validSymbols[stringContent] || validSymbols[dollarQuoteEnd]) {
+		return s.scanContent(lexer, validSymbols)
 	}
-
-	skipWhitespace(lexer)
-
-	if lexer.Lookahead != '$' {
-		return false
+	for isSpace(lexer.Lookahead) {
+		skip(lexer)
 	}
-
-	lexer.Advance(false)
-
-	// PostgreSQL limits the length of an identifier to NAMEDATALEN-1 = 63.
-	// An empty tag ($$...$$) is valid. A tag that is not empty starts with
-	// a letter or an underscore, and not with a digit.
-	var tag [64]byte
-	tagLen := 0
-	if isTagStartChar(lexer.Lookahead) {
-		for {
-			if tagLen >= 63 {
-				return false
-			}
-			tag[tagLen] = byte(lexer.Lookahead)
-			tagLen++
-			lexer.Advance(false)
-			if !isTagChar(lexer.Lookahead) {
-				break
-			}
+	c := lexer.Lookahead
+	if c == '-' && validSymbols[comment] {
+		advance(lexer)
+		if lexer.Lookahead != '-' {
+			return false
 		}
+		advance(lexer)
+		return scanLineComment(lexer)
 	}
-
-	if lexer.Lookahead != '$' {
-		return false
-	}
-	lexer.Advance(false)
-
-	for lexer.Lookahead != 0 {
-		if lexer.Lookahead == '$' {
-			lexer.Advance(false)
-			i := 0
-			for i < tagLen && lexer.Lookahead == int32(tag[i]) {
-				lexer.Advance(false)
-				i++
-			}
-			if i == tagLen && lexer.Lookahead == '$' {
-				lexer.Advance(false)
-				lexer.ResultSymbol = dollarQuotedString
-				return true
-			}
-			// A part of the tag matches. The scan of the body goes on.
-			continue
+	if c == '/' && validSymbols[comment] {
+		advance(lexer)
+		if lexer.Lookahead != '*' {
+			return false
 		}
-		lexer.Advance(false)
+		advance(lexer)
+		return scanBlockComment(lexer)
 	}
-
+	if c == '$' && validSymbols[dollarQuoteStart] {
+		advance(lexer)
+		return s.scanStart(lexer)
+	}
 	return false
 }

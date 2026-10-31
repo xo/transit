@@ -522,11 +522,13 @@ func headerLanguage(content, title string) (string, bool) {
 
 // packageEntry returns the entry of the record for the grammar package in
 // dir, as golang.FindRecord of the root module finds it: the entry with the
-// name of grammar.json. When several entries have the name, the entry is
-// the one whose repository gives the name of the folder of the module, the
-// nearest folder that holds a go.mod, as docs/GRAMMAR.md says. When several
-// entries give that name too, the entry is the one whose repository the
-// tree-sitter.json of the module names (D106).
+// name of grammar.json. When several entries have the name, the entries are
+// the ones whose repository gives the name of the folder of the module, the
+// nearest folder that holds a go.mod, as docs/GRAMMAR.md says, and the ones
+// whose repository the tree-sitter.json of the module names, as for a
+// grammar that xo writes in place of another (D122). When several entries
+// remain, the entry is the one whose repository the tree-sitter.json of
+// the module names (D106).
 func packageEntry(grammars, dir string, rec *record) (*grammar, error) {
 	b, err := os.ReadFile(filepath.Join(dir, "grammar.json"))
 	if err != nil {
@@ -549,18 +551,18 @@ func packageEntry(grammars, dir string, rec *record) (*grammar, error) {
 		}
 	}
 	if len(found) > 1 {
-		found = slices.DeleteFunc(found, func(g *grammar) bool {
-			return moduleFolderName(g.Repository) != filepath.Base(moduleDir)
-		})
-	}
-	if len(found) > 1 {
 		repository, err := moduleRepository(moduleDir)
 		if err != nil {
 			return nil, err
 		}
 		found = slices.DeleteFunc(found, func(g *grammar) bool {
-			return !sameRepository(g.Repository, repository)
+			return moduleFolderName(g.Repository) != filepath.Base(moduleDir) && !sameRepository(g.Repository, repository)
 		})
+		if len(found) > 1 {
+			found = slices.DeleteFunc(found, func(g *grammar) bool {
+				return !sameRepository(g.Repository, repository)
+			})
+		}
 	}
 	if len(found) != 1 {
 		return nil, fmt.Errorf("finding the entry of the grammar package %s: the record has %d entries for the grammar %s in the module folder %s", dir, len(found), head.Name, filepath.Base(moduleDir))

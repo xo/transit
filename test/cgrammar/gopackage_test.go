@@ -47,8 +47,10 @@ var goPackageSets = []string{"fixture", "xo", "tier3", "sql", "dbmeta"}
 
 // goPackageEntry returns the entry of grammars/grammars.json of the grammar
 // of a grammar package. When several entries of goPackageSets have the name
-// of the grammar, as the two grammars sql do, the entry is the one that
-// golang.FindRecord gives for the folder of the module.
+// of the grammar, as the two grammars sql do, or the grammar that xo writes
+// for PostgreSQL and the grammar of gmr/tree-sitter-postgres do, the entry
+// is the one that golang.FindRecord gives for the folder of the module.
+// The path of the entry of a grammar that xo writes names that folder.
 func goPackageEntry(t *testing.T, root, name string) fixture {
 	t.Helper()
 	var found []fixture
@@ -58,7 +60,11 @@ func goPackageEntry(t *testing.T, root, name string) fixture {
 		}
 	}
 	if len(found) > 1 {
-		rec, err := golang.FindRecord(filepath.Join(root, "grammars", golang.ModuleFolderName(found[0].Repository)), name)
+		dir := filepath.Join(root, "grammars", golang.ModuleFolderName(found[0].Repository))
+		if found[0].Set == "xo" {
+			dir = filepath.Join(root, filepath.FromSlash(found[0].Path))
+		}
+		rec, err := golang.FindRecord(dir, name)
 		if err != nil {
 			t.Fatal(err)
 		}

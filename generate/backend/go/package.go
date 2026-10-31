@@ -399,11 +399,13 @@ type CorpusResult struct {
 // grammars/grammars.json of dir or of a folder above it. It returns nil and
 // no error when no such folder holds grammars/grammars.json, which is the
 // case for a package outside a checkout of transit. When several entries
-// have the name, the entry is the one whose repository gives the name of the
-// folder of the module, the nearest folder that holds a go.mod, as
-// docs/GRAMMAR.md says. When several entries give that name too, as the two
-// repositories tree-sitter-sql do, the entry is the one whose repository
-// the tree-sitter.json of the module names (D106).
+// have the name, the entries are the ones whose repository gives the name
+// of the folder of the module, the nearest folder that holds a go.mod, as
+// docs/GRAMMAR.md says, and the ones whose repository the tree-sitter.json
+// of the module names, as for a grammar that xo writes in place of another
+// (D122). When several entries remain, as for the two repositories
+// tree-sitter-sql, the entry is the one whose repository the
+// tree-sitter.json of the module names (D106).
 func FindRecord(dir, name string) (*Record, error) {
 	dir, err := filepath.Abs(dir)
 	if err != nil {
@@ -441,18 +443,18 @@ func FindRecord(dir, name string) (*Record, error) {
 		}
 	}
 	if len(found) > 1 {
-		found = slices.DeleteFunc(found, func(r Record) bool {
-			return ModuleFolderName(r.Repository) != filepath.Base(moduleDir)
-		})
-	}
-	if len(found) > 1 {
 		repository, err := moduleRepository(moduleDir)
 		if err != nil {
 			return nil, err
 		}
 		found = slices.DeleteFunc(found, func(r Record) bool {
-			return !sameRepository(r.Repository, repository)
+			return ModuleFolderName(r.Repository) != filepath.Base(moduleDir) && !sameRepository(r.Repository, repository)
 		})
+		if len(found) > 1 {
+			found = slices.DeleteFunc(found, func(r Record) bool {
+				return !sameRepository(r.Repository, repository)
+			})
+		}
 	}
 	if len(found) != 1 {
 		return nil, fmt.Errorf("%s has %d entries for the grammar %s in the module folder %s", recordFile, len(found), name, filepath.Base(moduleDir))

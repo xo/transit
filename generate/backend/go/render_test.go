@@ -280,8 +280,11 @@ func TestGrammarFolder(t *testing.T) {
 
 // TestFindRecord finds the entries of grammar packages in a record. Two
 // entries give the module folder sql, and the tree-sitter.json of the
-// module names the repository of one of them (D106). A package outside a
-// checkout of transit has no record.
+// module names the repository of one of them (D106). The module folder
+// postgres holds the grammar postgres that xo writes, which the
+// tree-sitter.json of the module names, and the grammar plpgsql of
+// gmr/tree-sitter-postgres, whose entry gives the folder (D122). A package
+// outside a checkout of transit has no record.
 func TestFindRecord(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
@@ -289,12 +292,17 @@ func TestFindRecord(t *testing.T) {
 		"grammars/grammars.json": `{"grammars": [
 			{"name": "json", "repository": "https://github.com/tree-sitter/tree-sitter-json"},
 			{"name": "sql", "repository": "https://github.com/DerekStride/tree-sitter-sql"},
-			{"name": "sql", "repository": "https://github.com/m-novikov/tree-sitter-sql"}]}`,
-		"grammars/json/go.mod":          "module example.com/json\n",
-		"grammars/sql/go.mod":           "module example.com/sql\n",
-		"grammars/sql/tree-sitter.json": `{"metadata": {"links": {"repository": "git+https://github.com/derekstride/tree-sitter-sql.git"}}}`,
-		"grammars/nosql/go.mod":         "module example.com/nosql\n",
-		"grammars/other/sql/go.mod":     "module example.com/other\n",
+			{"name": "sql", "repository": "https://github.com/m-novikov/tree-sitter-sql"},
+			{"name": "plpgsql", "repository": "https://github.com/gmr/tree-sitter-postgres"},
+			{"name": "postgres", "repository": "https://github.com/gmr/tree-sitter-postgres"},
+			{"name": "postgres", "repository": "https://github.com/xo/transit"}]}`,
+		"grammars/json/go.mod":               "module example.com/json\n",
+		"grammars/sql/go.mod":                "module example.com/sql\n",
+		"grammars/sql/tree-sitter.json":      `{"metadata": {"links": {"repository": "git+https://github.com/derekstride/tree-sitter-sql.git"}}}`,
+		"grammars/nosql/go.mod":              "module example.com/nosql\n",
+		"grammars/postgres/go.mod":           "module example.com/postgres\n",
+		"grammars/postgres/tree-sitter.json": `{"metadata": {"links": {"repository": "https://github.com/xo/transit"}}}`,
+		"grammars/other/sql/go.mod":          "module example.com/other\n",
 	} {
 		p := filepath.Join(root, name)
 		if err := os.MkdirAll(filepath.Dir(p), 0o750); err != nil {
@@ -309,6 +317,8 @@ func TestFindRecord(t *testing.T) {
 	}{
 		{"grammars/json", "json", "https://github.com/tree-sitter/tree-sitter-json"},
 		{"grammars/sql", "sql", "https://github.com/DerekStride/tree-sitter-sql"},
+		{"grammars/postgres/postgres", "postgres", "https://github.com/xo/transit"},
+		{"grammars/postgres/plpgsql", "plpgsql", "https://github.com/gmr/tree-sitter-postgres"},
 	} {
 		rec, err := FindRecord(filepath.Join(root, c.dir), c.name)
 		if err != nil || rec == nil || rec.Repository != c.want {

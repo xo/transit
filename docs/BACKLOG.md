@@ -55,10 +55,11 @@ upstream tool on them, and record each difference.
 
 ### Cut the memory of the generator for large grammars
 
-The generator takes 1 minute 58 seconds and 10.9 GB of memory for postgres,
-as the C backend does (D73). CI runs the PostgreSQL grammar on each push. A
-runner with less memory than that cannot generate it. Measure where the
-memory goes, and compare it with the upstream tool.
+The generator takes 1 minute 58 seconds and 10.9 GB of memory for the
+grammar `postgres` of `gmr/tree-sitter-postgres`, as the C backend does
+(D73). That grammar has no Go package since D122, so CI no longer generates
+it, but a runner with less memory than that cannot generate it. Measure
+where the memory goes, and compare it with the upstream tool.
 
 ### Compare the trees at ABI 14
 
@@ -92,6 +93,25 @@ the test module. The tests of `lexer.go` compare `decodeUTF8` with the
 maximal subpart of the Unicode standard, which ICU follows, and they test the
 UTF-16 decoders case by case. Add the comparison with `U8_NEXT` and
 `U16_NEXT` of C when the test module can call the decoders of the runtime.
+
+## The grammars
+
+### Finish the queries of the PostgreSQL grammar
+
+The grammar `postgres` that xo writes (D122) leaves out these forms of a
+query of PostgreSQL 19:
+
+- `JSON_TABLE` and `XMLTABLE` in `FROM`.
+- `FORMAT JSON` after an argument of a function, as in
+  `json_object('a': x FORMAT JSON)`, and `RETURNING` after the query of
+  `json_array`. Each of them splits the parse states of each expression or
+  each query in two. Find a cheaper form.
+- A typed literal with a type modifier, such as `interval(2) '1 day'` and
+  `char(20) 'x'`.
+- `ANY`, `SOME` and `ALL` after an arithmetic operator, as in
+  `33 * ANY (a)`.
+- A cast as the second argument of `position`, as in
+  `position(a IN b::bytea)`.
 
 ## The setup of the repository
 

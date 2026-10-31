@@ -138,9 +138,14 @@ func loadSpeedGrammar(tb testing.TB, name string, o2 bool) *Grammar {
 	if err := json.Unmarshal(b, &rec); err != nil {
 		tb.Fatal(err)
 	}
-	i := slices.IndexFunc(rec.Grammars, func(f fixture) bool { return f.Name == name && (f.Set == "fixture" || f.Set == "sql") })
+	// the grammar postgres that xo writes has the name of the grammar of
+	// gmr/tree-sitter-postgres, and its package holds it (D122)
+	i := slices.IndexFunc(rec.Grammars, func(f fixture) bool { return f.Name == name && f.Set == "xo" })
 	if i < 0 {
-		tb.Fatalf("no grammar %s of the sets fixture and sql in grammars/grammars.json", name)
+		i = slices.IndexFunc(rec.Grammars, func(f fixture) bool { return f.Name == name && (f.Set == "fixture" || f.Set == "sql") })
+	}
+	if i < 0 {
+		tb.Fatalf("no grammar %s of the sets xo, fixture and sql in grammars/grammars.json", name)
 	}
 	dir, _ := grammarDirs(cache, rec.Grammars[i])
 	so, err := build(context.Background(), dir, cache)

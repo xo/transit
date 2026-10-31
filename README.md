@@ -141,7 +141,6 @@ package name can differ from the grammar name (D107):
 | Package | Grammar | Upstream repository | Tag |
 | --- | --- | --- | --- |
 | `github.com/xo/transit/grammars/sql` | `sql` | [DerekStride/tree-sitter-sql](https://github.com/DerekStride/tree-sitter-sql) | `v0.3.11` |
-| `github.com/xo/transit/grammars/postgres/postgres` | `postgres` | [gmr/tree-sitter-postgres](https://github.com/gmr/tree-sitter-postgres) | `v1.2.4` |
 | `github.com/xo/transit/grammars/postgres/plpgsql` | `plpgsql` | [gmr/tree-sitter-postgres](https://github.com/gmr/tree-sitter-postgres) | `v1.2.4` |
 | `github.com/xo/transit/grammars/sqlserver` | `TSQL` | [Crary-Systems/tree-sitter-tsql](https://github.com/Crary-Systems/tree-sitter-tsql) | `0.0.1` |
 | `github.com/xo/transit/grammars/oracle` | `plsql` | [andreasmaierde/tree-sitter-plsql](https://github.com/andreasmaierde/tree-sitter-plsql) | the branch `main` at `28aebef` |
@@ -192,6 +191,17 @@ usql grammar ends a statement at each `;`, so by default it splits such a
 body into several statements, and the MySQL grammar finds an error in each
 part. The option `BeginEndBlocks` of `usql.Options` keeps the body in one
 statement (D112). It is off by default.
+
+The package `github.com/xo/transit/grammars/postgres/postgres` holds the
+grammar `postgres`, which xo writes from the reference manual of
+PostgreSQL 19 (D122). It covers the lexical structure, the expressions, the
+types, the function calls and the full `SELECT`, with `WITH`, `VALUES` and
+`TABLE`. It does not read the other statements yet. The variables
+of psql are part of the usql grammar, which gives this grammar a
+placeholder of the same length in place of each variable (D101). The
+package `plpgsql` of the same module still holds the grammar of
+[gmr/tree-sitter-postgres](https://github.com/gmr/tree-sitter-postgres) at
+`v1.2.4`, until xo writes it too.
 
 Some grammars ship queries written for Neovim, which transit does not support
 now. [docs/NEOVIM.md](docs/NEOVIM.md) lists them.

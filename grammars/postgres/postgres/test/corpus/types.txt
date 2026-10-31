@@ -1,0 +1,218 @@
+================================================================================
+Type names
+================================================================================
+
+SELECT a::int, a::integer, a::text, a::pg_catalog.int4, a::"MyType";
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier))))))
+
+================================================================================
+Types with modifiers
+================================================================================
+
+SELECT a::varchar(10), a::numeric(10, 2), a::bit(3), a::float(24);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)
+          (type_modifiers
+            (number))))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)
+          (type_modifiers
+            (number)
+            (number))))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (type_modifiers
+            (number))))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)
+          (type_modifiers
+            (number)))))))
+
+================================================================================
+Types of more than one word
+================================================================================
+
+SELECT a::double precision, a::character varying(5), a::char varying, a::national character(2), a::bit varying(8);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (type_modifiers
+            (number))))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (type_modifiers
+            (number))))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (type_modifiers
+            (number)))))))
+
+================================================================================
+Time types
+================================================================================
+
+SELECT a::timestamp, a::timestamp(3) with time zone, a::time without time zone, a::timestamptz;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (type_modifiers
+            (number))))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier))))))
+
+================================================================================
+Interval types
+================================================================================
+
+SELECT a::interval, a::interval year to month, a::interval second(3), a::interval(2);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (interval_fields)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (interval_fields
+            (number))))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (type_modifiers
+            (number)))))))
+
+================================================================================
+Array types
+================================================================================
+
+SELECT a::int[], a::int[3], a::int[][], a::int ARRAY, a::int ARRAY[4];
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)
+          (number)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)
+          (number))))))

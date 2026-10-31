@@ -1,0 +1,31 @@
+SELECT s.f(x)::int, count(*) OVER w FROM public.t AS u JOIN v ON u.id = v.id;
+-- <- keyword
+--     ^ module
+--       ^ function.call
+--         ^ variable.member
+--           ^ punctuation.delimiter
+--             ^ type.builtin
+--                  ^ function.call
+--                        ^ punctuation.special
+--                           ^ keyword
+--                                ^ type
+--                                       ^ module
+--                                              ^ type
+--                                                   ^ variable
+--                                                     ^ keyword
+--                                                               ^ type
+--                                                                 ^ variable.member
+SELECT $1, $$body$$, E'a\'b', 3.5, NULL, date '2026-10-31' /* c */;
+--     ^ variable.parameter
+--         ^ string
+--                   ^ string
+--                            ^ number
+--                                 ^ constant.builtin
+--                                       ^ type.builtin
+--                                            ^ string
+--                                                         ^ comment
+SELECT a::double precision, b @> c -- note
+--        ^ type.builtin
+--               ^ type.builtin
+--                            ^ operator
+--                                 ^ comment

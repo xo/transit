@@ -1,0 +1,510 @@
+================================================================================
+A function call
+================================================================================
+
+SELECT f(), f(1), f(1, 2), s.f(a);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments))
+      (function_call
+        (identifier)
+        (arguments
+          (number)))
+      (function_call
+        (identifier)
+        (arguments
+          (number)
+          (number)))
+      (function_call
+        (identifier)
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier)))))))
+
+================================================================================
+Aggregates
+================================================================================
+
+SELECT count(*), count(DISTINCT a), sum(ALL b), string_agg(c, ',' ORDER BY c DESC);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (string)
+          (order_by_clause
+            (order_by_item
+              (column_reference
+                (identifier)))))))))
+
+================================================================================
+FILTER
+================================================================================
+
+SELECT count(*) FILTER (WHERE a > 0) FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments)
+        (filter_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+WITHIN GROUP
+================================================================================
+
+SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY a) FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (number))
+        (within_group_clause
+          (order_by_clause
+            (order_by_item
+              (column_reference
+                (identifier))))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Window functions
+================================================================================
+
+SELECT rank() OVER (PARTITION BY a ORDER BY b), sum(c) OVER w, row_number() OVER () FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments)
+        (over_clause
+          (window_specification
+            (column_reference
+              (identifier))
+            (order_by_clause
+              (order_by_item
+                (column_reference
+                  (identifier)))))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier)))
+        (over_clause
+          (identifier)))
+      (function_call
+        (identifier)
+        (arguments)
+        (over_clause
+          (window_specification)))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Window frames
+================================================================================
+
+SELECT sum(a) OVER (ORDER BY b ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW EXCLUDE TIES), sum(a) OVER (RANGE 2 PRECEDING), sum(a) OVER (GROUPS BETWEEN 1 PRECEDING AND 1 FOLLOWING) FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier)))
+        (over_clause
+          (window_specification
+            (order_by_clause
+              (order_by_item
+                (column_reference
+                  (identifier))))
+            (frame_clause
+              (frame_bound)
+              (frame_bound)))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier)))
+        (over_clause
+          (window_specification
+            (frame_clause
+              (frame_bound
+                (number))))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier)))
+        (over_clause
+          (window_specification
+            (frame_clause
+              (frame_bound
+                (number))
+              (frame_bound
+                (number))))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Named arguments
+================================================================================
+
+SELECT f(a => 1, b := 2);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (named_argument
+            (identifier)
+            (number))
+          (named_argument
+            (identifier)
+            (number)))))))
+
+================================================================================
+VARIADIC
+================================================================================
+
+SELECT f(VARIADIC ARRAY[1, 2]), f(1, VARIADIC a), f(VARIADIC x => a);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (variadic_argument
+            (array_constructor
+              (number)
+              (number)))))
+      (function_call
+        (identifier)
+        (arguments
+          (number)
+          (variadic_argument
+            (column_reference
+              (identifier)))))
+      (function_call
+        (identifier)
+        (arguments
+          (variadic_argument
+            (named_argument
+              (identifier)
+              (column_reference
+                (identifier)))))))))
+
+================================================================================
+A function name that PostgreSQL reserves for columns
+================================================================================
+
+SELECT left('abc', 2), right('abc', 1);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (string)
+          (number)))
+      (function_call
+        (identifier)
+        (arguments
+          (string)
+          (number))))))
+
+================================================================================
+Special forms
+================================================================================
+
+SELECT substring('abc' FROM 2 FOR 1), substring('abc' FROM 2), position('b' IN 'abc'), overlay('abc' PLACING 'x' FROM 2 FOR 1), trim(BOTH 'x' FROM 'xax'), trim(LEADING FROM ' a'), extract(year FROM ts), substring('abc' SIMILAR 'a%' ESCAPE '#');
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (string)
+          (number)
+          (number)))
+      (function_call
+        (identifier)
+        (arguments
+          (string)
+          (number)))
+      (function_call
+        (identifier)
+        (arguments
+          (in_expression
+            (string)
+            (string))))
+      (function_call
+        (identifier)
+        (arguments
+          (string)
+          (string)
+          (number)
+          (number)))
+      (function_call
+        (identifier)
+        (arguments
+          (string)
+          (string)))
+      (function_call
+        (identifier)
+        (arguments
+          (string)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (like_expression
+            (string)
+            (string)
+            (string)))))))
+
+================================================================================
+SQL value functions
+================================================================================
+
+SELECT CURRENT_DATE, CURRENT_TIMESTAMP(3), LOCALTIME, CURRENT_USER, SESSION_USER, USER, CURRENT_ROLE, CURRENT_CATALOG, CURRENT_SCHEMA, current_schema(), SYSTEM_USER;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier))
+      (function_call
+        (identifier)
+        (number))
+      (function_call
+        (identifier))
+      (function_call
+        (identifier))
+      (function_call
+        (identifier))
+      (function_call
+        (identifier))
+      (function_call
+        (identifier))
+      (function_call
+        (identifier))
+      (function_call
+        (identifier))
+      (function_call
+        (identifier))
+      (function_call
+        (identifier)))))
+
+================================================================================
+COLLATION FOR
+================================================================================
+
+SELECT COLLATION FOR ('a');
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (string)))))
+
+================================================================================
+Functions of SQL/JSON
+================================================================================
+
+SELECT json_object('a' : 1, 'b' VALUE 2 ABSENT ON NULL RETURNING jsonb), json_array(1, 2 NULL ON NULL), json_arrayagg(a ORDER BY a), json_array(SELECT 1);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (string)
+          (number)
+          (string)
+          (number)
+          (type
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (number)
+          (number)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (order_by_clause
+            (order_by_item
+              (column_reference
+                (identifier))))))
+      (function_call
+        (identifier)
+        (arguments
+          (select
+            (number)))))))
+
+================================================================================
+Clauses of SQL/JSON
+================================================================================
+
+SELECT json_query(js, '$.a' RETURNING text WITH CONDITIONAL WRAPPER OMIT QUOTES ON SCALAR STRING EMPTY ARRAY ON EMPTY ERROR ON ERROR), json_value(js, '$.a' PASSING 1 AS x DEFAULT 0 ON EMPTY), json_exists(js, '$.a' TRUE ON ERROR);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (string)
+          (type
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (string)
+          (number)
+          (type
+            (identifier))
+          (number)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (string))))))
+
+================================================================================
+Functions of XML
+================================================================================
+
+SELECT xmlelement(name foo, xmlattributes('x' AS bar), 'y'), xmlparse(content '<a/>'), xmlserialize(DOCUMENT x AS text INDENT), xmlexists('/a' PASSING BY REF x);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (keyword)
+          (identifier)
+          (function_call
+            (identifier)
+            (arguments
+              (string)
+              (type
+                (identifier))))
+          (string)))
+      (function_call
+        (identifier)
+        (arguments
+          (typed_literal
+            (type)
+            (string))))
+      (function_call
+        (identifier)
+        (arguments
+          (keyword)
+          (identifier)
+          (type
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (string)
+          (column_reference
+            (identifier)))))))

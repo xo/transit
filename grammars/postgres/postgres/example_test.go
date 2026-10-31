@@ -14,8 +14,8 @@ import (
 )
 
 // This example parses a text of the grammar postgres, the input of the corpus
-// case "cte/Simple CTE", and prints its tree. Then it compiles each query of
-// the package, and prints the number of its patterns.
+// case "expressions/Constants", and prints its tree. Then it compiles each
+// query of the package, and prints the number of its patterns.
 func ExampleLanguage() {
 	language := postgres.Language()
 	parser := transit.NewParser()
@@ -23,7 +23,7 @@ func ExampleLanguage() {
 		log.Fatal(err)
 	}
 	src := []byte(`
-WITH t AS (SELECT 1) SELECT * FROM t;
+SELECT TRUE, FALSE, NULL;
 `)
 	tree, err := parser.Parse(context.Background(), src, nil)
 	if err != nil {
@@ -49,7 +49,6 @@ WITH t AS (SELECT 1) SELECT * FROM t;
 		log.Fatal(err)
 	}
 	// Output:
-	// (source_file (toplevel_stmt (stmt (SelectStmt (select_no_parens (with_clause (kw_with) (cte_list (common_table_expr (name (ColId (identifier))) (kw_as) (PreparableStmt (SelectStmt (select_no_parens (simple_select (kw_select) (opt_target_list (target_list (target_el (a_expr (a_expr (c_expr (AexprConst (Iconst (integer_literal)))))))))))))))) (select_clause (simple_select (kw_select) (opt_target_list (target_list (target_el))) (from_clause (kw_from) (from_list (table_ref (relation_expr (qualified_name (ColId (identifier))))))))))))))
-	// patterns in queries/highlights.scm: 39
-	// patterns in queries/injections.scm: 24
+	// (source_file (select_statement (select (boolean) (boolean) (null))))
+	// patterns in queries/highlights.scm: 41
 }

@@ -26,7 +26,10 @@ func TestInjectStatesAtUsql(t *testing.T) {
 	t.Parallel()
 	language := usql.LanguageFor(usql.Options{DollarQuotes: true, BlockComments: true})
 	usqlConfig := injectConfig(t, language, usql.Queries, "usql")
-	pg := injectConfig(t, postgres.Language(), postgres.Queries, "postgres")
+	pg, err := inject.NewConfig(postgres.Language(), "postgres", "")
+	if err != nil {
+		t.Fatal(err)
+	}
 	lookup := func(name string) (*inject.Config, bool) {
 		return pg, name == "sql" || name == "postgres"
 	}
@@ -50,8 +53,8 @@ func TestInjectStatesAtUsql(t *testing.T) {
 		// symbols are some of the symbols that the states must accept.
 		symbols []string
 	}{
-		{"select * from ", []string{"table_ref", "relation_expr", "select_with_parens"}},
-		{"select * from :tbl where ", []string{"a_expr", "columnref", "kw_not"}},
+		{"select * from ", []string{"table_reference", "object_reference", "subquery"}},
+		{"select * from :tbl where ", []string{"column_reference", "function_call", "NOT"}},
 	} {
 		cursor := len(meta) + len(c.before)
 		i := slices.IndexFunc(layers, func(l inject.Layer) bool {

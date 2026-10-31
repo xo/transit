@@ -1,0 +1,409 @@
+================================================================================
+An identifier
+================================================================================
+
+SELECT name;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier)))))
+
+================================================================================
+A keyword that is not reserved is an identifier
+================================================================================
+
+SELECT name, type, value, year, time, position FROM data;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+An identifier with a dollar sign and letters outside ASCII
+================================================================================
+
+SELECT a$b, café, _x1;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier)))))
+
+================================================================================
+A quoted identifier
+================================================================================
+
+SELECT "Name", "a""b", "select" FROM "Table";
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+A quoted identifier with Unicode escapes
+================================================================================
+
+SELECT U&"d\0061t\+000061", U&"d!0061t" UESCAPE '!';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier)))))
+
+================================================================================
+A keyword in any case
+================================================================================
+
+select 1; SeLeCt 2; SELECT 3;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)))
+  (select_statement
+    (select
+      (number)))
+  (select_statement
+    (select
+      (number))))
+
+================================================================================
+A reserved word after AS and after a dot
+================================================================================
+
+SELECT t.select AS from FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (aliased_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Strings
+================================================================================
+
+SELECT 'a', 'it''s', '';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string)
+      (string)
+      (string))))
+
+================================================================================
+Strings with escapes
+================================================================================
+
+SELECT E'a\nb', e'\'', U&'d\0061t', U&'d!0061t' UESCAPE '!';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string)
+      (string)
+      (string)
+      (string))))
+
+================================================================================
+Bit strings and national strings
+================================================================================
+
+SELECT B'1010', X'1F', N'abc';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string)
+      (string)
+      (string))))
+
+================================================================================
+Strings on two lines are one string
+================================================================================
+
+SELECT 'foo'
+  'bar';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string))))
+
+================================================================================
+Dollar-quoted strings
+================================================================================
+
+SELECT $$a 'b' c$$, $tag$x $$ y$tag$, $$$$;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (dollar_quoted_string
+        (string_content))
+      (dollar_quoted_string
+        (string_content))
+      (dollar_quoted_string))))
+
+================================================================================
+A dollar-quoted string with a tag outside ASCII
+================================================================================
+
+SELECT $é$x$é$;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (dollar_quoted_string
+        (string_content)))))
+
+================================================================================
+Numbers
+================================================================================
+
+SELECT 42, 3.5, 4., .001, 5e2, 1.925e-3, 1_000_000;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number))))
+
+================================================================================
+Numbers in other bases
+================================================================================
+
+SELECT 0x1F, 0o17, 0b101, 0X_1F;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (number)
+      (number)
+      (number))))
+
+================================================================================
+Positional parameters
+================================================================================
+
+SELECT $1, $2::int, $10;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (parameter)
+      (cast_expression
+        (parameter)
+        (type
+          (identifier)))
+      (parameter))))
+
+================================================================================
+Line comments
+================================================================================
+
+SELECT 1 -- one
+, 2; -- two
+
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (comment)
+      (number)))
+  (comment))
+
+================================================================================
+Block comments nest
+================================================================================
+
+SELECT /* a /* b */ c */ 1;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (comment)
+      (number))))
+
+================================================================================
+Operators
+================================================================================
+
+SELECT a @> b, a <-> b, a ->> 'k', a #- b, a ~* b, |/ a, @ a;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (string))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)))
+      (unary_expression
+        (operator)
+        (column_reference
+          (identifier)))
+      (unary_expression
+        (operator)
+        (column_reference
+          (identifier))))))
+
+================================================================================
+Operator characters before a sign
+================================================================================
+
+SELECT a*-1, a<-1, a@-1;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (unary_expression
+          (operator)
+          (number)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (unary_expression
+          (operator)
+          (number)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))))
+
+================================================================================
+Statements and empty statements
+================================================================================
+
+SELECT 1;; SELECT 2
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)))
+  (select_statement
+    (select
+      (number))))

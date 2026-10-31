@@ -739,8 +739,8 @@ for _, l := range slices.Backward(layers) {
 The test module parses `select * from :tbl where id = :id;` after a meta
 command, with `usql.LanguageFor` and the options of PostgreSQL, and with the
 package `postgres` for the statement. At the start of `:tbl`, the states
-accept `table_ref` and `relation_expr`. After `where `, they accept `a_expr`
-and `columnref`. At both offsets, the states are the states of a parse of
+accept `table_reference` and `object_reference`. After `where `, they
+accept `column_reference` and `function_call`. At both offsets, the states are the states of a parse of
 `select * from _tbl where id = _id;` alone.
 
 ## A generated grammar package

@@ -13,27 +13,34 @@ func init() {
 	goPackages = append(goPackages, postgresPackages...)
 }
 
-// postgresPackages are the two packages of the module grammars/postgres, one
-// for each grammar of tree-sitter-postgres. Each has its own scanner.
+// postgresPackages are the two packages of the module grammars/postgres:
+// postgres, which xo writes (D122), and plpgsql of tree-sitter-postgres.
+// Each has its own scanner.
 var postgresPackages = []goPackage{
 	{"postgres", postgres.Language},
 	{"plpgsql", plpgsql.Language},
 }
 
 // postgresScannerTexts are texts that reach each branch of the scanner of
-// postgres, which reads a dollar-quoted string: the empty tag, a tag with
-// each kind of character, a tag of 63 characters and one of 64, a closing
-// tag that matches only in part, characters outside ASCII, and a string with
-// no end.
+// postgres, which reads the comments and the dollar-quoted strings: a line
+// comment with each end, block comments that nest and one with no end, a
+// - and a / that start no comment, dollar quotes with the empty tag and
+// with tags of each kind of character, a closing tag that matches only in
+// part, a tag of 255 characters and one of 256, a parameter, and a string
+// with no end.
 var postgresScannerTexts = []string{
-	"$$a$$ $$$$ $a$b$a$ $_1$c$_1$",
-	" \t\r\n$tag$x $ta$ $tagx$ $tag$",
-	"$" + strings.Repeat("t", 63) + "$x$" + strings.Repeat("t", 63) + "$",
-	"$" + strings.Repeat("t", 64) + "$x$" + strings.Repeat("t", 64) + "$",
-	"$1$ $ $a $a1$x$a1$ $é$x$é$ $ā$x$ā$ $ÿ$x$ÿ$",
-	"$a$x$a",
-	"$$\xff$$",
-	"x$$",
+	"select 1 -- a\n, 2 -- b\r\n, 3 --",
+	"select /* a /* b */ c */ 1, /**/ 2, /* * / */ 3",
+	"select 1 /* a /* b */",
+	"select 4 - 2, 4 / 2, -1",
+	"select $$a$$, $$$$, $a$b$a$, $_1$c$_1$, $$x$y$$, $ab$x$a$ $ab$",
+	"select $\u00e9$x$\u00e9$, $\u0101$y$\u0101$, \t$t$\n$t$",
+	"select $" + strings.Repeat("t", 255) + "$x$" + strings.Repeat("t", 255) + "$",
+	"select $" + strings.Repeat("t", 256) + "$x$" + strings.Repeat("t", 256) + "$",
+	"select $1, $a, $ $",
+	"select $a$x$a",
+	"select $$",
+	"select $$\xff$$",
 }
 
 // plpgsqlScannerTexts are texts that reach each branch of the scanner of
@@ -107,8 +114,9 @@ func TestPostgresScannersMatchC(t *testing.T) {
 // TestPostgresScannerScans makes a Go scanner and a C scanner of postgres
 // and of plpgsql scan each of their texts from each position, with each set
 // of postgresScannerSets, and compares the calls, the results and the
-// states after. The scanners keep no state, so each scan starts from the
-// empty state and from a state of random bytes.
+// states after. Each scan starts from the empty state, from a state of
+// random bytes, and from the states of postgres in a dollar-quoted string
+// with the empty tag and with the tag t.
 func TestPostgresScannerScans(t *testing.T) {
 	t.Parallel()
 	for _, c := range []struct {
@@ -125,7 +133,7 @@ func TestPostgresScannerScans(t *testing.T) {
 			for _, s := range c.texts {
 				texts = append(texts, []byte(s))
 			}
-			states := [][]byte{nil, {0xff, 1, 2}}
+			states := [][]byte{nil, {0xff, 1, 2}, {1, 0}, {1, 1, 't', 0, 0, 0}}
 			scans := compareScannerScans(t, g, c.gp.language(), states, texts, postgresScannerSets(c.gp.language()))
 			t.Logf("%d scans", scans)
 		})
@@ -134,7 +142,7 @@ func TestPostgresScannerScans(t *testing.T) {
 
 // TestPostgresScannerDeserialize gives a Go scanner and a C scanner of
 // postgres and of plpgsql random states, and compares the states that they
-// serialize after them. Both write no bytes.
+// serialize after them. The scanner of plpgsql writes no bytes.
 func TestPostgresScannerDeserialize(t *testing.T) {
 	t.Parallel()
 	for _, gp := range postgresPackages {
