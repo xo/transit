@@ -24,7 +24,13 @@
   "ABSENT"
   "ABSOLUTE"
   "ACCESS"
+  "ACTION"
+  "ADD"
+  "AFTER"
+  "AGGREGATE"
   "ALL"
+  "ALTER"
+  "ALWAYS"
   "ANALYSE"
   "ANALYZE"
   "AND"
@@ -35,8 +41,11 @@
   "ASENSITIVE"
   "ASYMMETRIC"
   "AT"
+  "ATTACH"
+  "ATTRIBUTE"
   "AUTHORIZATION"
   "BACKWARD"
+  "BEFORE"
   "BEGIN"
   "BETWEEN"
   "BINARY"
@@ -44,33 +53,45 @@
   "BOTH"
   "BREADTH"
   "BY"
+  "CACHE"
   "CALL"
   "CASCADE"
+  "CASCADED"
   "CASE"
   "CAST"
   "CHAIN"
   "CHAR"
   "CHARACTER"
   "CHARACTERISTICS"
+  "CHECK"
   "CHECKPOINT"
+  "CLASS"
   "CLOSE"
   "CLUSTER"
   "COLLATE"
+  "COLLATION"
+  "COLUMN"
+  "COMMENT"
   "COMMIT"
   "COMMITTED"
+  "COMPRESSION"
   "CONCURRENTLY"
   "CONDITIONAL"
+  "CONFIGURATION"
   "CONFLICT"
   "CONSTRAINT"
   "CONSTRAINTS"
   "CONTENT"
   "CONTINUE"
+  "CONVERSION"
   "COPY"
+  "CREATE"
   "CROSS"
   "CUBE"
   "CURRENT"
   "CURSOR"
   "CYCLE"
+  "DATA"
   "DATABASE"
   "DAY"
   "DEALLOCATE"
@@ -80,49 +101,78 @@
   "DEFERRED"
   "DELETE"
   "DELIMITERS"
+  "DEPENDS"
   "DEPTH"
   "DESC"
+  "DETACH"
+  "DICTIONARY"
+  "DISABLE"
   "DISCARD"
   "DISTINCT"
   "DO"
   "DOCUMENT"
+  "DOMAIN"
   "DOUBLE"
+  "DROP"
   "ELSE"
   "EMPTY"
+  "ENABLE"
   "ENCODING"
   "END"
+  "ENFORCED"
+  "ENUM"
   "ERROR"
   "ESCAPE"
+  "EVENT"
   "EXCEPT"
   "EXCLUDE"
+  "EXCLUDING"
   "EXCLUSIVE"
   "EXECUTE"
   "EXISTS"
   "EXPLAIN"
+  "EXPRESSION"
+  "EXTENSION"
   "FALSE"
+  "FAMILY"
   "FETCH"
   "FILTER"
+  "FINALIZE"
   "FIRST"
   "FOLLOWING"
   "FOR"
+  "FORCE"
+  "FOREIGN"
   "FORMAT"
   "FORWARD"
   "FREEZE"
   "FROM"
   "FULL"
+  "FUNCTION"
+  "GENERATED"
+  "GLOBAL"
   "GROUP"
   "GROUPING"
   "GROUPS"
+  "HASH"
   "HAVING"
   "HOLD"
   "HOUR"
   "IDENTITY"
+  "IF"
   "ILIKE"
   "IMMEDIATE"
   "IN"
+  "INCLUDE"
+  "INCLUDING"
+  "INCREMENT"
   "INDENT"
   "INDEX"
+  "INHERIT"
+  "INHERITS"
+  "INITIALLY"
   "INNER"
+  "INOUT"
   "INSENSITIVE"
   "INSERT"
   "INTERSECT"
@@ -136,7 +186,9 @@
   "KEEP"
   "KEY"
   "KEYS"
+  "LABEL"
   "LANGUAGE"
+  "LARGE"
   "LAST"
   "LATERAL"
   "LEADING"
@@ -144,18 +196,25 @@
   "LEVEL"
   "LIKE"
   "LIMIT"
+  "LIST"
   "LISTEN"
   "LOAD"
   "LOCAL"
   "LOCK"
   "LOCKED"
+  "LOGGED"
+  "MATCH"
   "MATCHED"
   "MATERIALIZED"
+  "MAXVALUE"
   "MERGE"
+  "METHOD"
   "MINUTE"
+  "MINVALUE"
   "MODE"
   "MONTH"
   "MOVE"
+  "NAME"
   "NAMES"
   "NATIONAL"
   "NATURAL"
@@ -178,40 +237,60 @@
   "OBJECT"
   "OF"
   "OFFSET"
+  "OIDS"
   "OLD"
   "OMIT"
   "ON"
   "ONLY"
   "OPERATOR"
   "OPTION"
+  "OPTIONS"
   "OR"
   "ORDER"
   "ORDINALITY"
   "OTHERS"
+  "OUT"
   "OUTER"
   "OVER"
   "OVERLAPS"
   "OVERRIDING"
+  "OWNED"
+  "OWNER"
+  "PARSER"
+  "PARTIAL"
   "PARTITION"
+  "PARTITIONS"
   "PASSING"
+  "PERIOD"
   "PLACING"
   "PLANS"
+  "POLICY"
   "PRECEDING"
   "PRECISION"
   "PREPARE"
   "PREPARED"
+  "PRESERVE"
+  "PRIMARY"
   "PRIOR"
+  "PROCEDURAL"
+  "PROCEDURE"
   "PROGRAM"
+  "PUBLICATION"
   "QUOTES"
   "RANGE"
   "READ"
   "RECURSIVE"
   "REF"
+  "REFERENCES"
+  "REFRESH"
   "REINDEX"
   "RELATIVE"
   "RELEASE"
+  "RENAME"
   "REPACK"
   "REPEATABLE"
+  "REPLACE"
+  "REPLICA"
   "RESET"
   "RESTART"
   "RESTRICT"
@@ -220,38 +299,52 @@
   "ROLE"
   "ROLLBACK"
   "ROLLUP"
+  "ROUTINE"
   "ROW"
   "ROWS"
+  "RULE"
   "SAVEPOINT"
   "SCALAR"
   "SCHEMA"
   "SCROLL"
   "SEARCH"
   "SECOND"
+  "SECURITY"
   "SELECT"
+  "SEQUENCE"
   "SEQUENCES"
   "SERIALIZABLE"
+  "SERVER"
   "SESSION"
   "SET"
   "SETS"
   "SHARE"
   "SHOW"
   "SIMILAR"
+  "SIMPLE"
   "SKIP"
   "SNAPSHOT"
   "SOME"
   "SOURCE"
+  "SPLIT"
   "START"
+  "STATISTICS"
   "STDIN"
   "STDOUT"
+  "STORAGE"
+  "STORED"
   "STRING"
+  "SUBSCRIPTION"
   "SYMMETRIC"
   "SYSTEM"
   "TABLE"
   "TABLESAMPLE"
+  "TABLESPACE"
   "TARGET"
   "TEMP"
+  "TEMPLATE"
   "TEMPORARY"
+  "TEXT"
   "THEN"
   "TIES"
   "TIME"
@@ -259,8 +352,11 @@
   "TO"
   "TRAILING"
   "TRANSACTION"
+  "TRANSFORM"
+  "TRIGGER"
   "TRUE"
   "TRUNCATE"
+  "TYPE"
   "UNBOUNDED"
   "UNCOMMITTED"
   "UNCONDITIONAL"
@@ -273,11 +369,16 @@
   "USER"
   "USING"
   "VACUUM"
+  "VALID"
+  "VALIDATE"
   "VALUE"
   "VALUES"
   "VARIADIC"
   "VARYING"
   "VERBOSE"
+  "VERSION"
+  "VIEW"
+  "VIRTUAL"
   "WHEN"
   "WHERE"
   "WINDOW"
@@ -448,6 +549,82 @@
 
 (rollback_statement
   savepoint: (identifier) @label)
+
+(column_constraint
+  name: (identifier) @label)
+
+(table_constraint
+  name: (identifier) @label)
+
+(table_constraint
+  column: (identifier) @variable.member)
+
+(table_constraint
+  index: (identifier) @type)
+
+(alter_column
+  column: (identifier) @variable.member)
+
+(drop_column
+  column: (identifier) @variable.member)
+
+(rename
+  column: (identifier) @variable.member)
+
+(rename
+  constraint: (identifier) @label)
+
+(alter_constraint
+  constraint: (identifier) @label)
+
+(drop_constraint
+  constraint: (identifier) @label)
+
+(alter_table_option
+  constraint: (identifier) @label)
+
+(alter_domain_statement
+  constraint: (identifier) @label)
+
+(create_index_statement
+  name: (identifier) @type)
+
+(create_schema_statement
+  name: (identifier) @module)
+
+(alter_schema_statement
+  name: (identifier) @module)
+
+(set_schema
+  schema: (identifier) @module)
+
+(create_extension_statement
+  schema: (identifier) @module)
+
+(create_database_statement
+  name: (identifier) @module)
+
+(alter_database_statement
+  name: (identifier) @module)
+
+(database_option
+  name: (identifier) @property)
+
+(option
+  prefix: (identifier) @property)
+
+(alter_type_statement
+  attribute: (identifier) @variable.member)
+
+(function_signature
+  name: (object_reference
+    name: (identifier) @function))
+
+(function_parameter
+  name: (identifier) @variable.parameter)
+
+(operator_signature
+  schema: (identifier) @module)
 
 [
   (operator)

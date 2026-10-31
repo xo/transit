@@ -391,19 +391,19 @@ INSERT INTO distributors AS d (did, dname) VALUES (8, 'Anvil Distribution')
         (assignment
           (identifier)
           (binary_expression
-            (column_reference
-              (identifier)
-              (identifier))
-            (operator)
             (binary_expression
-              (string)
-              (operator)
               (binary_expression
                 (column_reference
                   (identifier)
                   (identifier))
                 (operator)
-                (string))))))
+                (string))
+              (operator)
+              (column_reference
+                (identifier)
+                (identifier)))
+            (operator)
+            (string))))
       (where_clause
         (binary_expression
           (column_reference
@@ -494,16 +494,16 @@ UPDATE weather SET temp_lo = temp_lo+1, temp_hi = temp_lo+15, prcp = DEFAULT
         (identifier)))
     (where_clause
       (binary_expression
-        (column_reference
-          (identifier))
-        (operator)
         (binary_expression
-          (string)
-          (binary_expression
-            (column_reference
-              (identifier))
-            (operator)
-            (string)))))
+          (column_reference
+            (identifier))
+          (operator)
+          (string))
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (string))))
     (returning_clause
       (column_reference
         (identifier))
@@ -617,20 +617,20 @@ UPDATE employees SET sales_count = sales_count + 1 FROM accounts
           (identifier))))
     (where_clause
       (binary_expression
-        (column_reference
-          (identifier)
-          (identifier))
-        (operator)
         (binary_expression
-          (string)
-          (binary_expression
-            (column_reference
-              (identifier)
-              (identifier))
-            (operator)
-            (column_reference
-              (identifier)
-              (identifier))))))))
+          (column_reference
+            (identifier)
+            (identifier))
+          (operator)
+          (string))
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)
+            (identifier)))))))
 
 ================================================================================
 Update fields and elements of columns
@@ -706,19 +706,19 @@ DELETE FROM films USING producers
         (identifier)))
     (where_clause
       (binary_expression
-        (column_reference
-          (identifier))
-        (operator)
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)
+            (identifier)))
         (binary_expression
           (column_reference
             (identifier)
             (identifier))
-          (binary_expression
-            (column_reference
-              (identifier)
-              (identifier))
-            (operator)
-            (string)))))))
+          (operator)
+          (string))))))
 
 ================================================================================
 Delete and return the rows

@@ -207,15 +207,15 @@ SELECT a FROM t WHERE a > 1 AND b IS NOT NULL;
             (identifier))))
       (where_clause
         (binary_expression
-          (column_reference
-            (identifier))
-          (operator)
           (binary_expression
-            (number)
-            (is_expression
-              (column_reference
-                (identifier))
-              (null))))))))
+            (column_reference
+              (identifier))
+            (operator)
+            (number))
+          (is_expression
+            (column_reference
+              (identifier))
+            (null)))))))
 
 ================================================================================
 Joins

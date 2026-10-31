@@ -1,0 +1,62 @@
+CREATE TABLE s.films (code int CONSTRAINT firstkey PRIMARY KEY, title text NOT NULL DEFAULT 'x', CHECK (code > 0));
+-- <- keyword
+--     ^ keyword
+--           ^ module
+--             ^ type
+--                    ^ variable.member
+--                         ^ type.builtin
+--                             ^ keyword
+--                                        ^ label
+--                                                 ^ keyword
+--                                                         ^ keyword
+--                                                              ^ variable.member
+--                                                                    ^ type.builtin
+--                                                                         ^ keyword
+--                                                                             ^ keyword
+--                                                                                  ^ keyword
+--                                                                                          ^ string
+--                                                                                               ^ keyword
+--                                                                                                      ^ variable.member
+ALTER TABLE films ADD COLUMN c int, ALTER COLUMN title SET DEFAULT 'y', DROP CONSTRAINT firstkey, OWNER TO bob;
+-- <- keyword
+--          ^ type
+--                ^ keyword
+--                    ^ keyword
+--                           ^ variable.member
+--                                               ^ variable.member
+--                                                     ^ keyword
+--                                                                      ^ keyword
+--                                                                           ^ keyword
+--                                                                                      ^ label
+--                                                                                                ^ keyword
+--                                                                                                      ^ keyword
+CREATE UNIQUE INDEX films_idx ON films USING btree (title) WITH (fillfactor = 70);
+--     ^ keyword
+--            ^ keyword
+--                  ^ type
+--                  ^ type
+--                                     ^ keyword
+--                                                  ^ variable.member
+--                                                               ^ property
+--                                                                            ^ number
+CREATE SCHEMA app AUTHORIZATION bob;
+--     ^ keyword
+--            ^ module
+--                ^ keyword
+COMMENT ON COLUMN films.title IS 'The title';
+-- <- keyword
+--      ^ keyword
+--         ^ keyword
+--                ^ type
+--                      ^ variable.member
+--                            ^ keyword
+--                               ^ string
+DROP FUNCTION IF EXISTS app.f(a int);
+-- <- keyword
+--   ^ keyword
+--            ^ keyword
+--               ^ keyword
+--                      ^ module
+--                          ^ function
+--                            ^ variable.parameter
+--                              ^ type.builtin

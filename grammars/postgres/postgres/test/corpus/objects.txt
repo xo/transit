@@ -1,0 +1,850 @@
+================================================================================
+Create an index
+================================================================================
+
+CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS title_idx ON ONLY films USING btree
+    (title COLLATE "de_DE" text_pattern_ops DESC NULLS LAST, lower(code), (a + b))
+    INCLUDE (director, rating) NULLS NOT DISTINCT WITH (deduplicate_items = off)
+    TABLESPACE indexspace WHERE rating > 5;
+
+---
+
+(source_file
+  (create_index_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (identifier)
+    (index_element
+      (identifier)
+      (object_reference
+        (identifier))
+      (object_reference
+        (identifier)))
+    (index_element
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier)))))
+    (index_element
+      (parenthesized_expression
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)))))
+    (column_list
+      (identifier)
+      (identifier))
+    (option_list
+      (option
+        (identifier)
+        (identifier)))
+    (identifier)
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))))
+
+================================================================================
+Create an index with no name and with an operator class that takes parameters
+================================================================================
+
+CREATE INDEX ON t USING gist (a tsvector_ops (siglen = 100));
+
+---
+
+(source_file
+  (create_index_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (index_element
+      (identifier)
+      (object_reference
+        (identifier))
+      (option_list
+        (option
+          (identifier)
+          (number))))))
+
+================================================================================
+Alter an index
+================================================================================
+
+ALTER INDEX IF EXISTS distributors RENAME TO suppliers;
+ALTER INDEX distributors SET TABLESPACE fasttablespace, SET (fillfactor = 75);
+ALTER INDEX coord_idx ALTER COLUMN 3 SET STATISTICS 1000;
+ALTER INDEX idx ATTACH PARTITION idx_p1;
+ALTER INDEX idx DEPENDS ON EXTENSION ext;
+
+---
+
+(source_file
+  (alter_index_statement
+    (object_reference
+      (identifier))
+    (rename
+      (identifier)))
+  (alter_index_statement
+    (object_reference
+      (identifier))
+    (alter_table_option
+      (identifier))
+    (alter_table_option
+      (option_list
+        (option
+          (identifier)
+          (number)))))
+  (alter_index_statement
+    (object_reference
+      (identifier))
+    (alter_column
+      (number)
+      (number)))
+  (alter_index_statement
+    (object_reference
+      (identifier))
+    (alter_table_option
+      (object_reference
+        (identifier))))
+  (alter_index_statement
+    (object_reference
+      (identifier))
+    (alter_table_option
+      (identifier))))
+
+================================================================================
+Create a view
+================================================================================
+
+CREATE OR REPLACE TEMP RECURSIVE VIEW nums_1_100 (n) WITH (security_barrier = true) AS
+    SELECT 1 UNION ALL SELECT n + 1 FROM nums_1_100 WHERE n < 100;
+CREATE VIEW universal_comedies AS
+    SELECT * FROM comedies WHERE classification = 'U' WITH LOCAL CHECK OPTION;
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier))
+    (option_list
+      (option
+        (identifier)
+        (identifier)))
+    (set_operation
+      (select
+        (number))
+      (select
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number))))))
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (string))))))
+
+================================================================================
+Alter a view
+================================================================================
+
+ALTER VIEW foo RENAME TO bar;
+ALTER VIEW a_view ALTER COLUMN ts SET DEFAULT now(), OWNER TO SESSION_USER;
+ALTER MATERIALIZED VIEW IF EXISTS mv SET ACCESS METHOD heap2;
+
+---
+
+(source_file
+  (alter_view_statement
+    (object_reference
+      (identifier))
+    (rename
+      (identifier)))
+  (alter_view_statement
+    (object_reference
+      (identifier))
+    (alter_column
+      (identifier)
+      (function_call
+        (identifier)
+        (arguments)))
+    (owner_to
+      (identifier)))
+  (alter_view_statement
+    (object_reference
+      (identifier))
+    (alter_table_option
+      (identifier))))
+
+================================================================================
+Create and refresh a materialized view
+================================================================================
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS annual_statistics_basis (y, n) USING heap
+    WITH (fillfactor = 50) TABLESPACE ts AS
+    SELECT y, count(*) FROM t GROUP BY y WITH DATA;
+REFRESH MATERIALIZED VIEW CONCURRENTLY order_summary WITH NO DATA;
+
+---
+
+(source_file
+  (create_materialized_view_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier))
+    (identifier)
+    (option_list
+      (option
+        (identifier)
+        (number)))
+    (identifier)
+    (select
+      (column_reference
+        (identifier))
+      (function_call
+        (identifier)
+        (arguments))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (group_by_clause
+        (column_reference
+          (identifier)))))
+  (refresh_materialized_view_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+Create and alter a sequence
+================================================================================
+
+CREATE TEMPORARY SEQUENCE IF NOT EXISTS serial AS bigint INCREMENT BY -1 MINVALUE -100 NO MAXVALUE
+    START WITH 101 CACHE 10 NO CYCLE OWNED BY t.id;
+ALTER SEQUENCE serial RESTART WITH 105 OWNED BY NONE;
+ALTER SEQUENCE IF EXISTS serial RENAME TO serial2;
+
+---
+
+(source_file
+  (create_sequence_statement
+    (object_reference
+      (identifier))
+    (sequence_option
+      (type
+        (identifier)))
+    (sequence_option
+      (operator)
+      (number))
+    (sequence_option
+      (operator)
+      (number))
+    (sequence_option)
+    (sequence_option
+      (number))
+    (sequence_option
+      (number))
+    (sequence_option)
+    (sequence_option
+      (object_reference
+        (identifier)
+        (identifier))))
+  (alter_sequence_statement
+    (object_reference
+      (identifier))
+    (sequence_option
+      (number))
+    (sequence_option
+      (object_reference
+        (identifier))))
+  (alter_sequence_statement
+    (object_reference
+      (identifier))
+    (rename
+      (identifier))))
+
+================================================================================
+Create and alter a schema
+================================================================================
+
+CREATE SCHEMA IF NOT EXISTS myschema AUTHORIZATION joe;
+CREATE SCHEMA AUTHORIZATION CURRENT_ROLE;
+ALTER SCHEMA myschema RENAME TO yourschema;
+ALTER SCHEMA yourschema OWNER TO joe;
+
+---
+
+(source_file
+  (create_schema_statement
+    (identifier)
+    (identifier))
+  (create_schema_statement
+    (identifier))
+  (alter_schema_statement
+    (identifier)
+    (rename
+      (identifier)))
+  (alter_schema_statement
+    (identifier)
+    (owner_to
+      (identifier))))
+
+================================================================================
+Create and alter a database
+================================================================================
+
+CREATE DATABASE music2 WITH OWNER = joe TEMPLATE template0 LOCALE 'sv_SE.iso885915'
+    ENCODING LATIN9 CONNECTION LIMIT = 10 IS_TEMPLATE false;
+ALTER DATABASE test WITH CONNECTION LIMIT 5;
+ALTER DATABASE test SET enable_indexscan TO off;
+ALTER DATABASE test RESET ALL;
+ALTER DATABASE test REFRESH COLLATION VERSION;
+
+---
+
+(source_file
+  (create_database_statement
+    (identifier)
+    (database_option
+      (identifier)
+      (identifier))
+    (database_option
+      (identifier)
+      (identifier))
+    (database_option
+      (identifier)
+      (string))
+    (database_option
+      (identifier)
+      (identifier))
+    (database_option
+      (identifier)
+      (number))
+    (database_option
+      (identifier)
+      (identifier)))
+  (alter_database_statement
+    (identifier)
+    (database_option
+      (identifier)
+      (number)))
+  (alter_database_statement
+    (identifier)
+    (setting_name
+      (identifier))
+    (identifier))
+  (alter_database_statement
+    (identifier))
+  (alter_database_statement
+    (identifier)))
+
+================================================================================
+Create a composite type, an enum and a range
+================================================================================
+
+CREATE TYPE compfoo AS (f1 int, f2 text COLLATE "C");
+CREATE TYPE bug_status AS ENUM ('new', 'open', 'closed');
+CREATE TYPE float8_range AS RANGE (subtype = float8, subtype_diff = float8mi);
+
+---
+
+(source_file
+  (create_type_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (type
+        (identifier)))
+    (column_definition
+      (identifier)
+      (type
+        (identifier))
+      (object_reference
+        (identifier))))
+  (create_type_statement
+    (object_reference
+      (identifier))
+    (string)
+    (string)
+    (string))
+  (create_type_statement
+    (object_reference
+      (identifier))
+    (option_list
+      (option
+        (identifier)
+        (identifier))
+      (option
+        (identifier)
+        (identifier)))))
+
+================================================================================
+Create a base type and a shell type
+================================================================================
+
+CREATE TYPE box;
+CREATE TYPE box (
+    INTERNALLENGTH = 16,
+    INPUT = my_box_in_function,
+    OUTPUT = public.my_box_out_function,
+    ALIGNMENT = double,
+    PASSEDBYVALUE
+);
+
+---
+
+(source_file
+  (create_type_statement
+    (object_reference
+      (identifier)))
+  (create_type_statement
+    (object_reference
+      (identifier))
+    (option_list
+      (option
+        (identifier)
+        (number))
+      (option
+        (identifier)
+        (identifier))
+      (option
+        (identifier)
+        (identifier)
+        (identifier))
+      (option
+        (identifier)
+        (identifier))
+      (option
+        (identifier)))))
+
+================================================================================
+Alter a type
+================================================================================
+
+ALTER TYPE electronic_mail RENAME TO email;
+ALTER TYPE colors ADD VALUE IF NOT EXISTS 'orange' AFTER 'red';
+ALTER TYPE colors RENAME VALUE 'purple' TO 'mauve';
+ALTER TYPE compfoo ADD ATTRIBUTE f3 int, DROP ATTRIBUTE IF EXISTS f1 CASCADE,
+    ALTER ATTRIBUTE f2 SET DATA TYPE varchar(10);
+ALTER TYPE compfoo RENAME ATTRIBUTE f3 TO f4;
+ALTER TYPE email OWNER TO joe;
+
+---
+
+(source_file
+  (alter_type_statement
+    (object_reference
+      (identifier))
+    (rename
+      (identifier)))
+  (alter_type_statement
+    (object_reference
+      (identifier))
+    (string)
+    (string))
+  (alter_type_statement
+    (object_reference
+      (identifier))
+    (string)
+    (string))
+  (alter_type_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (type
+      (identifier))
+    (identifier)
+    (identifier)
+    (type
+      (identifier)
+      (type_modifiers
+        (number))))
+  (alter_type_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (identifier))
+  (alter_type_statement
+    (object_reference
+      (identifier))
+    (owner_to
+      (identifier))))
+
+================================================================================
+Create a domain
+================================================================================
+
+CREATE DOMAIN us_postal_code AS text DEFAULT '00000' NOT NULL
+    CONSTRAINT us_postal_code_check CHECK (VALUE ~ '^\d{5}$' OR VALUE ~ '^\d{5}-\d{4}$');
+
+---
+
+(source_file
+  (create_domain_statement
+    (object_reference
+      (identifier))
+    (type
+      (identifier))
+    (column_constraint
+      (string))
+    (column_constraint)
+    (column_constraint
+      (identifier)
+      (parenthesized_expression
+        (binary_expression
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (string))
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (string)))))))
+
+================================================================================
+Alter a domain
+================================================================================
+
+ALTER DOMAIN zipcode SET NOT NULL;
+ALTER DOMAIN zipcode ADD CONSTRAINT zipchk CHECK (char_length(VALUE) = 5) NOT VALID;
+ALTER DOMAIN zipcode DROP CONSTRAINT IF EXISTS zipchk;
+ALTER DOMAIN zipcode VALIDATE CONSTRAINT zipchk;
+ALTER DOMAIN zipcode SET SCHEMA customers;
+
+---
+
+(source_file
+  (alter_domain_statement
+    (object_reference
+      (identifier)))
+  (alter_domain_statement
+    (object_reference
+      (identifier))
+    (add_constraint
+      (table_constraint
+        (identifier)
+        (parenthesized_expression
+          (binary_expression
+            (function_call
+              (identifier)
+              (arguments
+                (column_reference
+                  (identifier))))
+            (operator)
+            (number))))))
+  (alter_domain_statement
+    (object_reference
+      (identifier))
+    (drop_constraint
+      (identifier)))
+  (alter_domain_statement
+    (object_reference
+      (identifier))
+    (identifier))
+  (alter_domain_statement
+    (object_reference
+      (identifier))
+    (set_schema
+      (identifier))))
+
+================================================================================
+Create and alter an extension
+================================================================================
+
+CREATE EXTENSION IF NOT EXISTS hstore WITH SCHEMA public VERSION '1.4' CASCADE;
+ALTER EXTENSION hstore UPDATE TO '2.0';
+ALTER EXTENSION hstore SET SCHEMA utils;
+ALTER EXTENSION hstore ADD FUNCTION populate_record(anyelement, hstore);
+
+---
+
+(source_file
+  (create_extension_statement
+    (identifier)
+    (identifier)
+    (string))
+  (alter_extension_statement
+    (identifier)
+    (string))
+  (alter_extension_statement
+    (identifier)
+    (set_schema
+      (identifier)))
+  (alter_extension_statement
+    (identifier)
+    (function_signature
+      (object_reference
+        (identifier))
+      (function_parameters
+        (function_parameter
+          (type
+            (identifier)))
+        (function_parameter
+          (type
+            (identifier)))))))
+
+================================================================================
+Drop objects
+================================================================================
+
+DROP TABLE IF EXISTS films, distributors CASCADE;
+DROP INDEX CONCURRENTLY title_idx;
+DROP MATERIALIZED VIEW order_summary;
+DROP DATABASE IF EXISTS test WITH (FORCE);
+DROP FUNCTION IF EXISTS sqrt(integer), sqrt(bigint);
+DROP AGGREGATE myavg(integer), myrank(VARIADIC "any" ORDER BY VARIADIC "any");
+DROP OPERATOR ^ (integer, integer), ~ (none, bit);
+DROP OPERATOR CLASS widget_ops USING btree;
+DROP CAST (text AS int);
+DROP TRIGGER IF EXISTS if_dist_exists ON films;
+
+---
+
+(source_file
+  (drop_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (option_list
+      (option
+        (identifier))))
+  (drop_statement
+    (function_signature
+      (object_reference
+        (identifier))
+      (function_parameters
+        (function_parameter
+          (type
+            (identifier)))))
+    (function_signature
+      (object_reference
+        (identifier))
+      (function_parameters
+        (function_parameter
+          (type
+            (identifier))))))
+  (drop_statement
+    (function_signature
+      (object_reference
+        (identifier))
+      (function_parameters
+        (function_parameter
+          (type
+            (identifier)))))
+    (function_signature
+      (object_reference
+        (identifier))
+      (function_parameters
+        (function_parameter
+          (type
+            (identifier)))
+        (function_parameter
+          (type
+            (identifier))))))
+  (drop_statement
+    (operator_signature
+      (operator)
+      (type
+        (identifier))
+      (type
+        (identifier)))
+    (operator_signature
+      (operator)
+      (type
+        (identifier))
+      (type)))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (identifier))
+  (drop_statement
+    (type
+      (identifier))
+    (type
+      (identifier)))
+  (drop_statement
+    (identifier)
+    (object_reference
+      (identifier))))
+
+================================================================================
+Comment on objects
+================================================================================
+
+COMMENT ON TABLE mytable IS 'This is my table.';
+COMMENT ON COLUMN my_table.my_column IS 'Employee ID number';
+COMMENT ON CONSTRAINT bar_col_cons ON bar IS 'Constrains column col';
+COMMENT ON CONSTRAINT dom_col_constr ON DOMAIN dom IS 'Constrains col of domain';
+COMMENT ON FUNCTION my_function (timestamp) IS 'Returns Roman Numeral';
+COMMENT ON OPERATOR ^ (text, text) IS 'Performs intersection of two texts';
+COMMENT ON TEXT SEARCH CONFIGURATION my_config IS 'Special word filtering';
+COMMENT ON LARGE OBJECT 346344 IS 'Planning document';
+COMMENT ON TRANSFORM FOR hstore LANGUAGE plpython3u IS 'Transform between hstore and Python dict';
+COMMENT ON TABLE mytable IS NULL;
+
+---
+
+(source_file
+  (comment_statement
+    (object_reference
+      (identifier))
+    (string))
+  (comment_statement
+    (column_reference
+      (identifier)
+      (identifier))
+    (string))
+  (comment_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (string))
+  (comment_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (string))
+  (comment_statement
+    (function_signature
+      (object_reference
+        (identifier))
+      (function_parameters
+        (function_parameter
+          (type))))
+    (string))
+  (comment_statement
+    (operator_signature
+      (operator)
+      (type
+        (identifier))
+      (type
+        (identifier)))
+    (string))
+  (comment_statement
+    (object_reference
+      (identifier))
+    (string))
+  (comment_statement
+    (number)
+    (string))
+  (comment_statement
+    (type
+      (identifier))
+    (identifier)
+    (string))
+  (comment_statement
+    (object_reference
+      (identifier))
+    (null)))
+
+================================================================================
+Put a security label on an object
+================================================================================
+
+SECURITY LABEL FOR selinux ON TABLE mytable IS 'system_u:object_r:sepgsql_table_t:s0';
+SECURITY LABEL ON ROLE alice IS NULL;
+
+---
+
+(source_file
+  (security_label_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (string))
+  (security_label_statement
+    (object_reference
+      (identifier))
+    (null)))
+
+================================================================================
+Explain the statements of a materialized view
+================================================================================
+
+EXPLAIN CREATE MATERIALIZED VIEW mv AS SELECT 1;
+EXPLAIN REFRESH MATERIALIZED VIEW mv;
+
+---
+
+(source_file
+  (explain_statement
+    (create_materialized_view_statement
+      (object_reference
+        (identifier))
+      (select
+        (number))))
+  (explain_statement
+    (refresh_materialized_view_statement
+      (object_reference
+        (identifier)))))
+
+================================================================================
+Insert with an operator class that takes parameters in the conflict target
+================================================================================
+
+INSERT INTO t VALUES (1) ON CONFLICT (key int4_ops (fillfactor = 10)) DO NOTHING;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (values
+      (value_list
+        (number)))
+    (on_conflict_clause
+      (conflict_target
+        (index_element
+          (identifier)
+          (object_reference
+            (identifier))
+          (option_list
+            (option
+              (identifier)
+              (number))))))))

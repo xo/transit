@@ -113,15 +113,18 @@ query of PostgreSQL 19:
 - A cast as the second argument of `position`, as in
   `position(a IN b::bytea)`.
 
-It also leaves out these forms of the statements that change rows and of
-the utility statements:
+It also leaves out these forms of the statements that define objects:
 
-- `EXPLAIN` of `CREATE TABLE AS`, `CREATE MATERIALIZED VIEW` and
-  `REFRESH MATERIALIZED VIEW`. These statements come with the statements
-  that define objects. Add each of them to the rule
-  `_explainable_statement` then.
-- The parameters of an operator class in the target of `ON CONFLICT`, as
-  in `ON CONFLICT (key int4_ops (fillfactor=10))`.
+- The statements that `CREATE SCHEMA` can create in the same statement, as
+  in `CREATE SCHEMA s CREATE TABLE t (a int)`. Each statement in it has
+  parse states of its own, because `CREATE` can come after it, and that
+  costs about 50 large states. Find a cheaper form.
+- A type as the value of an option, as in
+  `CREATE TYPE r AS RANGE (subtype = int4[])`. A value of an option is a
+  string, a number or a name.
+- A column named `exclude` or `period` at the place where `EXCLUDE` or
+  `PERIOD` can start a constraint or a column of a key. PostgreSQL does not
+  reserve these words, but the grammar reads them as keywords there.
 
 ## The setup of the repository
 

@@ -435,9 +435,6 @@ SELECT date '2026-10-31', interval '1' day, interval '1 day 2 hours', timestamp 
         (string))
       (typed_literal
         (type)
-        (type)
-        (type)
-        (type)
         (string))
       (typed_literal
         (type)
