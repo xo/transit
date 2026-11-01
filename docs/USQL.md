@@ -185,6 +185,15 @@ documentation. usql will give it to `duckdb`, and to
 `gizmosql` too, because GizmoSQL serves DuckDB. The commands of the duckdb
 shell, such as `.tables`, are not SQL. The grammar puts such a line in an
 ERROR node, as the SQLite grammar does.
+usql gives `clickhouse` the generic grammar today, which does not read the
+syntax of ClickHouse, such as `PREWHERE`, `ARRAY JOIN`, `FINAL`, `SAMPLE`,
+the lambdas and the query parameters `{name:Type}`. So xo writes the
+ClickHouse grammar from the SQL reference of ClickHouse in
+`grammars/clickhouse` (D127). It reads the queries and `EXPLAIN` today,
+and the other statements come later. usql will give it to `clickhouse`.
+ClickHouse quotes a name with backquotes. A comment starts with `--`,
+`//`, `#` and a space, or `#!`, or it is `/* */`, and the grammar reads
+each of them.
 SQL++, InfluxQL, KSQL, PartiQL, ES|QL and
 PPL have no grammar at all. transit writes the missing grammars, and the
 usql grammar, in `grammars/` (D42, D104). The other missing grammars come
@@ -200,6 +209,7 @@ for the flag `-dialect`, with these options of `usql.Options`:
 | `mysql` | `github.com/xo/transit/grammars/mysql` | `BlockComments`, `HashComments`, `Backticks`, `BeginEndBlocks` |
 | `sqlite3` | `github.com/xo/transit/grammars/sqlite3` | `BlockComments`, `Backticks` |
 | `duckdb` | `github.com/xo/transit/grammars/duckdb` | `DollarQuotes`, `BlockComments` |
+| `clickhouse` | `github.com/xo/transit/grammars/clickhouse` | `BlockComments`, `SlashComments`, `HashComments`, `Backticks` |
 | `sqlserver` | `github.com/xo/transit/grammars/sqlserver` | `BlockComments`, `BeginEndBlocks` |
 | `oracle` | `github.com/xo/transit/grammars/oracle` | `BlockComments`, `BeginEndBlocks` |
 | `cql` | `github.com/xo/transit/grammars/cql` | `DollarQuotes`, `BlockComments`, `SlashComments`, `Batches` |
@@ -207,8 +217,8 @@ for the flag `-dialect`, with these options of `usql.Options`:
 
 usql keeps this match itself. The repository of `cql` has no highlight
 query, so xo wrote the highlight query of its package (D113). xo writes the
-highlight queries of `oracle`, `sqlite3`, `duckdb` and `sqlserver` with
-their grammars.
+highlight queries of `oracle`, `sqlite3`, `duckdb`, `clickhouse` and
+`sqlserver` with their grammars.
 
 The usql grammar ends a statement at each semicolon outside parentheses.
 The body of a stored program of MySQL, SQL Server or Oracle that is a

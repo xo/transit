@@ -1,0 +1,52 @@
+SELECT CAST(a AS UInt8), b::Nullable(String), DATE '2024-01-01', INTERVAL 3 DAY, {id:UInt32};
+--     ^ function.builtin
+--               ^ type.builtin
+--                        ^ operator
+--                          ^ type.builtin
+--                                            ^ type.builtin
+--                                                 ^ string
+--                                                               ^ keyword
+--                                                                        ^ number
+--                                                                          ^ keyword
+--                                                                                ^ variable.parameter
+--                                                                                   ^ type.builtin
+SELECT [1, 2], (1, 'a'), {'k': 1}, t.1, arr[1], json.a.:Int64, $$text$$, x'41', 0x1F, inf # note
+--     ^ punctuation.bracket
+--                 ^ string
+--                        ^ property
+--                                 ^ type
+--                                      ^ variable.member
+--                                                      ^ type.builtin
+--                                                             ^ string
+--                                                                       ^ string.special
+--                                                                              ^ number
+--                                                                                    ^ number
+--                                                                                        ^ comment
+SELECT arrayMap(x -> x + 1, arr), a > 1 ? 'y' : 'n', s ILIKE 'x%', c GLOBAL NOT IN (1), d IS NOT NULL // end
+--     ^ function.call
+--              ^ variable.parameter
+--                ^ operator
+--                                      ^ keyword.conditional.ternary
+--                                            ^ keyword.conditional.ternary
+--                                                     ^ keyword
+--                                                                   ^ keyword
+--                                                                                               ^ constant.builtin
+--                                                                                                    ^ comment
+SELECT quantile(0.9)(x), sumIf(y, y > 0), count() OVER (PARTITION BY z ORDER BY w), CASE WHEN a THEN 1 ELSE 2 END;
+--     ^ function.call
+--                       ^ function.call
+--                                                ^ keyword
+--                                                      ^ keyword
+--                                                                                  ^ keyword.conditional
+--                                                                                       ^ keyword.conditional
+--                                                                                              ^ keyword.conditional
+--                                                                                                     ^ keyword.conditional
+--                                                                                                            ^ keyword.conditional
+SELECT CAST(e AS Enum8('a' = 1)), CAST(j AS JSON(max_dynamic_paths = 10, a.b UInt32)) /* block */;
+--               ^ type.builtin
+--                     ^ constant
+--                         ^ operator
+--                                          ^ type.builtin
+--                                               ^ variable.parameter
+--                                                                       ^ property
+--                                                                                    ^ comment

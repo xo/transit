@@ -7,8 +7,8 @@ exports one function, `Language`, which returns a `*transit.Language`.
 
 The rules were written on 2026-09-29, before any code existed (D3). Today
 `transit generate` works with the C backend, and the golden harness runs it.
-`transit generate --backend go` writes a Go package. It wrote the 32 grammar
-packages in the 29 modules under `grammars/`. Each rule names the decision
+`transit generate --backend go` writes a Go package. It wrote the 33 grammar
+packages in the 30 modules under `grammars/`. Each rule names the decision
 that it comes from.
 
 ## Two stages
@@ -119,8 +119,9 @@ If the language of a grammar is the language of one dialect of dbmeta, the
 folder of its module has the name of the dialect. The table of D107 lists
 them. The SQL Server grammar that xo writes lives in `grammars/sqlserver`,
 the Oracle grammar that xo writes lives in `grammars/oracle`, the SQLite
-grammar that xo writes lives in `grammars/sqlite3`, and the DuckDB grammar
-that xo writes lives in `grammars/duckdb`. The folder of
+grammar that xo writes lives in `grammars/sqlite3`, the DuckDB grammar
+that xo writes lives in `grammars/duckdb`, and the ClickHouse grammar that
+xo writes lives in `grammars/clickhouse`. The folder of
 any other module has the name of the upstream repository without the `tree-sitter-` prefix and with each `-`
 removed. `tree-sitter-embedded-template` becomes `embeddedtemplate`. If two
 grammars or two repositories get the same name, ask Ken.
@@ -144,7 +145,9 @@ Server grammar that xo writes has the name `sqlserver`, and the grammar of
 has a Go package. The SQLite grammar that xo writes has the name of its
 dialect, `sqlite3` (D126). The archived repository
 `dhcmrlchtdj/tree-sitter-sqlite` is not in the golden set. The DuckDB
-grammar that xo writes has the name of its dialect, `duckdb`.
+grammar that xo writes has the name of its dialect, `duckdb`, and the
+ClickHouse grammar that xo writes has the name of its dialect,
+`clickhouse` (D127).
 
 ## The layout of a grammar
 
@@ -406,6 +409,20 @@ Each one follows these rules, in addition to the rest of this document:
    split more often. The SQLite grammar reads `INNER JOIN` as two keywords
    for this reason, so that `IN` stays a keyword, and it has 73 fewer
    states.
+   The ClickHouse grammar reads each word before `JOIN`, such as `GLOBAL`,
+   `ANY`, `ASOF` and `LEFT`, as a keyword, in any order. One token for the
+   words and `JOIN` took `AS`, `IN`, `INNER` and `GLOBAL` out of the
+   keywords of the word rule, and the grammar had 908 more states. The
+   keywords put 120 more states in the large form, but the tables are
+   about 10% smaller. An alias with `AS` can come after any expression in
+   ClickHouse, as in `(1 AS x) + x`, and it costs about 300 states. The
+   white space of Unicode in `extras` cost more than 1,000 states, because
+   an identifier can hold such a character, so the grammar reads only the
+   white space of ASCII. A comma after the last column of `SELECT` cost
+   about 470 states, and the grammar does not read it. `ORDER BY` in a
+   window costs about 630 states, because the states after its items do
+   not merge with the states after an expression where `INTERSECT` can
+   come next.
 
 A change to such a grammar is a change to transit. It follows "Before you
 stage" in `AGENTS.md`, and its golden files are made again.
@@ -416,10 +433,10 @@ out as the checkout of a grammar repository and as a grammar module at once.
 package is `usql`. `grammars/mysql`, `grammars/oracle` and
 `grammars/sqlserver` are laid out the same way. `grammars/sqlite3` is laid
 out the same way, but it has no `src/scanner.c` and no `scanner.go`,
-because the SQLite grammar needs no external scanner. `grammars/duckdb` is
-laid out as `grammars/mysql`. `grammars/postgres` holds the grammars `postgres` and
-`plpgsql` in the folders of their packages, `grammars/postgres/postgres`
-and `grammars/postgres/plpgsql`. Each folder holds the same files as
+because the SQLite grammar needs no external scanner. `grammars/duckdb` and
+`grammars/clickhouse` are laid out as `grammars/mysql`. `grammars/postgres`
+holds the grammars `postgres` and `plpgsql` in the folders of their
+packages, `grammars/postgres/postgres` and `grammars/postgres/plpgsql`. Each folder holds the same files as
 `grammars/usql` but `options.go` and `testdata/options/`, and the
 `tree-sitter.json` of the module lists both grammars. The usql grammar is
 one language for every SQL dialect, and the options of the dialect change

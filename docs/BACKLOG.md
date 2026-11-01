@@ -422,6 +422,38 @@ The grammar leaves out these forms of the other statements:
 - `SET SCHEMA 'name'` and `LOAD ... AS alias`, which the tests of DuckDB
   use and the documentation does not show.
 
+### Finish the ClickHouse grammar
+
+The ClickHouse grammar that xo writes (D127) reads the queries and
+`EXPLAIN` of ClickHouse. The other statements, such as `INSERT`, `CREATE
+TABLE`, `ALTER`, `SYSTEM` and `SET`, come in the next parts of the work.
+The grammar leaves out these forms of a query:
+
+- A comma after the last column of `SELECT`, as in `SELECT a, b, FROM t`.
+  It cost about 470 parse states.
+- The names of the columns of a common table expression, as in `WITH t(a,
+  b) AS (SELECT 1, 2)`. After `WITH t(`, the grammar cannot tell the
+  columns from the arguments of a function `t`.
+- The white space of Unicode, such as U+3000, between two tokens. It cost
+  more than 1,000 parse states.
+- `INTERVAL` with an expression that holds an operator, as in `INTERVAL
+  number * 20 DAY`. The value is a number, a string, a name, a function
+  call, a query parameter or an expression in parentheses.
+- `SETTINGS` among the arguments of a table function, as in
+  `generateRandom('x JSON', 1, SETTINGS max_json_depth = 4)`, because
+  `Settings` names a column of `system.query_log`.
+- `EXPLAIN` in parentheses as a value, as in `SELECT (EXPLAIN SYNTAX
+  SELECT 1)`. It puts 12 more parse states in the large form. `EXPLAIN` in
+  parentheses in `FROM` is a subquery.
+- A column named `from` or another word of the reserved set, as in
+  `SELECT (from IN (1))`.
+- The pipe operator `|>`, the composition of functions with `|`, `LIMIT
+  AFTER`, `LIMIT UNTIL`, `AT TIME ZONE`, `STREAM`, the operators `~` and
+  `!~` of PostgreSQL, `* ILIKE 'pattern'`, `VALUES` and `ARRAY[...]` of
+  the dialect of Trino, the variables `@@name` of MySQL, and a star as a
+  value, as in `[*, 1]` and `(*,).1`. The stateless tests of ClickHouse
+  use them in a few files.
+
 ## The setup of the repository
 
 These items come in phase 1 and later, as the plan says.

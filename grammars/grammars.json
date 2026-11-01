@@ -10849,6 +10849,69 @@
       }
     },
     {
+      "name": "clickhouse",
+      "package": "clickhouse",
+      "repository": "https://github.com/xo/transit",
+      "commit": "",
+      "path": "grammars/clickhouse",
+      "license": "MIT",
+      "scanner": true,
+      "set": "xo",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "a4fb18aafa5b2f24e7c981f672c1722c7a96f84155c4852de432a69a7f4241b8",
+          "node_types": "254c44053c825172e02e1aed06af0f87ffc7528d6aa0ac1faddad9945ee463bd",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "non-terminal alias map",
+            "keyword lexer",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "8df7517e26db2ac5b0da7eff129e01c51b15079aae62acbfdbccf12c26904334",
+          "node_types": "254c44053c825172e02e1aed06af0f87ffc7528d6aa0ac1faddad9945ee463bd",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "non-terminal alias map",
+            "keyword lexer",
+            "reserved words",
+            "reserved word set of a state",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      },
+      "corpus": {
+        "tests": 116,
+        "failures": 0,
+        "transit": "same"
+      }
+    },
+    {
       "name": "duckdb",
       "package": "duckdb",
       "repository": "https://github.com/xo/transit",

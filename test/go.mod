@@ -6,6 +6,7 @@ require (
 	github.com/xo/transit v0.6.0
 	github.com/xo/transit/grammars/bash v0.6.0
 	github.com/xo/transit/grammars/c v0.6.0
+	github.com/xo/transit/grammars/clickhouse v0.6.0
 	github.com/xo/transit/grammars/cpp v0.6.0
 	github.com/xo/transit/grammars/cql v0.6.0
 	github.com/xo/transit/grammars/duckdb v0.6.0
@@ -41,6 +42,8 @@ replace github.com/xo/transit => ..
 replace github.com/xo/transit/grammars/bash => ../grammars/bash
 
 replace github.com/xo/transit/grammars/c => ../grammars/c
+
+replace github.com/xo/transit/grammars/clickhouse => ../grammars/clickhouse
 
 replace github.com/xo/transit/grammars/cpp => ../grammars/cpp
 

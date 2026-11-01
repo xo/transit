@@ -262,7 +262,9 @@ place of that of `Crary-Systems/tree-sitter-tsql`, which stays in the
 golden set without a Go package (D124). xo writes the SQLite grammar,
 because the one SQLite grammar that the search found,
 `dhcmrlchtdj/tree-sitter-sqlite`, is archived (D126). xo writes the DuckDB
-grammar too, because the search found no DuckDB grammar (D126).
+grammar too, because the search found no DuckDB grammar (D126). xo writes
+the ClickHouse grammar, because the search found no ClickHouse grammar
+(D127).
 
 ## The dialects of dbmeta
 

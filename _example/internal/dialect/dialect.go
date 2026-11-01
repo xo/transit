@@ -15,6 +15,7 @@ import (
 	"slices"
 
 	"github.com/xo/transit"
+	"github.com/xo/transit/grammars/clickhouse"
 	"github.com/xo/transit/grammars/cql"
 	"github.com/xo/transit/grammars/duckdb"
 	"github.com/xo/transit/grammars/mysql"
@@ -43,6 +44,7 @@ type Dialect struct {
 // one statement (D112). CQL also turns on Batches, so that a batch is one
 // statement.
 var dialects = []Dialect{
+	{"clickhouse", usql.Options{BlockComments: true, SlashComments: true, HashComments: true, Backticks: true}, clickhouse.Language, clickhouse.Queries, clickhouse.Keywords},
 	{"cql", usql.Options{DollarQuotes: true, BlockComments: true, SlashComments: true, Batches: true}, cql.Language, cql.Queries, cql.Keywords},
 	{"duckdb", usql.Options{DollarQuotes: true, BlockComments: true}, duckdb.Language, duckdb.Queries, duckdb.Keywords},
 	{"generic", usql.Options{BlockComments: true}, sql.Language, sql.Queries, sql.Keywords},

@@ -87,8 +87,8 @@ transit as rline and usql will (D53). Run them in the folder `_example`:
 | `go run ./highlight -dialect mysql -style monokai -colors 256` | It types a text of usql one key at a time, parses again with the old tree after each key, and finds the layer of each SQL statement with `inject`. It prints the text in the colors of a style of the module `styles`, and the time of each edit |
 | `go run ./complete -dialect postgres -text 'select * from '` | It completes at each cursor that it gets as a byte offset. It says whether the cursor is in a meta command, in a variable or in a SQL statement, and in a statement it lists the keywords and the kinds of node that can come next, from `Layer.StatesAt` |
 
-The flag `-dialect` takes `cql`, `duckdb`, `generic`, `mysql`, `oracle`,
-`postgres`, `sqlite3` or `sqlserver`.
+The flag `-dialect` takes `clickhouse`, `cql`, `duckdb`, `generic`,
+`mysql`, `oracle`, `postgres`, `sqlite3` or `sqlserver`.
 
 ## Documents
 
@@ -298,6 +298,33 @@ statements, `CALL`, the statements of transactions and `COMMENT ON`. It
 does not read the statements of the extension DuckPGQ, such as `CREATE
 PROPERTY GRAPH`. The external scanner reads the comments and the
 dollar-quoted strings. The package adds about 1.1 MB to a binary.
+
+The package `github.com/xo/transit/grammars/clickhouse` holds the grammar
+`clickhouse`, which xo writes from the SQL reference of ClickHouse (D127).
+It covers the lexical structure, with the names in backquotes and in
+double quotes, the strings with backslash escapes, the heredoc strings
+such as `$doc$text$doc$`, the numbers in each form with `0x`, `0b`, `inf`
+and `nan`, the query parameters such as `{id:UInt32}`, and the comments
+with `--`, `//`, `#` and `/* */`, which nest. It covers the expressions
+with the precedence of ClickHouse, with the ternary operator `?:`, the
+lambdas, `::` and `CAST`, the arrays, the tuples and the maps, the
+elements of a tuple such as `t.1`, the paths of a JSON column, an alias
+with `AS` in any expression, `GLOBAL IN`, the parametric aggregate
+functions such as `quantile(0.9)(x)`, `FILTER`, the window functions,
+`COLUMNS` and the star with `EXCEPT`, `REPLACE` and `APPLY`. It covers the
+types, such as `Nullable`, `LowCardinality`, `Tuple` with names, `Map`,
+`Nested`, `Enum8` with its values, `DateTime64` with a time zone,
+`AggregateFunction`, `JSON`, `Variant` and `Dynamic`. It covers the full
+query: `WITH` with expressions and subqueries, `SELECT` with `DISTINCT
+ON` and `TOP`, a query that starts with `FROM`, `FINAL`, `SAMPLE`, `ARRAY
+JOIN`, each kind of join with `GLOBAL`, `ANY`, `ASOF`, `SEMI`, `ANTI` and
+`PASTE`, the table functions, `PREWHERE`, `GROUP BY` with `WITH ROLLUP`,
+`WITH CUBE` and `WITH TOTALS`, `QUALIFY`, `ORDER BY` with `WITH FILL` and
+`INTERPOLATE`, `LIMIT BY`, `LIMIT` with `WITH TIES`, the set operations,
+`SETTINGS`, `INTO OUTFILE` and `FORMAT`. It covers `EXPLAIN` of a query,
+and the other statements come later. The external scanner reads the
+comments and the heredoc strings. The package adds about 0.8 MB to a
+binary.
 
 The package `github.com/xo/transit/grammars/postgres/postgres` holds the
 grammar `postgres`, which xo writes from the reference manual of

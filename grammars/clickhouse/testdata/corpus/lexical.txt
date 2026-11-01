@@ -1,0 +1,337 @@
+================================================================================
+Names in backquotes and in double quotes
+================================================================================
+
+SELECT `my col`, "other ""col""", `a\`b`, "c\"d" FROM `db`.`my table`;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)
+            (identifier)))))))
+
+================================================================================
+Keywords in any case
+================================================================================
+
+select Distinct a FrOm t WHERE b;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (distinct_clause)
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (column_reference
+          (identifier))))))
+
+================================================================================
+A keyword as a name
+================================================================================
+
+SELECT key, value, type, format, date, final, sample FROM settings;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+A name with a dollar sign and a name outside ASCII
+================================================================================
+
+SELECT a$b, имя FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Strings with escapes and doubled quotes
+================================================================================
+
+SELECT 'it''s', 'it\'s', 'a\nb\\', '';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string)
+      (string)
+      (string)
+      (string))))
+
+================================================================================
+Heredoc strings
+================================================================================
+
+SELECT $$text$$, $doc$it's $1 'quoted'$doc$, $tag$$tag$;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (heredoc_string
+        (string_content))
+      (heredoc_string
+        (string_content))
+      (heredoc_string))))
+
+================================================================================
+Hex and binary strings
+================================================================================
+
+SELECT x'4142', X'61', b'01000001', B'0';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (hex_string)
+      (hex_string)
+      (bit_string)
+      (bit_string))))
+
+================================================================================
+Integers
+================================================================================
+
+SELECT 0, 42, 1_000_000;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (number)
+      (number))))
+
+================================================================================
+Decimal numbers and exponents
+================================================================================
+
+SELECT 1.5, .5, 1., 1e10, 1E-5, 2.5e+3, .5e3;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number))))
+
+================================================================================
+Hexadecimal and binary numbers
+================================================================================
+
+SELECT 0x1F, 0XFF, 0x1.8p3, 0b1011, 0B11;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (number)
+      (number)
+      (number)
+      (number))))
+
+================================================================================
+inf and nan
+================================================================================
+
+SELECT inf, -inf, nan, Infinity, -INF;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (unary_expression
+        (operator)
+        (number))
+      (number)
+      (number)
+      (unary_expression
+        (operator)
+        (number)))))
+
+================================================================================
+Query parameters
+================================================================================
+
+SELECT {id:UInt32}, {name: String}, {list:Array(UInt8)} FROM {tbl:Identifier};
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (query_parameter
+        (identifier)
+        (type
+          (identifier)))
+      (query_parameter
+        (identifier)
+        (type
+          (identifier)))
+      (query_parameter
+        (identifier)
+        (type
+          (identifier)
+          (type_arguments
+            (type
+              (identifier)))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (query_parameter
+              (identifier)
+              (type
+                (identifier)))))))))
+
+================================================================================
+Line comments
+================================================================================
+
+SELECT 1 -- a comment
+, 2 // another comment
+, 3 # a hash comment
+;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (comment)
+      (number)
+      (comment)
+      (number)))
+  (comment))
+
+================================================================================
+A comment after #!
+================================================================================
+
+#!/usr/bin/clickhouse-local
+SELECT 1;
+
+---
+
+(source_file
+  (comment)
+  (select_statement
+    (select
+      (number))))
+
+================================================================================
+Block comments, which nest
+================================================================================
+
+SELECT /* one /* two */ still one */ 1 /**/ + 2;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (comment)
+      (binary_expression
+        (number)
+        (comment)
+        (operator)
+        (number)))))
+
+================================================================================
+NULL, TRUE and FALSE
+================================================================================
+
+SELECT NULL, null, TRUE, false;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (null)
+      (null)
+      (boolean)
+      (boolean))))
+
+================================================================================
+Statements with no semicolon at the end
+================================================================================
+
+SELECT 1; SELECT 2
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)))
+  (select_statement
+    (select
+      (number))))

@@ -1,0 +1,23 @@
+{
+  "grammars": [
+    {
+      "name": "clickhouse",
+      "camelcase": "Clickhouse",
+      "scope": "source.clickhouse",
+      "path": ".",
+      "file-types": [
+        "clickhouse"
+      ],
+      "highlights": "queries/highlights.scm",
+      "injection-regex": "^clickhouse$"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "A grammar of the SQL of ClickHouse",
+    "links": {
+      "repository": "https://github.com/xo/transit"
+    }
+  }
+}
