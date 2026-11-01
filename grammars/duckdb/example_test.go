@@ -50,5 +50,5 @@ SELECT [1, 2, 3], [], ['a', NULL], ARRAY[1, 2], ARRAY(SELECT 1), [[1, 2], [3]];
 	}
 	// Output:
 	// (source_file (select_statement (select (list (number) (number) (number)) (list) (list (string) (null)) (list (number) (number)) (list (subquery (select (number)))) (list (list (number) (number)) (list (number))))))
-	// patterns in queries/highlights.scm: 54
+	// patterns in queries/highlights.scm: 62
 }

@@ -283,9 +283,15 @@ functions. It covers the types, and the full query: `WITH` with
 starts with `FROM`, each kind of join with `ASOF`, `POSITIONAL`, `SEMI`,
 `ANTI` and `NEAREST`, the table functions, a file as a table, `PIVOT` and
 `UNPIVOT` in both forms, the samples, `GROUP BY ALL`, `QUALIFY`, the set
-operations with `BY NAME`, `ORDER BY ALL` and `LIMIT` with a percent. The
-other statements come later. The external scanner reads the comments and
-the dollar-quoted strings. The package adds about 0.9 MB to a binary.
+operations with `BY NAME`, `ORDER BY ALL` and `LIMIT` with a percent. It
+covers the statements that change rows: `INSERT` with `OR REPLACE`, `BY
+NAME`, `ON CONFLICT` and `RETURNING`, `UPDATE`, `DELETE`, `TRUNCATE` and
+`MERGE INTO`. It covers the statements that change the schema: `CREATE
+TABLE` with its constraints and its generated columns, `ALTER TABLE`, the
+views, the indexes, the sequences, the schemas, the types, the macros, the
+secrets, the triggers and `DROP`. The statements such as `COPY`, `ATTACH`
+and `SET` come later. The external scanner reads the comments and the
+dollar-quoted strings. The package adds about 1.0 MB to a binary.
 
 The package `github.com/xo/transit/grammars/postgres/postgres` holds the
 grammar `postgres`, which xo writes from the reference manual of

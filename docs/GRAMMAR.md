@@ -342,6 +342,18 @@ Each one follows these rules, in addition to the rest of this document:
    `OVER`, and the clauses of a window, in any order, as it takes the
    clauses of a query. Each set of optional clauses in a sequence costs
    states, and the two rules cost about 340 states as sequences.
+   The upstream tool makes one production for each choice and for each
+   optional part of a rule, and the states after such a part are copied for
+   each production. So when the first parts of a statement of the DuckDB
+   grammar hold a choice or an optional part, they are a hidden rule of
+   their own, such as `_insert_target` and `_trigger_head`. The parts of
+   `CREATE TRIGGER` before its body cost 283 states in one rule, and 16 as
+   a hidden rule. The options of a sequence take numbers and not
+   expressions, because an expression before `INCREMENT` cost about 370
+   states. The grammar does not read `WITH DATA` and `WITH NO DATA` after
+   the query of `CREATE TABLE`, because they cost more than 700 states. The
+   upstream tool does not merge the states after an expression where `WITH`
+   can come with the states where `WITHIN` can come.
    A statement of Transact-SQL does not need a semicolon at its end. So
    each word that starts a statement can come after each expression, and
    each state after an expression would hold about 40 such words. More

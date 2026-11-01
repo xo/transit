@@ -1,0 +1,1331 @@
+================================================================================
+Create table
+================================================================================
+
+CREATE TABLE t1 (i INTEGER, j INTEGER);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (type
+        (identifier)))
+    (column_definition
+      (identifier)
+      (type
+        (identifier)))))
+
+================================================================================
+Create table with constraints
+================================================================================
+
+CREATE TABLE t1 (
+    id INTEGER PRIMARY KEY,
+    j VARCHAR NOT NULL UNIQUE,
+    k INTEGER NULL DEFAULT 0 CHECK (k >= 0),
+    l VARCHAR COLLATE nocase,
+    m INTEGER CONSTRAINT m_ref REFERENCES t0 (id) ON DELETE CASCADE ON UPDATE SET NULL,
+    n VARCHAR USING COMPRESSION fsst
+);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (type
+        (identifier))
+      (column_constraint))
+    (column_definition
+      (identifier)
+      (type
+        (identifier))
+      (column_constraint
+        (null))
+      (column_constraint))
+    (column_definition
+      (identifier)
+      (type
+        (identifier))
+      (column_constraint
+        (null))
+      (column_constraint
+        (number))
+      (column_constraint
+        (check_constraint
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number)))))
+    (column_definition
+      (identifier)
+      (type
+        (identifier))
+      (column_constraint
+        (object_reference
+          (identifier))))
+    (column_definition
+      (identifier)
+      (type
+        (identifier))
+      (column_constraint
+        (identifier))
+      (column_constraint
+        (references_clause
+          (object_reference
+            (identifier))
+          (column_list
+            (identifier))
+          (null))))
+    (column_definition
+      (identifier)
+      (type
+        (identifier))
+      (column_constraint
+        (identifier)))))
+
+================================================================================
+Create table with table constraints
+================================================================================
+
+CREATE TABLE t1 (
+    id1 INTEGER,
+    id2 INTEGER,
+    x DOUBLE,
+    PRIMARY KEY (id1, id2),
+    UNIQUE (x),
+    CONSTRAINT c CHECK (x > 0),
+    FOREIGN KEY (id1) REFERENCES t0 (id)
+);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (type
+        (identifier)))
+    (column_definition
+      (identifier)
+      (type
+        (identifier)))
+    (column_definition
+      (identifier)
+      (type))
+    (table_constraint
+      (column_list
+        (identifier)
+        (identifier)))
+    (table_constraint
+      (column_list
+        (identifier)))
+    (table_constraint
+      (identifier)
+      (check_constraint
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))))
+    (table_constraint
+      (column_list
+        (identifier))
+      (references_clause
+        (object_reference
+          (identifier))
+        (column_list
+          (identifier))))))
+
+================================================================================
+Default values before NOT NULL and COLLATE
+================================================================================
+
+CREATE TABLE t (a INTEGER DEFAULT 1 NOT NULL, b VARCHAR DEFAULT 'x' COLLATE nocase, c INTEGER DEFAULT nextval('seq'));
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (type
+        (identifier))
+      (column_constraint
+        (number))
+      (column_constraint
+        (null)))
+    (column_definition
+      (identifier)
+      (type
+        (identifier))
+      (column_constraint
+        (string))
+      (column_constraint
+        (object_reference
+          (identifier))))
+    (column_definition
+      (identifier)
+      (type
+        (identifier))
+      (column_constraint
+        (function_call
+          (identifier)
+          (arguments
+            (string)))))))
+
+================================================================================
+Generated columns
+================================================================================
+
+CREATE TABLE t1 (x FLOAT, two_x AS (2 * x), three_x FLOAT GENERATED ALWAYS AS (3 * x) VIRTUAL, s FLOAT AS (x + 1) STORED);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (type
+        (identifier)))
+    (column_definition
+      (identifier)
+      (column_constraint
+        (binary_expression
+          (number)
+          (operator)
+          (column_reference
+            (identifier)))))
+    (column_definition
+      (identifier)
+      (type
+        (identifier))
+      (column_constraint
+        (binary_expression
+          (number)
+          (operator)
+          (column_reference
+            (identifier)))))
+    (column_definition
+      (identifier)
+      (type
+        (identifier))
+      (column_constraint
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))))))
+
+================================================================================
+Create table as a query
+================================================================================
+
+CREATE TABLE t1 AS SELECT 42 AS i, 84 AS j;
+CREATE TABLE t1 AS FROM read_csv('path/file.csv');
+CREATE TABLE t (a, b) AS SELECT 1, 2;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (aliased_expression
+          (number)
+          (identifier))
+        (aliased_expression
+          (number)
+          (identifier)))))
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (from_clause
+          (function_table
+            (function_call
+              (identifier)
+              (arguments
+                (string))))))))
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier))
+    (column_definition
+      (identifier))
+    (select_statement
+      (select
+        (number)
+        (number)))))
+
+================================================================================
+Create or replace, temporary and if not exists
+================================================================================
+
+CREATE OR REPLACE TABLE t1 (i INTEGER, j INTEGER);
+CREATE TEMP TABLE t1 AS SELECT * FROM read_csv('path/file.csv');
+CREATE TABLE IF NOT EXISTS db.main.t1 (i INTEGER);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (type
+        (identifier)))
+    (column_definition
+      (identifier)
+      (type
+        (identifier))))
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (function_table
+            (function_call
+              (identifier)
+              (arguments
+                (string))))))))
+  (create_table_statement
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier))
+    (column_definition
+      (identifier)
+      (type
+        (identifier)))))
+
+================================================================================
+Create table with nested types
+================================================================================
+
+CREATE TABLE t (l INTEGER[], a INTEGER[3], s STRUCT(a INTEGER, b VARCHAR), m MAP(VARCHAR, INTEGER), u UNION(n INTEGER, s VARCHAR), e ENUM('a', 'b'));
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (type
+        (identifier)))
+    (column_definition
+      (identifier)
+      (type
+        (identifier)
+        (number)))
+    (column_definition
+      (identifier)
+      (type
+        (identifier)
+        (type_modifiers
+          (field_definition
+            (identifier)
+            (type
+              (identifier)))
+          (field_definition
+            (identifier)
+            (type
+              (identifier))))))
+    (column_definition
+      (identifier)
+      (type
+        (identifier)
+        (type_modifiers
+          (type
+            (identifier))
+          (type
+            (identifier)))))
+    (column_definition
+      (identifier)
+      (type
+        (type_modifiers
+          (field_definition
+            (identifier)
+            (type
+              (identifier)))
+          (field_definition
+            (identifier)
+            (type
+              (identifier))))))
+    (column_definition
+      (identifier)
+      (type
+        (identifier)
+        (type_modifiers
+          (string)
+          (string))))))
+
+================================================================================
+Create table options
+================================================================================
+
+CREATE TABLE t (a INTEGER, b DATE) PARTITIONED BY (year(b)) SORTED BY (a DESC) WITH (x = 1);
+CREATE TEMP TABLE t (a INTEGER) ON COMMIT PRESERVE ROWS;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (type
+        (identifier)))
+    (column_definition
+      (identifier)
+      (type
+        (identifier)))
+    (function_call
+      (identifier)
+      (arguments
+        (column_reference
+          (identifier))))
+    (order_by_item
+      (column_reference
+        (identifier)))
+    (option_list
+      (option
+        (identifier)
+        (number))))
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (type
+        (identifier)))))
+
+================================================================================
+Alter table add and drop columns
+================================================================================
+
+ALTER TABLE integers ADD COLUMN k INTEGER;
+ALTER TABLE integers ADD COLUMN IF NOT EXISTS l INTEGER DEFAULT 10;
+ALTER TABLE integers ADD m INTEGER;
+ALTER TABLE integers DROP k;
+ALTER TABLE integers DROP COLUMN IF EXISTS k CASCADE;
+ALTER TABLE t DROP COLUMN s.f;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (type
+        (identifier))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (type
+        (identifier))
+      (column_constraint
+        (number))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (type
+        (identifier))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (column_reference
+      (identifier)))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (column_reference
+      (identifier)))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (column_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+Alter table columns
+================================================================================
+
+ALTER TABLE integers ALTER i TYPE VARCHAR;
+ALTER TABLE integers ALTER COLUMN i SET DATA TYPE VARCHAR USING concat(i, '_', j);
+ALTER TABLE integers ALTER COLUMN i SET DEFAULT 10;
+ALTER TABLE integers ALTER COLUMN i DROP DEFAULT;
+ALTER TABLE t ALTER COLUMN x SET NOT NULL;
+ALTER TABLE t ALTER COLUMN x DROP NOT NULL;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (column_reference
+      (identifier))
+    (type
+      (identifier)))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (column_reference
+      (identifier))
+    (type
+      (identifier))
+    (function_call
+      (identifier)
+      (arguments
+        (column_reference
+          (identifier))
+        (string)
+        (column_reference
+          (identifier)))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (column_reference
+      (identifier))
+    (number))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (column_reference
+      (identifier)))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (column_reference
+      (identifier))
+    (null))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (column_reference
+      (identifier))
+    (null)))
+
+================================================================================
+Alter table rename
+================================================================================
+
+ALTER TABLE integers RENAME TO integers_old;
+ALTER TABLE integers RENAME i TO j;
+ALTER TABLE integers RENAME COLUMN j TO k;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (identifier))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (column_reference
+      (identifier))
+    (identifier))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (column_reference
+      (identifier))
+    (identifier)))
+
+================================================================================
+Alter table constraints and options
+================================================================================
+
+ALTER TABLE integers ADD PRIMARY KEY (i);
+ALTER TABLE t ADD CONSTRAINT c CHECK (i > 0);
+ALTER TABLE t DROP CONSTRAINT IF EXISTS c;
+ALTER TABLE IF EXISTS t SET PARTITIONED BY (a, b), SET SORTED BY (a ASC NULLS LAST);
+ALTER TABLE t RESET PARTITIONED BY;
+ALTER TABLE t SET (x = 1);
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (table_constraint
+      (column_list
+        (identifier))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (table_constraint
+      (identifier)
+      (check_constraint
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (identifier))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (column_reference
+      (identifier))
+    (column_reference
+      (identifier))
+    (order_by_item
+      (column_reference
+        (identifier))))
+  (alter_table_statement
+    (object_reference
+      (identifier)))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (option_list
+      (option
+        (identifier)
+        (number)))))
+
+================================================================================
+Create view
+================================================================================
+
+CREATE VIEW v1 AS SELECT * FROM tbl;
+CREATE OR REPLACE VIEW v1 AS SELECT 42;
+CREATE VIEW v1(a) AS SELECT 42;
+CREATE TEMP SECURE VIEW s.v AS FROM t;
+CREATE RECURSIVE VIEW r(n) AS SELECT 1;
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (number))))
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier))
+    (select_statement
+      (select
+        (number))))
+  (create_view_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (select_statement
+      (select
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier))
+    (select_statement
+      (select
+        (number)))))
+
+================================================================================
+Alter view
+================================================================================
+
+ALTER VIEW v1 RENAME TO v2;
+
+---
+
+(source_file
+  (alter_view_statement
+    (object_reference
+      (identifier))
+    (identifier)))
+
+================================================================================
+Create index
+================================================================================
+
+CREATE UNIQUE INDEX films_id_idx ON films (id);
+CREATE INDEX s_idx ON films (revenue);
+CREATE INDEX gy_idx ON films (genre, year);
+CREATE INDEX i_index ON integers ((j + k));
+CREATE INDEX IF NOT EXISTS idx ON t USING hnsw (v) WITH (metric = 'cosine') WHERE v IS NOT NULL;
+
+---
+
+(source_file
+  (create_index_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (order_by_item
+      (column_reference
+        (identifier))))
+  (create_index_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (order_by_item
+      (column_reference
+        (identifier))))
+  (create_index_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (order_by_item
+      (column_reference
+        (identifier)))
+    (order_by_item
+      (column_reference
+        (identifier))))
+  (create_index_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (order_by_item
+      (parenthesized_expression
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier))))))
+  (create_index_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (identifier)
+    (order_by_item
+      (column_reference
+        (identifier)))
+    (option_list
+      (option
+        (identifier)
+        (string)))
+    (where_clause
+      (is_expression
+        (column_reference
+          (identifier))
+        (null)))))
+
+================================================================================
+Create sequence
+================================================================================
+
+CREATE SEQUENCE serial;
+CREATE SEQUENCE serial START 101;
+CREATE SEQUENCE serial START WITH 1 INCREMENT BY 2;
+CREATE SEQUENCE serial START WITH 99 INCREMENT BY -1 MAXVALUE 99;
+CREATE SEQUENCE serial START WITH 1 MAXVALUE 10 NO MINVALUE CYCLE;
+CREATE OR REPLACE SEQUENCE IF NOT EXISTS s NO CYCLE OWNED BY t;
+
+---
+
+(source_file
+  (create_sequence_statement
+    (object_reference
+      (identifier)))
+  (create_sequence_statement
+    (object_reference
+      (identifier))
+    (sequence_option
+      (number)))
+  (create_sequence_statement
+    (object_reference
+      (identifier))
+    (sequence_option
+      (number))
+    (sequence_option
+      (number)))
+  (create_sequence_statement
+    (object_reference
+      (identifier))
+    (sequence_option
+      (number))
+    (sequence_option
+      (operator)
+      (number))
+    (sequence_option
+      (number)))
+  (create_sequence_statement
+    (object_reference
+      (identifier))
+    (sequence_option
+      (number))
+    (sequence_option
+      (number))
+    (sequence_option)
+    (sequence_option))
+  (create_sequence_statement
+    (object_reference
+      (identifier))
+    (sequence_option)
+    (sequence_option
+      (object_reference
+        (identifier)))))
+
+================================================================================
+Alter sequence
+================================================================================
+
+ALTER SEQUENCE s RENAME TO t;
+ALTER SEQUENCE IF EXISTS s RESTART WITH 1 INCREMENT BY 2;
+
+---
+
+(source_file
+  (alter_sequence_statement
+    (object_reference
+      (identifier))
+    (identifier))
+  (alter_sequence_statement
+    (object_reference
+      (identifier))
+    (sequence_option
+      (number))
+    (sequence_option
+      (number))))
+
+================================================================================
+Create schema
+================================================================================
+
+CREATE SCHEMA s1;
+CREATE SCHEMA IF NOT EXISTS s2;
+CREATE OR REPLACE SCHEMA db.s3 WITH (a = 'b');
+
+---
+
+(source_file
+  (create_schema_statement
+    (object_reference
+      (identifier)))
+  (create_schema_statement
+    (object_reference
+      (identifier)))
+  (create_schema_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (option_list
+      (option
+        (identifier)
+        (string)))))
+
+================================================================================
+Alter schema and database
+================================================================================
+
+ALTER SCHEMA a RENAME TO b;
+ALTER SCHEMA IF EXISTS s SET (foo = 'bar', answer = 42);
+ALTER SCHEMA s RESET (foo, answer);
+ALTER DATABASE old_name RENAME TO new_name;
+ALTER DATABASE IF EXISTS d SET ALIAS TO e;
+
+---
+
+(source_file
+  (alter_schema_statement
+    (object_reference
+      (identifier))
+    (identifier))
+  (alter_schema_statement
+    (object_reference
+      (identifier))
+    (option_list
+      (option
+        (identifier)
+        (string))
+      (option
+        (identifier)
+        (number))))
+  (alter_schema_statement
+    (object_reference
+      (identifier))
+    (option_list
+      (option
+        (identifier))
+      (option
+        (identifier))))
+  (alter_database_statement
+    (object_reference
+      (identifier))
+    (identifier))
+  (alter_database_statement
+    (object_reference
+      (identifier))
+    (identifier)))
+
+================================================================================
+Create type
+================================================================================
+
+CREATE TYPE mood AS ENUM ('happy', 'sad', 'curious');
+CREATE TYPE empty AS ENUM ();
+CREATE TYPE birds AS ENUM (SELECT my_varchar FROM my_inputs);
+CREATE TYPE many_things AS STRUCT(k INTEGER, l VARCHAR);
+CREATE TYPE one_thing AS UNION(number INTEGER, string VARCHAR);
+CREATE TYPE x_index AS INTEGER;
+
+---
+
+(source_file
+  (create_type_statement
+    (object_reference
+      (identifier))
+    (string)
+    (string)
+    (string))
+  (create_type_statement
+    (object_reference
+      (identifier)))
+  (create_type_statement
+    (object_reference
+      (identifier))
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (create_type_statement
+    (object_reference
+      (identifier))
+    (type
+      (identifier)
+      (type_modifiers
+        (field_definition
+          (identifier)
+          (type
+            (identifier)))
+        (field_definition
+          (identifier)
+          (type
+            (identifier))))))
+  (create_type_statement
+    (object_reference
+      (identifier))
+    (type
+      (type_modifiers
+        (field_definition
+          (identifier)
+          (type
+            (identifier)))
+        (field_definition
+          (identifier)
+          (type
+            (identifier))))))
+  (create_type_statement
+    (object_reference
+      (identifier))
+    (type
+      (identifier))))
+
+================================================================================
+Create macro
+================================================================================
+
+CREATE MACRO add(a, b) AS a + b;
+CREATE FUNCTION main.my_avg(x) AS sum(x) / count(x);
+CREATE OR REPLACE TEMP MACRO add_default(a, b := 5) AS a + b;
+CREATE MACRO f(a INTEGER, b VARCHAR) AS a || b;
+CREATE MACRO two(x) AS x, (x, y) AS x + y;
+
+---
+
+(source_file
+  (create_macro_statement
+    (object_reference
+      (identifier))
+    (macro_definition
+      (macro_parameter
+        (identifier))
+      (macro_parameter
+        (identifier))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)))))
+  (create_macro_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (macro_definition
+      (macro_parameter
+        (identifier))
+      (binary_expression
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier))))
+        (operator)
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier)))))))
+  (create_macro_statement
+    (object_reference
+      (identifier))
+    (macro_definition
+      (macro_parameter
+        (identifier))
+      (macro_parameter
+        (identifier)
+        (number))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)))))
+  (create_macro_statement
+    (object_reference
+      (identifier))
+    (macro_definition
+      (macro_parameter
+        (identifier)
+        (type
+          (identifier)))
+      (macro_parameter
+        (identifier)
+        (type
+          (identifier)))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)))))
+  (create_macro_statement
+    (object_reference
+      (identifier))
+    (macro_definition
+      (macro_parameter
+        (identifier))
+      (column_reference
+        (identifier)))
+    (macro_definition
+      (macro_parameter
+        (identifier))
+      (macro_parameter
+        (identifier))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier))))))
+
+================================================================================
+Create table macro
+================================================================================
+
+CREATE MACRO static_table() AS TABLE SELECT 'Hello' AS column1, 'World' AS column2;
+CREATE MACRO dynamic_table(col1_value, col2_value) AS TABLE SELECT col1_value AS column1, col2_value AS column2;
+
+---
+
+(source_file
+  (create_macro_statement
+    (object_reference
+      (identifier))
+    (macro_definition
+      (select_statement
+        (select
+          (aliased_expression
+            (string)
+            (identifier))
+          (aliased_expression
+            (string)
+            (identifier))))))
+  (create_macro_statement
+    (object_reference
+      (identifier))
+    (macro_definition
+      (macro_parameter
+        (identifier))
+      (macro_parameter
+        (identifier))
+      (select_statement
+        (select
+          (aliased_expression
+            (column_reference
+              (identifier))
+            (identifier))
+          (aliased_expression
+            (column_reference
+              (identifier))
+            (identifier)))))))
+
+================================================================================
+Create secret
+================================================================================
+
+CREATE SECRET my_secret (TYPE s3, KEY_ID 'my_key', SECRET 'my_secret', REGION 'us-east-1');
+CREATE PERSISTENT SECRET IF NOT EXISTS s IN local_file (TYPE s3, PROVIDER credential_chain, CHAIN 'env;config', SCOPE ['s3://a', 's3://b']);
+CREATE OR REPLACE SECRET (TYPE http, EXTRA_HTTP_HEADERS MAP {'a': 'b'});
+
+---
+
+(source_file
+  (create_secret_statement
+    (identifier)
+    (option_list
+      (option
+        (identifier)
+        (column_reference
+          (identifier)))
+      (option
+        (identifier)
+        (string))
+      (option
+        (identifier)
+        (string))
+      (option
+        (identifier)
+        (string))))
+  (create_secret_statement
+    (identifier)
+    (identifier)
+    (option_list
+      (option
+        (identifier)
+        (column_reference
+          (identifier)))
+      (option
+        (identifier)
+        (column_reference
+          (identifier)))
+      (option
+        (identifier)
+        (string))
+      (option
+        (identifier)
+        (list
+          (string)
+          (string)))))
+  (create_secret_statement
+    (option_list
+      (option
+        (identifier)
+        (column_reference
+          (identifier)))
+      (option
+        (identifier)
+        (map
+          (map_entry
+            (string)
+            (string)))))))
+
+================================================================================
+Create trigger
+================================================================================
+
+CREATE TRIGGER trg_audit
+    AFTER UPDATE ON target
+    REFERENCING
+        OLD TABLE AS o
+        NEW TABLE AS n
+    FOR EACH STATEMENT
+        INSERT INTO audit
+        SELECT n.id, o.val, n.val
+        FROM o
+        JOIN n ON o.id = n.id;
+CREATE TRIGGER trg_log AFTER INSERT ON t FOR EACH ROW INSERT INTO log VALUES (NEW.id);
+CREATE OR REPLACE TRIGGER IF NOT EXISTS trg_price BEFORE UPDATE OF price, cost ON products DELETE FROM cache;
+
+---
+
+(source_file
+  (create_trigger_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (identifier)
+    (identifier)
+    (insert_statement
+      (object_reference
+        (identifier))
+      (select_statement
+        (select
+          (column_reference
+            (identifier)
+            (identifier))
+          (column_reference
+            (identifier)
+            (identifier))
+          (column_reference
+            (identifier)
+            (identifier))
+          (from_clause
+            (join
+              (table_reference
+                (object_reference
+                  (identifier)))
+              (table_reference
+                (object_reference
+                  (identifier)))
+              (binary_expression
+                (column_reference
+                  (identifier)
+                  (identifier))
+                (operator)
+                (column_reference
+                  (identifier)
+                  (identifier)))))))))
+  (create_trigger_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (insert_statement
+      (object_reference
+        (identifier))
+      (select_statement
+        (values
+          (value_list
+            (column_reference
+              (identifier)
+              (identifier)))))))
+  (create_trigger_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (identifier)
+    (object_reference
+      (identifier))
+    (delete_statement
+      (object_reference
+        (identifier)))))
+
+================================================================================
+Drop
+================================================================================
+
+DROP TABLE tbl;
+DROP VIEW IF EXISTS v1;
+DROP TABLE a, b.c CASCADE;
+DROP MACRO mcr;
+DROP MACRO TABLE mt;
+DROP FUNCTION IF EXISTS f;
+DROP SCHEMA sch RESTRICT;
+DROP INDEX idx;
+DROP SEQUENCE seq;
+DROP TYPE typ;
+DROP COLLATION c;
+DROP TRIGGER IF EXISTS trg_audit ON my_schema.target;
+DROP SECRET my_secret;
+DROP PERSISTENT SECRET IF EXISTS s FROM local_file;
+
+---
+
+(source_file
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier)))
+  (drop_statement
+    (identifier))
+  (drop_statement
+    (identifier)
+    (identifier)))

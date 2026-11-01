@@ -180,8 +180,9 @@ in an ERROR node, and the statement after the line parses with no error.
 usql gives `duckdb` the generic grammar today, which does not read the
 syntax of DuckDB, such as a query that starts with `FROM`, `QUALIFY` and
 the lambdas. So xo writes the DuckDB grammar from the SQL documentation of
-DuckDB in `grammars/duckdb` (D126). It reads the queries today, and the
-other statements come later. usql will give it to `duckdb`, and to
+DuckDB in `grammars/duckdb` (D126). It reads the queries and the
+statements that change rows or the schema today, and the other statements
+come later. usql will give it to `duckdb`, and to
 `gizmosql` too, because GizmoSQL serves DuckDB. The commands of the duckdb
 shell, such as `.tables`, are not SQL. The grammar puts such a line in an
 ERROR node, as the SQLite grammar does.

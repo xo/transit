@@ -29,7 +29,10 @@
 // and the clauses of a window come in any order, because a sequence of
 // optional clauses costs parse states for each set of the clauses. The %
 // of LIMIT 10% is the token of the operator %, so that the states after
-// the count are the states after other expressions.
+// the count are the states after other expressions. When the first parts
+// of a statement hold an optional part or a choice, they are a hidden rule
+// of their own, such as _insert_target and _trigger_head. Each optional
+// part or choice in the middle of a rule copies the parse states after it.
 //
 // The external scanner in src/scanner.c reads the comments, which nest, and
 // the dollar-quoted strings. A statement ends at a semicolon or at the end
@@ -227,11 +230,622 @@ module.exports = grammar({
 
     _statement: $ => choice(
       $.select_statement,
+      $._data_statement,
+      $.truncate_statement,
+      $.create_table_statement,
+      $.alter_table_statement,
+      $.create_view_statement,
+      $.alter_view_statement,
+      $.create_index_statement,
+      $.create_sequence_statement,
+      $.alter_sequence_statement,
+      $.create_schema_statement,
+      $.alter_schema_statement,
+      $.alter_database_statement,
+      $.create_type_statement,
+      $.create_macro_statement,
+      $.create_secret_statement,
+      $.create_trigger_statement,
+      $.drop_statement,
     ),
 
     // Queries
 
     select_statement: $ => $._query,
+
+    // Changes of data
+
+    // The statements that change rows. A common table expression and the
+    // body of a trigger can hold one of them.
+    _data_statement: $ => choice(
+      $.insert_statement,
+      $.update_statement,
+      $.delete_statement,
+      $.merge_statement,
+    ),
+
+    // INSERT, with OR REPLACE or OR IGNORE. BY NAME matches the columns of
+    // the rows by their names, and BY POSITION by their order. The rows come
+    // from a query, VALUES or the defaults of the columns. Each part before
+    // the rows is a hidden rule of its own, because each optional part in
+    // the middle of a rule copies the parse states after it.
+    insert_statement: $ => seq(
+      $._insert_target,
+      optional($.column_list),
+      choice($.select_statement, kws('DEFAULT', 'VALUES')),
+      optional($.on_conflict_clause),
+      optional($.returning_clause),
+    ),
+
+    _insert_target: $ => seq(
+      optional($.with_clause),
+      kw('INSERT'),
+      optional(seq(kw('OR'), choice(kw('REPLACE'), kw('IGNORE')))),
+      kw('INTO'),
+      field('table', $.object_reference),
+      optional(seq(kw('AS'), field('alias', $._label))),
+      optional($._by_name),
+    ),
+
+    _by_name: _ => seq(kw('BY'), choice(kw('NAME'), kw('POSITION'))),
+
+    // ON CONFLICT names the columns of a key or a constraint, and what to do
+    // with a row whose key is already in the table. EXCLUDED names the row
+    // that the statement inserts.
+    on_conflict_clause: $ => seq(
+      kws('ON', 'CONFLICT'),
+      optional(choice(
+        seq($.column_list, optional($.where_clause)),
+        seq(kws('ON', 'CONSTRAINT'), field('constraint', $._name)),
+      )),
+      kw('DO'),
+      choice(
+        kw('NOTHING'),
+        seq(kw('UPDATE'), $._set_clause, optional($.where_clause)),
+      ),
+    ),
+
+    _set_clause: $ => seq(kw('SET'), commaSep1($.assignment)),
+
+    // A column, a field of a struct column, or a list of columns and a row
+    // value, as in (a, b) = (1, 2). DEFAULT gives the default value of the
+    // column.
+    assignment: $ => seq(
+      field('left', choice($.column_reference, $.column_list)),
+      '=',
+      field('right', choice($._expression, kw('DEFAULT'))),
+    ),
+
+    // RETURNING gives the rows that a statement changed.
+    returning_clause: $ => seq(kw('RETURNING'), commaSep1($._select_item)),
+
+    // The clauses after SET come in any order, for the same reason as the
+    // clauses of a query.
+    update_statement: $ => prec.right(seq(
+      $._update_target,
+      $._set_clause,
+      repeat(choice(
+        $.from_clause,
+        $.where_clause,
+        $.returning_clause,
+      )),
+    )),
+
+    _update_target: $ => seq(
+      optional($.with_clause),
+      kw('UPDATE'),
+      field('table', $.object_reference),
+      optional($._alias),
+    ),
+
+    // USING names the other tables that the condition reads.
+    delete_statement: $ => prec.right(seq(
+      $._delete_target,
+      repeat(choice(
+        seq(kw('USING'), commaSep1($._table_reference)),
+        $.where_clause,
+        $.returning_clause,
+      )),
+    )),
+
+    _delete_target: $ => seq(
+      optional($.with_clause),
+      kws('DELETE', 'FROM'),
+      field('table', $.object_reference),
+      optional($._alias),
+    ),
+
+    // MERGE INTO joins a table with a source, and changes, inserts or
+    // deletes rows of the table for each row of the source, as each WHEN
+    // says.
+    merge_statement: $ => seq(
+      $._merge_target,
+      kw('USING'),
+      field('source', $._table_factor),
+      choice(
+        seq(kw('ON'), field('condition', $._expression)),
+        seq(kw('USING'), $.column_list),
+      ),
+      repeat1($.merge_when_clause),
+      optional($.returning_clause),
+    ),
+
+    _merge_target: $ => seq(
+      optional($.with_clause),
+      kws('MERGE', 'INTO'),
+      field('table', $.object_reference),
+      optional($._alias),
+    ),
+
+    // WHEN MATCHED is for a row of the source that matches a row of the
+    // table, and WHEN NOT MATCHED for a row of the source or of the table
+    // with no match.
+    merge_when_clause: $ => seq(
+      kw('WHEN'),
+      $._merge_match,
+      optional(seq(kw('AND'), field('condition', $._expression))),
+      kw('THEN'),
+      choice(
+        seq(kw('UPDATE'), optional(choice(
+          seq(kw('SET'), choice(commaSep1($.assignment), '*')),
+          $._by_name,
+        ))),
+        kw('DELETE'),
+        seq(kw('INSERT'), optional(choice(
+          seq(optional($.column_list), kw('VALUES'), $.value_list),
+          kws('DEFAULT', 'VALUES'),
+          seq($._by_name, optional('*')),
+          '*',
+        ))),
+        kws('DO', 'NOTHING'),
+        seq(kw('ERROR'), optional(field('message', $._expression))),
+      ),
+    ),
+
+    _merge_match: _ => seq(
+      optional(kw('NOT')),
+      kw('MATCHED'),
+      optional(seq(kw('BY'), choice(kw('SOURCE'), kw('TARGET')))),
+    ),
+
+    // TRUNCATE deletes each row of a table.
+    truncate_statement: $ => seq(
+      kw('TRUNCATE'),
+      optional(kw('TABLE')),
+      field('table', $.object_reference),
+      optional($._drop_behavior),
+    ),
+
+    // Changes of the schema
+
+    // The start of each CREATE statement. PERSISTENT and TEMPORARY are for
+    // a secret.
+    _create: $ => seq(
+      kw('CREATE'),
+      optional(kws('OR', 'REPLACE')),
+      optional($._temporary),
+    ),
+
+    _temporary: _ => choice(kw('TEMP'), kw('TEMPORARY'), kw('PERSISTENT')),
+
+    // The name of the object that CREATE makes, with IF NOT EXISTS. It is a
+    // hidden rule of its own, so that the parts after the name have one set
+    // of parse states.
+    _create_name: $ => seq(
+      optional($._if_not_exists),
+      field('name', choice($.object_reference, $.string)),
+    ),
+
+    _if_not_exists: _ => kws('IF', 'NOT', 'EXISTS'),
+
+    _if_exists: _ => kws('IF', 'EXISTS'),
+
+    _drop_behavior: _ => choice(kw('CASCADE'), kw('RESTRICT')),
+
+    // CREATE TABLE gives the columns and the constraints of a table, or it
+    // takes them from a query. The names of the columns before AS are
+    // columns with no type.
+    create_table_statement: $ => seq(
+      $._create,
+      kw('TABLE'),
+      $._create_name,
+      optional($._table_body),
+      optional(choice(
+        seq(kw('AS'), $.select_statement),
+        seq(kws('ON', 'COMMIT'), choice(kw('PRESERVE'), kw('DELETE')), kw('ROWS')),
+      )),
+    ),
+
+    // The columns and the constraints of a table, and its options.
+    _table_body: $ => choice(
+      seq(
+        parens(optional(trailingSep1(choice($.column_definition, $.table_constraint)))),
+        repeat($._table_option),
+      ),
+      repeat1($._table_option),
+    ),
+
+    _table_option: $ => choice(
+      $._partitioned_by,
+      $._sorted_by,
+      seq(kw('WITH'), $.option_list),
+    ),
+
+    // PARTITIONED BY and SORTED BY are for a table of a DuckLake catalog.
+    _partitioned_by: $ => seq(kws('PARTITIONED', 'BY'), parens(commaSep1($._expression))),
+
+    _sorted_by: $ => seq(kws('SORTED', 'BY'), parens(commaSep1($.order_by_item))),
+
+    // A column of ALTER TABLE ADD COLUMN can be a field of a struct column,
+    // with the names of the struct columns before it, as in s.f INTEGER.
+    column_definition: $ => seq(
+      repeat(seq(field('parent', $._name), '.')),
+      field('name', $._name),
+      optional(field('type', $.type)),
+      repeat($.column_constraint),
+    ),
+
+    // A constraint of a column. A generated column has its expression after
+    // AS. DEFAULT ends its value before NOT and COLLATE, so that NOT NULL
+    // and COLLATE after the value are constraints of their own.
+    column_constraint: $ => choice(
+      seq(kw('CONSTRAINT'), field('name', $._name)),
+      seq(optional(kw('NOT')), $.null),
+      kws('PRIMARY', 'KEY'),
+      kw('UNIQUE'),
+      $.check_constraint,
+      prec(PREC.field + 1, seq(kw('DEFAULT'), field('default', $._expression))),
+      $.references_clause,
+      seq(kw('COLLATE'), field('collation', choice($.object_reference, $.string))),
+      seq(kws('USING', 'COMPRESSION'), field('compression', choice($._name, $.string))),
+      seq(
+        optional(seq(kw('GENERATED'), choice(kw('ALWAYS'), kws('BY', 'DEFAULT')))),
+        kw('AS'),
+        parens(field('generated', $._expression)),
+        optional(choice(kw('VIRTUAL'), kw('STORED'))),
+      ),
+    ),
+
+    check_constraint: $ => seq(kw('CHECK'), parens(field('condition', $._expression))),
+
+    // A constraint of the table, with its name.
+    table_constraint: $ => seq(
+      optional(seq(kw('CONSTRAINT'), field('name', $._name))),
+      choice(
+        seq(choice(kws('PRIMARY', 'KEY'), kw('UNIQUE')), $.column_list),
+        $.check_constraint,
+        seq(kws('FOREIGN', 'KEY'), $.column_list, $.references_clause),
+      ),
+    ),
+
+    // A foreign key: the table and the columns that it refers to, with the
+    // actions on DELETE and UPDATE.
+    references_clause: $ => prec.right(seq(
+      kw('REFERENCES'),
+      field('table', $.object_reference),
+      optional($.column_list),
+      repeat(seq(
+        kw('ON'),
+        choice(kw('DELETE'), kw('UPDATE')),
+        choice(
+          seq(kw('SET'), choice($.null, kw('DEFAULT'))),
+          kw('CASCADE'),
+          kw('RESTRICT'),
+          kws('NO', 'ACTION'),
+        ),
+      )),
+    )),
+
+    // The options of a statement in parentheses, such as WITH (a = 1) or
+    // the options of a secret, (TYPE s3, KEY_ID 'k'). A value comes after =
+    // or after the name, and an option with no value is on.
+    option_list: $ => parens(optional(commaSep1($.option))),
+
+    option: $ => seq(
+      field('name', choice($._label, $.string)),
+      optional(seq(optional('='), field('value', $._expression))),
+    ),
+
+    // ALTER TABLE takes one or more changes, with commas between them. A
+    // column can be a field of a struct column, as in s.f.
+    alter_table_statement: $ => seq(
+      kws('ALTER', 'TABLE'),
+      $._alter_name,
+      commaSep1($._alter_table_action),
+    ),
+
+    _alter_name: $ => seq(
+      optional($._if_exists),
+      field('name', $.object_reference),
+    ),
+
+    _alter_table_action: $ => choice(
+      seq(kw('ADD'), optional(kw('COLUMN')), optional($._if_not_exists), $.column_definition),
+      seq(kw('ADD'), $.table_constraint),
+      seq(
+        kw('DROP'),
+        optional(kw('COLUMN')),
+        optional($._if_exists),
+        field('column', $.column_reference),
+        optional($._drop_behavior),
+      ),
+      seq(
+        kws('DROP', 'CONSTRAINT'),
+        optional($._if_exists),
+        field('constraint', $._name),
+        optional($._drop_behavior),
+      ),
+      seq(
+        kw('ALTER'),
+        optional(kw('COLUMN')),
+        field('column', $.column_reference),
+        choice(
+          seq(kws('SET', 'DEFAULT'), field('default', $._expression)),
+          kws('DROP', 'DEFAULT'),
+          seq(choice(kw('SET'), kw('DROP')), kw('NOT'), $.null),
+          seq(
+            optional(seq(kw('SET'), optional(kw('DATA')))),
+            kw('TYPE'),
+            optional(field('type', $.type)),
+            optional(seq(kw('USING'), field('using', $._expression))),
+          ),
+        ),
+      ),
+      seq(
+        kw('RENAME'),
+        optional(kw('COLUMN')),
+        field('column', $.column_reference),
+        kw('TO'),
+        field('new_name', choice($._name, $.string)),
+      ),
+      $._rename_to,
+      seq(kw('SET'), choice($._partitioned_by, $._sorted_by, $.option_list)),
+      seq(kw('RESET'), choice(
+        kws('PARTITIONED', 'BY'),
+        kws('SORTED', 'BY'),
+        $.option_list,
+      )),
+    ),
+
+    _rename_to: $ => seq(kws('RENAME', 'TO'), field('new_name', choice($._name, $.string))),
+
+    // CREATE VIEW, with SECURE, which hides the plan of the view, and
+    // RECURSIVE, whose query reads the view.
+    create_view_statement: $ => seq(
+      $._view_head,
+      kw('AS'),
+      $.select_statement,
+    ),
+
+    _view_head: $ => seq(
+      $._create,
+      optional(kw('SECURE')),
+      optional(kw('RECURSIVE')),
+      kw('VIEW'),
+      $._create_name,
+      optional($.column_list),
+      optional(seq(kw('WITH'), $.option_list)),
+    ),
+
+    alter_view_statement: $ => seq(kws('ALTER', 'VIEW'), $._alter_name, $._rename_to),
+
+    // CREATE INDEX, with the method of the index after USING, its options
+    // and a WHERE.
+    create_index_statement: $ => seq(
+      $._index_head,
+      parens(commaSep1($.order_by_item)),
+      optional(seq(kw('WITH'), $.option_list)),
+      optional($.where_clause),
+    ),
+
+    _index_head: $ => seq(
+      $._create,
+      optional(kw('UNIQUE')),
+      kw('INDEX'),
+      optional($._if_not_exists),
+      optional(field('name', $.object_reference)),
+      kw('ON'),
+      field('table', $.object_reference),
+      optional(seq(kw('USING'), field('method', $._name))),
+    ),
+
+    create_sequence_statement: $ => seq(
+      $._create,
+      kw('SEQUENCE'),
+      $._create_name,
+      repeat($.sequence_option),
+    ),
+
+    alter_sequence_statement: $ => seq(
+      kws('ALTER', 'SEQUENCE'),
+      $._alter_name,
+      choice($._rename_to, repeat1($.sequence_option)),
+    ),
+
+    // An option of a sequence. Its values are numbers, because the states
+    // after an expression that INCREMENT, START and the others can follow
+    // cost more than 350 parse states.
+    sequence_option: $ => choice(
+      seq(kw('INCREMENT'), optional(kw('BY')), field('increment', $._signed_number)),
+      seq(kw('MINVALUE'), field('minimum', $._signed_number)),
+      seq(kw('MAXVALUE'), field('maximum', $._signed_number)),
+      seq(kw('START'), optional(kw('WITH')), field('start', $._signed_number)),
+      seq(kw('RESTART'), optional(seq(optional(kw('WITH')), field('start', $._signed_number)))),
+      seq(optional(kw('NO')), choice(kw('CYCLE'), kw('MINVALUE'), kw('MAXVALUE'))),
+      seq(kws('OWNED', 'BY'), field('owner', $.object_reference)),
+    ),
+
+    create_schema_statement: $ => seq(
+      $._create,
+      kw('SCHEMA'),
+      $._create_name,
+      optional(seq(kw('WITH'), $.option_list)),
+    ),
+
+    alter_schema_statement: $ => seq(
+      kws('ALTER', 'SCHEMA'),
+      $._alter_name,
+      choice(
+        $._rename_to,
+        seq(choice(kw('SET'), kw('RESET')), $.option_list),
+      ),
+    ),
+
+    // ALTER DATABASE renames an attached database, or sets the alias of
+    // its catalog.
+    alter_database_statement: $ => seq(
+      kws('ALTER', 'DATABASE'),
+      $._alter_name,
+      choice(
+        $._rename_to,
+        seq(kws('SET', 'ALIAS', 'TO'), field('alias', $._name)),
+      ),
+    ),
+
+    // CREATE TYPE names an enum, with its values or the values of a query,
+    // or another type, such as a struct or a union.
+    create_type_statement: $ => seq(
+      $._create,
+      kw('TYPE'),
+      $._create_name,
+      kw('AS'),
+      choice(
+        seq(
+          kw('ENUM'),
+          parens(optional(choice(commaSep1($.string), $._query))),
+          repeat($._array_bound),
+        ),
+        field('type', $.type),
+      ),
+    ),
+
+    // CREATE MACRO makes a scalar macro, whose body is an expression, or a
+    // table macro, whose body is a query after TABLE. FUNCTION is the same
+    // word. A macro can have more than one definition, each with its own
+    // parameters. The query of a table macro before a comma is in
+    // parentheses, because a comma after a query with no parentheses can
+    // continue the query.
+    create_macro_statement: $ => seq(
+      $._create,
+      choice(kw('MACRO'), kw('FUNCTION')),
+      $._create_name,
+      repeat(seq(
+        choice($.macro_definition, alias($._table_macro_in_list, $.macro_definition)),
+        ',',
+      )),
+      choice($.macro_definition, alias($._table_macro_definition, $.macro_definition)),
+    ),
+
+    _table_macro_in_list: $ => seq(
+      $._macro_parameters,
+      kws('AS', 'TABLE'),
+      field('body', $.parenthesized_query),
+    ),
+
+    macro_definition: $ => seq(
+      $._macro_parameters,
+      kw('AS'),
+      field('body', $._expression),
+    ),
+
+    _table_macro_definition: $ => seq(
+      $._macro_parameters,
+      kws('AS', 'TABLE'),
+      field('body', $.select_statement),
+    ),
+
+    _macro_parameters: $ => parens(optional(commaSep1($.macro_parameter))),
+
+    // A parameter has a type or not, and a default value after := or =>.
+    macro_parameter: $ => seq(
+      field('name', $._name),
+      optional(field('type', $.type)),
+      optional(seq(choice(':=', '=>'), field('default', $._expression))),
+    ),
+
+    // CREATE SECRET gives the credentials of a service, such as S3, as
+    // options. IN names the storage of a persistent secret.
+    create_secret_statement: $ => seq(
+      $._create,
+      kw('SECRET'),
+      optional($._if_not_exists),
+      optional(field('name', $._name)),
+      optional(seq(kw('IN'), field('storage', $._name))),
+      $.option_list,
+    ),
+
+    // CREATE TRIGGER runs one statement that changes rows after or before
+    // each INSERT, UPDATE or DELETE on a table. REFERENCING names the old
+    // and the new rows of a statement as tables.
+    // The parts before the body are a hidden rule of their own, because each
+    // choice and each optional part in the middle of a rule copies the parse
+    // states after it.
+    create_trigger_statement: $ => seq(
+      $._trigger_head,
+      field('body', $._data_statement),
+    ),
+
+    _trigger_head: $ => seq(
+      $._create,
+      kw('TRIGGER'),
+      $._create_name,
+      $._trigger_event,
+      kw('ON'),
+      field('table', $.object_reference),
+      optional(seq(
+        kw('REFERENCING'),
+        repeat1(seq(choice(kw('NEW'), kw('OLD')), kws('TABLE', 'AS'), field('transition', $._name))),
+      )),
+      optional(seq(kws('FOR', 'EACH'), choice(kw('ROW'), kw('STATEMENT')))),
+    ),
+
+    _trigger_event: $ => seq(
+      choice(kw('BEFORE'), kw('AFTER'), kws('INSTEAD', 'OF')),
+      choice(
+        kw('INSERT'),
+        kw('DELETE'),
+        seq(kw('UPDATE'), optional(seq(kw('OF'), commaSep1($._name)))),
+      ),
+    ),
+
+    // DROP of each kind of object. A trigger names its table, and a secret
+    // names its storage after FROM.
+    drop_statement: $ => seq(
+      kw('DROP'),
+      choice(
+        seq(
+          choice(
+            kw('TABLE'),
+            kw('VIEW'),
+            kws('MATERIALIZED', 'VIEW'),
+            seq(kw('MACRO'), optional(kw('TABLE'))),
+            kw('FUNCTION'),
+            kw('SCHEMA'),
+            kw('INDEX'),
+            kw('SEQUENCE'),
+            kw('COLLATION'),
+            kw('TYPE'),
+          ),
+          optional($._if_exists),
+          commaSep1(field('name', $.object_reference)),
+        ),
+        seq(
+          kw('TRIGGER'),
+          optional($._if_exists),
+          field('name', $.object_reference),
+          kw('ON'),
+          field('table', $.object_reference),
+        ),
+        seq(
+          optional($._temporary),
+          kw('SECRET'),
+          optional($._if_exists),
+          field('name', $._name),
+          optional(seq(kw('FROM'), field('storage', $._name))),
+        ),
+      ),
+      optional($._drop_behavior),
+    ),
 
     // ORDER BY, LIMIT, OFFSET and FETCH come after the body of a query, in
     // any order.
@@ -248,7 +862,8 @@ module.exports = grammar({
 
     // A common table expression can name itself after RECURSIVE. USING KEY
     // names the key of the rows of a recursive query, and the aggregates of
-    // the other columns.
+    // the other columns. Its query can be a statement that changes rows,
+    // with RETURNING.
     with_clause: $ => seq(
       kw('WITH'),
       optional(kw('RECURSIVE')),
@@ -261,7 +876,7 @@ module.exports = grammar({
       optional(seq(kws('USING', 'KEY'), parens(commaSep1(choice($._expression, $.aliased_expression))))),
       kw('AS'),
       optional(seq(optional(kw('NOT')), kw('MATERIALIZED'))),
-      parens(field('query', $._query)),
+      parens(field('query', choice($._query, $._data_statement))),
     ),
 
     column_list: $ => parens(trailingSep1(choice($._name, $.string))),
@@ -378,7 +993,8 @@ module.exports = grammar({
     // VALUES gives rows, in place of a SELECT.
     values: $ => prec.right(seq(kw('VALUES'), trailingSep1($.value_list))),
 
-    value_list: $ => parens(trailingSep1($._expression)),
+    // DEFAULT in a row of INSERT gives the default value of its column.
+    value_list: $ => parens(trailingSep1(choice($._expression, kw('DEFAULT')))),
 
     table_query: $ => seq(kw('TABLE'), field('table', $.object_reference)),
 
@@ -1311,10 +1927,12 @@ module.exports = grammar({
         ),
         seq(kw('INTERVAL'), optional($.interval_unit)),
       ),
-      repeat(choice(
-        seq('[', optional($.number), ']'),
-        seq(kw('ARRAY'), optional(seq('[', $.number, ']'))),
-      )),
+      repeat($._array_bound),
+    )),
+
+    _array_bound: $ => prec.right(choice(
+      seq('[', optional($.number), ']'),
+      seq(kw('ARRAY'), optional(seq('[', $.number, ']'))),
     )),
 
     // The modifiers of a type: numbers, strings, types, and fields, which

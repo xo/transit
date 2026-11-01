@@ -350,10 +350,10 @@ reference of SQLite. It leaves out these forms:
 
 ### Finish the DuckDB grammar
 
-The DuckDB grammar that xo writes (D126) reads the queries of DuckDB 2.0.
-The other statements, such as `INSERT`, `CREATE TABLE`, `COPY` and
-`ATTACH`, come in the next parts of the work. The grammar leaves out these
-forms of a query:
+The DuckDB grammar that xo writes (D126) reads the queries of DuckDB 2.0
+and the statements that change rows or the schema. The other statements,
+such as `COPY`, `ATTACH`, `SET` and `PRAGMA`, come in the next part of the
+work. The grammar leaves out these forms of a query:
 
 - A name with more parts than four for a column, three for a table and
   three for a function or a type, as in `SELECT * FROM db.s1.s2.t`. DuckDB
@@ -378,6 +378,29 @@ forms of a query:
   takes it only after the rows of `VALUES` and their values, the columns
   of `SELECT`, the tables of `FROM`, a list in brackets and a list of
   names, because each such list costs parse states.
+
+The grammar leaves out these forms of the statements that change rows or
+the schema:
+
+- `WITH DATA` and `WITH NO DATA` after the query of `CREATE TABLE ... AS`.
+  They cost more than 700 parse states, as `docs/GRAMMAR.md` says.
+- An expression as an option of a sequence, as in `START WITH 1 + 1`. The
+  grammar takes a number with a sign or not. An expression costs about 370
+  states.
+- `COLLATE` after the type of `ALTER COLUMN ... TYPE`, as in `TYPE VARCHAR
+  COLLATE nocase`. It costs about 50 states.
+- A table macro with more than one definition, when the query of a
+  definition before a comma has no parentheses. A comma after such a query
+  can continue the query, so the grammar takes the query of such a
+  definition only in parentheses, as in `AS TABLE (SELECT 1), (a) AS TABLE
+  SELECT a`.
+- `OVERRIDING SYSTEM VALUE` and `OVERRIDING USER VALUE` of `INSERT`, which
+  DuckDB reads and ignores, an alias after `TRUNCATE`, a name in quotes
+  after `CONSTRAINT`, a dotted name of an option, as in `WITH (a.b = 1)`,
+  and a comma after the last assignment of `UPDATE`. The documentation does
+  not show them.
+- `ALTER TYPE ... ADD VALUE` and `ALTER TYPE ... REMOVE VALUE`, which the
+  tests of DuckDB use and the documentation does not show.
 
 ## The setup of the repository
 

@@ -1,0 +1,762 @@
+================================================================================
+Insert values
+================================================================================
+
+INSERT INTO tbl VALUES (1), (2), (3);
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (values
+        (value_list
+          (number))
+        (value_list
+          (number))
+        (value_list
+          (number))))))
+
+================================================================================
+Insert a query
+================================================================================
+
+INSERT INTO tbl SELECT * FROM other_tbl;
+INSERT INTO tbl FROM other_tbl;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (insert_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))))
+
+================================================================================
+Insert with columns and DEFAULT
+================================================================================
+
+INSERT INTO tbl (i) VALUES (1), (DEFAULT), (3);
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier))
+    (select_statement
+      (values
+        (value_list
+          (number))
+        (value_list)
+        (value_list
+          (number))))))
+
+================================================================================
+Insert or ignore and insert or replace
+================================================================================
+
+INSERT OR IGNORE INTO tbl (i) VALUES (1);
+INSERT OR REPLACE INTO tbl (i) VALUES (1);
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier))
+    (select_statement
+      (values
+        (value_list
+          (number)))))
+  (insert_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier))
+    (select_statement
+      (values
+        (value_list
+          (number))))))
+
+================================================================================
+Insert by position and by name
+================================================================================
+
+INSERT INTO tbl BY POSITION VALUES (5, 42);
+INSERT INTO tbl BY POSITION (b, a) VALUES (5, 42);
+INSERT INTO tbl BY NAME (SELECT 42 AS b, 32 AS a);
+INSERT INTO tbl BY NAME SELECT 22 AS b;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (values
+        (value_list
+          (number)
+          (number)))))
+  (insert_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier))
+    (select_statement
+      (values
+        (value_list
+          (number)
+          (number)))))
+  (insert_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (parenthesized_query
+        (select
+          (aliased_expression
+            (number)
+            (identifier))
+          (aliased_expression
+            (number)
+            (identifier))))))
+  (insert_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (aliased_expression
+          (number)
+          (identifier))))))
+
+================================================================================
+Insert default values
+================================================================================
+
+INSERT INTO t DEFAULT VALUES;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+Insert with an alias
+================================================================================
+
+INSERT INTO main.tbl AS t VALUES (1);
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier)
+    (select_statement
+      (values
+        (value_list
+          (number))))))
+
+================================================================================
+On conflict do nothing
+================================================================================
+
+INSERT INTO tbl VALUES (1, 84) ON CONFLICT DO NOTHING;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (values
+        (value_list
+          (number)
+          (number))))
+    (on_conflict_clause)))
+
+================================================================================
+On conflict do update
+================================================================================
+
+INSERT INTO tbl VALUES (1, 52), (1, 62) ON CONFLICT DO UPDATE SET j = EXCLUDED.j;
+INSERT INTO tbl VALUES (1, 40, 700) ON CONFLICT (i) DO UPDATE SET k = 2 * EXCLUDED.k WHERE k < 100;
+INSERT INTO tbl VALUES (1, 2) ON CONFLICT ON CONSTRAINT tbl_pkey DO NOTHING;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (values
+        (value_list
+          (number)
+          (number))
+        (value_list
+          (number)
+          (number))))
+    (on_conflict_clause
+      (assignment
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier)
+          (identifier)))))
+  (insert_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (values
+        (value_list
+          (number)
+          (number)
+          (number))))
+    (on_conflict_clause
+      (column_list
+        (identifier))
+      (assignment
+        (column_reference
+          (identifier))
+        (binary_expression
+          (number)
+          (operator)
+          (column_reference
+            (identifier)
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))))
+  (insert_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (values
+        (value_list
+          (number)
+          (number))))
+    (on_conflict_clause
+      (identifier))))
+
+================================================================================
+Returning
+================================================================================
+
+INSERT INTO t2 SELECT 2 AS i, 3 AS j RETURNING *, i * j AS i_times_j;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (aliased_expression
+          (number)
+          (identifier))
+        (aliased_expression
+          (number)
+          (identifier))))
+    (returning_clause
+      (star_expression)
+      (aliased_expression
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)))
+        (identifier)))))
+
+================================================================================
+Insert with a common table expression
+================================================================================
+
+WITH x AS (SELECT 1 AS i) INSERT INTO t SELECT * FROM x;
+
+---
+
+(source_file
+  (insert_statement
+    (with_clause
+      (cte
+        (identifier)
+        (select
+          (aliased_expression
+            (number)
+            (identifier)))))
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))))
+
+================================================================================
+Update
+================================================================================
+
+UPDATE tbl SET i = 0 WHERE i IS NULL;
+UPDATE tbl SET i = 1, j = 2;
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (number))
+    (where_clause
+      (is_expression
+        (column_reference
+          (identifier))
+        (null))))
+  (update_statement
+    (object_reference
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (number))
+    (assignment
+      (column_reference
+        (identifier))
+      (number))))
+
+================================================================================
+Update from another table
+================================================================================
+
+UPDATE original SET value = new.value FROM new WHERE original.key = new.key;
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier)))
+    (from_clause
+      (table_reference
+        (object_reference
+          (identifier))))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)
+          (identifier))))))
+
+================================================================================
+Update with an alias and a row value
+================================================================================
+
+UPDATE tbl AS t SET (a, b) = (1, 2) WHERE t.c > 0 RETURNING a;
+UPDATE tbl t SET s.f = 1;
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (assignment
+      (column_list
+        (identifier)
+        (identifier))
+      (row_constructor
+        (number)
+        (number)))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (number)))
+    (returning_clause
+      (column_reference
+        (identifier))))
+  (update_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (assignment
+      (column_reference
+        (identifier)
+        (identifier))
+      (number))))
+
+================================================================================
+Delete
+================================================================================
+
+DELETE FROM tbl WHERE i = 2;
+DELETE FROM tbl;
+
+---
+
+(source_file
+  (delete_statement
+    (object_reference
+      (identifier))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number))))
+  (delete_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+Delete with USING and RETURNING
+================================================================================
+
+DELETE FROM tbl AS t USING other o, third WHERE t.id = o.id RETURNING *;
+
+---
+
+(source_file
+  (delete_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (table_reference
+      (object_reference
+        (identifier))
+      (identifier))
+    (table_reference
+      (object_reference
+        (identifier)))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)
+          (identifier))))
+    (returning_clause
+      (star_expression))))
+
+================================================================================
+Truncate
+================================================================================
+
+TRUNCATE tbl;
+TRUNCATE TABLE main.tbl;
+
+---
+
+(source_file
+  (truncate_statement
+    (object_reference
+      (identifier)))
+  (truncate_statement
+    (object_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+Merge with update and insert
+================================================================================
+
+MERGE INTO people
+    USING (SELECT unnest([3, 1]) AS id, unnest(['Sarah', 'John']) AS name, unnest([95_000.0, 105_000.0]) AS salary) AS upserts
+    ON (upserts.id = people.id)
+    WHEN MATCHED THEN UPDATE
+    WHEN NOT MATCHED THEN INSERT;
+
+---
+
+(source_file
+  (merge_statement
+    (object_reference
+      (identifier))
+    (derived_table
+      (subquery
+        (select
+          (aliased_expression
+            (function_call
+              (identifier)
+              (arguments
+                (list
+                  (number)
+                  (number))))
+            (identifier))
+          (aliased_expression
+            (function_call
+              (identifier)
+              (arguments
+                (list
+                  (string)
+                  (string))))
+            (identifier))
+          (aliased_expression
+            (function_call
+              (identifier)
+              (arguments
+                (list
+                  (number)
+                  (number))))
+            (identifier))))
+      (identifier))
+    (parenthesized_expression
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)
+          (identifier))))
+    (merge_when_clause)
+    (merge_when_clause)))
+
+================================================================================
+Merge with conditions and actions
+================================================================================
+
+MERGE INTO people p
+    USING deletes d
+    USING (id)
+    WHEN MATCHED AND d.flag THEN DELETE
+    WHEN MATCHED THEN UPDATE SET salary = d.salary, name = d.name
+    WHEN NOT MATCHED BY SOURCE THEN DELETE
+    WHEN NOT MATCHED BY TARGET AND d.id > 0 THEN INSERT (id, name) VALUES (d.id, d.name)
+    RETURNING merge_action, *;
+
+---
+
+(source_file
+  (merge_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (table_reference
+      (object_reference
+        (identifier))
+      (identifier))
+    (column_list
+      (identifier))
+    (merge_when_clause
+      (column_reference
+        (identifier)
+        (identifier)))
+    (merge_when_clause
+      (assignment
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier)
+          (identifier)))
+      (assignment
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier)
+          (identifier))))
+    (merge_when_clause)
+    (merge_when_clause
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (number))
+      (column_list
+        (identifier)
+        (identifier))
+      (value_list
+        (column_reference
+          (identifier)
+          (identifier))
+        (column_reference
+          (identifier)
+          (identifier))))
+    (returning_clause
+      (column_reference
+        (identifier))
+      (star_expression))))
+
+================================================================================
+Merge with stars, BY NAME, DO NOTHING and ERROR
+================================================================================
+
+MERGE INTO t USING s ON t.id = s.id
+    WHEN MATCHED THEN UPDATE SET *
+    WHEN MATCHED AND s.x THEN UPDATE BY NAME
+    WHEN NOT MATCHED THEN INSERT BY NAME *
+    WHEN NOT MATCHED AND s.y THEN INSERT *
+    WHEN NOT MATCHED AND s.z THEN INSERT DEFAULT VALUES
+    WHEN MATCHED AND s.w THEN DO NOTHING
+    WHEN MATCHED AND s.v THEN ERROR 'no'
+    WHEN MATCHED THEN ERROR;
+
+---
+
+(source_file
+  (merge_statement
+    (object_reference
+      (identifier))
+    (table_reference
+      (object_reference
+        (identifier)))
+    (binary_expression
+      (column_reference
+        (identifier)
+        (identifier))
+      (operator)
+      (column_reference
+        (identifier)
+        (identifier)))
+    (merge_when_clause)
+    (merge_when_clause
+      (column_reference
+        (identifier)
+        (identifier)))
+    (merge_when_clause)
+    (merge_when_clause
+      (column_reference
+        (identifier)
+        (identifier)))
+    (merge_when_clause
+      (column_reference
+        (identifier)
+        (identifier)))
+    (merge_when_clause
+      (column_reference
+        (identifier)
+        (identifier)))
+    (merge_when_clause
+      (column_reference
+        (identifier)
+        (identifier))
+      (string))
+    (merge_when_clause)))
+
+================================================================================
+Changes in a common table expression
+================================================================================
+
+WITH ins AS (INSERT INTO wcte VALUES (5) RETURNING id) SELECT id FROM ins;
+WITH d AS (DELETE FROM t WHERE id = 10 RETURNING rowid) SELECT * FROM d;
+WITH u AS (UPDATE t SET a = 1 RETURNING a) SELECT * FROM u;
+
+---
+
+(source_file
+  (select_statement
+    (with_clause
+      (cte
+        (identifier)
+        (insert_statement
+          (object_reference
+            (identifier))
+          (select_statement
+            (values
+              (value_list
+                (number))))
+          (returning_clause
+            (column_reference
+              (identifier))))))
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (select_statement
+    (with_clause
+      (cte
+        (identifier)
+        (delete_statement
+          (object_reference
+            (identifier))
+          (where_clause
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (number)))
+          (returning_clause
+            (column_reference
+              (identifier))))))
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (select_statement
+    (with_clause
+      (cte
+        (identifier)
+        (update_statement
+          (object_reference
+            (identifier))
+          (assignment
+            (column_reference
+              (identifier))
+            (number))
+          (returning_clause
+            (column_reference
+              (identifier))))))
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
