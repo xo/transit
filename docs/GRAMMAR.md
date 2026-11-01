@@ -354,6 +354,17 @@ Each one follows these rules, in addition to the rest of this document:
    the query of `CREATE TABLE`, because they cost more than 700 states. The
    upstream tool does not merge the states after an expression where `WITH`
    can come with the states where `WITHIN` can come.
+   The path of `ATTACH` can be an expression, and the options in
+   parentheses can come after it, as in `ATTACH 'file.db' (READ_ONLY)`. A
+   name before `(` would then read as a column or as the name of a
+   function, and the tool reports a conflict. So the path is a string, a
+   parameter, a function call or an expression in parentheses, or such
+   values with an operator such as `||` between them. `ATTACH` costs 92
+   states. `EXPLAIN` and `PREPARE`, which take any statement, cost 24
+   states together, because the states of the statement after them are the
+   states of a statement alone. `UPDATE EXTENSIONS` is a statement of its
+   own, so `EXTENSIONS` after `UPDATE` is a keyword, and `UPDATE` also
+   takes the keyword as the name of a table.
    A statement of Transact-SQL does not need a semicolon at its end. So
    each word that starts a statement can come after each expression, and
    each state after an expression would hold about 40 such words. More

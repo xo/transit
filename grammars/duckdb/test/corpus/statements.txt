@@ -1,0 +1,1298 @@
+================================================================================
+Copy from a file
+================================================================================
+
+COPY lineitem FROM 'lineitem.csv';
+COPY lineitem FROM 'lineitem.csv' (DELIMITER '|');
+COPY category(name) FROM 'names.csv';
+
+---
+
+(source_file
+  (copy_statement
+    (object_reference
+      (identifier))
+    (string))
+  (copy_statement
+    (object_reference
+      (identifier))
+    (string)
+    (option_list
+      (option
+        (identifier)
+        (string))))
+  (copy_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier))
+    (string)))
+
+================================================================================
+Copy with a file name as a name
+================================================================================
+
+COPY lineitem FROM "lineitem.csv";
+COPY lineitem TO lineitem.csv;
+
+---
+
+(source_file
+  (copy_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)))
+  (copy_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+Copy to a file with options
+================================================================================
+
+COPY lineitem TO 'lineitem.csv' (FORMAT csv, DELIMITER '|', HEADER);
+COPY lineitem TO 'lineitem.tsv' (DELIMITER '\t', HEADER false);
+COPY tbl TO 'output.xlsx' WITH (FORMAT xlsx, HEADER true);
+
+---
+
+(source_file
+  (copy_statement
+    (object_reference
+      (identifier))
+    (string)
+    (option_list
+      (option
+        (identifier)
+        (column_reference
+          (identifier)))
+      (option
+        (identifier)
+        (string))
+      (option
+        (identifier))))
+  (copy_statement
+    (object_reference
+      (identifier))
+    (string)
+    (option_list
+      (option
+        (identifier)
+        (string))
+      (option
+        (identifier)
+        (boolean))))
+  (copy_statement
+    (object_reference
+      (identifier))
+    (string)
+    (option_list
+      (option
+        (identifier)
+        (column_reference
+          (identifier)))
+      (option
+        (identifier)
+        (boolean)))))
+
+================================================================================
+Copy a query
+================================================================================
+
+COPY (SELECT l_orderkey, l_partkey FROM lineitem) TO 'lineitem.parquet' (COMPRESSION zstd);
+COPY (FROM generate_series(100_000)) TO 'test.parquet' (FORMAT parquet, ROW_GROUP_SIZE 100_000);
+
+---
+
+(source_file
+  (copy_statement
+    (parenthesized_query
+      (select
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))
+    (string)
+    (option_list
+      (option
+        (identifier)
+        (column_reference
+          (identifier)))))
+  (copy_statement
+    (parenthesized_query
+      (select
+        (from_clause
+          (function_table
+            (function_call
+              (identifier)
+              (arguments
+                (number)))))))
+    (string)
+    (option_list
+      (option
+        (identifier)
+        (column_reference
+          (identifier)))
+      (option
+        (identifier)
+        (number)))))
+
+================================================================================
+Copy with options that are expressions
+================================================================================
+
+COPY orders TO 'orders' (FORMAT parquet, PARTITION_BY (year, month), OVERWRITE_OR_IGNORE);
+COPY (SELECT 42 AS i) TO 'file' (FORMAT getvariable('my_format'));
+COPY (SELECT 128 AS i) TO 'my.parquet' (FIELD_IDS {i: 42});
+
+---
+
+(source_file
+  (copy_statement
+    (object_reference
+      (identifier))
+    (string)
+    (option_list
+      (option
+        (identifier)
+        (column_reference
+          (identifier)))
+      (option
+        (identifier)
+        (row_constructor
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))))
+      (option
+        (identifier))))
+  (copy_statement
+    (parenthesized_query
+      (select
+        (aliased_expression
+          (number)
+          (identifier))))
+    (string)
+    (option_list
+      (option
+        (identifier)
+        (function_call
+          (identifier)
+          (arguments
+            (string))))))
+  (copy_statement
+    (parenthesized_query
+      (select
+        (aliased_expression
+          (number)
+          (identifier))))
+    (string)
+    (option_list
+      (option
+        (identifier)
+        (struct
+          (struct_field
+            (identifier)
+            (number)))))))
+
+================================================================================
+Copy with a file from an expression or a parameter
+================================================================================
+
+COPY lineitem FROM (getvariable('source_file'));
+PREPARE v1 AS COPY (SELECT 42 AS i) TO $1;
+
+---
+
+(source_file
+  (copy_statement
+    (object_reference
+      (identifier))
+    (parenthesized_expression
+      (function_call
+        (identifier)
+        (arguments
+          (string)))))
+  (prepare_statement
+    (identifier)
+    (copy_statement
+      (parenthesized_query
+        (select
+          (aliased_expression
+            (number)
+            (identifier))))
+      (parameter))))
+
+================================================================================
+Copy from a file to a file
+================================================================================
+
+COPY 'input.csv' TO 'output.parquet' (FORMAT parquet);
+
+---
+
+(source_file
+  (copy_statement
+    (string)
+    (string)
+    (option_list
+      (option
+        (identifier)
+        (column_reference
+          (identifier))))))
+
+================================================================================
+Copy a database
+================================================================================
+
+COPY FROM DATABASE db1 TO db2;
+COPY FROM DATABASE db1 TO db2 (SCHEMA);
+
+---
+
+(source_file
+  (copy_statement
+    (identifier)
+    (identifier))
+  (copy_statement
+    (identifier)
+    (identifier)
+    (option_list
+      (option
+        (identifier)))))
+
+================================================================================
+Copy in a common table expression
+================================================================================
+
+WITH copied(rows_written) AS (COPY lineitem TO 'lineitem.csv' (FORMAT csv, HEADER))
+SELECT rows_written FROM copied;
+
+---
+
+(source_file
+  (select_statement
+    (with_clause
+      (cte
+        (identifier)
+        (column_list
+          (identifier))
+        (copy_statement
+          (object_reference
+            (identifier))
+          (string)
+          (option_list
+            (option
+              (identifier)
+              (column_reference
+                (identifier)))
+            (option
+              (identifier))))))
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Export and import a database
+================================================================================
+
+EXPORT DATABASE 'target_directory';
+EXPORT DATABASE 'target_directory' (FORMAT parquet, COMPRESSION zstd, ROW_GROUP_SIZE 100_000);
+EXPORT DATABASE db1 'target_directory' (FORMAT csv, DELIMITER '|');
+IMPORT DATABASE 'source_directory';
+
+---
+
+(source_file
+  (export_statement
+    (string))
+  (export_statement
+    (string)
+    (option_list
+      (option
+        (identifier)
+        (column_reference
+          (identifier)))
+      (option
+        (identifier)
+        (column_reference
+          (identifier)))
+      (option
+        (identifier)
+        (number))))
+  (export_statement
+    (identifier)
+    (string)
+    (option_list
+      (option
+        (identifier)
+        (column_reference
+          (identifier)))
+      (option
+        (identifier)
+        (string))))
+  (import_statement
+    (string)))
+
+================================================================================
+Attach
+================================================================================
+
+ATTACH 'file.db';
+ATTACH 'file.db' AS file_db;
+ATTACH DATABASE 'file.db' AS file_db;
+ATTACH 'file.db' (READ_ONLY);
+ATTACH 'sqlite_file.db' AS sqlite_db (TYPE sqlite);
+ATTACH 'encrypted.db' AS enc_db (ENCRYPTION_KEY 'quack_quack', ENCRYPTION_CIPHER 'CBC');
+
+---
+
+(source_file
+  (attach_statement
+    (string))
+  (attach_statement
+    (string)
+    (identifier))
+  (attach_statement
+    (string)
+    (identifier))
+  (attach_statement
+    (string)
+    (option_list
+      (option
+        (identifier))))
+  (attach_statement
+    (string)
+    (identifier)
+    (option_list
+      (option
+        (identifier)
+        (column_reference
+          (identifier)))))
+  (attach_statement
+    (string)
+    (identifier)
+    (option_list
+      (option
+        (identifier)
+        (string))
+      (option
+        (identifier)
+        (string)))))
+
+================================================================================
+Attach if not exists and or replace
+================================================================================
+
+ATTACH IF NOT EXISTS 'file.db' AS file_db;
+ATTACH OR REPLACE 'file2.db' AS file_db;
+
+---
+
+(source_file
+  (attach_statement
+    (string)
+    (identifier))
+  (attach_statement
+    (string)
+    (identifier)))
+
+================================================================================
+Attach a path from an expression
+================================================================================
+
+ATTACH getvariable('db_path') AS file_db;
+ATTACH 'account_' || getvariable('account_id') || '.db' AS account_db;
+ATTACH $1 (READ_ONLY);
+
+---
+
+(source_file
+  (attach_statement
+    (function_call
+      (identifier)
+      (arguments
+        (string)))
+    (identifier))
+  (attach_statement
+    (binary_expression
+      (binary_expression
+        (string)
+        (operator)
+        (function_call
+          (identifier)
+          (arguments
+            (string))))
+      (operator)
+      (string))
+    (identifier))
+  (attach_statement
+    (parameter)
+    (option_list
+      (option
+        (identifier)))))
+
+================================================================================
+Attach an external resource
+================================================================================
+
+ATTACH TO NEW TEMPORARY EXTERNAL RESOURCE 'quack@local' AS qk (READ_ONLY);
+ATTACH TO EXTERNAL RESOURCE shared AS b1;
+
+---
+
+(source_file
+  (attach_statement
+    (string)
+    (identifier)
+    (option_list
+      (option
+        (identifier))))
+  (attach_statement
+    (identifier)
+    (identifier)))
+
+================================================================================
+Detach and use
+================================================================================
+
+DETACH file;
+DETACH DATABASE IF EXISTS file_db;
+USE memory;
+USE duck.main;
+USE 'my db';
+
+---
+
+(source_file
+  (detach_statement
+    (identifier))
+  (detach_statement
+    (identifier))
+  (use_statement
+    (object_reference
+      (identifier)))
+  (use_statement
+    (object_reference
+      (identifier)
+      (identifier)))
+  (use_statement
+    (string)))
+
+================================================================================
+Connect and disconnect
+================================================================================
+
+CONNECT qk;
+CONNECT 'postgres:dbname=mydb host=localhost';
+CONNECT 'quack:localhost' (TOKEN 'test_token');
+CONNECT TO NEW TEMPORARY EXTERNAL RESOURCE 'quack@local';
+DISCONNECT;
+
+---
+
+(source_file
+  (connect_statement
+    (identifier))
+  (connect_statement
+    (string))
+  (connect_statement
+    (string)
+    (option_list
+      (option
+        (identifier)
+        (string))))
+  (connect_statement
+    (string))
+  (disconnect_statement))
+
+================================================================================
+External resources
+================================================================================
+
+CREATE EXTERNAL RESOURCE 'quack@local' AS shared_res;
+CREATE EXTERNAL RESOURCE 'quack@local' AS x (SPOT, REGION 'eu-west-1');
+REGISTER EXTERNAL RESOURCE 'quack@local' AS adopted FROM MAP {'k': 'v'};
+DESTROY EXTERNAL RESOURCE shared_res;
+SHOW EXTERNAL RESOURCES;
+
+---
+
+(source_file
+  (create_external_resource_statement
+    (string)
+    (identifier))
+  (create_external_resource_statement
+    (string)
+    (identifier)
+    (option_list
+      (option
+        (identifier))
+      (option
+        (identifier)
+        (string))))
+  (register_external_resource_statement
+    (string)
+    (identifier)
+    (map
+      (map_entry
+        (string)
+        (string))))
+  (destroy_external_resource_statement
+    (identifier))
+  (show_statement))
+
+================================================================================
+Checkpoint
+================================================================================
+
+CHECKPOINT;
+CHECKPOINT file_db;
+FORCE CHECKPOINT;
+
+---
+
+(source_file
+  (checkpoint_statement)
+  (checkpoint_statement
+    (identifier))
+  (checkpoint_statement))
+
+================================================================================
+Vacuum and analyze
+================================================================================
+
+VACUUM;
+VACUUM ANALYZE;
+VACUUM my_table(my_column);
+VACUUM ANALYZE my_table(my_column);
+VACUUM FULL;
+VACUUM (ANALYZE) t;
+ANALYZE;
+ANALYZE tbl;
+
+---
+
+(source_file
+  (vacuum_statement)
+  (vacuum_statement)
+  (vacuum_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)))
+  (vacuum_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)))
+  (vacuum_statement)
+  (vacuum_statement
+    (option_list
+      (option
+        (identifier)))
+    (object_reference
+      (identifier)))
+  (analyze_statement)
+  (analyze_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+Install and load
+================================================================================
+
+INSTALL httpfs;
+INSTALL h3 FROM community;
+INSTALL my_ext FROM 'https://extensions.example.org';
+INSTALL 'https://extensions.example.org/v2.0.0/linux_amd64/my_ext.duckdb_extension.gz';
+LOAD httpfs;
+LOAD './my_ext.duckdb_extension';
+LOAD my_ext FROM my_repo;
+
+---
+
+(source_file
+  (install_statement
+    (identifier))
+  (install_statement
+    (identifier)
+    (identifier))
+  (install_statement
+    (identifier)
+    (string))
+  (install_statement
+    (string))
+  (load_statement
+    (identifier))
+  (load_statement
+    (string))
+  (load_statement
+    (identifier)
+    (identifier)))
+
+================================================================================
+Install and load at once, and force install
+================================================================================
+
+INSTALL AND LOAD spatial;
+FORCE INSTALL AND LOAD httpfs FROM core_nightly;
+FORCE INSTALL name_a;
+
+---
+
+(source_file
+  (install_statement
+    (identifier))
+  (install_statement
+    (identifier)
+    (identifier))
+  (install_statement
+    (identifier)))
+
+================================================================================
+Update extensions
+================================================================================
+
+UPDATE EXTENSIONS;
+UPDATE EXTENSIONS (name_a, name_b, name_c);
+
+---
+
+(source_file
+  (update_extensions_statement)
+  (update_extensions_statement
+    (identifier)
+    (identifier)
+    (identifier)))
+
+================================================================================
+Update a table named extensions
+================================================================================
+
+UPDATE extensions SET a = 1;
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (number))))
+
+================================================================================
+Extension repositories
+================================================================================
+
+CREATE EXTENSION REPOSITORY my_repo WITH PREFIX 'https://extensions.example.org';
+CREATE OR REPLACE EXTENSION REPOSITORY IF NOT EXISTS my_repo
+    WITH PREFIX 'https://extensions.example.org'
+    USING PUBLIC KEYS 'key1', 'key2';
+DROP EXTENSION REPOSITORY IF EXISTS my_repo;
+
+---
+
+(source_file
+  (create_extension_repository_statement
+    (object_reference
+      (identifier))
+    (string))
+  (create_extension_repository_statement
+    (object_reference
+      (identifier))
+    (string)
+    (string)
+    (string))
+  (drop_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+Set
+================================================================================
+
+SET memory_limit = '10GB';
+SET threads TO 1;
+SET SESSION default_collation = 'nocase';
+SET GLOBAL threads = 4;
+SET LOCAL threads = 2;
+
+---
+
+(source_file
+  (set_statement
+    (identifier)
+    (string))
+  (set_statement
+    (identifier)
+    (number))
+  (set_statement
+    (identifier)
+    (string))
+  (set_statement
+    (identifier)
+    (number))
+  (set_statement
+    (identifier)
+    (number)))
+
+================================================================================
+Set with expressions and DEFAULT
+================================================================================
+
+SET tracked_metrics = ['a', 'b'];
+SET profiling_renderer_settings = MAP {'k': 'v'};
+SET default_null_order = concat('nulls', '_', 'last');
+SET pivot_filter_threshold TO DEFAULT;
+
+---
+
+(source_file
+  (set_statement
+    (identifier)
+    (list
+      (string)
+      (string)))
+  (set_statement
+    (identifier)
+    (map
+      (map_entry
+        (string)
+        (string))))
+  (set_statement
+    (identifier)
+    (function_call
+      (identifier)
+      (arguments
+        (string)
+        (string)
+        (string))))
+  (set_statement
+    (identifier)))
+
+================================================================================
+Set time zone
+================================================================================
+
+SET TimeZone = 'UTC';
+SET TIME ZONE 'UTC';
+SET TIME ZONE LOCAL;
+
+---
+
+(source_file
+  (set_statement
+    (identifier)
+    (string))
+  (set_statement
+    (string))
+  (set_statement))
+
+================================================================================
+Set variable
+================================================================================
+
+SET VARIABLE my_var = 30;
+SET VARIABLE my_date = DATE '2018-07-13';
+SET VARIABLE list_of_files = (SELECT list(file) FROM csv_files);
+SELECT 20 + getvariable('my_var') AS total, $my_var;
+
+---
+
+(source_file
+  (set_statement
+    (identifier)
+    (number))
+  (set_statement
+    (identifier)
+    (typed_literal
+      (type)
+      (string)))
+  (set_statement
+    (identifier)
+    (subquery
+      (select
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier))))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (select_statement
+    (select
+      (aliased_expression
+        (binary_expression
+          (number)
+          (operator)
+          (function_call
+            (identifier)
+            (arguments
+              (string))))
+        (identifier))
+      (parameter))))
+
+================================================================================
+Reset
+================================================================================
+
+RESET threads;
+RESET GLOBAL disabled_optimizers;
+RESET VARIABLE my_var;
+
+---
+
+(source_file
+  (reset_statement
+    (identifier))
+  (reset_statement
+    (identifier))
+  (reset_statement
+    (identifier)))
+
+================================================================================
+Pragma
+================================================================================
+
+PRAGMA enable_profiling;
+PRAGMA threads = 4;
+PRAGMA explain_output = PHYSICAL_ONLY;
+PRAGMA enable_profiling = 'json';
+PRAGMA debug_force_external = true;
+PRAGMA table_info('tbl');
+PRAGMA import_database('source_directory');
+
+---
+
+(source_file
+  (pragma_statement
+    (identifier))
+  (pragma_statement
+    (identifier)
+    (pragma_value
+      (number)))
+  (pragma_statement
+    (identifier)
+    (pragma_value
+      (identifier)))
+  (pragma_statement
+    (identifier)
+    (pragma_value
+      (string)))
+  (pragma_statement
+    (identifier)
+    (pragma_value
+      (boolean)))
+  (pragma_statement
+    (identifier)
+    (arguments
+      (string)))
+  (pragma_statement
+    (identifier)
+    (arguments
+      (string))))
+
+================================================================================
+Describe
+================================================================================
+
+DESCRIBE tbl;
+DESCRIBE SELECT * FROM tbl;
+DESCRIBE TABLE 'https://blobs.duckdb.org/data/Star_Trek-Season_1.csv';
+DESCRIBE;
+DESC tbl;
+
+---
+
+(source_file
+  (describe_statement
+    (object_reference
+      (identifier)))
+  (describe_statement
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (describe_statement
+    (string))
+  (describe_statement)
+  (describe_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+Summarize
+================================================================================
+
+SUMMARIZE tbl;
+SUMMARIZE SELECT * FROM tbl;
+SUMMARIZE (SELECT 1 AS a);
+SUMMARIZE TABLE 'data.csv';
+
+---
+
+(source_file
+  (summarize_statement
+    (object_reference
+      (identifier)))
+  (summarize_statement
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (summarize_statement
+    (select_statement
+      (parenthesized_query
+        (select
+          (aliased_expression
+            (number)
+            (identifier))))))
+  (summarize_statement
+    (string)))
+
+================================================================================
+Show
+================================================================================
+
+SHOW TABLES;
+SHOW ALL TABLES;
+SHOW TABLES FROM db.s1;
+SHOW DATABASES;
+SHOW SCHEMAS;
+SHOW threads;
+
+---
+
+(source_file
+  (show_statement)
+  (show_statement)
+  (show_statement
+    (object_reference
+      (identifier)
+      (identifier)))
+  (show_statement)
+  (show_statement)
+  (show_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+Describe and show in a subquery
+================================================================================
+
+CREATE TABLE tbl_description AS SELECT * FROM (DESCRIBE tbl);
+SELECT column_name, min FROM (SUMMARIZE tbl) s;
+FROM (SHOW DATABASES) t;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (derived_table
+            (subquery)
+            (subquery
+              (object_reference
+                (identifier)))
+            (subquery))))))
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (derived_table
+          (subquery)
+          (subquery
+            (object_reference
+              (identifier)))
+          (subquery)
+          (identifier)))))
+  (select_statement
+    (select
+      (from_clause
+        (derived_table
+          (subquery)
+          (subquery)
+          (subquery)
+          (identifier))))))
+
+================================================================================
+Explain
+================================================================================
+
+EXPLAIN SELECT * FROM tbl;
+EXPLAIN ANALYZE SELECT * FROM tbl;
+EXPLAIN (SQL) SELECT 1 + 2 AS answer;
+EXPLAIN (FORMAT json) SELECT 1;
+EXPLAIN INSERT INTO t VALUES (1);
+
+---
+
+(source_file
+  (explain_statement
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (explain_statement
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (explain_statement
+    (option_list
+      (option
+        (identifier)))
+    (select_statement
+      (select
+        (aliased_expression
+          (binary_expression
+            (number)
+            (operator)
+            (number))
+          (identifier)))))
+  (explain_statement
+    (option_list
+      (option
+        (identifier)
+        (column_reference
+          (identifier))))
+    (select_statement
+      (select
+        (number))))
+  (explain_statement
+    (insert_statement
+      (object_reference
+        (identifier))
+      (select_statement
+        (values
+          (value_list
+            (number)))))))
+
+================================================================================
+Prepared statements
+================================================================================
+
+PREPARE query_person AS
+    SELECT *
+    FROM person
+    WHERE starts_with(name, $name_start)
+      AND age >= $minimum_age;
+EXECUTE query_person(name_start := 'B', minimum_age := 40);
+EXECUTE add_values(20, 22);
+EXECUTE p;
+DEALLOCATE query_person;
+DEALLOCATE PREPARE add_values;
+
+---
+
+(source_file
+  (prepare_statement
+    (identifier)
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))
+        (where_clause
+          (binary_expression
+            (function_call
+              (identifier)
+              (arguments
+                (column_reference
+                  (identifier))
+                (parameter)))
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (parameter)))))))
+  (execute_statement
+    (identifier)
+    (arguments
+      (named_argument
+        (identifier)
+        (string))
+      (named_argument
+        (identifier)
+        (number))))
+  (execute_statement
+    (identifier)
+    (arguments
+      (number)
+      (number)))
+  (execute_statement
+    (identifier))
+  (deallocate_statement
+    (identifier))
+  (deallocate_statement
+    (identifier)))
+
+================================================================================
+Prepared statements with types and quoted names
+================================================================================
+
+PREPARE v1(INTEGER, VARCHAR) AS SELECT ?, ?;
+PREPARE 'p' AS SELECT 42;
+EXECUTE 'p';
+
+---
+
+(source_file
+  (prepare_statement
+    (identifier)
+    (type
+      (identifier))
+    (type
+      (identifier))
+    (select_statement
+      (select
+        (parameter)
+        (parameter))))
+  (prepare_statement
+    (string)
+    (select_statement
+      (select
+        (number))))
+  (execute_statement
+    (string)))
+
+================================================================================
+Call
+================================================================================
+
+CALL duckdb_functions();
+CALL pragma_table_info('pg_am');
+CALL enable_logging(level := 'info');
+
+---
+
+(source_file
+  (call_statement
+    (function_call
+      (identifier)
+      (arguments)))
+  (call_statement
+    (function_call
+      (identifier)
+      (arguments
+        (string))))
+  (call_statement
+    (function_call
+      (identifier)
+      (arguments
+        (named_argument
+          (identifier)
+          (string))))))
+
+================================================================================
+Transactions
+================================================================================
+
+BEGIN TRANSACTION;
+BEGIN;
+START TRANSACTION READ ONLY;
+BEGIN TRANSACTION READ WRITE;
+COMMIT;
+COMMIT TRANSACTION;
+END;
+ROLLBACK;
+ABORT;
+
+---
+
+(source_file
+  (begin_statement)
+  (begin_statement)
+  (begin_statement)
+  (begin_statement)
+  (commit_statement)
+  (commit_statement)
+  (commit_statement)
+  (rollback_statement)
+  (rollback_statement))
+
+================================================================================
+Comment on
+================================================================================
+
+COMMENT ON TABLE test_table IS 'very nice table';
+COMMENT ON COLUMN test_table.test_table_column IS 'very nice column';
+COMMENT ON COLUMN db1.s1.t1.c1 IS 'a column';
+COMMENT ON VIEW test_view IS 'very nice view';
+COMMENT ON MACRO TABLE test_table_macro IS 'very nice table macro';
+COMMENT ON TABLE test_table IS NULL;
+COMMENT ON TABLE 'commented' IS 'hello';
+
+---
+
+(source_file
+  (comment_statement
+    (object_reference
+      (identifier))
+    (string))
+  (comment_statement
+    (column_reference
+      (identifier)
+      (identifier))
+    (string))
+  (comment_statement
+    (column_reference
+      (identifier)
+      (identifier)
+      (identifier)
+      (identifier))
+    (string))
+  (comment_statement
+    (object_reference
+      (identifier))
+    (string))
+  (comment_statement
+    (object_reference
+      (identifier))
+    (string))
+  (comment_statement
+    (object_reference
+      (identifier))
+    (null))
+  (comment_statement
+    (string)
+    (string)))

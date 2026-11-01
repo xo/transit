@@ -289,9 +289,15 @@ NAME`, `ON CONFLICT` and `RETURNING`, `UPDATE`, `DELETE`, `TRUNCATE` and
 `MERGE INTO`. It covers the statements that change the schema: `CREATE
 TABLE` with its constraints and its generated columns, `ALTER TABLE`, the
 views, the indexes, the sequences, the schemas, the types, the macros, the
-secrets, the triggers and `DROP`. The statements such as `COPY`, `ATTACH`
-and `SET` come later. The external scanner reads the comments and the
-dollar-quoted strings. The package adds about 1.0 MB to a binary.
+secrets, the triggers and `DROP`. It covers each other statement of the
+documentation: `COPY`, `EXPORT DATABASE`, `IMPORT DATABASE`, `ATTACH`,
+`DETACH`, `USE`, `CONNECT`, `CHECKPOINT`, `VACUUM`, `ANALYZE`, `INSTALL`,
+`LOAD`, `UPDATE EXTENSIONS`, the extension repositories, `SET`, `RESET`,
+`PRAGMA`, `DESCRIBE`, `SUMMARIZE`, `SHOW`, `EXPLAIN`, the prepared
+statements, `CALL`, the statements of transactions and `COMMENT ON`. It
+does not read the statements of the extension DuckPGQ, such as `CREATE
+PROPERTY GRAPH`. The external scanner reads the comments and the
+dollar-quoted strings. The package adds about 1.1 MB to a binary.
 
 The package `github.com/xo/transit/grammars/postgres/postgres` holds the
 grammar `postgres`, which xo writes from the reference manual of

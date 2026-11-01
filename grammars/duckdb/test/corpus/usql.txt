@@ -100,5 +100,4 @@ A command of the duckdb shell alone
 ---
 
 (source_file
-  (ERROR
-    (identifier)))
+  (ERROR))

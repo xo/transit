@@ -247,6 +247,39 @@ module.exports = grammar({
       $.create_secret_statement,
       $.create_trigger_statement,
       $.drop_statement,
+      $.copy_statement,
+      $.export_statement,
+      $.import_statement,
+      $.attach_statement,
+      $.detach_statement,
+      $.use_statement,
+      $.connect_statement,
+      $.disconnect_statement,
+      $.create_external_resource_statement,
+      $.register_external_resource_statement,
+      $.destroy_external_resource_statement,
+      $.checkpoint_statement,
+      $.vacuum_statement,
+      $.analyze_statement,
+      $.install_statement,
+      $.load_statement,
+      $.update_extensions_statement,
+      $.create_extension_repository_statement,
+      $.set_statement,
+      $.reset_statement,
+      $.pragma_statement,
+      $.describe_statement,
+      $.summarize_statement,
+      $.show_statement,
+      $.explain_statement,
+      $.prepare_statement,
+      $.execute_statement,
+      $.deallocate_statement,
+      $.call_statement,
+      $.begin_statement,
+      $.commit_statement,
+      $.rollback_statement,
+      $.comment_statement,
     ),
 
     // Queries
@@ -331,10 +364,12 @@ module.exports = grammar({
       )),
     )),
 
+    // EXTENSIONS after UPDATE is a keyword, because UPDATE EXTENSIONS is a
+    // statement of its own. It is also the name of a table.
     _update_target: $ => seq(
       optional($.with_clause),
       kw('UPDATE'),
-      field('table', $.object_reference),
+      field('table', choice($.object_reference, alias($._extensions_table, $.object_reference))),
       optional($._alias),
     ),
 
@@ -347,6 +382,8 @@ module.exports = grammar({
         $.returning_clause,
       )),
     )),
+
+    _extensions_table: $ => field('name', alias(keyword('EXTENSIONS'), $.identifier)),
 
     _delete_target: $ => seq(
       optional($.with_clause),
@@ -825,6 +862,7 @@ module.exports = grammar({
             kw('SEQUENCE'),
             kw('COLLATION'),
             kw('TYPE'),
+            kws('EXTENSION', 'REPOSITORY'),
           ),
           optional($._if_exists),
           commaSep1(field('name', $.object_reference)),
@@ -847,6 +885,398 @@ module.exports = grammar({
       optional($._drop_behavior),
     ),
 
+    // Data in files
+
+    // COPY reads a file into a table, or it writes a table, a file or the
+    // rows of a query to a file. The options come in parentheses, with WITH
+    // before them or not. COPY FROM DATABASE copies the objects of one
+    // database into another.
+    copy_statement: $ => choice(
+      seq(
+        $._copy_source,
+        choice(kw('FROM'), kw('TO')),
+        field('file', $._file_name),
+        optional($._with_options),
+      ),
+      seq(
+        kws('COPY', 'FROM', 'DATABASE'),
+        field('source', $._name),
+        kw('TO'),
+        field('target', $._name),
+        optional($.option_list),
+      ),
+    ),
+
+    _copy_source: $ => seq(
+      kw('COPY'),
+      choice(
+        seq(field('table', choice($.object_reference, $.string)), optional($.column_list)),
+        field('query', $.parenthesized_query),
+      ),
+    ),
+
+    // A file is a string, a name, as in lineitem.csv, a parameter, or an
+    // expression in parentheses.
+    _file_name: $ => choice(
+      $.string,
+      $.object_reference,
+      $.parameter,
+      $.parenthesized_expression,
+    ),
+
+    _with_options: $ => seq(optional(kw('WITH')), $.option_list),
+
+    // EXPORT DATABASE writes the schema and the data of a database to a
+    // folder, and IMPORT DATABASE reads them back.
+    export_statement: $ => seq(
+      kws('EXPORT', 'DATABASE'),
+      optional(field('database', $._name)),
+      field('directory', $.string),
+      optional($.option_list),
+    ),
+
+    import_statement: $ => seq(kws('IMPORT', 'DATABASE'), field('directory', $.string)),
+
+    // Databases
+
+    // ATTACH opens a database, which the expression names, with an alias
+    // and options. ATTACH TO EXTERNAL RESOURCE opens the database of an
+    // external resource.
+    attach_statement: $ => seq(
+      choice($._attach_head, $._attach_resource),
+      optional(seq(kw('AS'), field('alias', $._name))),
+      optional($.option_list),
+    ),
+
+    _attach_head: $ => seq(
+      kw('ATTACH'),
+      optional(kws('OR', 'REPLACE')),
+      optional(kw('DATABASE')),
+      optional($._if_not_exists),
+      field('path', $._attach_path),
+    ),
+
+    // The path of a database is a string, a parameter, a function call or
+    // an expression in parentheses, or such values with || between them.
+    // A name before the options in parentheses would read as a function
+    // call, so the path is not any expression.
+    _attach_path: $ => choice(
+      $._attach_path_value,
+      alias($._attach_path_concat, $.binary_expression),
+    ),
+
+    _attach_path_value: $ => choice(
+      $.string,
+      $.parameter,
+      $.function_call,
+      $.parenthesized_expression,
+    ),
+
+    _attach_path_concat: $ => prec.left(seq(
+      field('left', $._attach_path),
+      field('operator', $.operator),
+      field('right', $._attach_path_value),
+    )),
+
+    _attach_resource: $ => seq(kws('ATTACH', 'TO'), $._external_resource),
+
+    // An external resource, with NEW and TEMPORARY when the statement makes
+    // it. The documentation does not show external resources, but the
+    // tests of DuckDB use them.
+    _external_resource: $ => seq(
+      optional(kw('NEW')),
+      optional(kw('TEMPORARY')),
+      kws('EXTERNAL', 'RESOURCE'),
+      field('resource', choice($._name, $.string)),
+    ),
+
+    detach_statement: $ => seq(
+      kw('DETACH'),
+      optional(kw('DATABASE')),
+      optional($._if_exists),
+      field('name', $._name),
+    ),
+
+    // USE sets the default database, or the default database and schema.
+    use_statement: $ => seq(kw('USE'), field('name', choice($.object_reference, $.string))),
+
+    // CONNECT sends the queries to a remote database, and DISCONNECT ends
+    // it.
+    connect_statement: $ => seq(
+      kw('CONNECT'),
+      choice(
+        field('database', choice($._name, $.string)),
+        seq(
+          kw('TO'),
+          $._external_resource,
+          optional(seq(kw('AS'), field('alias', $._name))),
+        ),
+      ),
+      optional($.option_list),
+    ),
+
+    disconnect_statement: _ => kw('DISCONNECT'),
+
+    // CREATE EXTERNAL RESOURCE makes an external resource, and REGISTER
+    // EXTERNAL RESOURCE names one that exists. DESTROY EXTERNAL RESOURCE
+    // ends it.
+    create_external_resource_statement: $ => seq(
+      $._create,
+      kws('EXTERNAL', 'RESOURCE'),
+      field('resource', $.string),
+      optional(seq(kw('AS'), field('name', $._name))),
+      optional($.option_list),
+    ),
+
+    register_external_resource_statement: $ => seq(
+      kws('REGISTER', 'EXTERNAL', 'RESOURCE'),
+      field('resource', $.string),
+      kw('AS'),
+      field('name', $._name),
+      optional(seq(kw('FROM'), field('value', $._expression))),
+    ),
+
+    destroy_external_resource_statement: $ => seq(
+      kws('DESTROY', 'EXTERNAL', 'RESOURCE'),
+      field('name', $._name),
+    ),
+
+    // CHECKPOINT writes the changes of a database to its file. FORCE
+    // CHECKPOINT does not wait for the running transactions.
+    checkpoint_statement: $ => seq(
+      optional(kw('FORCE')),
+      kw('CHECKPOINT'),
+      optional(field('database', $._name)),
+    ),
+
+    // VACUUM and ANALYZE update the statistics of a table, or of each
+    // table. ANALYSE is the same word as ANALYZE.
+    vacuum_statement: $ => seq(
+      kw('VACUUM'),
+      optional(choice(kw('FULL'), $.option_list)),
+      optional($._analyze),
+      optional($._analyze_target),
+    ),
+
+    analyze_statement: $ => seq($._analyze, optional($._analyze_target)),
+
+    _analyze: _ => choice(kw('ANALYZE'), kw('ANALYSE')),
+
+    _analyze_target: $ => seq(field('table', $.object_reference), optional($.column_list)),
+
+    // Extensions
+
+    // INSTALL gets an extension from a repository, and LOAD loads it. The
+    // extension is a name or the path of a file. INSTALL AND LOAD does
+    // both. FORCE INSTALL gets the extension again.
+    install_statement: $ => seq(
+      optional(kw('FORCE')),
+      kw('INSTALL'),
+      optional(kws('AND', 'LOAD')),
+      $._extension,
+    ),
+
+    load_statement: $ => seq(kw('LOAD'), $._extension),
+
+    _extension: $ => seq(
+      field('extension', choice($._name, $.string)),
+      optional(seq(kw('FROM'), field('repository', choice($._name, $.string)))),
+    ),
+
+    // UPDATE EXTENSIONS updates each extension, or the extensions that it
+    // names.
+    update_extensions_statement: $ => seq(
+      kws('UPDATE', 'EXTENSIONS'),
+      optional(parens(commaSep1($._name))),
+    ),
+
+    // CREATE EXTENSION REPOSITORY names a repository of extensions, with
+    // the prefix of its address and the public keys of its signatures.
+    create_extension_repository_statement: $ => seq(
+      $._create,
+      kws('EXTENSION', 'REPOSITORY'),
+      $._create_name,
+      kws('WITH', 'PREFIX'),
+      field('prefix', $.string),
+      optional(seq(
+        kws('USING', 'PUBLIC'),
+        choice(kw('KEY'), kw('KEYS')),
+        commaSep1(field('key', $.string)),
+      )),
+    ),
+
+    // Settings
+
+    // SET gives a value to a setting, in the scope of the session or of the
+    // database, and SET VARIABLE gives a value to a variable. RESET gives
+    // the setting its default value. SET TIME ZONE is the same as SET
+    // TimeZone.
+    set_statement: $ => seq(
+      kw('SET'),
+      optional($._set_scope),
+      choice(
+        seq(
+          field('name', $._name),
+          choice('=', kw('TO')),
+          field('value', choice($._expression, kw('DEFAULT'))),
+        ),
+        seq(
+          kws('TIME', 'ZONE'),
+          field('value', choice($._expression, kw('LOCAL'), kw('DEFAULT'))),
+        ),
+      ),
+    ),
+
+    reset_statement: $ => seq(
+      kw('RESET'),
+      optional($._set_scope),
+      field('name', $._name),
+    ),
+
+    _set_scope: _ => choice(kw('GLOBAL'), kw('SESSION'), kw('LOCAL'), kw('VARIABLE')),
+
+    // PRAGMA reads or sets a setting, or it calls a function. A value
+    // after = is a number, a string, a boolean or a word. A word of the
+    // value takes the reserved set label.
+    pragma_statement: $ => seq(
+      kw('PRAGMA'),
+      field('name', $._name),
+      optional(choice(
+        seq('=', field('value', $.pragma_value)),
+        $.arguments,
+      )),
+    ),
+
+    pragma_value: $ => choice(
+      $._signed_number,
+      $.string,
+      $.boolean,
+      reserved('label', $.identifier),
+      alias($._quoted_identifier, $.identifier),
+    ),
+
+    // The schema of a table and its statistics
+
+    // DESCRIBE gives the columns of a table, a file or a query, SUMMARIZE
+    // gives their statistics, and SHOW gives a setting or the columns of a
+    // table. DESCRIBE alone gives each table. TABLE before a string names
+    // a file.
+    describe_statement: $ => seq(
+      choice(kw('DESCRIBE'), kw('DESC')),
+      optional($._describe_target),
+    ),
+
+    summarize_statement: $ => seq(kw('SUMMARIZE'), $._describe_target),
+
+    _describe_target: $ => choice(
+      field('name', choice($.object_reference, $.string)),
+      seq(kw('ALL'), optional(kw('TABLES'))),
+      seq(kw('TABLE'), field('name', $.string)),
+      $.select_statement,
+    ),
+
+    // SHOW TABLES gives the tables of a database or a schema, and SHOW ALL
+    // TABLES and DESCRIBE ALL give each table. SHOW DATABASES and SHOW
+    // SCHEMAS give the databases and the schemas.
+    show_statement: $ => seq(
+      kw('SHOW'),
+      choice(
+        seq(kw('TABLES'), optional(seq(kw('FROM'), field('schema', $.object_reference)))),
+        seq(optional(kw('ALL')), kws('EXTERNAL', 'RESOURCES')),
+        kw('DATABASES'),
+        kw('SCHEMAS'),
+        $._describe_target,
+      ),
+    ),
+
+    // EXPLAIN gives the plan of a statement, and EXPLAIN ANALYZE runs the
+    // statement and gives the plan with the time of each step. The options
+    // come in parentheses, as in EXPLAIN (FORMAT json).
+    explain_statement: $ => seq(
+      kw('EXPLAIN'),
+      optional($._analyze),
+      optional($.option_list),
+      $._statement,
+    ),
+
+    // Prepared statements
+
+    // PREPARE names a statement with parameters, EXECUTE runs it with the
+    // values of the parameters, and DEALLOCATE deletes it.
+    prepare_statement: $ => seq(
+      kw('PREPARE'),
+      field('name', choice($._name, $.string)),
+      optional(parens(commaSep1(field('type', $.type)))),
+      kw('AS'),
+      $._statement,
+    ),
+
+    execute_statement: $ => seq(
+      kw('EXECUTE'),
+      field('name', choice($._name, $.string)),
+      optional($.arguments),
+    ),
+
+    deallocate_statement: $ => seq(
+      kw('DEALLOCATE'),
+      optional(kw('PREPARE')),
+      field('name', choice($._name, $.string)),
+    ),
+
+    // CALL runs a table function and gives its rows.
+    call_statement: $ => seq(
+      kw('CALL'),
+      field('function', alias($._table_function, $.function_call)),
+    ),
+
+    // Transactions
+
+    // BEGIN and START TRANSACTION start a transaction, which can be read
+    // only. COMMIT and END commit it, and ROLLBACK and ABORT roll it back.
+    begin_statement: $ => choice(
+      seq(kw('BEGIN'), optional(kw('TRANSACTION')), optional($._transaction_mode)),
+      seq(kws('START', 'TRANSACTION'), optional($._transaction_mode)),
+    ),
+
+    _transaction_mode: _ => seq(kw('READ'), choice(kw('ONLY'), kw('WRITE'))),
+
+    commit_statement: _ => seq(
+      choice(kw('COMMIT'), kw('END')),
+      optional(kw('TRANSACTION')),
+    ),
+
+    rollback_statement: _ => seq(
+      choice(kw('ROLLBACK'), kw('ABORT')),
+      optional(kw('TRANSACTION')),
+    ),
+
+    // Comments
+
+    // COMMENT ON gives the comment of an object or a column. NULL deletes
+    // the comment.
+    comment_statement: $ => seq(
+      kws('COMMENT', 'ON'),
+      choice(
+        seq(kw('COLUMN'), field('name', $.column_reference)),
+        seq(
+          choice(
+            kw('TABLE'),
+            kw('VIEW'),
+            kw('INDEX'),
+            kw('SEQUENCE'),
+            kw('TYPE'),
+            seq(kw('MACRO'), optional(kw('TABLE'))),
+            kw('FUNCTION'),
+            kw('SCHEMA'),
+            kw('DATABASE'),
+          ),
+          field('name', choice($.object_reference, $.string)),
+        ),
+      ),
+      kw('IS'),
+      field('comment', choice($.string, $.null)),
+    ),
+
     // ORDER BY, LIMIT, OFFSET and FETCH come after the body of a query, in
     // any order.
     _query: $ => prec.right(seq(
@@ -863,7 +1293,8 @@ module.exports = grammar({
     // A common table expression can name itself after RECURSIVE. USING KEY
     // names the key of the rows of a recursive query, and the aggregates of
     // the other columns. Its query can be a statement that changes rows,
-    // with RETURNING.
+    // with RETURNING, or COPY, which gives the count of the rows that it
+    // wrote.
     with_clause: $ => seq(
       kw('WITH'),
       optional(kw('RECURSIVE')),
@@ -876,7 +1307,7 @@ module.exports = grammar({
       optional(seq(kws('USING', 'KEY'), parens(commaSep1(choice($._expression, $.aliased_expression))))),
       kw('AS'),
       optional(seq(optional(kw('NOT')), kw('MATERIALIZED'))),
-      parens(field('query', choice($._query, $._data_statement))),
+      parens(field('query', choice($._query, $._data_statement, $.copy_statement))),
     ),
 
     column_list: $ => parens(trailingSep1(choice($._name, $.string))),
@@ -1090,11 +1521,16 @@ module.exports = grammar({
       $.arguments,
     ),
 
-    // A subquery or VALUES in FROM.
+    // A subquery or VALUES in FROM. DESCRIBE, SUMMARIZE and SHOW in
+    // parentheses are subqueries too.
     derived_table: $ => prec.right(seq(
       optional($._prefix_alias),
       optional(kw('LATERAL')),
-      choice($.subquery, $.values),
+      choice(
+        $.subquery,
+        $.values,
+        alias(parens(choice($.describe_statement, $.summarize_statement, $.show_statement)), $.subquery),
+      ),
       optional($._alias),
       optional($.tablesample_clause),
     )),

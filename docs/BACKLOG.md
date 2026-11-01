@@ -348,12 +348,14 @@ reference of SQLite. It leaves out these forms:
   `USING define((SELECT 1; SELECT 2))`. SQLite gives the text of the
   argument to the module.
 
-### Finish the DuckDB grammar
+### Forms that the DuckDB grammar leaves out
 
-The DuckDB grammar that xo writes (D126) reads the queries of DuckDB 2.0
-and the statements that change rows or the schema. The other statements,
-such as `COPY`, `ATTACH`, `SET` and `PRAGMA`, come in the next part of the
-work. The grammar leaves out these forms of a query:
+The DuckDB grammar that xo writes (D126) reads each statement of the SQL
+documentation of DuckDB 2.0. It does not read the statements of the
+community extension DuckPGQ, such as `CREATE PROPERTY GRAPH`, `DROP
+PROPERTY GRAPH` and `GRAPH_TABLE` in `FROM`. A user turns on their syntax
+with `SET active_grammar_extensions`, and they are not a part of the SQL of
+DuckDB. The grammar leaves out these forms of a query:
 
 - A name with more parts than four for a column, three for a table and
   three for a function or a type, as in `SELECT * FROM db.s1.s2.t`. DuckDB
@@ -401,6 +403,24 @@ the schema:
   not show them.
 - `ALTER TYPE ... ADD VALUE` and `ALTER TYPE ... REMOVE VALUE`, which the
   tests of DuckDB use and the documentation does not show.
+
+The grammar leaves out these forms of the other statements:
+
+- A path of `ATTACH` that is a name or any other expression, as in
+  `ATTACH x.path`. The grammar takes a string, a parameter, a function call,
+  an expression in parentheses, and such values with an operator between
+  them, as `docs/GRAMMAR.md` says.
+- The options of `ATTACH TO EXTERNAL RESOURCE` before `AS`. The grammar
+  takes them after the alias.
+- The options of `COPY` with no parentheses, as in `COPY t TO 'f' CSV
+  HEADER`, the form of PostgreSQL, and an option whose value holds the
+  items of `ORDER BY`, as in `ORDER_BY (a DESC)`.
+- `DEFAULT` as the value of an option, as in `EXPLAIN (FORMAT default)`.
+- `DESCRIBE`, `SUMMARIZE` and `SHOW` in parentheses where a query can
+  come, as in `CREATE VIEW v AS (SHOW TABLES)`. The grammar takes them in
+  parentheses in `FROM`.
+- `SET SCHEMA 'name'` and `LOAD ... AS alias`, which the tests of DuckDB
+  use and the documentation does not show.
 
 ## The setup of the repository
 

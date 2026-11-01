@@ -27,6 +27,7 @@
 (identifier) @variable
 
 [
+  "ABORT"
   "ACTION"
   "ADD"
   "AFTER"
@@ -34,6 +35,8 @@
   "ALL"
   "ALTER"
   "ALWAYS"
+  "ANALYSE"
+  "ANALYZE"
   "AND"
   "ANY"
   "APPROX"
@@ -43,34 +46,47 @@
   "ASCENDING"
   "ASYMMETRIC"
   "AT"
+  "ATTACH"
   "BEFORE"
+  "BEGIN"
   "BETWEEN"
   "BIT"
   "BOTH"
   "BY"
+  "CALL"
   "CASCADE"
   "CASE"
   "CAST"
   "CHAR"
   "CHARACTER"
   "CHECK"
+  "CHECKPOINT"
   "COLLATE"
   "COLLATION"
   "COLUMN"
+  "COMMENT"
   "COMMIT"
   "COMPRESSION"
   "CONFLICT"
+  "CONNECT"
   "CONSTRAINT"
+  "COPY"
   "CREATE"
   "CUBE"
   "CURRENT"
   "CYCLE"
   "DATA"
   "DATABASE"
+  "DATABASES"
+  "DEALLOCATE"
   "DEFAULT"
   "DELETE"
   "DESC"
   "DESCENDING"
+  "DESCRIBE"
+  "DESTROY"
+  "DETACH"
+  "DISCONNECT"
   "DISTANCE"
   "DISTINCT"
   "DO"
@@ -85,18 +101,27 @@
   "EXACT"
   "EXCEPT"
   "EXCLUDE"
+  "EXECUTE"
   "EXISTS"
+  "EXPLAIN"
+  "EXPORT"
   "EXPORT_STATE"
+  "EXTENSION"
+  "EXTENSIONS"
+  "EXTERNAL"
   "FETCH"
   "FILTER"
   "FIRST"
   "FOLLOWING"
   "FOR"
+  "FORCE"
   "FOREIGN"
   "FROM"
+  "FULL"
   "FUNCTION"
   "GENERATED"
   "GLOB"
+  "GLOBAL"
   "GROUP"
   "GROUPING"
   "GROUPS"
@@ -104,12 +129,14 @@
   "IF"
   "IGNORE"
   "ILIKE"
+  "IMPORT"
   "IN"
   "INCLUDE"
   "INCREMENT"
   "INDEX"
   "INNER"
   "INSERT"
+  "INSTALL"
   "INSTEAD"
   "INTERSECT"
   "INTERVAL"
@@ -118,12 +145,15 @@
   "ISNULL"
   "JOIN"
   "KEY"
+  "KEYS"
   "LAMBDA"
   "LAST"
   "LATERAL"
   "LEADING"
   "LIKE"
   "LIMIT"
+  "LOAD"
+  "LOCAL"
   "MACRO"
   "MAP"
   "MATCHED"
@@ -162,35 +192,48 @@
   "PIVOT_WIDER"
   "PLACING"
   "POSITION"
+  "PRAGMA"
   "PRECEDING"
   "PRECISION"
+  "PREFIX"
+  "PREPARE"
   "PRESERVE"
   "PRIMARY"
+  "PUBLIC"
   "QUALIFY"
   "RANGE"
+  "READ"
   "RECURSIVE"
   "REFERENCES"
   "REFERENCING"
+  "REGISTER"
   "RENAME"
   "REPEATABLE"
   "REPLACE"
+  "REPOSITORY"
   "RESET"
+  "RESOURCE"
+  "RESOURCES"
   "RESPECT"
   "RESTART"
   "RESTRICT"
   "RETURNING"
+  "ROLLBACK"
   "ROLLUP"
   "ROW"
   "ROWS"
   "SAMPLE"
   "SCHEMA"
+  "SCHEMAS"
   "SECRET"
   "SECURE"
   "SELECT"
   "SEQUENCE"
+  "SESSION"
   "SET"
   "SETOF"
   "SETS"
+  "SHOW"
   "SIMILAR"
   "SIMILARITY"
   "SOME"
@@ -199,8 +242,10 @@
   "START"
   "STATEMENT"
   "STORED"
+  "SUMMARIZE"
   "SYMMETRIC"
   "TABLE"
+  "TABLES"
   "TABLESAMPLE"
   "TARGET"
   "TEMP"
@@ -211,6 +256,7 @@
   "TIMESTAMP"
   "TO"
   "TRAILING"
+  "TRANSACTION"
   "TRIGGER"
   "TRUNCATE"
   "TRY_CAST"
@@ -221,9 +267,12 @@
   "UNKNOWN"
   "UNPIVOT"
   "UPDATE"
+  "USE"
   "USING"
+  "VACUUM"
   "VALUE"
   "VALUES"
+  "VARIABLE"
   "VARYING"
   "VERSION"
   "VIEW"
@@ -234,6 +283,7 @@
   "WITH"
   "WITHIN"
   "WITHOUT"
+  "WRITE"
   "ZONE"
 ] @keyword
 
@@ -370,6 +420,71 @@
 (collate_expression
   collation: (object_reference
     name: (identifier) @variable.builtin))
+
+(set_statement
+  name: (identifier) @variable.builtin)
+
+(reset_statement
+  name: (identifier) @variable.builtin)
+
+(pragma_statement
+  name: (identifier) @function.builtin)
+
+(pragma_value
+  (identifier) @constant)
+
+(show_statement
+  name: (object_reference
+    name: (identifier) @variable.builtin))
+
+(use_statement
+  name: (object_reference
+    name: (identifier) @module))
+
+(attach_statement
+  alias: (identifier) @module)
+
+(detach_statement
+  name: (identifier) @module)
+
+(connect_statement
+  [
+    database: (identifier)
+    alias: (identifier)
+  ] @module)
+
+(checkpoint_statement
+  database: (identifier) @module)
+
+(export_statement
+  database: (identifier) @module)
+
+(copy_statement
+  [
+    source: (identifier)
+    target: (identifier)
+  ] @module)
+
+(install_statement
+  [
+    extension: (identifier)
+    repository: (identifier)
+  ] @module)
+
+(load_statement
+  [
+    extension: (identifier)
+    repository: (identifier)
+  ] @module)
+
+(prepare_statement
+  name: (identifier) @function)
+
+(execute_statement
+  name: (identifier) @function.call)
+
+(deallocate_statement
+  name: (identifier) @function)
 
 (case_expression
   [

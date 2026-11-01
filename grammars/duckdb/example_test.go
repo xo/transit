@@ -14,7 +14,7 @@ import (
 )
 
 // This example parses a text of the grammar duckdb, the input of the corpus
-// case "expressions/Lists", and prints its tree. Then it compiles each query of
+// case "lexical/Strings", and prints its tree. Then it compiles each query of
 // the package, and prints the number of its patterns.
 func ExampleLanguage() {
 	language := duckdb.Language()
@@ -23,7 +23,8 @@ func ExampleLanguage() {
 		log.Fatal(err)
 	}
 	src := []byte(`
-SELECT [1, 2, 3], [], ['a', NULL], ARRAY[1, 2], ARRAY(SELECT 1), [[1, 2], [3]];
+SELECT 'abc', 'it''s', '', 'line
+break';
 `)
 	tree, err := parser.Parse(context.Background(), src, nil)
 	if err != nil {
@@ -49,6 +50,6 @@ SELECT [1, 2, 3], [], ['a', NULL], ARRAY[1, 2], ARRAY(SELECT 1), [[1, 2], [3]];
 		log.Fatal(err)
 	}
 	// Output:
-	// (source_file (select_statement (select (list (number) (number) (number)) (list) (list (string) (null)) (list (number) (number)) (list (subquery (select (number)))) (list (list (number) (number)) (list (number))))))
-	// patterns in queries/highlights.scm: 62
+	// (source_file (select_statement (select (string) (string) (string) (string))))
+	// patterns in queries/highlights.scm: 79
 }
