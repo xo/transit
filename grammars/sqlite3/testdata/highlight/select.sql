@@ -1,0 +1,44 @@
+WITH RECURSIVE c(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM c WHERE x < 9) SELECT x FROM c;
+-- <- keyword
+--   ^ keyword
+--             ^ type
+--               ^ variable.member
+--                               ^ keyword
+--                                     ^ keyword
+--                                                  ^ operator
+--                                                                     ^ operator
+SELECT t.a, main.t.b AS c, count(*) FROM main.t AS t1 INDEXED BY ix LEFT JOIN u USING (id);
+--     ^ type
+--       ^ variable.member
+--          ^ module
+--               ^ type
+--                 ^ variable.member
+--                      ^ variable
+--                         ^ function.call
+--                                       ^ module
+--                                            ^ type
+--                                                 ^ variable
+--                                                    ^ keyword
+--                                                               ^ label
+--                                                                  ^ keyword
+--                                                                            ^ type
+--                                                                                     ^ variable.member
+SELECT sum(a) FILTER (WHERE b) OVER w FROM t WINDOW w AS (PARTITION BY c ROWS 2 PRECEDING EXCLUDE TIES);
+--     ^ function.call
+--            ^ keyword
+--                             ^ keyword
+--                                  ^ type
+--                                           ^ keyword
+--                                                  ^ type
+--                                                        ^ keyword
+--                                                                       ^ keyword
+--                                                                              ^ keyword
+--                                                                                        ^ keyword
+--                                                                                                ^ keyword
+SELECT key, value FROM json_each(x) AS j ORDER BY 1 DESC NULLS LAST LIMIT 5 OFFSET 2;
+--                     ^ function.call
+--                                     ^ variable
+--                                                       ^ keyword
+--                                                             ^ keyword
+--                                                                  ^ keyword
+--                                                                          ^ keyword

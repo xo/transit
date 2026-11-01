@@ -1,0 +1,918 @@
+================================================================================
+A recursive query with values
+================================================================================
+
+WITH RECURSIVE cnt(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM cnt WHERE x<1000000) SELECT x FROM cnt;
+
+---
+
+(source_file
+  (select_statement
+    (with_clause
+      (cte
+        (identifier)
+        (column_list
+          (identifier))
+        (subquery
+          (set_operation
+            (values
+              (value_list
+                (number)))
+            (select
+              (binary_expression
+                (column_reference
+                  (identifier))
+                (operator)
+                (number))
+              (from_clause
+                (table_reference
+                  (object_reference
+                    (identifier))))
+              (where_clause
+                (binary_expression
+                  (column_reference
+                    (identifier))
+                  (operator)
+                  (number))))))))
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+A recursive query with a limit
+================================================================================
+
+WITH RECURSIVE
+  cnt(x) AS (
+     SELECT 1
+     UNION ALL
+     SELECT x+1 FROM cnt
+      LIMIT 1000000
+  )
+SELECT x FROM cnt;
+
+---
+
+(source_file
+  (select_statement
+    (with_clause
+      (cte
+        (identifier)
+        (column_list
+          (identifier))
+        (subquery
+          (set_operation
+            (select
+              (number))
+            (select
+              (binary_expression
+                (column_reference
+                  (identifier))
+                (operator)
+                (number))
+              (from_clause
+                (table_reference
+                  (object_reference
+                    (identifier))))))
+          (limit_clause
+            (number)))))
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+A common table expression after in
+================================================================================
+
+WITH RECURSIVE
+  works_for_alice(n) AS (
+    VALUES('Alice')
+    UNION
+    SELECT name FROM org, works_for_alice
+     WHERE org.boss=works_for_alice.n
+  )
+SELECT avg(height) FROM org
+ WHERE org.name IN works_for_alice;
+
+---
+
+(source_file
+  (select_statement
+    (with_clause
+      (cte
+        (identifier)
+        (column_list
+          (identifier))
+        (subquery
+          (set_operation
+            (values
+              (value_list
+                (string)))
+            (select
+              (column_reference
+                (identifier))
+              (from_clause
+                (table_reference
+                  (object_reference
+                    (identifier)))
+                (table_reference
+                  (object_reference
+                    (identifier))))
+              (where_clause
+                (binary_expression
+                  (column_reference
+                    (identifier)
+                    (identifier))
+                  (operator)
+                  (column_reference
+                    (identifier)
+                    (identifier)))))))))
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (in_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+A recursive query with order by
+================================================================================
+
+WITH RECURSIVE
+  under_alice(name,level) AS (
+    VALUES('Alice',0)
+    UNION ALL
+    SELECT org.name, under_alice.level+1
+      FROM org JOIN under_alice ON org.boss=under_alice.name
+     ORDER BY 2 DESC
+  )
+SELECT substr('..........',1,level*3) || name FROM under_alice;
+
+---
+
+(source_file
+  (select_statement
+    (with_clause
+      (cte
+        (identifier)
+        (column_list
+          (identifier)
+          (identifier))
+        (subquery
+          (set_operation
+            (values
+              (value_list
+                (string)
+                (number)))
+            (select
+              (column_reference
+                (identifier)
+                (identifier))
+              (binary_expression
+                (column_reference
+                  (identifier)
+                  (identifier))
+                (operator)
+                (number))
+              (from_clause
+                (join
+                  (table_reference
+                    (object_reference
+                      (identifier)))
+                  (table_reference
+                    (object_reference
+                      (identifier)))
+                  (binary_expression
+                    (column_reference
+                      (identifier)
+                      (identifier))
+                    (operator)
+                    (column_reference
+                      (identifier)
+                      (identifier)))))))
+          (order_by_clause
+            (order_by_item
+              (number))))))
+    (select
+      (binary_expression
+        (function_call
+          (identifier)
+          (arguments
+            (string)
+            (number)
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (number))))
+        (operator)
+        (column_reference
+          (identifier)))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+A window function with a frame
+================================================================================
+
+SELECT a, b, group_concat(b, '.') OVER (
+  ORDER BY a ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING
+) AS group_concat FROM t1;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (aliased_expression
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier))
+            (string))
+          (over_clause
+            (window_specification
+              (order_by_clause
+                (order_by_item
+                  (column_reference
+                    (identifier))))
+              (frame_clause
+                (frame_bound
+                  (number))
+                (frame_bound
+                  (number))))))
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Window functions with a named window
+================================================================================
+
+SELECT x, y, row_number() OVER win1, rank() OVER win2
+FROM t0
+WINDOW win1 AS (ORDER BY y RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW),
+       win2 AS (PARTITION BY y ORDER BY x)
+ORDER BY x;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (function_call
+        (identifier)
+        (arguments)
+        (over_clause
+          (identifier)))
+      (function_call
+        (identifier)
+        (arguments)
+        (over_clause
+          (identifier)))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (window_clause
+        (window_definition
+          (identifier)
+          (window_specification
+            (order_by_clause
+              (order_by_item
+                (column_reference
+                  (identifier))))
+            (frame_clause
+              (frame_bound)
+              (frame_bound))))
+        (window_definition
+          (identifier)
+          (window_specification
+            (column_reference
+              (identifier))
+            (order_by_clause
+              (order_by_item
+                (column_reference
+                  (identifier))))))))
+    (order_by_clause
+      (order_by_item
+        (column_reference
+          (identifier))))))
+
+================================================================================
+A window that names a base window
+================================================================================
+
+SELECT group_concat(b, '.') OVER (
+  win ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+)
+FROM t1
+WINDOW win AS (PARTITION BY a ORDER BY c);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (string))
+        (over_clause
+          (window_specification
+            (identifier)
+            (frame_clause
+              (frame_bound)
+              (frame_bound)))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (window_clause
+        (window_definition
+          (identifier)
+          (window_specification
+            (column_reference
+              (identifier))
+            (order_by_clause
+              (order_by_item
+                (column_reference
+                  (identifier))))))))))
+
+================================================================================
+Built-in window functions
+================================================================================
+
+SELECT b AS b,
+       ntile(2) OVER win AS ntile_2,
+       lag(b, 1, 'none') OVER win,
+       nth_value(b, 2) OVER (ORDER BY b) AS nth
+FROM t1
+WINDOW win AS (ORDER BY b ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (aliased_expression
+        (column_reference
+          (identifier))
+        (identifier))
+      (aliased_expression
+        (function_call
+          (identifier)
+          (arguments
+            (number))
+          (over_clause
+            (identifier)))
+        (identifier))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (number)
+          (string))
+        (over_clause
+          (identifier)))
+      (aliased_expression
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier))
+            (number))
+          (over_clause
+            (window_specification
+              (order_by_clause
+                (order_by_item
+                  (column_reference
+                    (identifier)))))))
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (window_clause
+        (window_definition
+          (identifier)
+          (window_specification
+            (order_by_clause
+              (order_by_item
+                (column_reference
+                  (identifier))))
+            (frame_clause
+              (frame_bound)
+              (frame_bound))))))))
+
+================================================================================
+An aggregate with a filter and a window
+================================================================================
+
+SELECT c, a, b, group_concat(b, '.') FILTER (WHERE c!='two') OVER (
+  ORDER BY a
+) AS group_concat
+FROM t1 ORDER BY a;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (aliased_expression
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier))
+            (string))
+          (filter_clause
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (string)))
+          (over_clause
+            (window_specification
+              (order_by_clause
+                (order_by_item
+                  (column_reference
+                    (identifier)))))))
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))
+    (order_by_clause
+      (order_by_item
+        (column_reference
+          (identifier))))))
+
+================================================================================
+JSON functions and operators
+================================================================================
+
+SELECT json_extract('{"a":2,"c":[4,5,{"f":7}]}', '$.c[2].f'), '{"a":2}' -> '$.a', '[1,2]' ->> 1;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (string)
+          (string)))
+      (binary_expression
+        (string)
+        (operator)
+        (string))
+      (binary_expression
+        (string)
+        (operator)
+        (number)))))
+
+================================================================================
+A JSON table-valued function
+================================================================================
+
+SELECT big.rowid, fld.value
+  FROM big, json_each(big.json, '$.partlist') AS fld
+ WHERE fld.type = 'object' AND json_extract(fld.value, '$.uuid') LIKE 'abc%';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))
+        (function_table
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier)
+                (identifier))
+              (string)))
+          (identifier)))
+      (where_clause
+        (binary_expression
+          (binary_expression
+            (column_reference
+              (identifier)
+              (identifier))
+            (operator)
+            (string))
+          (like_expression
+            (function_call
+              (identifier)
+              (arguments
+                (column_reference
+                  (identifier)
+                  (identifier))
+                (string)))
+            (string)))))))
+
+================================================================================
+A row value comparison
+================================================================================
+
+SELECT * FROM info WHERE (year, month, day) BETWEEN (2015, 9, 12) AND (2016, 9, 12);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (between_expression
+          (list
+            (column_reference
+              (identifier))
+            (column_reference
+              (identifier))
+            (column_reference
+              (identifier)))
+          (list
+            (number)
+            (number)
+            (number))
+          (list
+            (number)
+            (number)
+            (number)))))))
+
+================================================================================
+A row value with a subquery
+================================================================================
+
+SELECT * FROM t2 WHERE (a, b) = (SELECT x, y FROM t3 WHERE z = 1);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (list
+            (column_reference
+              (identifier))
+            (column_reference
+              (identifier)))
+          (operator)
+          (subquery
+            (select
+              (column_reference
+                (identifier))
+              (column_reference
+                (identifier))
+              (from_clause
+                (table_reference
+                  (object_reference
+                    (identifier))))
+              (where_clause
+                (binary_expression
+                  (column_reference
+                    (identifier))
+                  (operator)
+                  (number))))))))))
+
+================================================================================
+Generate series
+================================================================================
+
+SELECT value FROM generate_series(5, 100, 5);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (function_table
+          (function_call
+            (identifier)
+            (arguments
+              (number)
+              (number)
+              (number))))))))
+
+================================================================================
+Full text search
+================================================================================
+
+SELECT * FROM email WHERE email MATCH 'fts5' ORDER BY rank;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (like_expression
+          (column_reference
+            (identifier))
+          (string))))
+    (order_by_clause
+      (order_by_item
+        (column_reference
+          (identifier))))))
+
+================================================================================
+Full text search with a table function
+================================================================================
+
+SELECT highlight(email, 2, '<b>', '</b>') FROM email('fts5');
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (number)
+          (string)
+          (string)))
+      (from_clause
+        (function_table
+          (function_call
+            (identifier)
+            (arguments
+              (string))))))))
+
+================================================================================
+An R-tree query
+================================================================================
+
+SELECT id FROM demo_index WHERE minX>=-81.08 AND maxX<=-80.58 AND minY>=35.00 AND maxY<=35.44;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (binary_expression
+            (binary_expression
+              (binary_expression
+                (column_reference
+                  (identifier))
+                (operator)
+                (unary_expression
+                  (operator)
+                  (number)))
+              (binary_expression
+                (column_reference
+                  (identifier))
+                (operator)
+                (unary_expression
+                  (operator)
+                  (number))))
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (number)))
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number)))))))
+
+================================================================================
+Date functions
+================================================================================
+
+SELECT date('now', 'start of month', '+1 month', '-1 day'), strftime('%s', 'now'), julianday('now') - julianday('1776-07-04');
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (string)
+          (string)
+          (string)
+          (string)))
+      (function_call
+        (identifier)
+        (arguments
+          (string)
+          (string)))
+      (binary_expression
+        (function_call
+          (identifier)
+          (arguments
+            (string)))
+        (operator)
+        (function_call
+          (identifier)
+          (arguments
+            (string)))))))
+
+================================================================================
+A subquery in from with a join
+================================================================================
+
+SELECT t.name, s.cnt
+  FROM t LEFT JOIN (SELECT tid, count(*) AS cnt FROM u GROUP BY tid) AS s ON s.tid = t.id;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (from_clause
+        (join
+          (table_reference
+            (object_reference
+              (identifier)))
+          (derived_table
+            (subquery
+              (select
+                (column_reference
+                  (identifier))
+                (aliased_expression
+                  (function_call
+                    (identifier)
+                    (arguments))
+                  (identifier))
+                (from_clause
+                  (table_reference
+                    (object_reference
+                      (identifier))))
+                (group_by_clause
+                  (column_reference
+                    (identifier)))))
+            (identifier))
+          (binary_expression
+            (column_reference
+              (identifier)
+              (identifier))
+            (operator)
+            (column_reference
+              (identifier)
+              (identifier))))))))
+
+================================================================================
+A correlated subquery
+================================================================================
+
+SELECT name, (SELECT count(*) FROM orders o WHERE o.cid = c.id) AS n FROM customers c WHERE n > 2;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (aliased_expression
+        (subquery
+          (select
+            (function_call
+              (identifier)
+              (arguments))
+            (from_clause
+              (table_reference
+                (object_reference
+                  (identifier))
+                (identifier)))
+            (where_clause
+              (binary_expression
+                (column_reference
+                  (identifier)
+                  (identifier))
+                (operator)
+                (column_reference
+                  (identifier)
+                  (identifier))))))
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))
+          (identifier)))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))))))
+
+================================================================================
+Distinct from
+================================================================================
+
+SELECT * FROM t WHERE a IS NOT DISTINCT FROM b OR c IS DISTINCT FROM NULL;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (is_expression
+            (column_reference
+              (identifier))
+            (column_reference
+              (identifier)))
+          (is_expression
+            (column_reference
+              (identifier))
+            (null)))))))

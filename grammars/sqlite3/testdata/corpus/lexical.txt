@@ -1,0 +1,204 @@
+================================================================================
+Identifiers
+================================================================================
+
+SELECT abc, _x, a$b, été, "quoted ""name""", [bracketed name], `back``quoted` FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Strings
+================================================================================
+
+SELECT 'abc', 'it''s', '', 'line
+break';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string)
+      (string)
+      (string)
+      (string))))
+
+================================================================================
+Blobs
+================================================================================
+
+SELECT X'53514C697465', x'', X'ab';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (blob)
+      (blob)
+      (blob))))
+
+================================================================================
+Numbers
+================================================================================
+
+SELECT 1, 1.5, .5, 1., 1e10, 1.5E-3, 2e+4, 0x1F, 0XABCDEF;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number))))
+
+================================================================================
+Numbers with separators
+================================================================================
+
+SELECT 1_000_000, 3.141_592, 1_0e1_0, 0xFF_FF;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (number)
+      (number)
+      (number))))
+
+================================================================================
+Parameters
+================================================================================
+
+SELECT ?, ?1, ?123, :name, @name, $name, $a::b::c, $arr(x), :1;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (parameter)
+      (parameter)
+      (parameter)
+      (parameter)
+      (parameter)
+      (parameter)
+      (parameter)
+      (parameter)
+      (parameter))))
+
+================================================================================
+Line comment
+================================================================================
+
+SELECT 1 -- a comment
+;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)))
+  (comment))
+
+================================================================================
+Block comment
+================================================================================
+
+SELECT /* a
+comment */ 1 /**/ /* ** * */;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (comment)
+      (number)))
+  (comment)
+  (comment))
+
+================================================================================
+Empty statements
+================================================================================
+
+;;SELECT 1;;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number))))
+
+================================================================================
+Statement with no semicolon
+================================================================================
+
+SELECT 1
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number))))
+
+================================================================================
+Keywords in any case
+================================================================================
+
+select A from T where B is not null order by C desc;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (is_expression
+          (column_reference
+            (identifier))
+          (null))))
+    (order_by_clause
+      (order_by_item
+        (column_reference
+          (identifier))))))

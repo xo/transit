@@ -87,8 +87,8 @@ transit as rline and usql will (D53). Run them in the folder `_example`:
 | `go run ./highlight -dialect mysql -style monokai -colors 256` | It types a text of usql one key at a time, parses again with the old tree after each key, and finds the layer of each SQL statement with `inject`. It prints the text in the colors of a style of the module `styles`, and the time of each edit |
 | `go run ./complete -dialect postgres -text 'select * from '` | It completes at each cursor that it gets as a byte offset. It says whether the cursor is in a meta command, in a variable or in a SQL statement, and in a statement it lists the keywords and the kinds of node that can come next, from `Layer.StatesAt` |
 
-The flag `-dialect` takes `cql`, `generic`, `mysql`, `oracle`, `postgres` or
-`sqlserver`.
+The flag `-dialect` takes `cql`, `generic`, `mysql`, `oracle`, `postgres`,
+`sqlite3` or `sqlserver`.
 
 ## Documents
 
@@ -244,6 +244,21 @@ an optional count ends a batch, as in sqlcmd. The body of a procedure or a
 trigger runs to the end of its batch. The package adds about 1.5 MB to a
 binary. The grammar of `Crary-Systems/tree-sitter-tsql` stays in the
 golden set, but it has no Go package.
+
+The package `github.com/xo/transit/grammars/sqlite3` holds the grammar
+`sqlite3`, which xo writes from the SQL reference of SQLite (D126). It
+covers the lexical structure, with the names in double quotes, in brackets
+and in backquotes, the BLOB literals such as `X'0A'`, the numbers with `_`
+between their digits, the parameters `?NNN`, `:name`, `@name` and `$name`,
+and the comments. It covers the expressions with the precedence of the
+reference, with `->` and `->>`, `IS DISTINCT FROM`, `GLOB`, `REGEXP`,
+`MATCH`, `CAST` and `RAISE`, the function calls with `FILTER`, `OVER` and
+`ORDER BY` in their arguments, and the full `SELECT`, with `WITH`, the
+joins, the table-valued functions, `INDEXED BY`, `VALUES`, `WINDOW` and the
+compound operators. The other statements come later. SQLite reserves few
+of its keywords, so one identifier token covers each keyword that SQLite
+does not reserve. The grammar has no external scanner. The package adds
+about 0.5 MB to a binary.
 
 The package `github.com/xo/transit/grammars/postgres/postgres` holds the
 grammar `postgres`, which xo writes from the reference manual of

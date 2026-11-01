@@ -9,6 +9,7 @@ require (
 	github.com/xo/transit/grammars/oracle v0.6.0
 	github.com/xo/transit/grammars/postgres v0.6.0
 	github.com/xo/transit/grammars/sql v0.6.0
+	github.com/xo/transit/grammars/sqlite3 v0.6.0
 	github.com/xo/transit/grammars/sqlserver v0.6.0
 	github.com/xo/transit/grammars/usql v0.6.0
 	github.com/xo/transit/styles v0.6.0
@@ -25,6 +26,8 @@ replace github.com/xo/transit/grammars/oracle => ../grammars/oracle
 replace github.com/xo/transit/grammars/postgres => ../grammars/postgres
 
 replace github.com/xo/transit/grammars/sql => ../grammars/sql
+
+replace github.com/xo/transit/grammars/sqlite3 => ../grammars/sqlite3
 
 replace github.com/xo/transit/grammars/sqlserver => ../grammars/sqlserver
 

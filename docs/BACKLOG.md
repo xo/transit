@@ -329,6 +329,19 @@ These faults remain:
   tree, as the options of the other statements that end in a list of words
   are.
 
+### Finish the SQLite grammar
+
+The SQLite grammar that xo writes (D126) reads the queries of SQLite. The
+other statements of the SQL reference, such as `INSERT`, `CREATE TABLE`
+and `PRAGMA`, come in the next part of the work. The grammar leaves out
+these forms:
+
+- A block comment with no `*/`, which SQLite reads to the end of the input.
+  A regular expression of tree-sitter cannot find the end of the input, so
+  the grammar needs an external scanner for it.
+- A name in single quotes where SQLite takes a name, as in
+  `SELECT * FROM 'a'`. A string is a name only as an alias.
+
 ## The setup of the repository
 
 These items come in phase 1 and later, as the plan says.

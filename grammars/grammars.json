@@ -11111,6 +11111,65 @@
       }
     },
     {
+      "name": "sqlite3",
+      "package": "sqlite3",
+      "repository": "https://github.com/xo/transit",
+      "commit": "",
+      "path": "grammars/sqlite3",
+      "license": "MIT",
+      "scanner": false,
+      "set": "xo",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "32c2a69cc8e81a6e073abbacc75506bfede58a5659c71f7184e367eabb6e75d7",
+          "node_types": "b6134b51ab385329b8a7bd2bc489f948c0af61d881bc4377b60dec23871f3cae",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "non-terminal alias map",
+            "keyword lexer",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "e8eddade668313f6aa82949348f59cb415e9e2d78e1a1fba5ea8b3f18c7b0ebe",
+          "node_types": "b6134b51ab385329b8a7bd2bc489f948c0af61d881bc4377b60dec23871f3cae",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "non-terminal alias map",
+            "keyword lexer",
+            "reserved words",
+            "reserved word set of a state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      },
+      "corpus": {
+        "tests": 92,
+        "failures": 0,
+        "transit": "same"
+      }
+    },
+    {
       "name": "sqlserver",
       "package": "sqlserver",
       "repository": "https://github.com/xo/transit",

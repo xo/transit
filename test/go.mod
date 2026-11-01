@@ -26,6 +26,7 @@ require (
 	github.com/xo/transit/grammars/rust v0.6.0
 	github.com/xo/transit/grammars/sparql v0.6.0
 	github.com/xo/transit/grammars/sql v0.6.0
+	github.com/xo/transit/grammars/sqlite3 v0.6.0
 	github.com/xo/transit/grammars/sqlserver v0.6.0
 	github.com/xo/transit/grammars/surrealdb v0.6.0
 	github.com/xo/transit/grammars/typescript v0.6.0
@@ -79,6 +80,8 @@ replace github.com/xo/transit/grammars/rust => ../grammars/rust
 replace github.com/xo/transit/grammars/sparql => ../grammars/sparql
 
 replace github.com/xo/transit/grammars/sql => ../grammars/sql
+
+replace github.com/xo/transit/grammars/sqlite3 => ../grammars/sqlite3
 
 replace github.com/xo/transit/grammars/sqlserver => ../grammars/sqlserver
 

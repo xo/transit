@@ -166,7 +166,13 @@ Server grammar reads such a line as the end of a batch. Then the
 statements before and after it parse with no error, also when no `;` comes
 before the `GO`. The body of a procedure or a trigger runs to the end of
 its batch, so the `GO` line also ends the body. If usql gives `GO` a meaning one day, that is a decision
-of Ken for the usql grammar, and not for the SQL Server grammar. SQL++, InfluxQL, KSQL, PartiQL, ES|QL and
+of Ken for the usql grammar, and not for the SQL Server grammar.
+usql gives `sqlite3` the generic grammar today, which does not read the
+syntax of SQLite, such as `PRAGMA`, `ATTACH` and `WITHOUT ROWID`. So xo
+writes the SQLite grammar from the SQL reference of SQLite in
+`grammars/sqlite3` (D126). It reads the queries today, and the other
+statements come later. The commands of the sqlite3 shell, such as `.tables`,
+are not SQL, and the grammar does not read them. SQL++, InfluxQL, KSQL, PartiQL, ES|QL and
 PPL have no grammar at all. transit writes the missing grammars, and the
 usql grammar, in `grammars/` (D42, D104). The other missing grammars come
 after phase 5, in the order of the dialects of dbmeta (D106). `bigquery` and
@@ -179,6 +185,7 @@ for the flag `-dialect`, with these options of `usql.Options`:
 | --- | --- | --- |
 | `postgres` | `github.com/xo/transit/grammars/postgres/postgres` | `DollarQuotes`, `BlockComments` |
 | `mysql` | `github.com/xo/transit/grammars/mysql` | `BlockComments`, `HashComments`, `Backticks`, `BeginEndBlocks` |
+| `sqlite3` | `github.com/xo/transit/grammars/sqlite3` | `BlockComments` |
 | `sqlserver` | `github.com/xo/transit/grammars/sqlserver` | `BlockComments`, `BeginEndBlocks` |
 | `oracle` | `github.com/xo/transit/grammars/oracle` | `BlockComments`, `BeginEndBlocks` |
 | `cql` | `github.com/xo/transit/grammars/cql` | `DollarQuotes`, `BlockComments`, `SlashComments`, `Batches` |
@@ -186,7 +193,8 @@ for the flag `-dialect`, with these options of `usql.Options`:
 
 usql keeps this match itself. The repository of `cql` has no highlight
 query, so xo wrote the highlight query of its package (D113). xo writes the
-highlight queries of `oracle` and `sqlserver` with their grammars.
+highlight queries of `oracle`, `sqlite3` and `sqlserver` with their
+grammars.
 
 The usql grammar ends a statement at each semicolon outside parentheses.
 The body of a stored program of MySQL, SQL Server or Oracle that is a

@@ -1,0 +1,23 @@
+{
+  "grammars": [
+    {
+      "name": "sqlite3",
+      "camelcase": "Sqlite3",
+      "scope": "source.sqlite3",
+      "path": ".",
+      "file-types": [
+        "sqlite"
+      ],
+      "highlights": "queries/highlights.scm",
+      "injection-regex": "^(sqlite3|sqlite)$"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "A grammar of the SQL of SQLite",
+    "links": {
+      "repository": "https://github.com/xo/transit"
+    }
+  }
+}

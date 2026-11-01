@@ -259,7 +259,9 @@ Go package (D122). xo writes the Oracle grammar in place of that of
 `andreasmaierde/tree-sitter-plsql`, which stays in the golden set without
 a Go package (D124). In the same way, xo writes the SQL Server grammar in
 place of that of `Crary-Systems/tree-sitter-tsql`, which stays in the
-golden set without a Go package (D124).
+golden set without a Go package (D124). xo writes the SQLite grammar,
+because the one SQLite grammar that the search found,
+`dhcmrlchtdj/tree-sitter-sqlite`, is archived (D126).
 
 ## The dialects of dbmeta
 

@@ -7,8 +7,8 @@ exports one function, `Language`, which returns a `*transit.Language`.
 
 The rules were written on 2026-09-29, before any code existed (D3). Today
 `transit generate` works with the C backend, and the golden harness runs it.
-`transit generate --backend go` writes a Go package. It wrote the 30 grammar
-packages in the 27 modules under `grammars/`. Each rule names the decision
+`transit generate --backend go` writes a Go package. It wrote the 31 grammar
+packages in the 28 modules under `grammars/`. Each rule names the decision
 that it comes from.
 
 ## Two stages
@@ -118,7 +118,8 @@ it, and the queries and the injections use it. The grammar `cypher` lives in
 If the language of a grammar is the language of one dialect of dbmeta, the
 folder of its module has the name of the dialect. The table of D107 lists
 them. The SQL Server grammar that xo writes lives in `grammars/sqlserver`,
-and the Oracle grammar that xo writes lives in `grammars/oracle`. The folder of
+the Oracle grammar that xo writes lives in `grammars/oracle`, and the
+SQLite grammar that xo writes lives in `grammars/sqlite3`. The folder of
 any other module has the name of the upstream repository without the `tree-sitter-` prefix and with each `-`
 removed. `tree-sitter-embedded-template` becomes `embeddedtemplate`. If two
 grammars or two repositories get the same name, ask Ken.
@@ -139,7 +140,9 @@ Oracle grammar that xo writes has the name `oracle`, and the grammar of
 entry, and only `oracle` has a Go package (D124). In the same way, the SQL
 Server grammar that xo writes has the name `sqlserver`, and the grammar of
 `Crary-Systems/tree-sitter-tsql` has the name `TSQL`, and only `sqlserver`
-has a Go package.
+has a Go package. The SQLite grammar that xo writes has the name of its
+dialect, `sqlite3` (D126). The archived repository
+`dhcmrlchtdj/tree-sitter-sqlite` is not in the golden set.
 
 ## The layout of a grammar
 
@@ -325,6 +328,10 @@ Each one follows these rules, in addition to the rest of this document:
    group of them, and not with one keyword for each word. Then each state
    where an expression starts has fewer than 64 columns, and it does not
    take the large form.
+   The SQLite grammar takes the operators of each level of precedence
+   from one token, as the SQL Server grammar does. It reads `TRUE` and
+   `FALSE` as one token, and `CURRENT_DATE`, `CURRENT_TIME` and
+   `CURRENT_TIMESTAMP` as one token.
    A statement of Transact-SQL does not need a semicolon at its end. So
    each word that starts a statement can come after each expression, and
    each state after an expression would hold about 40 such words. More
@@ -363,7 +370,9 @@ The folder `grammars/<name>` is the module of the grammar, and it is laid
 out as the checkout of a grammar repository and as a grammar module at once.
 `grammars/usql` holds one grammar, `usql`, at the root of the module. Its
 package is `usql`. `grammars/mysql`, `grammars/oracle` and
-`grammars/sqlserver` are laid out the same way. `grammars/postgres` holds the grammars `postgres` and
+`grammars/sqlserver` are laid out the same way. `grammars/sqlite3` is laid
+out the same way, but it has no `src/scanner.c` and no `scanner.go`,
+because the SQLite grammar needs no external scanner. `grammars/postgres` holds the grammars `postgres` and
 `plpgsql` in the folders of their packages, `grammars/postgres/postgres`
 and `grammars/postgres/plpgsql`. Each folder holds the same files as
 `grammars/usql` but `options.go` and `testdata/options/`, and the

@@ -20,6 +20,7 @@ import (
 	"github.com/xo/transit/grammars/oracle"
 	"github.com/xo/transit/grammars/postgres/postgres"
 	"github.com/xo/transit/grammars/sql"
+	"github.com/xo/transit/grammars/sqlite3"
 	"github.com/xo/transit/grammars/sqlserver"
 	"github.com/xo/transit/grammars/usql"
 	"github.com/xo/transit/inject"
@@ -46,6 +47,7 @@ var dialects = []Dialect{
 	{"mysql", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true}, mysql.Language, mysql.Queries, mysql.Keywords},
 	{"oracle", usql.Options{BlockComments: true, BeginEndBlocks: true}, oracle.Language, oracle.Queries, oracle.Keywords},
 	{"postgres", usql.Options{DollarQuotes: true, BlockComments: true}, postgres.Language, postgres.Queries, postgres.Keywords},
+	{"sqlite3", usql.Options{BlockComments: true}, sqlite3.Language, sqlite3.Queries, sqlite3.Keywords},
 	{"sqlserver", usql.Options{BlockComments: true, BeginEndBlocks: true}, sqlserver.Language, sqlserver.Queries, sqlserver.Keywords},
 }
 
