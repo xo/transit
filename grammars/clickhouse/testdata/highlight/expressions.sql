@@ -10,7 +10,7 @@ SELECT CAST(a AS UInt8), b::Nullable(String), DATE '2024-01-01', INTERVAL 3 DAY,
 --                                                                          ^ keyword
 --                                                                                ^ variable.parameter
 --                                                                                   ^ type.builtin
-SELECT [1, 2], (1, 'a'), {'k': 1}, t.1, arr[1], json.a.:Int64, $$text$$, x'41', 0x1F, inf # note
+SELECT [1, 2], (1, 'a'), {'k': 1}, t.1, arr[1], json.a.:Int64, $$text$$, x'41', 0x1F, inf; # note
 --     ^ punctuation.bracket
 --                 ^ string
 --                        ^ property
@@ -21,8 +21,8 @@ SELECT [1, 2], (1, 'a'), {'k': 1}, t.1, arr[1], json.a.:Int64, $$text$$, x'41', 
 --                                                                       ^ string.special
 --                                                                              ^ number
 --                                                                                    ^ number
---                                                                                        ^ comment
-SELECT arrayMap(x -> x + 1, arr), a > 1 ? 'y' : 'n', s ILIKE 'x%', c GLOBAL NOT IN (1), d IS NOT NULL // end
+--                                                                                         ^ comment
+SELECT arrayMap(x -> x + 1, arr), a > 1 ? 'y' : 'n', s ILIKE 'x%', c GLOBAL NOT IN (1), d IS NOT NULL; // end
 --     ^ function.call
 --              ^ variable.parameter
 --                ^ operator
@@ -31,7 +31,7 @@ SELECT arrayMap(x -> x + 1, arr), a > 1 ? 'y' : 'n', s ILIKE 'x%', c GLOBAL NOT 
 --                                                     ^ keyword
 --                                                                   ^ keyword
 --                                                                                               ^ constant.builtin
---                                                                                                    ^ comment
+--                                                                                                     ^ comment
 SELECT quantile(0.9)(x), sumIf(y, y > 0), count() OVER (PARTITION BY z ORDER BY w), CASE WHEN a THEN 1 ELSE 2 END;
 --     ^ function.call
 --                       ^ function.call

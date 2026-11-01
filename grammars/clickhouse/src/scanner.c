@@ -8,6 +8,14 @@
 // of an identifier without a dollar sign. The scanner gives the opening tag,
 // the text and the closing tag as three tokens, so that an injection can
 // take the text. It keeps the tag from the opening tag to the closing tag.
+//
+// The scanner also reads the data of INSERT after FORMAT and the name of
+// the format, as in INSERT INTO t FORMAT CSV 1,2. The client of ClickHouse
+// reads the data to the end of the line. The data starts after the spaces
+// and one line feed after the name, so it can start on the next line. A
+// semicolon at the end of the line, with only spaces after it, is not part
+// of the data, because it ends the statement. The parser asks for the
+// data only after the name of the format of INSERT.
 
 #include "tree_sitter/alloc.h"
 #include "tree_sitter/parser.h"
@@ -22,6 +30,7 @@ enum TokenType {
   HEREDOC_START,
   STRING_CONTENT,
   HEREDOC_END,
+  INSERT_DATA,
 };
 
 // MAX_TAG is the longest tag that the scanner keeps, in characters. With
@@ -47,6 +56,9 @@ static inline void skip(TSLexer *lexer) { lexer->advance(lexer, true); }
 static inline bool is_space(int32_t c) {
   return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v';
 }
+
+// is_blank reports whether c is white space that does not end a line.
+static inline bool is_blank(int32_t c) { return c == ' ' || c == '\t' || c == '\r' || c == '\f' || c == '\v'; }
 
 // is_tag_start reports whether c can start a tag: a letter, an underscore
 // or a character outside ASCII.
@@ -171,6 +183,46 @@ static bool scan_content(Scanner *s, TSLexer *lexer, const bool *valid_symbols) 
   return text && valid_symbols[STRING_CONTENT];
 }
 
+// scan_insert_data reads the data of INSERT to the end of the line. It
+// skips the spaces and one line feed before the data. It returns false
+// when no data comes, and then it has read only white space, so that the
+// caller can go on to read a comment.
+static bool scan_insert_data(TSLexer *lexer) {
+  while (is_blank(lexer->lookahead)) {
+    skip(lexer);
+  }
+  if (lexer->lookahead == '\n') {
+    skip(lexer);
+    while (is_blank(lexer->lookahead)) {
+      skip(lexer);
+    }
+  }
+  if (lexer->lookahead == ';') {
+    return false;
+  }
+  bool data = false;
+  while (!lexer->eof(lexer) && lexer->lookahead != '\n') {
+    if (lexer->lookahead == ';') {
+      advance(lexer);
+      while (is_blank(lexer->lookahead)) {
+        advance(lexer);
+      }
+      if (lexer->eof(lexer) || lexer->lookahead == '\n') {
+        break;
+      }
+      continue;
+    }
+    bool blank = is_blank(lexer->lookahead);
+    advance(lexer);
+    if (!blank) {
+      lexer->mark_end(lexer);
+      data = true;
+    }
+  }
+  lexer->result_symbol = INSERT_DATA;
+  return data;
+}
+
 void *tree_sitter_clickhouse_external_scanner_create(void) { return ts_calloc(1, sizeof(Scanner)); }
 
 void tree_sitter_clickhouse_external_scanner_destroy(void *payload) { ts_free(payload); }
@@ -205,6 +257,11 @@ bool tree_sitter_clickhouse_external_scanner_scan(void *payload, TSLexer *lexer,
   Scanner *s = (Scanner *)payload;
   if (s->open && (valid_symbols[STRING_CONTENT] || valid_symbols[HEREDOC_END])) {
     return scan_content(s, lexer, valid_symbols);
+  }
+  // In error recovery, each token is valid, and the scanner does not read
+  // the data of INSERT.
+  if (valid_symbols[INSERT_DATA] && !valid_symbols[HEREDOC_END] && scan_insert_data(lexer)) {
+    return true;
   }
   while (is_space(lexer->lookahead)) {
     skip(lexer);

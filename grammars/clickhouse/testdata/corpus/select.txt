@@ -65,7 +65,7 @@ SELECT a AS x, b y, c AS `select`, d AS "from" FROM t AS u, s v;
 A comma after the last item of WITH
 ================================================================================
 
-WITH 1 AS a, 2 AS b, SELECT a + b;
+WITH 10 AS ten, 20 AS twenty, SELECT ten * twenty;
 
 ---
 
@@ -502,14 +502,18 @@ SELECT * FROM t FINAL; SELECT * FROM t AS x FINAL SAMPLE 0.1; SELECT * FROM t SA
 Table functions
 ================================================================================
 
-SELECT * FROM numbers(10); SELECT * FROM remote('host', db, t) AS r; SELECT * FROM system.numbers LIMIT 3; SELECT * FROM view(SELECT 1); SELECT * FROM values('a UInt8', 1, 2); SELECT * FROM s3('url', 'CSV', 'a String') FINAL;
+SELECT number * 2 FROM numbers(5); SELECT * FROM remote('host', db, t) AS r; SELECT number FROM system.numbers LIMIT 7; SELECT * FROM view(SELECT 2 AS b); SELECT * FROM values('a UInt8', 1, 2); SELECT * FROM s3('url', 'CSV', 'a String') FINAL;
 
 ---
 
 (source_file
   (select_statement
     (select
-      (star_expression)
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number))
       (from_clause
         (function_table
           (function_call
@@ -532,7 +536,8 @@ SELECT * FROM numbers(10); SELECT * FROM remote('host', db, t) AS r; SELECT * FR
           (identifier)))))
   (select_statement
     (select
-      (star_expression)
+      (column_reference
+        (identifier))
       (from_clause
         (table_reference
           (object_reference
@@ -549,7 +554,9 @@ SELECT * FROM numbers(10); SELECT * FROM remote('host', db, t) AS r; SELECT * FR
             (identifier)
             (arguments
               (select
-                (number))))))))
+                (aliased_expression
+                  (number)
+                  (identifier)))))))))
   (select_statement
     (select
       (star_expression)
@@ -1458,7 +1465,7 @@ SELECT * FROM t INTO OUTFILE 'out.csv'; SELECT 1 INTO OUTFILE 'a.gz' AND STDOUT 
 FORMAT
 ================================================================================
 
-SELECT * FROM t FORMAT JSONEachRow; SELECT 1 FORMAT Null; SELECT 1 FORMAT TabSeparated SETTINGS a = 1;
+SELECT * FROM t FORMAT JSONEachRow; SELECT 42 FORMAT Null; SELECT 1 FORMAT TabSeparated SETTINGS a = 1;
 
 ---
 
@@ -1762,7 +1769,7 @@ SELECT Settings['max_threads'], has(Settings, 'x') FROM system.query_log;
 EXPLAIN
 ================================================================================
 
-EXPLAIN SELECT 1; EXPLAIN AST SELECT 1; EXPLAIN SYNTAX oneline = 1 SELECT 1; EXPLAIN PLAN actions = 1, header = 1 SELECT * FROM t; EXPLAIN PIPELINE SELECT 1; EXPLAIN QUERY TREE run_passes = 1 SELECT 1; EXPLAIN ESTIMATE SELECT 1; EXPLAIN CURRENT TRANSACTION;
+EXPLAIN SELECT 1; EXPLAIN AST SELECT x FROM t; EXPLAIN SYNTAX oneline = 1 SELECT 1; EXPLAIN PLAN actions = 1, header = 1 SELECT * FROM t; EXPLAIN PIPELINE SELECT 1; EXPLAIN QUERY TREE run_passes = 1 SELECT 1; EXPLAIN ESTIMATE SELECT 1; EXPLAIN CURRENT TRANSACTION;
 
 ---
 
@@ -1772,7 +1779,12 @@ EXPLAIN SELECT 1; EXPLAIN AST SELECT 1; EXPLAIN SYNTAX oneline = 1 SELECT 1; EXP
       (number)))
   (explain_statement
     (select
-      (number)))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
   (explain_statement
     (setting
       (identifier)
@@ -1846,3 +1858,66 @@ SELECT explain FROM (EXPLAIN indexes = 1 SELECT count() FROM t WHERE a = 1) WHER
           (column_reference
             (identifier))
           (string))))))
+
+================================================================================
+A comma before FROM
+================================================================================
+
+SELECT a, b, FROM t; SELECT 1, FROM t WHERE x;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (select_statement
+    (select
+      (number)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (column_reference
+          (identifier))))))
+
+================================================================================
+Words that start a clause as names
+================================================================================
+
+SELECT from, where, limit FROM t AS where WHERE group = 1 ORDER BY order;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))
+          (identifier)))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))
+      (order_by_clause
+        (order_by_item
+          (column_reference
+            (identifier)))))))

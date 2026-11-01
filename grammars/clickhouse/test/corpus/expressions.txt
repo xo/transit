@@ -1787,7 +1787,7 @@ SELECT 1abc, 02103_func() FROM 01686_test JOIN 3533_t USING (id);
 OVERLAY
 ================================================================================
 
-SELECT OVERLAY('abcdef' PLACING 'XY' FROM 3 FOR 2);
+SELECT OVERLAY('hello world' PLACING 'there' FROM 7 FOR 5);
 
 ---
 

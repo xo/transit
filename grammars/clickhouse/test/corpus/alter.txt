@@ -1,0 +1,806 @@
+================================================================================
+ALTER TABLE ADD COLUMN
+================================================================================
+
+ALTER TABLE users ADD COLUMN age UInt8; ALTER TABLE users ADD COLUMN IF NOT EXISTS city String DEFAULT 'none' AFTER age, ADD COLUMN id2 UInt64 FIRST;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (add_action
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (add_action
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (string))
+      (identifier))
+    (add_action
+      (column_definition
+        (identifier)
+        (type
+          (identifier))))))
+
+================================================================================
+ALTER TABLE with ON CLUSTER and more than one action
+================================================================================
+
+ALTER TABLE db.users ON CLUSTER main DROP COLUMN IF EXISTS city, RENAME COLUMN age TO years, COMMENT COLUMN years 'in whole years';
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (on_cluster
+      (identifier))
+    (drop_action
+      (identifier))
+    (rename_column_action
+      (identifier)
+      (identifier))
+    (comment_column_action
+      (identifier)
+      (string))))
+
+================================================================================
+ALTER TABLE MODIFY COLUMN
+================================================================================
+
+ALTER TABLE users MODIFY COLUMN years UInt16 CODEC(T64, LZ4); ALTER TABLE users MODIFY COLUMN IF EXISTS name LowCardinality(String) AFTER id;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (modify_action
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (codec
+          (arguments
+            (column_reference
+              (identifier))
+            (column_reference
+              (identifier)))))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (modify_action
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_arguments
+            (type
+              (identifier)))))
+      (identifier))))
+
+================================================================================
+ALTER TABLE MODIFY COLUMN REMOVE and settings
+================================================================================
+
+ALTER TABLE users MODIFY COLUMN name REMOVE CODEC; ALTER TABLE users MODIFY COLUMN blob MODIFY SETTING max_compress_block_size = 1024; ALTER TABLE users MODIFY COLUMN blob RESET SETTING max_compress_block_size;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (modify_action
+      (identifier)
+      (identifier)))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (modify_action
+      (identifier)
+      (setting
+        (identifier)
+        (number))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (modify_action
+      (identifier)
+      (identifier))))
+
+================================================================================
+ALTER TABLE CLEAR and MATERIALIZE COLUMN
+================================================================================
+
+ALTER TABLE users CLEAR COLUMN name IN PARTITION 202501; ALTER TABLE users MATERIALIZE COLUMN score IN PARTITION ID '202502';
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (drop_action
+      (identifier)
+      (in_partition
+        (partition
+          (number)))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (drop_action
+      (identifier)
+      (in_partition
+        (partition
+          (string))))))
+
+================================================================================
+ALTER COLUMN TYPE
+================================================================================
+
+ALTER TABLE users ALTER COLUMN score TYPE Float64;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (alter_column_action
+      (identifier)
+      (type
+        (identifier)))))
+
+================================================================================
+ALTER TABLE on indexes
+================================================================================
+
+ALTER TABLE users ADD INDEX name_idx name TYPE ngrambf_v1(3, 256, 2, 0) GRANULARITY 4 AFTER id_idx, DROP INDEX old_idx, MATERIALIZE INDEX name_idx IN PARTITION 1, CLEAR INDEX IF EXISTS name_idx;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (add_action
+      (identifier)
+      (column_reference
+        (identifier))
+      (function_call
+        (identifier)
+        (arguments
+          (number)
+          (number)
+          (number)
+          (number)))
+      (number)
+      (identifier))
+    (drop_action
+      (identifier))
+    (drop_action
+      (identifier)
+      (in_partition
+        (partition
+          (number))))
+    (drop_action
+      (identifier))))
+
+================================================================================
+ALTER TABLE on projections
+================================================================================
+
+ALTER TABLE users ADD PROJECTION IF NOT EXISTS by_name (SELECT * ORDER BY name); ALTER TABLE users MATERIALIZE PROJECTION by_name; ALTER TABLE users DROP PROJECTION by_name;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (add_action
+      (identifier)
+      (subquery)
+      (subquery
+        (select
+          (star_expression)
+          (order_by_clause
+            (order_by_item
+              (column_reference
+                (identifier))))))
+      (subquery)))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (drop_action
+      (identifier)))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (drop_action
+      (identifier))))
+
+================================================================================
+ALTER TABLE on constraints
+================================================================================
+
+ALTER TABLE users ADD CONSTRAINT adult CHECK age >= 18, DROP CONSTRAINT IF EXISTS old_rule;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (add_action
+      (identifier)
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))
+    (drop_action
+      (identifier))))
+
+================================================================================
+ALTER TABLE on statistics
+================================================================================
+
+ALTER TABLE users ADD STATISTICS age, score TYPE tdigest, minmax; ALTER TABLE users MODIFY STATISTICS age TYPE uniq; ALTER TABLE users DROP STATISTICS score;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (add_action
+      (identifier)
+      (identifier)
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (modify_action
+      (identifier)
+      (column_reference
+        (identifier))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (drop_action
+      (identifier))))
+
+================================================================================
+ALTER TABLE on the keys and TTL
+================================================================================
+
+ALTER TABLE users MODIFY ORDER BY (id, name); ALTER TABLE users MODIFY SAMPLE BY id; ALTER TABLE users REMOVE SAMPLE BY; ALTER TABLE users MODIFY TTL created + INTERVAL 3 MONTH DELETE; ALTER TABLE users REMOVE TTL; ALTER TABLE users MATERIALIZE TTL IN PARTITION 2;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (modify_action
+      (tuple
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier)))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (modify_action
+      (column_reference
+        (identifier))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (remove_action))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (modify_action
+      (ttl_clause
+        (ttl_item
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (interval_expression
+              (number)
+              (interval_unit)))))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (remove_action))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (partition_action
+      (in_partition
+        (partition
+          (number))))))
+
+================================================================================
+ALTER TABLE on settings and the comment
+================================================================================
+
+ALTER TABLE users MODIFY SETTING merge_with_ttl_timeout = 3600, max_parts_in_total = 5000; ALTER TABLE users RESET SETTING max_parts_in_total; ALTER TABLE users MODIFY COMMENT 'people who signed up';
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (modify_action
+      (setting
+        (identifier)
+        (number))
+      (setting
+        (identifier)
+        (number))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (reset_setting_action
+      (identifier)))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (modify_action
+      (comment_clause
+        (string)))))
+
+================================================================================
+ALTER TABLE UPDATE and DELETE
+================================================================================
+
+ALTER TABLE users UPDATE score = score + 1, name = upper(name) WHERE id < 10; ALTER TABLE users DELETE WHERE age IS NULL; ALTER TABLE users DELETE IN PARTITION 202501 WHERE score = 0;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (update_action
+      (assignment
+        (identifier)
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))
+      (assignment
+        (identifier)
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier)))))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (delete_action
+      (where_clause
+        (is_expression
+          (column_reference
+            (identifier))
+          (null)))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (delete_action
+      (in_partition
+        (partition
+          (number)))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))))))
+
+================================================================================
+ALTER TABLE on partitions
+================================================================================
+
+ALTER TABLE logs DETACH PARTITION 202501; ALTER TABLE logs ATTACH PART 'all_3_3_0'; ALTER TABLE logs DROP PARTITION '2025-01-05'; ALTER TABLE logs DROP DETACHED PART 'all_1_1_0'; ALTER TABLE logs FORGET PARTITION 202412; ALTER TABLE logs DROP PARTITION ALL;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (partition_action
+      (partition
+        (number))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (partition_action
+      (partition
+        (string))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (partition_action
+      (partition
+        (string))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (partition_action
+      (partition
+        (string))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (partition_action
+      (partition
+        (number))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (partition_action
+      (partition))))
+
+================================================================================
+ALTER TABLE with partitions from another table
+================================================================================
+
+ALTER TABLE logs ATTACH PARTITION tuple() FROM logs_old; ALTER TABLE logs REPLACE PARTITION (2025, 'eu') FROM staging.logs; ALTER TABLE logs MOVE PARTITION 202501 TO TABLE logs_archive;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (partition_action
+      (partition
+        (function_call
+          (identifier)
+          (arguments)))
+      (object_reference
+        (identifier))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (partition_action
+      (partition
+        (tuple
+          (number)
+          (string)))
+      (object_reference
+        (identifier)
+        (identifier))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (partition_action
+      (partition
+        (number))
+      (object_reference
+        (identifier)))))
+
+================================================================================
+ALTER TABLE MOVE, FETCH, FREEZE and UNFREEZE
+================================================================================
+
+ALTER TABLE logs MOVE PART 'all_9_9_0' TO VOLUME 'slow'; ALTER TABLE logs MOVE PARTITION 7 TO DISK 'ssd'; ALTER TABLE logs FETCH PARTITION 202501 FROM '/clickhouse/tables/01/logs'; ALTER TABLE logs FREEZE; ALTER TABLE logs FREEZE PARTITION 202501 WITH NAME 'snap1'; ALTER TABLE logs UNFREEZE WITH NAME 'snap1';
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (partition_action
+      (partition
+        (string))
+      (string)))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (partition_action
+      (partition
+        (number))
+      (string)))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (partition_action
+      (partition
+        (number))
+      (string)))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (partition_action))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (partition_action
+      (partition
+        (number))
+      (string)))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (partition_action
+      (string))))
+
+================================================================================
+ALTER TABLE APPLY and REWRITE
+================================================================================
+
+ALTER TABLE logs APPLY DELETED MASK; ALTER TABLE logs APPLY PATCHES IN PARTITION 3; ALTER TABLE logs REWRITE PARTS;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (partition_action))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (partition_action
+      (in_partition
+        (partition
+          (number)))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (partition_action)))
+
+================================================================================
+ALTER TABLE on a view
+================================================================================
+
+ALTER TABLE mv MODIFY QUERY SELECT a, count() FROM src GROUP BY a; ALTER TABLE rv MODIFY REFRESH EVERY 2 HOUR; ALTER TABLE v MODIFY SQL SECURITY INVOKER; ALTER TABLE v MODIFY DEFINER = owner;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (modify_action
+      (select
+        (column_reference
+          (identifier))
+        (function_call
+          (identifier)
+          (arguments))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))
+        (group_by_clause
+          (column_reference
+            (identifier))))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (modify_action
+      (refresh_clause
+        (number)
+        (interval_unit))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (modify_action))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (modify_action
+      (identifier))))
+
+================================================================================
+ALTER TEMPORARY TABLE and ALTER DATABASE
+================================================================================
+
+ALTER TEMPORARY TABLE scratch ADD COLUMN y UInt8; ALTER DATABASE shop ON CLUSTER main MODIFY COMMENT 'the shop'; ALTER DATABASE shop MODIFY SETTING max_broken_tables_ratio = 1;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (add_action
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (on_cluster
+      (identifier))
+    (modify_action
+      (comment_clause
+        (string))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (modify_action
+      (setting
+        (identifier)
+        (number)))))
+
+================================================================================
+ALTER TABLE with SETTINGS and FORMAT
+================================================================================
+
+ALTER TABLE users MODIFY COLUMN name String SETTINGS mutations_sync = 2; ALTER TABLE users ADD COLUMN blob String SETTINGS (min_compress_block_size = 4096); ALTER TABLE users DELETE WHERE 1 FORMAT Null SETTINGS alter_sync = 1;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (modify_action
+      (column_definition
+        (identifier)
+        (type
+          (identifier))))
+    (settings_clause
+      (setting
+        (identifier)
+        (number))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (add_action
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (setting
+          (identifier)
+          (number)))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (delete_action
+      (where_clause
+        (number)))
+    (format_clause
+      (identifier))
+    (settings_clause
+      (setting
+        (identifier)
+        (number)))))
+
+================================================================================
+ALTER TABLE on statistics of more than one column
+================================================================================
+
+ALTER TABLE users MATERIALIZE STATISTICS age, score; ALTER TABLE users DROP STATISTICS IF EXISTS age, score;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (drop_action
+      (identifier)
+      (identifier)))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (drop_action
+      (identifier)
+      (identifier))))
+
+================================================================================
+ALTER TABLE EXECUTE
+================================================================================
+
+ALTER TABLE lake EXECUTE expire_snapshots('2025-06-01 00:00:00'); ALTER TABLE lake EXECUTE remove_orphan_files(dry_run = 1);
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (execute_action
+      (function_call
+        (identifier)
+        (arguments
+          (string)))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (execute_action
+      (function_call
+        (identifier)
+        (arguments
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number)))))))
+
+================================================================================
+ALTER TABLE on a partition named by a parameter
+================================================================================
+
+ALTER TABLE logs DROP PARTITION {p:String}; ALTER TABLE logs DETACH PARTITION ID {id:String};
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (partition_action
+      (partition
+        (query_parameter
+          (identifier)
+          (type
+            (identifier))))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (partition_action
+      (partition
+        (query_parameter
+          (identifier)
+          (type
+            (identifier)))))))
+
+================================================================================
+ALTER NAMED COLLECTION
+================================================================================
+
+ALTER NAMED COLLECTION IF EXISTS s3_conn ON CLUSTER main SET url = 'https://other/' OVERRIDABLE, region = 'us' DELETE access_key_id;
+
+---
+
+(source_file
+  (alter_named_collection_statement
+    (identifier)
+    (on_cluster
+      (identifier))
+    (collection_item
+      (identifier)
+      (string))
+    (collection_item
+      (identifier)
+      (string))
+    (identifier)))

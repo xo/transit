@@ -1,0 +1,21 @@
+ALTER TABLE users ON CLUSTER main ADD COLUMN age UInt8 AFTER id, DROP COLUMN IF EXISTS city, RENAME COLUMN a TO b;
+-- <- keyword
+--          ^ type
+--                                ^ keyword
+--                                    ^ keyword
+--                                           ^ variable.member
+--                                                     ^ keyword
+--                                                           ^ variable.member
+--                                                               ^ keyword
+--                                                                                     ^ variable.member
+--                                                                                           ^ keyword
+--                                                                                                         ^ variable.member
+--                                                                                                              ^ variable.member
+ALTER TABLE logs UPDATE n = n + 1 WHERE 1, DROP PARTITION 202501, MODIFY TTL d + INTERVAL 1 DAY SETTINGS mutations_sync = 2;
+--               ^ keyword
+--                      ^ variable.member
+--                        ^ operator
+--                                              ^ keyword
+--                                                                ^ keyword
+--                                                                       ^ keyword
+--                                                                                                       ^ variable.builtin

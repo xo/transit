@@ -1,0 +1,1645 @@
+================================================================================
+CREATE DATABASE
+================================================================================
+
+CREATE DATABASE shop; CREATE DATABASE IF NOT EXISTS lake ON CLUSTER main ENGINE = Replicated('/dbs/lake', '{shard}', '{replica}') COMMENT 'raw data';
+
+---
+
+(source_file
+  (create_database_statement
+    (identifier))
+  (create_database_statement
+    (identifier)
+    (on_cluster
+      (identifier))
+    (engine_clause
+      (identifier)
+      (arguments
+        (string)
+        (string)
+        (string)))
+    (comment_clause
+      (string))))
+
+================================================================================
+CREATE DATABASE with settings
+================================================================================
+
+CREATE DATABASE remote_pg ENGINE = PostgreSQL('pg:5432', 'app', 'reader', 'secret') SETTINGS use_table_cache = 1;
+
+---
+
+(source_file
+  (create_database_statement
+    (identifier)
+    (engine_clause
+      (identifier)
+      (arguments
+        (string)
+        (string)
+        (string)
+        (string)))
+    (settings_clause
+      (setting
+        (identifier)
+        (number)))))
+
+================================================================================
+CREATE TABLE with columns and an engine
+================================================================================
+
+CREATE TABLE trades (id UInt64, symbol LowCardinality(String), price Decimal(18, 4), at DateTime64(3, 'UTC')) ENGINE = MergeTree ORDER BY (symbol, at);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (table_elements
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_arguments
+            (type
+              (identifier)))))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_arguments
+            (number)
+            (number))))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_arguments
+            (number)
+            (string)))))
+    (engine_clause
+      (identifier))
+    (order_by_clause
+      (order_by_item
+        (tuple
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier)))))))
+
+================================================================================
+CREATE TABLE with the clauses of MergeTree
+================================================================================
+
+CREATE TABLE IF NOT EXISTS shop.orders ON CLUSTER main
+(
+    day Date,
+    id UInt64,
+    total Float64
+)
+ENGINE = ReplicatedMergeTree('/tables/{shard}/orders', '{replica}')
+PARTITION BY toYYYYMM(day)
+PRIMARY KEY id
+ORDER BY (id, day)
+SAMPLE BY id
+SETTINGS index_granularity = 4096, storage_policy = 'tiered'
+COMMENT 'all orders';
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (on_cluster
+      (identifier))
+    (table_elements
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))))
+    (engine_clause
+      (identifier)
+      (arguments
+        (string)
+        (string)))
+    (partition_by_clause
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier)))))
+    (primary_key
+      (column_reference
+        (identifier)))
+    (order_by_clause
+      (order_by_item
+        (tuple
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier)))))
+    (sample_by_clause
+      (column_reference
+        (identifier)))
+    (settings_clause
+      (setting
+        (identifier)
+        (number))
+      (setting
+        (identifier)
+        (string)))
+    (comment_clause
+      (string))))
+
+================================================================================
+CREATE TABLE with column options
+================================================================================
+
+CREATE TABLE readings (
+    sensor UInt32 COMMENT 'the device',
+    value Float32 CODEC(Gorilla, LZ4),
+    raw String DEFAULT '' CODEC(ZSTD(3)),
+    doubled Float64 MATERIALIZED value * 2,
+    label ALIAS concat('s', toString(sensor)),
+    hint UInt8 EPHEMERAL,
+    kept DateTime TTL kept + INTERVAL 1 MONTH,
+    note Nullable(String) NULL,
+    code String NOT NULL,
+    stats UInt64 STATISTICS(tdigest, uniq),
+    big String SETTINGS (max_compress_block_size = 65536),
+    k UInt64 PRIMARY KEY,
+) ENGINE = MergeTree;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (table_elements
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (string))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (codec
+          (arguments
+            (column_reference
+              (identifier))
+            (column_reference
+              (identifier)))))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (string)
+        (codec
+          (arguments
+            (function_call
+              (identifier)
+              (arguments
+                (number))))))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))
+      (column_definition
+        (identifier)
+        (function_call
+          (identifier)
+          (arguments
+            (string)
+            (function_call
+              (identifier)
+              (arguments
+                (column_reference
+                  (identifier)))))))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (interval_expression
+            (number)
+            (interval_unit))))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_arguments
+            (type
+              (identifier))))
+        (null))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (null))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (arguments
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (setting
+          (identifier)
+          (number)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))))
+    (engine_clause
+      (identifier))))
+
+================================================================================
+CREATE TABLE with indexes, projections and constraints
+================================================================================
+
+CREATE TABLE pages (
+    url String,
+    hits UInt32,
+    INDEX url_idx url TYPE bloom_filter(0.01) GRANULARITY 2,
+    INDEX hit_idx hits * 2 TYPE minmax,
+    PROJECTION by_hits (SELECT url, hits ORDER BY hits),
+    PROJECTION sums (SELECT url, sum(hits) GROUP BY url),
+    CONSTRAINT positive CHECK hits >= 0,
+    CONSTRAINT short ASSUME length(url) < 2048,
+    PRIMARY KEY (url)
+) ENGINE = MergeTree ORDER BY url;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (table_elements
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (index_definition
+        (identifier)
+        (column_reference
+          (identifier))
+        (function_call
+          (identifier)
+          (arguments
+            (number)))
+        (number))
+      (index_definition
+        (identifier)
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))
+        (column_reference
+          (identifier)))
+      (projection_definition
+        (identifier)
+        (subquery)
+        (subquery
+          (select
+            (column_reference
+              (identifier))
+            (column_reference
+              (identifier))
+            (order_by_clause
+              (order_by_item
+                (column_reference
+                  (identifier))))))
+        (subquery))
+      (projection_definition
+        (identifier)
+        (subquery)
+        (subquery
+          (select
+            (column_reference
+              (identifier))
+            (function_call
+              (identifier)
+              (arguments
+                (column_reference
+                  (identifier))))
+            (group_by_clause
+              (column_reference
+                (identifier)))))
+        (subquery))
+      (constraint_definition
+        (identifier)
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))
+      (constraint_definition
+        (identifier)
+        (binary_expression
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier))))
+          (operator)
+          (number)))
+      (primary_key
+        (parenthesized_expression
+          (column_reference
+            (identifier)))))
+    (engine_clause
+      (identifier))
+    (order_by_clause
+      (order_by_item
+        (column_reference
+          (identifier))))))
+
+================================================================================
+CREATE TABLE with TTL
+================================================================================
+
+CREATE TABLE history (d DateTime, v UInt8) ENGINE = MergeTree ORDER BY d
+TTL d + INTERVAL 1 WEEK TO VOLUME 'cold', d + INTERVAL 1 MONTH TO DISK 'archive', d + INTERVAL 1 YEAR DELETE WHERE v = 0, d + INTERVAL 2 YEAR RECOMPRESS CODEC(ZSTD(9));
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (table_elements
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))))
+    (engine_clause
+      (identifier))
+    (order_by_clause
+      (order_by_item
+        (column_reference
+          (identifier))))
+    (ttl_clause
+      (ttl_item
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (interval_expression
+            (number)
+            (interval_unit)))
+        (string))
+      (ttl_item
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (interval_expression
+            (number)
+            (interval_unit)))
+        (string))
+      (ttl_item
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (interval_expression
+            (number)
+            (interval_unit)))
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))
+      (ttl_item
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (interval_expression
+            (number)
+            (interval_unit)))
+        (codec
+          (arguments
+            (function_call
+              (identifier)
+              (arguments
+                (number)))))))))
+
+================================================================================
+CREATE TABLE with TTL and GROUP BY
+================================================================================
+
+CREATE TABLE rollup (k UInt32, d Date, n UInt64) ENGINE = MergeTree ORDER BY (k, d) TTL d + INTERVAL 30 DAY GROUP BY k SET n = sum(n), d = max(d);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (table_elements
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))))
+    (engine_clause
+      (identifier))
+    (order_by_clause
+      (order_by_item
+        (tuple
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier)))))
+    (ttl_clause
+      (ttl_item
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (interval_expression
+            (number)
+            (interval_unit)))
+        (column_reference
+          (identifier))
+        (assignment
+          (identifier)
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier)))))
+        (assignment
+          (identifier)
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier)))))))))
+
+================================================================================
+CREATE TABLE with no ORDER BY and an engine with no parentheses
+================================================================================
+
+CREATE TABLE buffer_log (line String) ENGINE Log; CREATE TEMPORARY TABLE scratch (x UInt8); CREATE TABLE IF NOT EXISTS s3_data (a Int32) ENGINE = S3('https://bucket/file.csv', 'CSV');
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (table_elements
+      (column_definition
+        (identifier)
+        (type
+          (identifier))))
+    (engine_clause
+      (identifier)))
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (table_elements
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))))
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (table_elements
+      (column_definition
+        (identifier)
+        (type
+          (identifier))))
+    (engine_clause
+      (identifier)
+      (arguments
+        (string)
+        (string)))))
+
+================================================================================
+CREATE TABLE AS another table
+================================================================================
+
+CREATE TABLE orders_copy AS shop.orders; CREATE TABLE orders_mem AS orders ENGINE = Memory; CREATE TABLE orders_clone CLONE AS orders;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (as_clause
+      (object_reference
+        (identifier)
+        (identifier))))
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (as_clause
+      (object_reference
+        (identifier)))
+    (engine_clause
+      (identifier)))
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (as_clause
+      (object_reference
+        (identifier)))))
+
+================================================================================
+CREATE TABLE AS a table function
+================================================================================
+
+CREATE TABLE gen AS generateRandom('a UInt8, b String', 1, 10);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (as_clause
+      (function_call
+        (identifier)
+        (arguments
+          (string)
+          (number)
+          (number))))))
+
+================================================================================
+CREATE TABLE AS a query
+================================================================================
+
+CREATE TABLE top_items ENGINE = MergeTree ORDER BY item AS SELECT item, count() AS n FROM sales GROUP BY item; CREATE TABLE copy_empty ENGINE = Memory EMPTY AS SELECT * FROM sales; CREATE TABLE typed (x UInt8) ENGINE = Memory AS SELECT 1;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (engine_clause
+      (identifier))
+    (order_by_clause
+      (order_by_item
+        (column_reference
+          (identifier))))
+    (as_clause
+      (select
+        (column_reference
+          (identifier))
+        (aliased_expression
+          (function_call
+            (identifier)
+            (arguments))
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))
+        (group_by_clause
+          (column_reference
+            (identifier))))))
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (engine_clause
+      (identifier))
+    (as_clause
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (table_elements
+      (column_definition
+        (identifier)
+        (type
+          (identifier))))
+    (engine_clause
+      (identifier))
+    (as_clause
+      (select
+        (number)))))
+
+================================================================================
+CREATE OR REPLACE and REPLACE TABLE
+================================================================================
+
+CREATE OR REPLACE TABLE flags (f Bool) ENGINE = Memory; REPLACE TABLE flags (f Bool, g Bool) ENGINE = Memory;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (table_elements
+      (column_definition
+        (identifier)
+        (type
+          (identifier))))
+    (engine_clause
+      (identifier)))
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (table_elements
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))))
+    (engine_clause
+      (identifier))))
+
+================================================================================
+CREATE TABLE with a UUID and nested columns
+================================================================================
+
+CREATE TABLE nested_t UUID '123e4567-e89b-12d3-a456-426614174000' (id UInt8, attrs Nested(name String, val Int64)) ENGINE = MergeTree ORDER BY id;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (uuid
+      (string))
+    (table_elements
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_arguments
+            (field_definition
+              (identifier)
+              (type
+                (identifier)))
+            (field_definition
+              (identifier)
+              (type
+                (identifier)))))))
+    (engine_clause
+      (identifier))
+    (order_by_clause
+      (order_by_item
+        (column_reference
+          (identifier))))))
+
+================================================================================
+CREATE TABLE with keywords as column names
+================================================================================
+
+CREATE TABLE odd (from UInt8, select String, type String, key UInt8, default Int8) ENGINE = Memory;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (table_elements
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))))
+    (engine_clause
+      (identifier))))
+
+================================================================================
+CREATE VIEW
+================================================================================
+
+CREATE VIEW recent AS SELECT * FROM events WHERE ts > now() - INTERVAL 1 HOUR; CREATE OR REPLACE VIEW IF NOT EXISTS db.v (a, b) AS SELECT 1, 2;
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (as_clause
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (binary_expression
+              (function_call
+                (identifier)
+                (arguments))
+              (operator)
+              (interval_expression
+                (number)
+                (interval_unit))))))))
+  (create_view_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (table_elements
+      (column_definition
+        (identifier))
+      (column_definition
+        (identifier)))
+    (as_clause
+      (select
+        (number)
+        (number)))))
+
+================================================================================
+CREATE VIEW with a parameter and SQL SECURITY
+================================================================================
+
+CREATE VIEW by_user DEFINER = admin SQL SECURITY DEFINER AS SELECT * FROM events WHERE user = {u:String}; CREATE VIEW open_v SQL SECURITY INVOKER AS SELECT 1;
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (as_clause
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (query_parameter
+              (identifier)
+              (type
+                (identifier))))))))
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (as_clause
+      (select
+        (number)))))
+
+================================================================================
+CREATE MATERIALIZED VIEW
+================================================================================
+
+CREATE MATERIALIZED VIEW daily ENGINE = SummingMergeTree ORDER BY day POPULATE AS SELECT toDate(ts) AS day, count() AS n FROM events GROUP BY day;
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (engine_clause
+      (identifier))
+    (order_by_clause
+      (order_by_item
+        (column_reference
+          (identifier))))
+    (as_clause
+      (select
+        (aliased_expression
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier))))
+          (identifier))
+        (aliased_expression
+          (function_call
+            (identifier)
+            (arguments))
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))
+        (group_by_clause
+          (column_reference
+            (identifier)))))))
+
+================================================================================
+CREATE MATERIALIZED VIEW with TO
+================================================================================
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_hits ON CLUSTER main TO stats.hits (page String, n UInt64) AS SELECT page, count() FROM raw GROUP BY page;
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (on_cluster
+      (identifier))
+    (to_clause
+      (object_reference
+        (identifier)
+        (identifier))
+      (table_elements
+        (column_definition
+          (identifier)
+          (type
+            (identifier)))
+        (column_definition
+          (identifier)
+          (type
+            (identifier)))))
+    (as_clause
+      (select
+        (column_reference
+          (identifier))
+        (function_call
+          (identifier)
+          (arguments))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))
+        (group_by_clause
+          (column_reference
+            (identifier)))))))
+
+================================================================================
+CREATE MATERIALIZED VIEW with REFRESH
+================================================================================
+
+CREATE MATERIALIZED VIEW nightly REFRESH EVERY 1 DAY OFFSET 2 HOUR RANDOMIZE FOR 10 MINUTE DEPENDS ON db.src, other APPEND TO target EMPTY AS SELECT now(); CREATE MATERIALIZED VIEW later REFRESH AFTER 30 SECOND ENGINE = Memory AS SELECT 1;
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (refresh_clause
+      (number)
+      (interval_unit)
+      (number)
+      (interval_unit)
+      (number)
+      (interval_unit)
+      (object_reference
+        (identifier)
+        (identifier))
+      (object_reference
+        (identifier)))
+    (to_clause
+      (object_reference
+        (identifier)))
+    (as_clause
+      (select
+        (function_call
+          (identifier)
+          (arguments)))))
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (refresh_clause
+      (number)
+      (interval_unit))
+    (engine_clause
+      (identifier))
+    (as_clause
+      (select
+        (number)))))
+
+================================================================================
+CREATE LIVE VIEW and WINDOW VIEW
+================================================================================
+
+CREATE LIVE VIEW lv AS SELECT count() FROM t; CREATE WINDOW VIEW wv TO dst WATERMARK = INTERVAL '2' SECOND ALLOWED_LATENESS = INTERVAL '5' SECOND AS SELECT count(id), tumbleStart(w_id) AS w FROM src GROUP BY tumble(ts, INTERVAL '10' SECOND) AS w_id;
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (as_clause
+      (select
+        (function_call
+          (identifier)
+          (arguments))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (to_clause
+      (object_reference
+        (identifier)))
+    (interval_expression
+      (string)
+      (interval_unit))
+    (interval_expression
+      (string)
+      (interval_unit))
+    (as_clause
+      (select
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier))))
+        (aliased_expression
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier))))
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))
+        (group_by_clause
+          (aliased_expression
+            (function_call
+              (identifier)
+              (arguments
+                (column_reference
+                  (identifier))
+                (interval_expression
+                  (string)
+                  (interval_unit))))
+            (identifier)))))))
+
+================================================================================
+CREATE TEMPORARY VIEW
+================================================================================
+
+CREATE TEMPORARY VIEW tmp_v AS SELECT 42;
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (as_clause
+      (select
+        (number)))))
+
+================================================================================
+CREATE DICTIONARY
+================================================================================
+
+CREATE DICTIONARY countries (
+    code String,
+    name String DEFAULT 'unknown',
+    parent String HIERARCHICAL,
+    region UInt64 EXPRESSION toUInt64(code) INJECTIVE
+)
+PRIMARY KEY code
+SOURCE(CLICKHOUSE(HOST 'localhost' PORT 9000 USER 'default' TABLE 'countries_src' DB 'geo'))
+LAYOUT(COMPLEX_KEY_HASHED())
+LIFETIME(MIN 300 MAX 600)
+COMMENT 'country names';
+
+---
+
+(source_file
+  (create_dictionary_statement
+    (object_reference
+      (identifier))
+    (table_elements
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (string))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier))))))
+    (primary_key
+      (column_reference
+        (identifier)))
+    (source_clause
+      (identifier)
+      (dictionary_parameters
+        (dictionary_parameter
+          (identifier)
+          (string))
+        (dictionary_parameter
+          (identifier)
+          (number))
+        (dictionary_parameter
+          (identifier)
+          (string))
+        (dictionary_parameter
+          (identifier)
+          (string))
+        (dictionary_parameter
+          (identifier)
+          (string))))
+    (layout_clause
+      (identifier)
+      (dictionary_parameters))
+    (lifetime_clause
+      (number)
+      (number))
+    (comment_clause
+      (string))))
+
+================================================================================
+CREATE DICTIONARY with a range and settings
+================================================================================
+
+CREATE OR REPLACE DICTIONARY IF NOT EXISTS db.rates ON CLUSTER main (id UInt64, start Date, stop Date, rate Float64)
+PRIMARY KEY id
+SOURCE(HTTP(url 'http://rates/feed' format 'TSV' headers(header(name 'token' value 'abc'))))
+LAYOUT(RANGE_HASHED(range_lookup_strategy 'max'))
+RANGE(MIN start MAX stop)
+LIFETIME(3600)
+SETTINGS(format_csv_allow_single_quotes = 0);
+
+---
+
+(source_file
+  (create_dictionary_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (on_cluster
+      (identifier))
+    (table_elements
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))))
+    (primary_key
+      (column_reference
+        (identifier)))
+    (source_clause
+      (identifier)
+      (dictionary_parameters
+        (dictionary_parameter
+          (identifier)
+          (string))
+        (dictionary_parameter
+          (identifier)
+          (string))
+        (dictionary_parameter
+          (identifier)
+          (dictionary_parameters
+            (dictionary_parameter
+              (identifier)
+              (dictionary_parameters
+                (dictionary_parameter
+                  (identifier)
+                  (string))
+                (dictionary_parameter
+                  (identifier)
+                  (string))))))))
+    (layout_clause
+      (identifier)
+      (dictionary_parameters
+        (dictionary_parameter
+          (identifier)
+          (string))))
+    (range_clause
+      (identifier)
+      (identifier))
+    (lifetime_clause
+      (number))
+    (settings_clause
+      (setting
+        (identifier)
+        (number)))))
+
+================================================================================
+CREATE DICTIONARY with a query as the source
+================================================================================
+
+CREATE DICTIONARY cache_d (k UInt64, v String) PRIMARY KEY k SOURCE(CLICKHOUSE(QUERY 'SELECT k, v FROM t' DB currentDatabase())) LAYOUT(CACHE(SIZE_IN_CELLS 1000)) LIFETIME(0);
+
+---
+
+(source_file
+  (create_dictionary_statement
+    (object_reference
+      (identifier))
+    (table_elements
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))))
+    (primary_key
+      (column_reference
+        (identifier)))
+    (source_clause
+      (identifier)
+      (dictionary_parameters
+        (dictionary_parameter
+          (identifier)
+          (string))
+        (dictionary_parameter
+          (identifier)
+          (function_call
+            (identifier)
+            (arguments)))))
+    (layout_clause
+      (identifier)
+      (dictionary_parameters
+        (dictionary_parameter
+          (identifier)
+          (number))))
+    (lifetime_clause
+      (number))))
+
+================================================================================
+CREATE FUNCTION
+================================================================================
+
+CREATE FUNCTION clamp AS (x, lo, hi) -> least(greatest(x, lo), hi); CREATE OR REPLACE FUNCTION IF NOT EXISTS twice ON CLUSTER main AS v -> v * 2;
+
+---
+
+(source_file
+  (create_function_statement
+    (identifier)
+    (lambda_expression
+      (tuple
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier)))
+      (function_call
+        (identifier)
+        (arguments
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier))
+              (column_reference
+                (identifier))))
+          (column_reference
+            (identifier))))))
+  (create_function_statement
+    (identifier)
+    (on_cluster
+      (identifier))
+    (lambda_expression
+      (column_reference
+        (identifier))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))))
+
+================================================================================
+CREATE NAMED COLLECTION
+================================================================================
+
+CREATE NAMED COLLECTION s3_conn AS url = 'https://bucket/', access_key_id = 'id' NOT OVERRIDABLE, region = 'eu' OVERRIDABLE, retries = -1;
+
+---
+
+(source_file
+  (create_named_collection_statement
+    (identifier)
+    (collection_item
+      (identifier)
+      (string))
+    (collection_item
+      (identifier)
+      (string))
+    (collection_item
+      (identifier)
+      (string))
+    (collection_item
+      (identifier)
+      (unary_expression
+        (operator)
+        (number)))))
+
+================================================================================
+CREATE TABLE with a Join engine and FORMAT
+================================================================================
+
+CREATE TABLE lookup (k UInt64, v String) ENGINE = Join(ALL, LEFT, k) FORMAT Null;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (table_elements
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))))
+    (engine_clause
+      (identifier)
+      (arguments
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))))
+    (format_clause
+      (identifier))))
+
+================================================================================
+CREATE TABLE with SETTINGS before AS SELECT
+================================================================================
+
+CREATE TABLE sample_rows ENGINE = MergeTree ORDER BY id SETTINGS index_granularity = 128 AS SELECT number AS id FROM numbers(10);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (engine_clause
+      (identifier))
+    (order_by_clause
+      (order_by_item
+        (column_reference
+          (identifier))))
+    (settings_clause
+      (setting
+        (identifier)
+        (number)))
+    (as_clause
+      (select
+        (aliased_expression
+          (column_reference
+            (identifier))
+          (identifier))
+        (from_clause
+          (function_table
+            (function_call
+              (identifier)
+              (arguments
+                (number)))))))))
+
+================================================================================
+CREATE TABLE with JSON paths in the shared data
+================================================================================
+
+CREATE TABLE docs (j JSON(SHARED a.b UInt32, SHARED c String, max_dynamic_paths = 4)) ENGINE = Memory;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (table_elements
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_arguments
+            (field_definition
+              (identifier)
+              (identifier)
+              (type
+                (identifier)))
+            (field_definition
+              (identifier)
+              (type
+                (identifier)))
+            (type_setting
+              (identifier)
+              (number))))))
+    (engine_clause
+      (identifier))))
+
+================================================================================
+CREATE TABLE with AUTO_INCREMENT and TTL to a disk that can be missing
+================================================================================
+
+CREATE TABLE compat (id Int32 AUTO_INCREMENT, d DateTime) ENGINE = MergeTree ORDER BY id TTL d TO DISK IF EXISTS 'cold';
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (table_elements
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))))
+    (engine_clause
+      (identifier))
+    (order_by_clause
+      (order_by_item
+        (column_reference
+          (identifier))))
+    (ttl_clause
+      (ttl_item
+        (column_reference
+          (identifier))
+        (string)))))
+
+================================================================================
+CREATE DICTIONARY with a layout with no parentheses and an array parameter
+================================================================================
+
+CREATE DICTIONARY flat_d (id UInt64, v String) PRIMARY KEY id SOURCE(CLICKHOUSE(TABLE 'src' USER default PORT tcpPort())) LAYOUT(FLAT) LIFETIME(10);
+CREATE DICTIONARY nb (id UInt64, c UInt8) PRIMARY KEY id SOURCE(NULL()) LAYOUT(NAIVE_BAYES(n 1 weights [(0, 0.7), (1, 0.3)])) LIFETIME(0);
+
+---
+
+(source_file
+  (create_dictionary_statement
+    (object_reference
+      (identifier))
+    (table_elements
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))))
+    (primary_key
+      (column_reference
+        (identifier)))
+    (source_clause
+      (identifier)
+      (dictionary_parameters
+        (dictionary_parameter
+          (identifier)
+          (string))
+        (dictionary_parameter
+          (identifier)
+          (identifier))
+        (dictionary_parameter
+          (identifier)
+          (function_call
+            (identifier)
+            (arguments)))))
+    (layout_clause
+      (identifier))
+    (lifetime_clause
+      (number)))
+  (create_dictionary_statement
+    (object_reference
+      (identifier))
+    (table_elements
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))))
+    (primary_key
+      (column_reference
+        (identifier)))
+    (source_clause
+      (identifier)
+      (dictionary_parameters))
+    (layout_clause
+      (identifier)
+      (dictionary_parameters
+        (dictionary_parameter
+          (identifier)
+          (number))
+        (dictionary_parameter
+          (identifier)
+          (array
+            (tuple
+              (number)
+              (number))
+            (tuple
+              (number)
+              (number))))))
+    (lifetime_clause
+      (number))))
+
+================================================================================
+CREATE MATERIALIZED VIEW with REFRESH, columns and APPEND
+================================================================================
+
+CREATE MATERIALIZED VIEW stats_rmv REFRESH EVERY 1 HOUR (n UInt64) ENGINE = Memory AS SELECT count() FROM src; CREATE MATERIALIZED VIEW grow REFRESH EVERY 6 HOUR SETTINGS refresh_retries = 2 APPEND INCREMENTAL TO grown EMPTY AS SELECT now() AS t;
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (refresh_clause
+      (number)
+      (interval_unit)
+      (table_elements
+        (column_definition
+          (identifier)
+          (type
+            (identifier)))))
+    (engine_clause
+      (identifier))
+    (as_clause
+      (select
+        (function_call
+          (identifier)
+          (arguments))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (refresh_clause
+      (number)
+      (interval_unit))
+    (settings_clause
+      (setting
+        (identifier)
+        (number)))
+    (to_clause
+      (object_reference
+        (identifier)))
+    (as_clause
+      (select
+        (aliased_expression
+          (function_call
+            (identifier)
+            (arguments))
+          (identifier))))))
+
+================================================================================
+CREATE INDEX
+================================================================================
+
+CREATE INDEX name_idx ON people (name) TYPE bloom_filter GRANULARITY 3; CREATE INDEX IF NOT EXISTS age_idx ON db.people (age, id) TYPE minmax;
+
+---
+
+(source_file
+  (create_index_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (parenthesized_expression
+      (column_reference
+        (identifier)))
+    (column_reference
+      (identifier))
+    (number))
+  (create_index_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))
+    (tuple
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier)))
+    (column_reference
+      (identifier))))

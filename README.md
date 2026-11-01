@@ -326,10 +326,16 @@ JOIN`, each kind of join with `GLOBAL`, `ANY`, `ASOF`, `SEMI`, `ANTI` and
 `PASTE`, the table functions, `PREWHERE`, `GROUP BY` with `WITH ROLLUP`,
 `WITH CUBE` and `WITH TOTALS`, `QUALIFY`, `ORDER BY` with `WITH FILL` and
 `INTERPOLATE`, `LIMIT BY`, `LIMIT` with `WITH TIES`, the set operations,
-`SETTINGS`, `INTO OUTFILE` and `FORMAT`. It covers `EXPLAIN` of a query,
-and the other statements come later. The external scanner reads the
-comments and the heredoc strings. The package adds about 0.8 MB to a
-binary.
+`SETTINGS`, `INTO OUTFILE` and `FORMAT`. It covers `EXPLAIN` of a query.
+It covers `INSERT` with `VALUES`, a query, `FROM INFILE`, a table function
+and the data of a format after `FORMAT`, and `DELETE`, `UPDATE` and
+`TRUNCATE`. It covers `CREATE DATABASE`, `CREATE TABLE` with its columns,
+indexes, projections, constraints, engine, keys, `TTL` and `AS`, `CREATE
+VIEW`, `MATERIALIZED VIEW` with `REFRESH`, `LIVE VIEW` and `WINDOW VIEW`,
+`CREATE DICTIONARY`, `CREATE FUNCTION`, `CREATE NAMED COLLECTION`, `CREATE
+INDEX`, and each action of `ALTER TABLE`. The other statements come later.
+The external scanner reads the comments, the heredoc strings and the data
+of `INSERT` after `FORMAT`. The package adds about 1.2 MB to a binary.
 
 The package `github.com/xo/transit/grammars/postgres/postgres` holds the
 grammar `postgres`, which xo writes from the reference manual of

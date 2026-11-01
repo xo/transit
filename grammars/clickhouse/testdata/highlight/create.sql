@@ -1,0 +1,45 @@
+CREATE TABLE IF NOT EXISTS shop.t (id UInt64 DEFAULT 0 CODEC(ZSTD(3)), INDEX i id TYPE minmax GRANULARITY 2) ENGINE = MergeTree ORDER BY id;
+-- <- keyword
+--                  ^ keyword
+--                         ^ module
+--                              ^ type
+--                                 ^ variable.member
+--                                    ^ type.builtin
+--                                           ^ keyword
+--                                                     ^ keyword
+--                                                           ^ function.call
+--                                                                     ^ keyword
+--                                                                           ^ type
+--                                                                                ^ keyword
+--                                                                                     ^ variable.member
+--                                                                                            ^ keyword
+--                                                                                                           ^ keyword
+--                                                                                                                  ^ operator
+--                                                                                                                    ^ type.builtin
+CREATE MATERIALIZED VIEW mv TO dst REFRESH EVERY 1 HOUR AS SELECT a FROM src;
+--     ^ keyword
+--                  ^ keyword
+--                       ^ type
+--                          ^ keyword
+--                             ^ type
+--                                 ^ keyword
+--                                         ^ keyword
+--                                                 ^ keyword
+--                                                      ^ keyword
+CREATE DICTIONARY d (k UInt64) PRIMARY KEY k SOURCE(CLICKHOUSE(TABLE 'src')) LAYOUT(FLAT()) LIFETIME(300);
+--     ^ keyword
+--                             ^ keyword
+--                                           ^ keyword
+--                                                  ^ type.builtin
+--                                                             ^ variable.parameter
+--                                                                                  ^ type.builtin
+--                                                                                          ^ keyword
+--                                                                                                   ^ number
+CREATE FUNCTION twice AS x -> x * 2; CREATE DATABASE lake ENGINE = Atomic COMMENT 'raw';
+--     ^ keyword
+--              ^ function
+--                       ^ variable.parameter
+--                                                   ^ module
+--                                                                 ^ type.builtin
+--                                                                        ^ keyword
+--                                                                                ^ string

@@ -14,11 +14,12 @@
 //
 // The token identifier is the word of the grammar, so a keyword is an
 // identifier in each place where the grammar does not expect the keyword.
-// ClickHouse reserves almost no words. The reserved set global holds the
-// words that start a clause of a query, which ClickHouse does not take as
-// an alias with no AS. A word after AS or after a dot can be any keyword,
-// and a function name can be a word such as and, or, in or like, because
-// ClickHouse has functions with these names.
+// ClickHouse reserves almost no words, and the grammar reserves none (D131),
+// so a column can have the name of a keyword that starts a clause, such as
+// from. Where a keyword and a name can both come, the keyword wins, so FROM
+// after a column of SELECT starts the clause FROM. A word after AS or after
+// a dot can be any keyword, and a function name can be a word such as and,
+// or, in or like, because ClickHouse has functions with these names.
 //
 // The grammar keeps its parse tables small (D122, D127). A parse state with
 // more than 64 columns takes the large form, so the grammar keeps the
@@ -48,13 +49,17 @@
 
 // The precedences of the operators, from the lowest to the highest, as the
 // parser of ClickHouse orders them. An alias with AS binds the most
-// loosely, and then the arrow of a lambda and the ternary operator ?:. NOT
+// loosely, and then the arrow of a lambda and the ternary operator ?:. A
+// clause of CREATE that ends with an expression, such as ORDER BY, binds
+// more tightly than an alias, so that AS after it starts the query of
+// CREATE TABLE ... AS SELECT. NOT
 // binds more loosely than IS NULL, IS NULL more loosely than BETWEEN, and
 // BETWEEN more loosely than a comparison, LIKE and IN. || binds more loosely
 // than + and -. A sign binds more tightly than * and /, and a cast, a
 // subscript and a dot bind the most tightly.
 const PREC = {
   alias: 1,
+  clause: 2,
   lambda: 2,
   ternary: 3,
   or: 4,
@@ -71,21 +76,6 @@ const PREC = {
   field: 15,
 };
 
-// The words that start a clause of a query. ClickHouse does not take them
-// as an alias with no AS, so they are not names in the grammar. SETTINGS
-// is not in the list, because it names a column of system.query_log. A
-// word is in the list only when the grammar uses it as a keyword, because
-// a reserved word must be a token of the grammar.
-const RESERVED_WORDS = [
-  'AS', 'EXCEPT', 'FROM', 'GROUP', 'HAVING', 'INTERSECT', 'JOIN', 'LIMIT',
-  'ON', 'ORDER', 'PREWHERE', 'QUALIFY', 'SELECT', 'UNION', 'USING', 'WHERE',
-  'WINDOW',
-];
-
-// The words that the rules use as keywords. The rules run before the
-// reserved sets, so kw fills it before the reserved sets read it.
-const KEYWORDS = new Set();
-
 /**
  * Returns a keyword: a token that matches word in any case, as an
  * anonymous node with the name word.
@@ -93,7 +83,6 @@ const KEYWORDS = new Set();
  * @param {string} word
  */
 function kw(word) {
-  KEYWORDS.add(word);
   return alias(keyword(word), word);
 }
 
@@ -183,20 +172,10 @@ module.exports = grammar({
     $._heredoc_start,
     $.string_content,
     $._heredoc_end,
+    $.insert_data,
   ],
 
   word: $ => $.identifier,
-
-  // The reserved set global holds the words that start a clause of a
-  // query. The set function_name and the set label are empty, because
-  // ClickHouse accepts every keyword as a function name and as a label
-  // after AS and after a dot. A state takes the last set of its items, so
-  // the sets go from the strictest to the least strict.
-  reserved: {
-    global: _ => RESERVED_WORDS.filter(w => KEYWORDS.has(w)).map(keyword),
-    function_name: _ => [],
-    label: _ => [],
-  },
 
   // Each hidden rule that an expression can start with is a column of each
   // state where an expression starts, so these rules are inlined. The rules
@@ -217,17 +196,40 @@ module.exports = grammar({
     // A parenthesized query can be the left side of a set operation, or a
     // subquery in an expression or in FROM.
     [$.parenthesized_query, $.subquery],
+    // SETTINGS after a column of ALTER TABLE can start the settings of the
+    // column, as in SETTINGS (max_compress_block_size = 1024), or the
+    // settings of the statement.
+    [$.column_definition],
   ],
 
   rules: {
+    // An INSERT with data after FORMAT ends at the end of its line, so it
+    // needs no semicolon after it.
     source_file: $ => seq(
-      repeat(choice(seq($._statement, ';'), ';')),
+      repeat(choice(
+        seq($._statement, ';'),
+        ';',
+        alias($._insert_with_data, $.insert_statement),
+      )),
       optional($._statement),
     ),
 
     _statement: $ => choice(
       $.select_statement,
       $.explain_statement,
+      $.insert_statement,
+      $.delete_statement,
+      $.update_statement,
+      $.truncate_statement,
+      $.create_database_statement,
+      $.create_table_statement,
+      $.create_view_statement,
+      $.create_dictionary_statement,
+      $.create_function_statement,
+      $.create_named_collection_statement,
+      $.create_index_statement,
+      $.alter_table_statement,
+      $.alter_named_collection_statement,
     ),
 
     // Queries
@@ -350,12 +352,17 @@ module.exports = grammar({
       )),
     )),
 
-    // SELECT, with DISTINCT ON and TOP.
+    // SELECT, with DISTINCT ON and TOP. A comma can come after the last
+    // item, before FROM (D131). The comma and FROM are in this rule, and
+    // not a comma after the items, so that only FROM can come after the
+    // comma. A comma at the end of the items cost 4 more large parse
+    // states, and it took the word after it, such as where, as a keyword.
     _select_clause: $ => prec.right(seq(
       kw('SELECT'),
       optional(choice(kw('ALL'), $.distinct_clause)),
       optional($.top_clause),
       commaSep1($._select_item),
+      optional(seq(',', $.from_clause)),
     )),
 
     distinct_clause: $ => prec.right(seq(
@@ -431,9 +438,6 @@ module.exports = grammar({
       )),
     ),
 
-    // ClickHouse takes a comma after the last column of SELECT, before
-    // FROM. The grammar does not, because the comma cost more than 400
-    // parse states.
     from_clause: $ => seq(kw('FROM'), commaSep1($._table_reference)),
 
     _table_reference: $ => choice(
@@ -627,7 +631,7 @@ module.exports = grammar({
     // An item of ORDER BY, with COLLATE and WITH FILL, which adds the rows
     // that the values between two rows would have, with FROM, TO, STEP and
     // STALENESS.
-    order_by_item: $ => prec.right(seq(
+    order_by_item: $ => prec.right(PREC.clause, seq(
       field('value', $._expression),
       optional($._direction),
       optional($._nulls),
@@ -686,11 +690,12 @@ module.exports = grammar({
       choice(kw('ONLY'), kws('WITH', 'TIES')),
     ),
 
-    // SETTINGS changes settings for one query.
-    settings_clause: $ => seq(kw('SETTINGS'), commaSep1($.setting)),
+    // SETTINGS changes settings for one query. The settings of a
+    // dictionary are in parentheses.
+    settings_clause: $ => prec.right(seq(kw('SETTINGS'), choice(commaSep1($.setting), parens(commaSep1($.setting))))),
 
     // A setting with no value is on, as in SETTINGS log_queries.
-    setting: $ => prec.right(seq(
+    setting: $ => prec.right(PREC.clause, seq(
       field('name', $._label),
       optional(seq('=', field('value', $._expression))),
     )),
@@ -711,6 +716,727 @@ module.exports = grammar({
     format_clause: $ => seq(kw('FORMAT'), field('format', $._label)),
 
     subquery: $ => parens($._query),
+
+    // Changes of data
+
+    // INSERT adds rows to a table or to a table function. The rows come
+    // from VALUES, from a query, from a file of the client after FROM
+    // INFILE, or as data in a format after FORMAT, as in INSERT INTO t
+    // FORMAT CSV 1,2. The client of ClickHouse reads the data of a format
+    // to the end of the line, and the external scanner reads it as one
+    // token. SETTINGS can come before VALUES and FORMAT. The grammar does
+    // not take SETTINGS before a query, which cost about 1,050 parse
+    // states.
+    insert_statement: $ => seq(
+      $._insert_target,
+      optional($.insert_columns),
+      choice(
+        seq(
+          optional($.settings_clause),
+          choice($.values_clause, $.format_clause),
+        ),
+        $._query,
+        seq($.infile_clause, optional($.settings_clause), optional($.format_clause)),
+      ),
+    ),
+
+    // An INSERT with data after FORMAT.
+    _insert_with_data: $ => seq(
+      $._insert_target,
+      optional($.insert_columns),
+      optional($.settings_clause),
+      $.format_clause,
+      $.insert_data,
+    ),
+
+    // The parts of INSERT before the columns are a rule of their own, so
+    // that the parse states after them are not copied for each choice.
+    _insert_target: $ => seq(
+      kws('INSERT', 'INTO'),
+      optional(kw('TABLE')),
+      choice(
+        field('table', $.object_reference),
+        seq(kw('FUNCTION'), field('function', alias($._table_function, $.function_call))),
+      ),
+    ),
+
+    // The columns of INSERT. A star with EXCEPT, or COLUMNS, can give them,
+    // as in (* EXCEPT (a)).
+    insert_columns: $ => parens(commaSep1(choice($.column_reference, $.star_expression, $.columns_expression))),
+
+    // The rows of VALUES are in parentheses, and the comma between two rows
+    // can be left out. A comma can come after the last row. The rows can
+    // be left out, when the client sends them in another way.
+    values_clause: $ => seq(
+      kw('VALUES'),
+      optional(seq(
+        $._values_row,
+        repeat(seq(optional(','), $._values_row)),
+        optional(','),
+      )),
+    ),
+
+    _values_row: $ => choice(
+      alias($.tuple, $.row),
+      alias($.parenthesized_expression, $.row),
+    ),
+
+    // FROM INFILE reads the rows from a file of the client, which can be
+    // compressed.
+    infile_clause: $ => seq(
+      kws('FROM', 'INFILE'),
+      field('file', $.string),
+      optional(seq(kw('COMPRESSION'), field('compression', $.string))),
+    ),
+
+    // DELETE FROM marks rows as deleted, which a merge removes later.
+    delete_statement: $ => seq(
+      kws('DELETE', 'FROM'),
+      field('table', $.object_reference),
+      optional($.on_cluster),
+      optional($.in_partition),
+      $.where_clause,
+      optional($.settings_clause),
+    ),
+
+    // UPDATE changes the values of the rows that match its condition. The
+    // grammar does not take IN PARTITION after the assignments, because IN
+    // after the value of an assignment starts the operator IN.
+    update_statement: $ => seq(
+      kw('UPDATE'),
+      field('table', $.object_reference),
+      optional($.on_cluster),
+      kw('SET'),
+      commaSep1($.assignment),
+      $.where_clause,
+      optional($.settings_clause),
+    ),
+
+    // An assignment of UPDATE and of TTL, as in a = a + 1.
+    assignment: $ => seq(
+      field('column', $._path),
+      '=',
+      field('value', $._expression),
+    ),
+
+    // TRUNCATE removes all the rows of a table, of the tables of a
+    // database, or of the tables whose names match a pattern.
+    truncate_statement: $ => choice(
+      seq(
+        kw('TRUNCATE'),
+        optional(kw('TEMPORARY')),
+        optional(choice(kw('TABLE'), kw('DATABASE'))),
+        optional($._if_exists),
+        field('name', $.object_reference),
+        optional($.on_cluster),
+        optional(kw('SYNC')),
+        optional($.settings_clause),
+      ),
+      seq(
+        kw('TRUNCATE'),
+        optional(kw('ALL')),
+        kws('TABLES', 'FROM'),
+        optional($._if_exists),
+        field('database', choice($._name, $.query_parameter)),
+        optional(seq(optional(kw('NOT')), choice(kw('LIKE'), kw('ILIKE')), field('pattern', $.string))),
+        optional($.on_cluster),
+      ),
+    ),
+
+    // ON CLUSTER runs a statement on each server of a cluster. The name of
+    // the cluster can be a string, as in '{cluster}'.
+    on_cluster: $ => seq(kws('ON', 'CLUSTER'), field('cluster', choice($._label, $.string))),
+
+    // IN PARTITION limits a change to one partition.
+    in_partition: $ => seq(kw('IN'), $.partition),
+
+    // A partition: PARTITION with the value of the partition key, with ID
+    // and the name of the partition, or with ALL, or PART with the name of
+    // a part.
+    partition: $ => choice(
+      seq(kw('PARTITION'), choice(
+        seq(kw('ID'), field('id', choice($.string, $.query_parameter))),
+        kw('ALL'),
+        field('value', $._expression),
+      )),
+      seq(kw('PART'), field('value', $._expression)),
+    ),
+
+    _if_exists: _ => kws('IF', 'EXISTS'),
+
+    _if_not_exists: _ => kws('IF', 'NOT', 'EXISTS'),
+
+    // Changes of schema
+
+    // CREATE, CREATE OR REPLACE or REPLACE.
+    _create: _ => choice(
+      seq(kw('CREATE'), optional(kws('OR', 'REPLACE'))),
+      kw('REPLACE'),
+    ),
+
+    // CREATE DATABASE, with its engine, settings and comment.
+    create_database_statement: $ => seq(
+      $._create_database_head,
+      repeat($._create_option),
+    ),
+
+    _create_database_head: $ => seq(
+      $._create,
+      kw('DATABASE'),
+      optional($._if_not_exists),
+      field('name', choice($._name, $.query_parameter)),
+      optional($.uuid),
+      optional($.on_cluster),
+    ),
+
+    // CREATE TABLE. The table takes its columns from the list of its
+    // elements, from another table or table function after AS, or from a
+    // query after AS. The clauses after the elements, such as ENGINE and
+    // ORDER BY, come in any order.
+    create_table_statement: $ => seq(
+      $._create_table_head,
+      optional($.table_elements),
+      repeat($._create_option),
+      optional($._as_query),
+    ),
+
+    _create_table_head: $ => seq(
+      $._create,
+      optional(kw('TEMPORARY')),
+      kw('TABLE'),
+      optional($._if_not_exists),
+      field('name', $.object_reference),
+      optional($.uuid),
+      optional($.on_cluster),
+    ),
+
+    // UUID gives the UUID of a table, as ATTACH and a replica use it.
+    uuid: $ => seq(kw('UUID'), field('value', $.string)),
+
+    // The columns, indexes, projections and constraints of a table, or the
+    // attributes of a dictionary. A comma can come after the last one.
+    table_elements: $ => parens(trailingSep1(choice(
+      $.column_definition,
+      $.index_definition,
+      $.projection_definition,
+      $.constraint_definition,
+      alias($._primary_key_element, $.primary_key),
+    ))),
+
+    // A column, with its type and its options in any order. The type can
+    // be left out when DEFAULT, MATERIALIZED or ALIAS gives the value. The
+    // options EXPRESSION, HIERARCHICAL, INJECTIVE and IS_OBJECT_ID are for
+    // the attributes of a dictionary.
+    column_definition: $ => seq(
+      field('name', $._path),
+      optional(field('type', $.type)),
+      repeat($._column_option),
+    ),
+
+    // AUTO_INCREMENT is for the compatibility with MySQL, and ClickHouse
+    // ignores it.
+    _column_option: $ => choice(
+      seq(optional(kw('NOT')), $.null),
+      seq(
+        choice(kw('DEFAULT'), kw('MATERIALIZED'), kw('ALIAS'), kw('EXPRESSION')),
+        field('default', $._expression),
+      ),
+      prec.right(seq(kw('EPHEMERAL'), optional(field('default', $._expression)))),
+      seq(kw('COMMENT'), field('comment', $.string)),
+      $.codec,
+      seq(kw('STATISTICS'), $.arguments),
+      seq(kw('TTL'), field('ttl', $._expression)),
+      kws('PRIMARY', 'KEY'),
+      seq(kw('SETTINGS'), parens(commaSep1($.setting))),
+      kw('HIERARCHICAL'),
+      kw('BIDIRECTIONAL'),
+      kw('INJECTIVE'),
+      kw('IS_OBJECT_ID'),
+      kw('AUTO_INCREMENT'),
+    ),
+
+    // CODEC gives the compression of a column, as in CODEC(Delta, ZSTD(3)).
+    codec: $ => seq(kw('CODEC'), $.arguments),
+
+    // A skipping index, as in INDEX i a TYPE minmax GRANULARITY 4.
+    index_definition: $ => seq(
+      kw('INDEX'),
+      $._index_body,
+    ),
+
+    _index_body: $ => seq(
+      optional($._if_not_exists),
+      field('name', $._name),
+      field('expression', $._expression),
+      kw('TYPE'),
+      field('type', $._expression),
+      optional(seq(kw('GRANULARITY'), field('granularity', $.number))),
+    ),
+
+    // A projection keeps the rows of a table in another order, or the
+    // results of an aggregation, as in PROJECTION p (SELECT a ORDER BY b).
+    projection_definition: $ => seq(
+      kw('PROJECTION'),
+      $._projection_body,
+    ),
+
+    _projection_body: $ => seq(
+      optional($._if_not_exists),
+      field('name', $._name),
+      choice(
+        alias(parens($._query), $.subquery),
+        seq(kw('INDEX'), field('expression', $._expression), kw('TYPE'), field('type', $._expression)),
+      ),
+      optional(seq(kws('WITH', 'SETTINGS'), parens(commaSep1($.setting)))),
+    ),
+
+    // A constraint, which CHECK tests on each insert and ASSUME gives to
+    // the optimizer.
+    constraint_definition: $ => seq(
+      kw('CONSTRAINT'),
+      $._constraint_body,
+    ),
+
+    _constraint_body: $ => seq(
+      optional($._if_not_exists),
+      field('name', $._name),
+      choice(kw('CHECK'), kw('ASSUME')),
+      field('condition', $._expression),
+    ),
+
+    // PRIMARY KEY after the elements, and in a dictionary, where a comma
+    // can come between two columns.
+    primary_key: $ => prec.right(PREC.clause, seq(kws('PRIMARY', 'KEY'), commaSep1($._expression))),
+
+    // PRIMARY KEY in the elements, where a comma starts the next element.
+    _primary_key_element: $ => seq(kws('PRIMARY', 'KEY'), $._expression),
+
+    // The clauses of CREATE after the elements, in any order. They are the
+    // clauses of a table, of a view, of a database and of a dictionary in
+    // one choice, so that their parse states are shared.
+    _create_option: $ => choice(
+      $.engine_clause,
+      $.order_by_clause,
+      $.partition_by_clause,
+      $.primary_key,
+      $.sample_by_clause,
+      $.ttl_clause,
+      $.settings_clause,
+      $.comment_clause,
+      $.as_clause,
+      $.to_clause,
+      $.refresh_clause,
+      $.source_clause,
+      $.layout_clause,
+      $.lifetime_clause,
+      $.range_clause,
+      $.format_clause,
+      prec.right(seq(kw('APPEND'), optional(kw('INCREMENTAL')), optional($.table_elements))),
+      kw('POPULATE'),
+      kw('EMPTY'),
+      seq(kw('DEFINER'), '=', field('definer', $._label)),
+      seq(kws('SQL', 'SECURITY'), choice(kw('DEFINER'), kw('INVOKER'), kw('NONE'))),
+      prec(PREC.clause, seq(choice(kw('WATERMARK'), kw('ALLOWED_LATENESS')), '=', $._expression)),
+    ),
+
+    // The engine of a table or of a database, with its arguments, as in
+    // ENGINE = ReplicatedMergeTree('/path', '{replica}').
+    engine_clause: $ => seq(
+      kw('ENGINE'),
+      optional('='),
+      field('name', $._label),
+      optional(alias($._engine_arguments, $.arguments)),
+    ),
+
+    // The arguments of an engine are expressions. ALL is a name here, as in
+    // Join(ALL, LEFT, k), and not the ALL before the arguments of a
+    // function.
+    _engine_arguments: $ => parens(optional(commaSep1($._expression))),
+
+    partition_by_clause: $ => prec(PREC.clause, seq(kws('PARTITION', 'BY'), $._expression)),
+
+    sample_by_clause: $ => prec(PREC.clause, seq(kws('SAMPLE', 'BY'), $._expression)),
+
+    // TTL removes rows, moves them to a disk or a volume, compresses them
+    // again or aggregates them when their time comes.
+    ttl_clause: $ => prec.right(seq(kw('TTL'), commaSep1($.ttl_item))),
+
+    ttl_item: $ => prec.right(PREC.clause, seq(
+      field('expression', $._expression),
+      repeat(choice(
+        kw('DELETE'),
+        seq(kw('RECOMPRESS'), $.codec),
+        seq(kw('TO'), choice(kw('DISK'), kw('VOLUME')), optional($._if_exists), $.string),
+        seq(kw('WHERE'), field('condition', $._expression)),
+      )),
+      optional($._ttl_group_by),
+    )),
+
+    // GROUP BY ends a TTL item, so that a comma after it continues the
+    // keys or the assignments.
+    _ttl_group_by: $ => prec.right(PREC.clause, seq(
+      kws('GROUP', 'BY'),
+      commaSep1($._expression),
+      optional(seq(kw('SET'), commaSep1($.assignment))),
+    )),
+
+    comment_clause: $ => seq(kw('COMMENT'), field('comment', $.string)),
+
+    // AS takes the columns from another table or from a table function.
+    // CLONE AS also copies the data.
+    as_clause: $ => seq(
+      optional(kw('CLONE')),
+      kw('AS'),
+      choice(
+        field('table', $.object_reference),
+        field('function', alias($._table_function, $.function_call)),
+      ),
+    ),
+
+    // AS with a query comes after the other clauses. The query in the
+    // choice of the clauses cost about 940 parse states, because each state
+    // of the query then took each word that starts a clause. The grammar
+    // does not take COMMENT after the query, which cost about 690 states.
+    // EMPTY AS creates the table from a query with no rows.
+    _as_query: $ => alias(seq(kw('AS'), $._query), $.as_clause),
+
+    // TO gives the table where a materialized view writes its rows.
+    to_clause: $ => seq(kw('TO'), field('table', $.object_reference), optional($.table_elements)),
+
+    // REFRESH runs the query of a refreshable materialized view again at a
+    // time, as in REFRESH EVERY 1 DAY OFFSET 2 HOUR. The columns of the
+    // view can come after it. SETTINGS and APPEND after it are clauses of
+    // CREATE, and the columns can come after APPEND. An interval takes one
+    // unit. More than one unit, as in EVERY 1 HOUR 30 MINUTE, cost about
+    // 1,000 parse states.
+    refresh_clause: $ => prec.right(seq(
+      kw('REFRESH'),
+      optional(seq(choice(kw('EVERY'), kw('AFTER')), $._refresh_interval)),
+      repeat(choice(
+        seq(kw('OFFSET'), $._refresh_interval),
+        seq(kws('RANDOMIZE', 'FOR'), $._refresh_interval),
+        prec.right(seq(kws('DEPENDS', 'ON'), commaSep1($.object_reference))),
+      )),
+      optional($.table_elements),
+    )),
+
+    _refresh_interval: $ => seq($.number, $.interval_unit),
+
+    // CREATE VIEW, MATERIALIZED VIEW, LIVE VIEW and WINDOW VIEW.
+    create_view_statement: $ => seq(
+      $._create_view_head,
+      optional($.table_elements),
+      repeat($._create_option),
+      optional($._as_query),
+    ),
+
+    _create_view_head: $ => seq(
+      $._create,
+      optional(kw('TEMPORARY')),
+      optional(choice(kw('MATERIALIZED'), kw('LIVE'), kw('WINDOW'))),
+      kw('VIEW'),
+      optional($._if_not_exists),
+      field('name', $.object_reference),
+      optional($.uuid),
+      optional($.on_cluster),
+    ),
+
+    // CREATE DICTIONARY, with its attributes, source, layout, lifetime and
+    // range.
+    create_dictionary_statement: $ => seq(
+      $._create_dictionary_head,
+      optional($.table_elements),
+      repeat($._create_option),
+    ),
+
+    _create_dictionary_head: $ => seq(
+      $._create,
+      kw('DICTIONARY'),
+      optional($._if_not_exists),
+      field('name', $.object_reference),
+      optional($.uuid),
+      optional($.on_cluster),
+    ),
+
+    // SOURCE and LAYOUT take a name and its parameters, as in
+    // SOURCE(CLICKHOUSE(TABLE 'src' DB 'default')).
+    source_clause: $ => seq(kw('SOURCE'), parens($._dictionary_function)),
+
+    layout_clause: $ => seq(kw('LAYOUT'), parens($._dictionary_function)),
+
+    _dictionary_function: $ => seq(field('name', $._label), optional($.dictionary_parameters)),
+
+    // The parameters are pairs of a name and a value, with no comma or with
+    // a comma between them. A value can hold parameters of its own, as in
+    // headers(header(name 'a' value 'b')).
+    dictionary_parameters: $ => parens(repeat(seq($.dictionary_parameter, optional(',')))),
+
+    dictionary_parameter: $ => seq(
+      field('name', $._label),
+      field('value', choice(
+        $._literal,
+        $._name,
+        alias($._table_function, $.function_call),
+        $.array,
+        $.dictionary_parameters,
+      )),
+    ),
+
+    // LIFETIME gives how often the dictionary is loaded again, in seconds,
+    // as a number or with MIN and MAX.
+    lifetime_clause: $ => seq(kw('LIFETIME'), parens(choice(
+      field('max', $.number),
+      repeat1(seq(choice(kw('MIN'), kw('MAX')), $.number)),
+    ))),
+
+    // RANGE gives the columns of the start and of the end of a range.
+    range_clause: $ => seq(kw('RANGE'), parens(repeat1(seq(choice(kw('MIN'), kw('MAX')), $._name)))),
+
+    // CREATE FUNCTION gives a name to a lambda.
+    create_function_statement: $ => seq(
+      $._create,
+      kw('FUNCTION'),
+      optional($._if_not_exists),
+      field('name', $._name),
+      optional($.on_cluster),
+      kw('AS'),
+      field('body', $._expression),
+    ),
+
+    // CREATE NAMED COLLECTION keeps pairs of a key and a value, such as the
+    // settings of a connection, that a table or a table function can use.
+    create_named_collection_statement: $ => seq(
+      $._create,
+      kws('NAMED', 'COLLECTION'),
+      optional($._if_not_exists),
+      field('name', $._name),
+      optional($.on_cluster),
+      kw('AS'),
+      commaSep1($.collection_item),
+    ),
+
+    // NOT OVERRIDABLE stops a query from changing the value.
+    collection_item: $ => seq(
+      field('key', $._label),
+      '=',
+      field('value', choice($._literal, alias($._negative_number, $.unary_expression))),
+      optional(seq(optional(kw('NOT')), kw('OVERRIDABLE'))),
+    ),
+
+    // CREATE INDEX adds a skipping index to a table, as ALTER TABLE ADD
+    // INDEX does. ClickHouse also takes the columns with ASC or DESC, as
+    // in the CREATE INDEX of SQL, and ignores them. The grammar does not,
+    // because they cost about 330 parse states.
+    create_index_statement: $ => seq(
+      kw('CREATE'),
+      kw('INDEX'),
+      optional($._if_not_exists),
+      field('name', $._name),
+      kw('ON'),
+      field('table', $.object_reference),
+      field('expression', $._expression),
+      optional(seq(kw('TYPE'), field('type', $._expression))),
+      optional(seq(kw('GRANULARITY'), field('granularity', $.number))),
+    ),
+
+    // ALTER TABLE and ALTER DATABASE take one or more actions, with a comma
+    // between two of them, and SETTINGS and FORMAT after them. MODIFY QUERY
+    // changes the query of a view, and it is the only action, because a
+    // comma can come in the query.
+    alter_table_statement: $ => seq(
+      $._alter_table_head,
+      choice(
+        seq(commaSep1($._alter_action), repeat(choice($.settings_clause, $.format_clause))),
+        alias($._modify_query, $.modify_action),
+      ),
+    ),
+
+    _modify_query: $ => seq(kws('MODIFY', 'QUERY'), $._query),
+
+    _alter_table_head: $ => seq(
+      kw('ALTER'),
+      choice(
+        seq(optional(kw('TEMPORARY')), kw('TABLE')),
+        kw('DATABASE'),
+      ),
+      optional($._if_exists),
+      field('name', $.object_reference),
+      optional($.on_cluster),
+    ),
+
+    // The actions of ALTER TABLE. They change the columns, the indexes,
+    // the projections, the constraints, the statistics, the keys, the TTL,
+    // the settings, the comment, the query of a view, the rows and the
+    // partitions.
+    _alter_action: $ => choice(
+      $.add_action,
+      $.drop_action,
+      $.modify_action,
+      $.rename_column_action,
+      $.comment_column_action,
+      $.alter_column_action,
+      $.update_action,
+      $.delete_action,
+      $.partition_action,
+      $.reset_setting_action,
+      $.remove_action,
+      $.execute_action,
+    ),
+
+    // ADD COLUMN, ADD INDEX, ADD PROJECTION, ADD CONSTRAINT and ADD
+    // STATISTICS. FIRST or AFTER gives the place of a new column or index.
+    add_action: $ => prec.right(seq(
+      kw('ADD'),
+      choice(
+        seq(kw('COLUMN'), optional($._if_not_exists), $.column_definition, optional($._column_position)),
+        seq(kw('INDEX'), $._index_body, optional($._column_position)),
+        seq(kw('PROJECTION'), $._projection_body),
+        seq(kw('CONSTRAINT'), $._constraint_body),
+        seq(kw('STATISTICS'), $._statistics_body),
+      ),
+    )),
+
+    _column_position: $ => choice(kw('FIRST'), seq(kw('AFTER'), field('after', $._path))),
+
+    _statistics_body: $ => prec.right(seq(
+      optional($._if_not_exists),
+      commaSep1(field('column', $._name)),
+      kw('TYPE'),
+      commaSep1(field('type', $._expression)),
+    )),
+
+    // DROP, CLEAR and MATERIALIZE of a column, an index, a projection, a
+    // constraint or statistics. CLEAR and MATERIALIZE can take IN
+    // PARTITION.
+    drop_action: $ => choice(
+      seq(
+        choice(kw('DROP'), kw('CLEAR'), kw('MATERIALIZE')),
+        choice(kw('COLUMN'), kw('INDEX'), kw('PROJECTION'), kw('CONSTRAINT')),
+        optional($._if_exists),
+        field('name', $._path),
+        optional($.in_partition),
+      ),
+      prec.right(seq(
+        choice(kw('DROP'), kw('CLEAR'), kw('MATERIALIZE')),
+        kw('STATISTICS'),
+        optional($._if_exists),
+        commaSep1(field('name', $._name)),
+      )),
+    ),
+
+    // MODIFY changes a column, a constraint, statistics, the keys, the TTL,
+    // the settings, the comment, or the refresh and the security of a
+    // view.
+    modify_action: $ => prec.right(seq(
+      kw('MODIFY'),
+      choice(
+        seq(kw('COLUMN'), optional($._if_exists), choice(
+          seq($.column_definition, optional($._column_position)),
+          seq(field('name', $._path), kw('REMOVE'), field('property', $._label)),
+          seq(field('name', $._path), kws('MODIFY', 'SETTING'), commaSep1($.setting)),
+          seq(field('name', $._path), kws('RESET', 'SETTING'), commaSep1($._label)),
+        )),
+        seq(kw('CONSTRAINT'), $._constraint_body),
+        seq(kw('STATISTICS'), $._statistics_body),
+        seq(kws('ORDER', 'BY'), $._expression),
+        seq(kws('SAMPLE', 'BY'), $._expression),
+        seq(kws('PRIMARY', 'KEY'), $._expression),
+        $.ttl_clause,
+        seq(kw('SETTING'), commaSep1($.setting)),
+        $.comment_clause,
+        $.refresh_clause,
+        seq(kws('SQL', 'SECURITY'), choice(kw('DEFINER'), kw('INVOKER'), kw('NONE'))),
+        seq(kw('DEFINER'), '=', field('definer', $._label)),
+      ),
+    )),
+
+    // RENAME COLUMN a TO b.
+    rename_column_action: $ => seq(
+      kws('RENAME', 'COLUMN'),
+      optional($._if_exists),
+      field('name', $._path),
+      kw('TO'),
+      field('new_name', $._path),
+    ),
+
+    comment_column_action: $ => seq(
+      kws('COMMENT', 'COLUMN'),
+      optional($._if_exists),
+      field('name', $._path),
+      field('comment', $.string),
+    ),
+
+    // ALTER COLUMN a TYPE t changes the type of a column, as in
+    // PostgreSQL.
+    alter_column_action: $ => seq(
+      kws('ALTER', 'COLUMN'),
+      optional($._if_exists),
+      field('name', $._path),
+      kw('TYPE'),
+      field('type', $.type),
+    ),
+
+    // UPDATE and DELETE change the rows with a mutation.
+    update_action: $ => seq(
+      kw('UPDATE'),
+      commaSep1($.assignment),
+      $.where_clause,
+    ),
+
+    delete_action: $ => seq(
+      kw('DELETE'),
+      optional($.in_partition),
+      $.where_clause,
+    ),
+
+    // The actions on the partitions and the parts of a table.
+    partition_action: $ => choice(
+      seq(
+        choice(kw('DETACH'), kw('DROP'), kw('FORGET'), kw('ATTACH'), kw('REPLACE'), kws('DROP', 'DETACHED')),
+        $.partition,
+        optional(seq(kw('FROM'), field('from', $.object_reference))),
+      ),
+      seq(
+        kw('MOVE'),
+        $.partition,
+        kw('TO'),
+        choice(
+          seq(choice(kw('DISK'), kw('VOLUME')), field('to', $.string)),
+          seq(kw('TABLE'), field('to', $.object_reference)),
+        ),
+      ),
+      seq(kw('FETCH'), $.partition, kw('FROM'), field('from', $.string)),
+      seq(
+        choice(kw('FREEZE'), kw('UNFREEZE')),
+        optional($.partition),
+        optional(seq(kws('WITH', 'NAME'), field('backup', $.string))),
+      ),
+      seq(
+        choice(kws('APPLY', 'DELETED', 'MASK'), kws('APPLY', 'PATCHES'), kws('REWRITE', 'PARTS'), kws('MATERIALIZE', 'TTL')),
+        optional($.in_partition),
+      ),
+    ),
+
+    reset_setting_action: $ => prec.right(seq(kws('RESET', 'SETTING'), commaSep1($._label))),
+
+    // REMOVE TTL and REMOVE SAMPLE BY.
+    remove_action: _ => seq(kw('REMOVE'), choice(kw('TTL'), kws('SAMPLE', 'BY'))),
+
+    // EXECUTE runs a command on a table of a data lake, as in EXECUTE
+    // expire_snapshots('2025-01-01').
+    execute_action: $ => seq(kw('EXECUTE'), field('command', alias($._table_function, $.function_call))),
+
+    // ALTER NAMED COLLECTION sets keys and deletes keys.
+    alter_named_collection_statement: $ => seq(
+      kws('ALTER', 'NAMED', 'COLLECTION'),
+      optional($._if_exists),
+      field('name', $._name),
+      optional($.on_cluster),
+      repeat1(choice(
+        seq(kw('SET'), commaSep1($.collection_item)),
+        seq(kw('DELETE'), commaSep1(field('key', $._label))),
+      )),
+    ),
 
     // Expressions
 
@@ -764,7 +1490,7 @@ module.exports = grammar({
 
     // NULL is a token of its own, so that it takes one column of each state
     // where an expression starts.
-    null: _ => (KEYWORDS.add('NULL'), keyword('NULL')),
+    null: _ => keyword('NULL'),
 
     // inf, infinity and nan are numbers, and one token.
     _inf_nan: _ => token(choice(keyword('INF'), keyword('INFINITY'), keyword('NAN'))),
@@ -779,19 +1505,28 @@ module.exports = grammar({
 
     // An interval: INTERVAL with a value and a unit, as in INTERVAL 3 DAY,
     // with a string that holds both, as in INTERVAL '1 day', or with two
-    // units, as in INTERVAL '1:30' HOUR TO MINUTE.
+    // units, as in INTERVAL '1:30' HOUR TO MINUTE. Only a string takes two
+    // units, so that TO after INTERVAL 1 WEEK in TTL starts TO DISK or TO
+    // VOLUME.
     interval_expression: $ => prec.right(seq(
       kw('INTERVAL'),
-      field('value', choice(
-        $.string,
-        $.number,
-        $.parenthesized_expression,
-        $.column_reference,
-        $.function_call,
-        $.query_parameter,
-        alias($._negative_number, $.unary_expression),
-      )),
-      optional(seq($.interval_unit, optional(seq(kw('TO'), $.interval_unit)))),
+      choice(
+        seq(
+          field('value', $.string),
+          optional(seq($.interval_unit, optional(seq(kw('TO'), $.interval_unit)))),
+        ),
+        seq(
+          field('value', choice(
+            $.number,
+            $.parenthesized_expression,
+            $.column_reference,
+            $.function_call,
+            $.query_parameter,
+            alias($._negative_number, $.unary_expression),
+          )),
+          optional($.interval_unit),
+        ),
+      ),
     )),
 
     _negative_number: $ => seq(field('operator', alias('-', $.operator)), field('operand', $.number)),
@@ -876,10 +1611,7 @@ module.exports = grammar({
     )),
 
     // A function name can be any word, such as if, and, or or in.
-    _function_name: $ => choice(
-      reserved('function_name', $.identifier),
-      alias($._quoted_identifier, $.identifier),
-    ),
+    _function_name: $ => $._name,
 
     // The arguments of a function. DISTINCT or ALL can come before them.
     // A table function can take a query, as in view(SELECT 1).
@@ -1137,6 +1869,7 @@ module.exports = grammar({
       $.type,
       $.enum_value,
       $.field_definition,
+      seq(kw('SHARED'), $.field_definition),
       $.type_setting,
       $.skip_path,
     )))),
@@ -1145,7 +1878,8 @@ module.exports = grammar({
     enum_value: $ => seq(field('name', $.string), '=', field('value', $._signed_number)),
 
     // A field of a tuple or of a nested type, or a path of a JSON type, with
-    // its type.
+    // its type. SHARED before the path of a JSON type keeps the path in the
+    // shared data.
     field_definition: $ => seq(
       field('name', $._path),
       field('type', $.type),
@@ -1185,11 +1919,9 @@ module.exports = grammar({
       alias($._quoted_identifier, $.identifier),
     ),
 
-    // A label after AS or after a dot can be any keyword.
-    _label: $ => choice(
-      reserved('label', $.identifier),
-      alias($._quoted_identifier, $.identifier),
-    ),
+    // A label after AS or after a dot can be any keyword. It is a name,
+    // because the grammar reserves no word.
+    _label: $ => $._name,
 
     // A number is an integer, a decimal number with an exponent or not, a
     // hexadecimal number with 0x, which can have a fraction and a binary

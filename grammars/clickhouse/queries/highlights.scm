@@ -23,7 +23,12 @@
 (identifier) @variable
 
 [
+  "ADD"
+  "AFTER"
+  "ALIAS"
   "ALL"
+  "ALLOWED_LATENESS"
+  "ALTER"
   "ANALYZE"
   "AND"
   "ANTI"
@@ -35,8 +40,12 @@
   "ASC"
   "ASCENDING"
   "ASOF"
+  "ASSUME"
   "AST"
+  "ATTACH"
+  "AUTO_INCREMENT"
   "BETWEEN"
+  "BIDIRECTIONAL"
   "BINARY"
   "BOTH"
   "BY"
@@ -44,24 +53,51 @@
   "CAST"
   "CHAR"
   "CHARACTER"
+  "CHECK"
+  "CLEAR"
+  "CLONE"
+  "CLUSTER"
+  "CODEC"
   "COLLATE"
+  "COLLECTION"
+  "COLUMN"
   "COLUMNS"
+  "COMMENT"
   "COMPRESSION"
+  "CONSTRAINT"
+  "CREATE"
   "CROSS"
   "CUBE"
   "CURRENT"
+  "DATABASE"
+  "DEFAULT"
+  "DEFINER"
+  "DELETE"
+  "DELETED"
+  "DEPENDS"
   "DESC"
   "DESCENDING"
+  "DETACH"
+  "DETACHED"
+  "DICTIONARY"
+  "DISK"
   "DISTINCT"
   "DIV"
   "DOUBLE"
+  "DROP"
   "ELSE"
+  "EMPTY"
   "END"
+  "ENGINE"
+  "EPHEMERAL"
   "ESCAPE"
   "ESTIMATE"
+  "EVERY"
   "EXCEPT"
+  "EXECUTE"
   "EXISTS"
   "EXPLAIN"
+  "EXPRESSION"
   "FETCH"
   "FILL"
   "FILTER"
@@ -69,38 +105,65 @@
   "FIRST"
   "FOLLOWING"
   "FOR"
+  "FORGET"
   "FORMAT"
+  "FREEZE"
   "FROM"
   "FULL"
+  "FUNCTION"
   "GLOBAL"
+  "GRANULARITY"
   "GROUP"
   "GROUPING"
   "GROUPS"
   "HAVING"
+  "HIERARCHICAL"
+  "ID"
+  "IF"
   "IGNORE"
   "ILIKE"
   "IN"
+  "INCREMENTAL"
+  "INDEX"
+  "INFILE"
+  "INJECTIVE"
   "INNER"
+  "INSERT"
   "INTERPOLATE"
   "INTERSECT"
   "INTERVAL"
   "INTO"
+  "INVOKER"
   "IS"
+  "IS_OBJECT_ID"
   "JOIN"
+  "KEY"
   "LARGE"
   "LAST"
+  "LAYOUT"
   "LEADING"
   "LEFT"
   "LEVEL"
+  "LIFETIME"
   "LIKE"
   "LIMIT"
+  "LIVE"
   "LOCAL"
+  "MASK"
+  "MATERIALIZE"
   "MATERIALIZED"
+  "MAX"
+  "MIN"
   "MOD"
+  "MODIFY"
+  "MOVE"
+  "NAME"
+  "NAMED"
   "NATIONAL"
   "NATURAL"
   "NCHAR"
   "NEXT"
+  "NONE"
   "NOT"
   "NULLS"
   "OBJECT"
@@ -112,40 +175,64 @@
   "OUTER"
   "OUTFILE"
   "OVER"
+  "OVERRIDABLE"
   "OVERRIDE"
+  "PART"
   "PARTITION"
+  "PARTS"
   "PASTE"
+  "PATCHES"
   "PIPELINE"
   "PLACING"
   "PLAN"
+  "POPULATE"
   "PRECEDING"
   "PRECISION"
   "PREWHERE"
+  "PRIMARY"
+  "PROJECTION"
   "QUALIFY"
   "QUERY"
+  "RANDOMIZE"
   "RANGE"
+  "RECOMPRESS"
   "RECURSIVE"
+  "REFRESH"
   "REGEXP"
+  "REMOVE"
+  "RENAME"
   "REPLACE"
+  "RESET"
   "RESPECT"
+  "REWRITE"
   "RIGHT"
   "ROLLUP"
   "ROW"
   "ROWS"
   "SAMPLE"
+  "SECURITY"
   "SELECT"
   "SEMI"
+  "SET"
   "SETS"
+  "SETTING"
   "SETTINGS"
+  "SHARED"
   "SIGNED"
   "SIMILAR"
   "SKIP"
+  "SOURCE"
+  "SQL"
   "STALENESS"
+  "STATISTICS"
   "STDOUT"
   "STEP"
   "STRICT"
+  "SYNC"
   "SYNTAX"
   "TABLE"
+  "TABLES"
+  "TEMPORARY"
   "THEN"
   "TIES"
   "TO"
@@ -155,12 +242,21 @@
   "TRANSACTION"
   "TREE"
   "TRUNCATE"
+  "TTL"
+  "TYPE"
   "UNBOUNDED"
+  "UNFREEZE"
   "UNION"
   "UNKNOWN"
   "UNSIGNED"
+  "UPDATE"
   "USING"
+  "UUID"
+  "VALUES"
   "VARYING"
+  "VIEW"
+  "VOLUME"
+  "WATERMARK"
   "WHEN"
   "WHERE"
   "WINDOW"
@@ -295,6 +391,102 @@
 
 (format_clause
   format: (identifier) @type.builtin)
+
+(insert_data) @string.special
+
+(insert_columns
+  (column_reference
+    name: (identifier) @variable.member))
+
+(assignment
+  column: (identifier) @variable.member)
+
+(column_definition
+  name: (identifier) @variable.member)
+
+(index_definition
+  name: (identifier) @type)
+
+(projection_definition
+  name: (identifier) @type)
+
+(constraint_definition
+  name: (identifier) @type)
+
+(add_action
+  name: (identifier) @type)
+
+(modify_action
+  name: (identifier) @variable.member)
+
+(drop_action
+  name: (identifier) @variable.member)
+
+(rename_column_action
+  [
+    name: (identifier)
+    new_name: (identifier)
+  ] @variable.member)
+
+(comment_column_action
+  name: (identifier) @variable.member)
+
+(alter_column_action
+  name: (identifier) @variable.member)
+
+(add_action
+  after: (identifier) @variable.member)
+
+(modify_action
+  after: (identifier) @variable.member)
+
+(engine_clause
+  name: (identifier) @type.builtin)
+
+(create_database_statement
+  name: (identifier) @module)
+
+(alter_named_collection_statement
+  name: (identifier) @type)
+
+(create_named_collection_statement
+  name: (identifier) @type)
+
+(create_index_statement
+  name: (identifier) @type)
+
+(create_function_statement
+  name: (identifier) @function)
+
+(truncate_statement
+  database: (identifier) @module)
+
+(on_cluster
+  cluster: (identifier) @module)
+
+(source_clause
+  name: (identifier) @type.builtin)
+
+(layout_clause
+  name: (identifier) @type.builtin)
+
+(dictionary_parameter
+  name: (identifier) @variable.parameter)
+
+(collection_item
+  key: (identifier) @variable.parameter)
+
+(collection_item
+  "=" @operator)
+
+(assignment
+  "=" @operator)
+
+(engine_clause
+  "=" @operator)
+
+(create_view_statement
+  "=" @operator)
 
 (case_expression
   [

@@ -13,6 +13,7 @@ const (
 	heredocStart
 	stringContent
 	heredocEnd
+	insertData
 )
 
 // maxTag is MAX_TAG, the longest tag that the scanner keeps, in
@@ -27,7 +28,8 @@ const maxTag = 255
 // the tag is empty or has the form of an identifier without a dollar sign.
 // The scanner gives the opening tag, the text and the closing tag as three
 // tokens, so that an injection can take the text. It keeps the tag from the
-// opening tag to the closing tag.
+// opening tag to the closing tag. The scanner also reads the data of INSERT
+// after FORMAT and the name of the format, to the end of the line.
 type scanner struct {
 	// open is 1 from the opening tag of a heredoc string to its closing
 	// tag.
@@ -52,6 +54,12 @@ func skip(lexer *abi.Lexer) { lexer.Advance(true) }
 // isSpace is is_space. It reports whether c is white space.
 func isSpace(c int32) bool {
 	return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v'
+}
+
+// isBlank is is_blank. It reports whether c is white space that does not
+// end a line.
+func isBlank(c int32) bool {
+	return c == ' ' || c == '\t' || c == '\r' || c == '\f' || c == '\v'
 }
 
 // isTagStart is is_tag_start. It reports whether c can start a tag: a
@@ -183,6 +191,46 @@ func (s *scanner) scanContent(lexer *abi.Lexer, validSymbols []bool) bool {
 	return text && validSymbols[stringContent]
 }
 
+// scanInsertData is scan_insert_data. It reads the data of INSERT to the
+// end of the line. It skips the spaces and one line feed before the data.
+// It returns false when no data comes, and then it has read only white
+// space, so that the caller can go on to read a comment.
+func scanInsertData(lexer *abi.Lexer) bool {
+	for isBlank(lexer.Lookahead) {
+		skip(lexer)
+	}
+	if lexer.Lookahead == '\n' {
+		skip(lexer)
+		for isBlank(lexer.Lookahead) {
+			skip(lexer)
+		}
+	}
+	if lexer.Lookahead == ';' {
+		return false
+	}
+	data := false
+	for !lexer.EOF() && lexer.Lookahead != '\n' {
+		if lexer.Lookahead == ';' {
+			advance(lexer)
+			for isBlank(lexer.Lookahead) {
+				advance(lexer)
+			}
+			if lexer.EOF() || lexer.Lookahead == '\n' {
+				break
+			}
+			continue
+		}
+		blank := isBlank(lexer.Lookahead)
+		advance(lexer)
+		if !blank {
+			lexer.MarkEnd()
+			data = true
+		}
+	}
+	lexer.ResultSymbol = insertData
+	return data
+}
+
 // Serialize is tree_sitter_clickhouse_external_scanner_serialize. The state
 // is open and the length of the tag in two bytes, and then each character
 // of the tag in four bytes, in little-endian order.
@@ -219,6 +267,11 @@ func (s *scanner) Deserialize(buf []byte) {
 func (s *scanner) Scan(lexer *abi.Lexer, validSymbols []bool) bool {
 	if s.open != 0 && (validSymbols[stringContent] || validSymbols[heredocEnd]) {
 		return s.scanContent(lexer, validSymbols)
+	}
+	// In error recovery, each token is valid, and the scanner does not read
+	// the data of INSERT.
+	if validSymbols[insertData] && !validSymbols[heredocEnd] && scanInsertData(lexer) {
+		return true
 	}
 	for isSpace(lexer.Lookahead) {
 		skip(lexer)

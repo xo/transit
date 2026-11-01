@@ -419,13 +419,12 @@ The grammar leaves out these forms of the other statements:
 
 ### Finish the ClickHouse grammar
 
-The ClickHouse grammar that xo writes (D127) reads the queries and
-`EXPLAIN` of ClickHouse. The other statements, such as `INSERT`, `CREATE
-TABLE`, `ALTER`, `SYSTEM` and `SET`, come in the next parts of the work.
-The grammar leaves out these forms of a query:
+The ClickHouse grammar that xo writes (D127) reads the queries,
+`EXPLAIN`, `INSERT`, `DELETE`, `UPDATE`, `TRUNCATE`, `CREATE` and `ALTER
+TABLE` of ClickHouse. The other statements, such as `DROP`, `SYSTEM` and
+`SET`, come in the next part of the work. The grammar leaves out these
+forms of a query:
 
-- A comma after the last column of `SELECT`, as in `SELECT a, b, FROM t`.
-  It cost about 470 parse states.
 - The names of the columns of a common table expression, as in `WITH t(a,
   b) AS (SELECT 1, 2)`. After `WITH t(`, the grammar cannot tell the
   columns from the arguments of a function `t`.
@@ -440,14 +439,60 @@ The grammar leaves out these forms of a query:
 - `EXPLAIN` in parentheses as a value, as in `SELECT (EXPLAIN SYNTAX
   SELECT 1)`. It puts 12 more parse states in the large form. `EXPLAIN` in
   parentheses in `FROM` is a subquery.
-- A column named `from` or another word of the reserved set, as in
-  `SELECT (from IN (1))`.
+- A column named `from` after an opening parenthesis, as in `SELECT (from
+  IN (1))`, because a query in parentheses can start with `FROM`. The
+  grammar reserves no word (D131), and where the keyword `FROM` can come,
+  the word is the keyword. For the same reason, `SELECT a, from FROM t`
+  reads `from` as the start of the clause `FROM`.
+- A second statement with no semicolon before it, as in `SELECT 1 SELECT
+  2`. The grammar reads the second `SELECT` as an alias with no `AS`.
 - The pipe operator `|>`, the composition of functions with `|`, `LIMIT
   AFTER`, `LIMIT UNTIL`, `AT TIME ZONE`, `STREAM`, the operators `~` and
   `!~` of PostgreSQL, `* ILIKE 'pattern'`, `VALUES` and `ARRAY[...]` of
   the dialect of Trino, the variables `@@name` of MySQL, and a star as a
   value, as in `[*, 1]` and `(*,).1`. The stateless tests of ClickHouse
   use them in a few files.
+
+The grammar leaves out these forms of the changes of data and schema:
+
+- `SETTINGS` before the query of `INSERT`, as in `INSERT INTO t SETTINGS
+  a = 1 SELECT 1`. It cost about 1,050 parse states. `SETTINGS` before
+  `VALUES` and `FORMAT` works.
+- `PARTITION BY` after the table function of `INSERT`, as in `INSERT INTO
+  FUNCTION s3(...) PARTITION BY a VALUES (1)`. After the value of
+  `PARTITION BY`, an opening parenthesis can start the arguments of a
+  function or the columns, and the grammar cannot tell them apart.
+- `RETURNING` of `INSERT`, which is new in ClickHouse.
+- `IN PARTITION` after the assignments of `UPDATE` and of `ALTER TABLE
+  UPDATE`, as in `UPDATE t SET a = 1 IN PARTITION 2 WHERE 1`. `IN` after
+  the value of an assignment starts the operator `IN`. `IN PARTITION`
+  with more than one partition, as in `DELETE FROM t IN PARTITION 1, 2
+  WHERE 1`.
+- `COMMENT` after the query of `CREATE VIEW` and of `CREATE TABLE ... AS
+  SELECT`. It cost about 690 parse states.
+- `ASC` and `DESC` in the columns of `CREATE INDEX`, as in `CREATE INDEX
+  i ON t (a DESC)`. They cost about 330 parse states. One file of the
+  stateless tests uses them in about 750 statements.
+- A column named `index`, `projection`, `constraint` or `primary` in the
+  columns of `CREATE TABLE`. The word is the keyword that starts an
+  element.
+- `ON CLUSTER` after the columns of `CREATE VIEW`. It comes after the name
+  of the view.
+- An interval of `REFRESH` with more than one unit, as in `REFRESH EVERY
+  1 HOUR 30 MINUTE`. It cost about 1,000 parse states. `WITH REFRESH` and
+  `WITH TIMEOUT` of a live view cost about 610 parse states. `INNER
+  ENGINE` of a window view starts with a word of a join, and the tool
+  reports a conflict with a join after the query.
+- `TO DISK` and `TO VOLUME` in a `TTL` after an interval with a string, as
+  in `TTL d + INTERVAL '1' DAY TO DISK 'a'`, because `TO` after the unit
+  starts a second unit, as in `INTERVAL '1:30' HOUR TO MINUTE`.
+- `MODIFY QUERY` with other actions in one `ALTER TABLE`, a list of
+  actions in parentheses, and `ADD ENUM VALUES` of `MODIFY COLUMN`.
+- The clauses of the engine `TimeSeries`, such as `SAMPLES INNER COLUMNS`,
+  `UNIQUE KEY`, `CODEC` of a subcolumn in the columns of a table, the
+  options of MySQL in `CREATE TABLE`, such as `DEFAULT CHARSET`, `CREATE
+  FUNCTION` with `LANGUAGE WASM`, and the casts in the arguments of a type,
+  as in `AggregateFunction(quantile(0.5::Float64), Float64)`.
 
 ## The setup of the repository
 

@@ -1,0 +1,616 @@
+================================================================================
+INSERT with VALUES
+================================================================================
+
+INSERT INTO orders VALUES (1, 'pen', 2.5), (2, 'ink', 4);
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (values_clause
+      (row
+        (number)
+        (string)
+        (number))
+      (row
+        (number)
+        (string)
+        (number)))))
+
+================================================================================
+INSERT with columns and TABLE
+================================================================================
+
+INSERT INTO TABLE shop.orders (id, item) VALUES (7, 'cup');
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (insert_columns
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier)))
+    (values_clause
+      (row
+        (number)
+        (string)))))
+
+================================================================================
+VALUES with no comma between the rows
+================================================================================
+
+insert into points values (1, 2) (3, 4) (5)
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (values_clause
+      (row
+        (number)
+        (number))
+      (row
+        (number)
+        (number))
+      (row
+        (number)))))
+
+================================================================================
+VALUES with expressions
+================================================================================
+
+INSERT INTO events VALUES (now(), [1, 2], {'k': 'v'}, (3, 'x'), -1, NULL, toDate('2025-03-04'));
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (values_clause
+      (row
+        (function_call
+          (identifier)
+          (arguments))
+        (array
+          (number)
+          (number))
+        (map
+          (map_entry
+            (string)
+            (string)))
+        (tuple
+          (number)
+          (string))
+        (unary_expression
+          (operator)
+          (number))
+        (null)
+        (function_call
+          (identifier)
+          (arguments
+            (string)))))))
+
+================================================================================
+INSERT with a query
+================================================================================
+
+INSERT INTO totals SELECT region, sum(amount) FROM sales GROUP BY region;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (select
+      (column_reference
+        (identifier))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (group_by_clause
+        (column_reference
+          (identifier))))))
+
+================================================================================
+INSERT with a query in parentheses and with WITH
+================================================================================
+
+INSERT INTO copy (SELECT * FROM source); INSERT INTO copy WITH 5 AS n SELECT n;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (parenthesized_query
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (insert_statement
+    (object_reference
+      (identifier))
+    (select
+      (with_clause
+        (aliased_expression
+          (number)
+          (identifier)))
+      (column_reference
+        (identifier)))))
+
+================================================================================
+INSERT with columns and a query
+================================================================================
+
+INSERT INTO metrics (name, value) SELECT 'cpu', avg(load) FROM hosts;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (insert_columns
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier)))
+    (select
+      (string)
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+INSERT with EXCEPT in the columns
+================================================================================
+
+INSERT INTO people (* EXCEPT (created)) VALUES ('ann', 41); INSERT INTO people (COLUMNS('^n')) VALUES ('bob');
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (insert_columns
+      (star_expression
+        (identifier)))
+    (values_clause
+      (row
+        (string)
+        (number))))
+  (insert_statement
+    (object_reference
+      (identifier))
+    (insert_columns
+      (columns_expression
+        (string)))
+    (values_clause
+      (row
+        (string)))))
+
+================================================================================
+INSERT with nested columns
+================================================================================
+
+INSERT INTO logs (tags.key, tags.value) VALUES (['a'], ['b']);
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (insert_columns
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier)))
+    (values_clause
+      (row
+        (array
+          (string))
+        (array
+          (string))))))
+
+================================================================================
+INSERT with FORMAT and data on the same line
+================================================================================
+
+INSERT INTO visits FORMAT CSV 3,"home",2025-01-09
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (format_clause
+      (identifier))
+    (insert_data)))
+
+================================================================================
+INSERT with data and a statement on the next line
+================================================================================
+
+INSERT INTO flags FORMAT CSV 1,yes
+INSERT INTO flags FORMAT TSV 2	no
+SELECT * FROM flags;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (format_clause
+      (identifier))
+    (insert_data))
+  (insert_statement
+    (object_reference
+      (identifier))
+    (format_clause
+      (identifier))
+    (insert_data))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+VALUES with a comma at the end and with no rows
+================================================================================
+
+INSERT INTO pairs VALUES (1, 'a'), (2, 'b'),; INSERT INTO pairs VALUES;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (values_clause
+      (row
+        (number)
+        (string))
+      (row
+        (number)
+        (string))))
+  (insert_statement
+    (object_reference
+      (identifier))
+    (values_clause)))
+
+================================================================================
+INSERT with FORMAT and data on the next line
+================================================================================
+
+INSERT INTO visits (id, page) FORMAT JSONEachRow
+{"id": 4, "page": "about"};
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (insert_columns
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier)))
+    (format_clause
+      (identifier))
+    (insert_data)))
+
+================================================================================
+INSERT with FORMAT and a semicolon in the data
+================================================================================
+
+INSERT INTO notes FORMAT TSV first;second
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (format_clause
+      (identifier))
+    (insert_data)))
+
+================================================================================
+INSERT with FORMAT and no data
+================================================================================
+
+INSERT INTO visits FORMAT Native;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (format_clause
+      (identifier))))
+
+================================================================================
+INSERT with SETTINGS
+================================================================================
+
+INSERT INTO queue SETTINGS async_insert = 1, wait_for_async_insert = 0 VALUES (9); INSERT INTO queue SETTINGS input_format_skip_unknown_fields = 1 FORMAT JSONEachRow {"x": 1}
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (settings_clause
+      (setting
+        (identifier)
+        (number))
+      (setting
+        (identifier)
+        (number)))
+    (values_clause
+      (row
+        (number))))
+  (insert_statement
+    (object_reference
+      (identifier))
+    (settings_clause
+      (setting
+        (identifier)
+        (number)))
+    (format_clause
+      (identifier))
+    (insert_data)))
+
+================================================================================
+INSERT FROM INFILE
+================================================================================
+
+INSERT INTO imports FROM INFILE 'rows.csv.gz' COMPRESSION 'gzip' FORMAT CSV; INSERT INTO imports (a, b) FROM INFILE 'more.tsv' SETTINGS format_tsv_null_representation = 'N' FORMAT TSV;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (infile_clause
+      (string)
+      (string))
+    (format_clause
+      (identifier)))
+  (insert_statement
+    (object_reference
+      (identifier))
+    (insert_columns
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier)))
+    (infile_clause
+      (string))
+    (settings_clause
+      (setting
+        (identifier)
+        (string)))
+    (format_clause
+      (identifier))))
+
+================================================================================
+INSERT INTO FUNCTION
+================================================================================
+
+INSERT INTO FUNCTION file('out.parquet', 'Parquet', 'k UInt8') VALUES (1); INSERT INTO TABLE FUNCTION remote('replica:9000', logs, hits) (id) SELECT 2;
+
+---
+
+(source_file
+  (insert_statement
+    (function_call
+      (identifier)
+      (arguments
+        (string)
+        (string)
+        (string)))
+    (values_clause
+      (row
+        (number))))
+  (insert_statement
+    (function_call
+      (identifier)
+      (arguments
+        (string)
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))))
+    (insert_columns
+      (column_reference
+        (identifier)))
+    (select
+      (number))))
+
+================================================================================
+INSERT with a query parameter as the table
+================================================================================
+
+INSERT INTO {target:Identifier} VALUES ({v:UInt32});
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (query_parameter
+        (identifier)
+        (type
+          (identifier))))
+    (values_clause
+      (row
+        (query_parameter
+          (identifier)
+          (type
+            (identifier)))))))
+
+================================================================================
+DELETE FROM
+================================================================================
+
+DELETE FROM sessions WHERE expires < now(); DELETE FROM db.sessions ON CLUSTER main IN PARTITION '2025-02' WHERE user_id = 12;
+
+---
+
+(source_file
+  (delete_statement
+    (object_reference
+      (identifier))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (function_call
+          (identifier)
+          (arguments)))))
+  (delete_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (on_cluster
+      (identifier))
+    (in_partition
+      (partition
+        (string)))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))))
+
+================================================================================
+UPDATE
+================================================================================
+
+UPDATE accounts SET balance = balance - 10, touched = now() WHERE id = 5; UPDATE db.accounts ON CLUSTER main SET flag = 1 WHERE flag = 0;
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier))
+    (assignment
+      (identifier)
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))
+    (assignment
+      (identifier)
+      (function_call
+        (identifier)
+        (arguments)))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number))))
+  (update_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (on_cluster
+      (identifier))
+    (assignment
+      (identifier)
+      (number))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))))
+
+================================================================================
+TRUNCATE
+================================================================================
+
+TRUNCATE inventory; TRUNCATE TABLE IF EXISTS shop.inventory ON CLUSTER main SYNC; TRUNCATE TEMPORARY TABLE scratch; TRUNCATE DATABASE IF EXISTS staging;
+
+---
+
+(source_file
+  (truncate_statement
+    (object_reference
+      (identifier)))
+  (truncate_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (on_cluster
+      (identifier)))
+  (truncate_statement
+    (object_reference
+      (identifier)))
+  (truncate_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+TRUNCATE ALL TABLES
+================================================================================
+
+TRUNCATE ALL TABLES FROM IF EXISTS staging NOT LIKE 'keep%' ON CLUSTER main; TRUNCATE TABLES FROM archive ILIKE 'tmp_%';
+
+---
+
+(source_file
+  (truncate_statement
+    (identifier)
+    (string)
+    (on_cluster
+      (identifier)))
+  (truncate_statement
+    (identifier)
+    (string)))

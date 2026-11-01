@@ -420,11 +420,33 @@ Each one follows these rules, in addition to the rest of this document:
    ClickHouse, as in `(1 AS x) + x`, and it costs about 300 states. The
    white space of Unicode in `extras` cost more than 1,000 states, because
    an identifier can hold such a character, so the grammar reads only the
-   white space of ASCII. A comma after the last column of `SELECT` cost
-   about 470 states, and the grammar does not read it. `ORDER BY` in a
+   white space of ASCII. A comma after the last column of `SELECT` is part
+   of the rule of `SELECT`, with the `FROM` after it, so that only `FROM`
+   can come after the comma, and it costs 8 states (D131). The grammar
+   reserves no word (D131), and that saves 13 states. `ORDER BY` in a
    window costs about 630 states, because the states after its items do
    not merge with the states after an expression where `INTERSECT` can
    come next.
+   The query of `CREATE TABLE ... AS SELECT` comes after the other
+   clauses of `CREATE`. In the choice of the clauses, it cost about 940
+   states, because each state of the query then took each word that
+   starts a clause. `COMMENT` after the query cost about 690 more states
+   for the same reason, so the grammar does not read it. A clause of
+   `CREATE` that ends with an expression, such as `ORDER BY`, has a
+   precedence above the alias with `AS`, so that `AS` after it starts the
+   query. In the same way, `SETTINGS` before a query in `INSERT` cost
+   about 1,050 states, and `ASC` and `DESC` in `CREATE INDEX` cost about
+   330 states, so the grammar does not read them. An interval of
+   `REFRESH` with more than one unit cost about 1,000 states, and `WITH
+   REFRESH` of a live view cost about 610 states. `SETTINGS` and the
+   opening parenthesis of the settings of a column as one token cost
+   about 620 states, because `SETTINGS` was then not a keyword of the word
+   rule. So `SETTINGS` after a column of `ALTER TABLE` is a conflict that
+   the parser solves at run time: the settings of the column, as in
+   `SETTINGS (max_compress_block_size = 1024)`, or the settings of the
+   statement. The data of `INSERT` after `FORMAT` is a token of the
+   external scanner that runs to the end of the line, as the client of
+   ClickHouse reads it, so such an `INSERT` needs no semicolon after it.
 
 A change to such a grammar is a change to transit. It follows "Before you
 stage" in `AGENTS.md`, and its golden files are made again.
