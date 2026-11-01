@@ -8,6 +8,7 @@ require (
 	github.com/xo/transit/grammars/c v0.6.0
 	github.com/xo/transit/grammars/cpp v0.6.0
 	github.com/xo/transit/grammars/cql v0.6.0
+	github.com/xo/transit/grammars/duckdb v0.6.0
 	github.com/xo/transit/grammars/embeddedtemplate v0.6.0
 	github.com/xo/transit/grammars/go v0.6.0
 	github.com/xo/transit/grammars/graphql v0.6.0
@@ -44,6 +45,8 @@ replace github.com/xo/transit/grammars/c => ../grammars/c
 replace github.com/xo/transit/grammars/cpp => ../grammars/cpp
 
 replace github.com/xo/transit/grammars/cql => ../grammars/cql
+
+replace github.com/xo/transit/grammars/duckdb => ../grammars/duckdb
 
 replace github.com/xo/transit/grammars/embeddedtemplate => ../grammars/embeddedtemplate
 

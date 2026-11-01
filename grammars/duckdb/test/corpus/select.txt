@@ -1,0 +1,2615 @@
+================================================================================
+Simple select
+================================================================================
+
+SELECT * FROM tbl;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Select with no FROM
+================================================================================
+
+SELECT 42;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number))))
+
+================================================================================
+Select with no columns
+================================================================================
+
+SELECT FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+FROM first
+================================================================================
+
+FROM tbl SELECT a, b WHERE a > 1;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))))))
+
+================================================================================
+A bare FROM
+================================================================================
+
+FROM tbl;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+DISTINCT and DISTINCT ON
+================================================================================
+
+SELECT DISTINCT city FROM addresses;
+SELECT DISTINCT ON (country) city, population FROM cities ORDER BY population DESC;
+SELECT ALL a FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (distinct_clause)
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (select_statement
+    (select
+      (distinct_clause
+        (column_reference
+          (identifier)))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))
+    (order_by_clause
+      (order_by_item
+        (column_reference
+          (identifier)))))
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Aliases
+================================================================================
+
+SELECT a AS x, b y, c AS "z", d AS 'w' FROM t AS t1, u u1, v AS "v1";
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (aliased_expression
+        (column_reference
+          (identifier))
+        (identifier))
+      (aliased_expression
+        (column_reference
+          (identifier))
+        (identifier))
+      (aliased_expression
+        (column_reference
+          (identifier))
+        (identifier))
+      (aliased_expression
+        (column_reference
+          (identifier))
+        (string))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))
+          (identifier))
+        (table_reference
+          (object_reference
+            (identifier))
+          (identifier))
+        (table_reference
+          (object_reference
+            (identifier))
+          (identifier))))))
+
+================================================================================
+Prefix aliases
+================================================================================
+
+SELECT x: 42, y: a + 1 FROM t: tbl, u: (SELECT 1);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (aliased_expression
+        (identifier)
+        (number))
+      (aliased_expression
+        (identifier)
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))
+      (from_clause
+        (table_reference
+          (identifier)
+          (object_reference
+            (identifier)))
+        (derived_table
+          (identifier)
+          (subquery
+            (select
+              (number))))))))
+
+================================================================================
+Star with EXCLUDE, REPLACE and RENAME
+================================================================================
+
+SELECT * EXCLUDE (col) FROM tbl;
+SELECT * EXCEPT (col) FROM tbl;
+SELECT * EXCLUDE col FROM tbl;
+SELECT * REPLACE (col1 / 1_000 AS col1, col2 / 1_000 AS col2) FROM tbl;
+SELECT * RENAME (col1 AS height, col2 AS width) FROM tbl;
+SELECT t.* EXCLUDE (a) REPLACE (b + 1 AS b), u.* FROM t, u;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression
+        (column_reference
+          (identifier)))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (select_statement
+    (select
+      (star_expression
+        (column_reference
+          (identifier)))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (select_statement
+    (select
+      (star_expression
+        (column_reference
+          (identifier)))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (select_statement
+    (select
+      (star_expression
+        (star_replace
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number))
+          (identifier))
+        (star_replace
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number))
+          (identifier)))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (select_statement
+    (select
+      (star_expression
+        (star_rename
+          (column_reference
+            (identifier))
+          (identifier))
+        (star_rename
+          (column_reference
+            (identifier))
+          (identifier)))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (select_statement
+    (select
+      (star_expression
+        (identifier)
+        (column_reference
+          (identifier))
+        (star_replace
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number))
+          (identifier)))
+      (star_expression
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Star with a pattern
+================================================================================
+
+SELECT * LIKE 'col%' FROM tbl;
+SELECT * GLOB 'col*' FROM tbl;
+SELECT * SIMILAR TO 'col.' FROM tbl;
+SELECT * NOT SIMILAR TO 'col.' FROM tbl;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression
+        (string))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (select_statement
+    (select
+      (star_expression
+        (string))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (select_statement
+    (select
+      (star_expression
+        (string))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (select_statement
+    (select
+      (star_expression
+        (string))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Struct star
+================================================================================
+
+SELECT st.* FROM (SELECT {'x': 1, 'y': 2} AS st);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression
+        (identifier))
+      (from_clause
+        (derived_table
+          (subquery
+            (select
+              (aliased_expression
+                (struct
+                  (struct_field
+                    (string)
+                    (number))
+                  (struct_field
+                    (string)
+                    (number)))
+                (identifier)))))))))
+
+================================================================================
+WHERE, GROUP BY and HAVING
+================================================================================
+
+SELECT city, count(*) FROM addresses WHERE city <> 'x' GROUP BY city HAVING count(*) >= 50;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (function_call
+        (identifier)
+        (arguments
+          (star_expression)))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (string)))
+      (group_by_clause
+        (column_reference
+          (identifier)))
+      (having_clause
+        (binary_expression
+          (function_call
+            (identifier)
+            (arguments
+              (star_expression)))
+          (operator)
+          (number))))))
+
+================================================================================
+GROUP BY ALL
+================================================================================
+
+SELECT city, street_name, avg(income) FROM addresses GROUP BY ALL;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (group_by_clause))))
+
+================================================================================
+Grouping sets
+================================================================================
+
+SELECT city, street_name, avg(income) FROM addresses GROUP BY GROUPING SETS ((city, street_name), (city), (street_name), ());
+SELECT city, street_name, avg(income) FROM addresses GROUP BY CUBE (city, street_name);
+SELECT city, street_name, avg(income) FROM addresses GROUP BY ROLLUP (city, street_name);
+SELECT a, b, grouping_id(a, b) FROM t GROUP BY a, ROLLUP (b), CUBE ();
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (group_by_clause
+        (grouping_sets
+          (row_constructor
+            (column_reference
+              (identifier))
+            (column_reference
+              (identifier)))
+          (parenthesized_expression
+            (column_reference
+              (identifier)))
+          (parenthesized_expression
+            (column_reference
+              (identifier)))
+          (empty_grouping_set)))))
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (group_by_clause
+        (cube
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))))))
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (group_by_clause
+        (rollup
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))))))
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (group_by_clause
+        (column_reference
+          (identifier))
+        (rollup
+          (column_reference
+            (identifier)))
+        (cube)))))
+
+================================================================================
+QUALIFY
+================================================================================
+
+SELECT schema_name, function_name, row_number() OVER (PARTITION BY schema_name ORDER BY function_name) AS function_rank FROM duckdb_functions() QUALIFY function_rank < 3;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (aliased_expression
+        (function_call
+          (identifier)
+          (arguments)
+          (over_clause
+            (window_specification
+              (column_reference
+                (identifier))
+              (order_by_clause
+                (order_by_item
+                  (column_reference
+                    (identifier)))))))
+        (identifier))
+      (from_clause
+        (function_table
+          (function_call
+            (identifier)
+            (arguments))))
+      (qualify_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))))))
+
+================================================================================
+WINDOW
+================================================================================
+
+SELECT sum(a) OVER w, avg(a) OVER (w ROWS 2 PRECEDING) FROM t WINDOW w AS (PARTITION BY b ORDER BY c), w2 AS (w);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier)))
+        (over_clause
+          (identifier)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier)))
+        (over_clause
+          (window_specification
+            (identifier)
+            (frame_clause
+              (frame_bound
+                (number))))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (window_clause
+        (window_definition
+          (identifier)
+          (window_specification
+            (column_reference
+              (identifier))
+            (order_by_clause
+              (order_by_item
+                (column_reference
+                  (identifier))))))
+        (window_definition
+          (identifier)
+          (window_specification
+            (identifier)))))))
+
+================================================================================
+ORDER BY
+================================================================================
+
+SELECT * FROM t ORDER BY a ASC, b DESC NULLS FIRST, c NULLS LAST, d ASCENDING, e DESCENDING;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))
+    (order_by_clause
+      (order_by_item
+        (column_reference
+          (identifier)))
+      (order_by_item
+        (column_reference
+          (identifier)))
+      (order_by_item
+        (column_reference
+          (identifier)))
+      (order_by_item
+        (column_reference
+          (identifier)))
+      (order_by_item
+        (column_reference
+          (identifier))))))
+
+================================================================================
+ORDER BY ALL
+================================================================================
+
+SELECT * FROM addresses ORDER BY ALL;
+SELECT * FROM addresses ORDER BY ALL DESC NULLS LAST;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))
+    (order_by_clause))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))
+    (order_by_clause)))
+
+================================================================================
+LIMIT and OFFSET
+================================================================================
+
+SELECT * FROM t LIMIT 5;
+SELECT * FROM t LIMIT 5 OFFSET 10;
+SELECT * FROM t OFFSET 10 LIMIT 5;
+SELECT * FROM t LIMIT 10%;
+SELECT * FROM t LIMIT 10 PERCENT;
+SELECT * FROM t LIMIT ALL;
+SELECT * FROM t OFFSET 2 ROWS;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))
+    (limit_clause
+      (number)))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))
+    (limit_clause
+      (number))
+    (offset_clause
+      (number)))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))
+    (offset_clause
+      (number))
+    (limit_clause
+      (number)))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))
+    (limit_clause
+      (number)))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))
+    (limit_clause
+      (number)))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))
+    (limit_clause))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))
+    (offset_clause
+      (number))))
+
+================================================================================
+FETCH
+================================================================================
+
+SELECT * FROM t FETCH FIRST 5 ROWS ONLY;
+SELECT * FROM t OFFSET 1 ROW FETCH NEXT 2 ROWS ONLY;
+SELECT * FROM t FETCH FIRST ROW ONLY;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))
+    (fetch_clause
+      (number)))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))
+    (offset_clause
+      (number))
+    (fetch_clause
+      (number)))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))
+    (fetch_clause)))
+
+================================================================================
+Set operations
+================================================================================
+
+SELECT * FROM a UNION SELECT * FROM b;
+SELECT * FROM a UNION ALL SELECT * FROM b;
+SELECT * FROM a EXCEPT SELECT * FROM b;
+SELECT * FROM a INTERSECT ALL SELECT * FROM b UNION DISTINCT SELECT 1;
+SELECT * FROM a UNION BY NAME SELECT * FROM b;
+SELECT * FROM a UNION ALL BY NAME SELECT * FROM b;
+
+---
+
+(source_file
+  (select_statement
+    (set_operation
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (select_statement
+    (set_operation
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (select_statement
+    (set_operation
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (select_statement
+    (set_operation
+      (set_operation
+        (select
+          (star_expression)
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier)))))
+        (select
+          (star_expression)
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier))))))
+      (select
+        (number))))
+  (select_statement
+    (set_operation
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (select_statement
+    (set_operation
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))))
+
+================================================================================
+Set operations with parentheses
+================================================================================
+
+(SELECT 1) UNION (SELECT 2) ORDER BY 1;
+((SELECT 1));
+
+---
+
+(source_file
+  (select_statement
+    (set_operation
+      (parenthesized_query
+        (select
+          (number)))
+      (parenthesized_query
+        (select
+          (number))))
+    (order_by_clause
+      (order_by_item
+        (number))))
+  (select_statement
+    (parenthesized_query
+      (parenthesized_query
+        (select
+          (number))))))
+
+================================================================================
+VALUES
+================================================================================
+
+VALUES (1, 'a'), (2, 'b');
+SELECT * FROM (VALUES (1), (2)) t(x);
+SELECT * FROM VALUES (1, 2), (3, 4) v(a, b);
+
+---
+
+(source_file
+  (select_statement
+    (values
+      (value_list
+        (number)
+        (string))
+      (value_list
+        (number)
+        (string))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (derived_table
+          (subquery
+            (values
+              (value_list
+                (number))
+              (value_list
+                (number))))
+          (identifier)
+          (column_list
+            (identifier))))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (derived_table
+          (values
+            (value_list
+              (number)
+              (number))
+            (value_list
+              (number)
+              (number)))
+          (identifier)
+          (column_list
+            (identifier)
+            (identifier)))))))
+
+================================================================================
+TABLE
+================================================================================
+
+TABLE tbl;
+
+---
+
+(source_file
+  (select_statement
+    (table_query
+      (object_reference
+        (identifier)))))
+
+================================================================================
+WITH
+================================================================================
+
+WITH cte AS (SELECT 42 AS x) SELECT * FROM cte;
+WITH cte1 AS (SELECT 42 AS i), cte2 AS (SELECT i * 100 AS x FROM cte1) SELECT * FROM cte2;
+WITH t(x) AS MATERIALIZED (SELECT 1), u AS NOT MATERIALIZED (SELECT 2) FROM t, u;
+
+---
+
+(source_file
+  (select_statement
+    (with_clause
+      (cte
+        (identifier)
+        (select
+          (aliased_expression
+            (number)
+            (identifier)))))
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (select_statement
+    (with_clause
+      (cte
+        (identifier)
+        (select
+          (aliased_expression
+            (number)
+            (identifier))))
+      (cte
+        (identifier)
+        (select
+          (aliased_expression
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (number))
+            (identifier))
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier)))))))
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (select_statement
+    (with_clause
+      (cte
+        (identifier)
+        (column_list
+          (identifier))
+        (select
+          (number)))
+      (cte
+        (identifier)
+        (select
+          (number))))
+    (select
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+WITH RECURSIVE
+================================================================================
+
+WITH RECURSIVE FibonacciNumbers (RecursionDepth, FibonacciNumber, NextNumber) AS (
+    SELECT 0 AS RecursionDepth, 0 AS FibonacciNumber, 1 AS NextNumber
+    UNION ALL
+    SELECT fib.RecursionDepth + 1, fib.NextNumber, fib.FibonacciNumber + fib.NextNumber
+    FROM FibonacciNumbers fib
+    WHERE fib.RecursionDepth + 1 < 10
+)
+SELECT * FROM FibonacciNumbers;
+
+---
+
+(source_file
+  (select_statement
+    (with_clause
+      (cte
+        (identifier)
+        (column_list
+          (identifier)
+          (identifier)
+          (identifier))
+        (set_operation
+          (select
+            (aliased_expression
+              (number)
+              (identifier))
+            (aliased_expression
+              (number)
+              (identifier))
+            (aliased_expression
+              (number)
+              (identifier)))
+          (select
+            (binary_expression
+              (column_reference
+                (identifier)
+                (identifier))
+              (operator)
+              (number))
+            (column_reference
+              (identifier)
+              (identifier))
+            (binary_expression
+              (column_reference
+                (identifier)
+                (identifier))
+              (operator)
+              (column_reference
+                (identifier)
+                (identifier)))
+            (from_clause
+              (table_reference
+                (object_reference
+                  (identifier))
+                (identifier)))
+            (where_clause
+              (binary_expression
+                (binary_expression
+                  (column_reference
+                    (identifier)
+                    (identifier))
+                  (operator)
+                  (number))
+                (operator)
+                (number)))))))
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+WITH RECURSIVE and USING KEY
+================================================================================
+
+WITH RECURSIVE tbl(a, b) USING KEY (a) AS (
+    SELECT * FROM (VALUES (1, 1), (2, 2)) t(a, b)
+    UNION
+    SELECT a + 1, b FROM tbl WHERE a < 5
+)
+SELECT * FROM tbl;
+
+---
+
+(source_file
+  (select_statement
+    (with_clause
+      (cte
+        (identifier)
+        (column_list
+          (identifier)
+          (identifier))
+        (column_reference
+          (identifier))
+        (set_operation
+          (select
+            (star_expression)
+            (from_clause
+              (derived_table
+                (subquery
+                  (values
+                    (value_list
+                      (number)
+                      (number))
+                    (value_list
+                      (number)
+                      (number))))
+                (identifier)
+                (column_list
+                  (identifier)
+                  (identifier)))))
+          (select
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (number))
+            (column_reference
+              (identifier))
+            (from_clause
+              (table_reference
+                (object_reference
+                  (identifier))))
+            (where_clause
+              (binary_expression
+                (column_reference
+                  (identifier))
+                (operator)
+                (number)))))))
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Joins
+================================================================================
+
+SELECT * FROM a JOIN b ON a.id = b.id;
+SELECT * FROM a INNER JOIN b USING (id);
+SELECT * FROM a LEFT JOIN b ON true LEFT OUTER JOIN c ON true RIGHT JOIN d ON true FULL OUTER JOIN e ON true;
+SELECT * FROM a CROSS JOIN b, c;
+SELECT * FROM a NATURAL JOIN b NATURAL LEFT JOIN c;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (join
+          (table_reference
+            (object_reference
+              (identifier)))
+          (table_reference
+            (object_reference
+              (identifier)))
+          (binary_expression
+            (column_reference
+              (identifier)
+              (identifier))
+            (operator)
+            (column_reference
+              (identifier)
+              (identifier)))))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (join
+          (table_reference
+            (object_reference
+              (identifier)))
+          (table_reference
+            (object_reference
+              (identifier)))
+          (column_list
+            (identifier))))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (join
+          (join
+            (join
+              (join
+                (table_reference
+                  (object_reference
+                    (identifier)))
+                (table_reference
+                  (object_reference
+                    (identifier)))
+                (boolean))
+              (table_reference
+                (object_reference
+                  (identifier)))
+              (boolean))
+            (table_reference
+              (object_reference
+                (identifier)))
+            (boolean))
+          (table_reference
+            (object_reference
+              (identifier)))
+          (boolean)))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (join
+          (table_reference
+            (object_reference
+              (identifier)))
+          (table_reference
+            (object_reference
+              (identifier))))
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (join
+          (join
+            (table_reference
+              (object_reference
+                (identifier)))
+            (table_reference
+              (object_reference
+                (identifier))))
+          (table_reference
+            (object_reference
+              (identifier))))))))
+
+================================================================================
+ASOF joins
+================================================================================
+
+SELECT t.*, p.price FROM trades t ASOF JOIN prices p ON t.symbol = p.symbol AND t.when >= p.when;
+SELECT * FROM trades t ASOF LEFT JOIN prices p USING (symbol, "when");
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (from_clause
+        (join
+          (table_reference
+            (object_reference
+              (identifier))
+            (identifier))
+          (table_reference
+            (object_reference
+              (identifier))
+            (identifier))
+          (binary_expression
+            (binary_expression
+              (column_reference
+                (identifier)
+                (identifier))
+              (operator)
+              (column_reference
+                (identifier)
+                (identifier)))
+            (binary_expression
+              (column_reference
+                (identifier)
+                (identifier))
+              (operator)
+              (column_reference
+                (identifier)
+                (identifier))))))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (join
+          (table_reference
+            (object_reference
+              (identifier))
+            (identifier))
+          (table_reference
+            (object_reference
+              (identifier))
+            (identifier))
+          (column_list
+            (identifier)
+            (identifier)))))))
+
+================================================================================
+POSITIONAL joins
+================================================================================
+
+SELECT * FROM t1 POSITIONAL JOIN t2;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (join
+          (table_reference
+            (object_reference
+              (identifier)))
+          (table_reference
+            (object_reference
+              (identifier))))))))
+
+================================================================================
+SEMI and ANTI joins
+================================================================================
+
+SELECT * FROM a SEMI JOIN b ON a.x = b.x;
+SELECT * FROM a ANTI JOIN b USING (x);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (join
+          (table_reference
+            (object_reference
+              (identifier)))
+          (table_reference
+            (object_reference
+              (identifier)))
+          (binary_expression
+            (column_reference
+              (identifier)
+              (identifier))
+            (operator)
+            (column_reference
+              (identifier)
+              (identifier)))))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (join
+          (table_reference
+            (object_reference
+              (identifier)))
+          (table_reference
+            (object_reference
+              (identifier)))
+          (column_list
+            (identifier)))))))
+
+================================================================================
+LATERAL
+================================================================================
+
+SELECT * FROM range(3) t(i), LATERAL (SELECT i + 1) t2(j);
+SELECT * FROM t JOIN LATERAL (SELECT * FROM u WHERE u.a = t.a) s ON true;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (function_table
+          (function_call
+            (identifier)
+            (arguments
+              (number)))
+          (identifier)
+          (column_list
+            (identifier)))
+        (derived_table
+          (subquery
+            (select
+              (binary_expression
+                (column_reference
+                  (identifier))
+                (operator)
+                (number))))
+          (identifier)
+          (column_list
+            (identifier))))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (join
+          (table_reference
+            (object_reference
+              (identifier)))
+          (derived_table
+            (subquery
+              (select
+                (star_expression)
+                (from_clause
+                  (table_reference
+                    (object_reference
+                      (identifier))))
+                (where_clause
+                  (binary_expression
+                    (column_reference
+                      (identifier)
+                      (identifier))
+                    (operator)
+                    (column_reference
+                      (identifier)
+                      (identifier))))))
+            (identifier))
+          (boolean))))))
+
+================================================================================
+NEAREST joins
+================================================================================
+
+SELECT q.user_id, t.product_id FROM users q INNER JOIN products t APPROX NEAREST 2 BY SIMILARITY array_cosine_similarity(q.embedding, t.embedding);
+SELECT q.user_id, t.product_id FROM users q LEFT JOIN products t NEAREST 1 BY DISTANCE array_distance(q.embedding, t.embedding);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (from_clause
+        (join
+          (table_reference
+            (object_reference
+              (identifier))
+            (identifier))
+          (table_reference
+            (object_reference
+              (identifier))
+            (identifier))
+          (nearest_clause
+            (number)
+            (function_call
+              (identifier)
+              (arguments
+                (column_reference
+                  (identifier)
+                  (identifier))
+                (column_reference
+                  (identifier)
+                  (identifier)))))))))
+  (select_statement
+    (select
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (from_clause
+        (join
+          (table_reference
+            (object_reference
+              (identifier))
+            (identifier))
+          (table_reference
+            (object_reference
+              (identifier))
+            (identifier))
+          (nearest_clause
+            (number)
+            (function_call
+              (identifier)
+              (arguments
+                (column_reference
+                  (identifier)
+                  (identifier))
+                (column_reference
+                  (identifier)
+                  (identifier))))))))))
+
+================================================================================
+JOIN BY TYPE
+================================================================================
+
+SELECT a, __mark_join_marker FROM t1 JOIN BY (TYPE mark) t2 ON (a = b);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (join
+          (table_reference
+            (object_reference
+              (identifier)))
+          (identifier)
+          (table_reference
+            (object_reference
+              (identifier)))
+          (parenthesized_expression
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (column_reference
+                (identifier)))))))))
+
+================================================================================
+Shorthands in a join
+================================================================================
+
+SELECT * FROM t1 NATURAL JOIN t2 t2(x);
+SELECT * FROM t1 NATURAL JOIN (VALUES (2), (4)) _(x);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (join
+          (table_reference
+            (object_reference
+              (identifier)))
+          (table_reference
+            (object_reference
+              (identifier))
+            (identifier)
+            (column_list
+              (identifier)))))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (join
+          (table_reference
+            (object_reference
+              (identifier)))
+          (derived_table
+            (subquery
+              (values
+                (value_list
+                  (number))
+                (value_list
+                  (number))))
+            (identifier)
+            (column_list
+              (identifier))))))))
+
+================================================================================
+Parenthesized joins
+================================================================================
+
+SELECT * FROM (a JOIN b ON true) JOIN c ON true;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (join
+          (parenthesized_join
+            (join
+              (table_reference
+                (object_reference
+                  (identifier)))
+              (table_reference
+                (object_reference
+                  (identifier)))
+              (boolean)))
+          (table_reference
+            (object_reference
+              (identifier)))
+          (boolean))))))
+
+================================================================================
+Table functions
+================================================================================
+
+SELECT * FROM range(10) t(i), generate_series(1, 3) WITH ORDINALITY, read_parquet('a.parquet');
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (function_table
+          (function_call
+            (identifier)
+            (arguments
+              (number)))
+          (identifier)
+          (column_list
+            (identifier)))
+        (function_table
+          (function_call
+            (identifier)
+            (arguments
+              (number)
+              (number))))
+        (function_table
+          (function_call
+            (identifier)
+            (arguments
+              (string))))))))
+
+================================================================================
+Files as tables
+================================================================================
+
+SELECT * FROM 'flights.csv';
+FROM 'my-data/part-*.parquet' AS p;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (string)))))
+  (select_statement
+    (select
+      (from_clause
+        (table_reference
+          (string)
+          (identifier))))))
+
+================================================================================
+Tables with a schema and a database
+================================================================================
+
+SELECT * FROM db.main.tbl, main.tbl2, "my db"."s".t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)
+            (identifier)
+            (identifier)))
+        (table_reference
+          (object_reference
+            (identifier)
+            (identifier)))
+        (table_reference
+          (object_reference
+            (identifier)
+            (identifier)
+            (identifier)))))))
+
+================================================================================
+Subqueries in FROM
+================================================================================
+
+SELECT * FROM (SELECT * FROM t) AS s, (FROM u) v;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (derived_table
+          (subquery
+            (select
+              (star_expression)
+              (from_clause
+                (table_reference
+                  (object_reference
+                    (identifier))))))
+          (identifier))
+        (derived_table
+          (subquery
+            (select
+              (from_clause
+                (table_reference
+                  (object_reference
+                    (identifier))))))
+          (identifier))))))
+
+================================================================================
+Time travel
+================================================================================
+
+SELECT * FROM tbl AT (VERSION => 3);
+SELECT * FROM tbl AT (TIMESTAMP => now() - INTERVAL 1 DAY);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))
+          (at_clause
+            (number))))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))
+          (at_clause
+            (binary_expression
+              (function_call
+                (identifier)
+                (arguments))
+              (operator)
+              (interval_expression
+                (number)
+                (interval_unit)))))))))
+
+================================================================================
+USING SAMPLE
+================================================================================
+
+SELECT * FROM addresses USING SAMPLE 1%;
+SELECT * FROM addresses USING SAMPLE 1% (bernoulli);
+SELECT * FROM (SELECT * FROM addresses) USING SAMPLE 10 ROWS;
+SELECT * FROM addresses USING SAMPLE 10 PERCENT (reservoir);
+SELECT * FROM addresses USING SAMPLE reservoir(50 ROWS) REPEATABLE (100);
+SELECT * FROM addresses USING SAMPLE 20% (system, 377);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (sample_clause
+        (sample_size
+          (number)))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (sample_clause
+        (sample_size
+          (number))
+        (identifier))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (derived_table
+          (subquery
+            (select
+              (star_expression)
+              (from_clause
+                (table_reference
+                  (object_reference
+                    (identifier))))))))
+      (sample_clause
+        (sample_size
+          (number)))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (sample_clause
+        (sample_size
+          (number))
+        (identifier))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (sample_clause
+        (identifier)
+        (sample_size
+          (number))
+        (number))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (sample_clause
+        (sample_size
+          (number))
+        (identifier)
+        (number)))))
+
+================================================================================
+TABLESAMPLE
+================================================================================
+
+SELECT * FROM tbl TABLESAMPLE reservoir(20%), tbl2 WHERE tbl.i = tbl2.i;
+SELECT * FROM tbl TABLESAMPLE 10 ROWS;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))
+          (tablesample_clause
+            (identifier)
+            (sample_size
+              (number))))
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)
+            (identifier))))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))
+          (tablesample_clause
+            (sample_size
+              (number))))))))
+
+================================================================================
+PIVOT
+================================================================================
+
+PIVOT cities ON year USING sum(population);
+PIVOT cities ON year IN (2000, 2010) USING sum(population) GROUP BY country;
+PIVOT cities ON country, name USING sum(population) AS total, max(population) AS max;
+PIVOT_WIDER cities ON year USING first(population) ORDER BY country LIMIT 10;
+PIVOT cities ON country || '_' || name USING sum(population);
+WITH p AS (PIVOT cities ON year USING sum(population)) SELECT * FROM p;
+SELECT * FROM (PIVOT cities ON year USING sum(population)) p;
+
+---
+
+(source_file
+  (select_statement
+    (pivot
+      (table_reference
+        (object_reference
+          (identifier)))
+      (column_reference
+        (identifier))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))))
+  (select_statement
+    (pivot
+      (table_reference
+        (object_reference
+          (identifier)))
+      (in_expression
+        (column_reference
+          (identifier))
+        (row_constructor
+          (number)
+          (number)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (group_by_clause
+        (column_reference
+          (identifier)))))
+  (select_statement
+    (pivot
+      (table_reference
+        (object_reference
+          (identifier)))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (aliased_expression
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier))))
+        (identifier))
+      (aliased_expression
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier))))
+        (identifier))))
+  (select_statement
+    (pivot
+      (table_reference
+        (object_reference
+          (identifier)))
+      (column_reference
+        (identifier))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier)))))
+    (order_by_clause
+      (order_by_item
+        (column_reference
+          (identifier))))
+    (limit_clause
+      (number)))
+  (select_statement
+    (pivot
+      (table_reference
+        (object_reference
+          (identifier)))
+      (binary_expression
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (string))
+        (operator)
+        (column_reference
+          (identifier)))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))))
+  (select_statement
+    (with_clause
+      (cte
+        (identifier)
+        (pivot
+          (table_reference
+            (object_reference
+              (identifier)))
+          (column_reference
+            (identifier))
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier)))))))
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (derived_table
+          (subquery
+            (pivot
+              (table_reference
+                (object_reference
+                  (identifier)))
+              (column_reference
+                (identifier))
+              (function_call
+                (identifier)
+                (arguments
+                  (column_reference
+                    (identifier))))))
+          (identifier))))))
+
+================================================================================
+UNPIVOT
+================================================================================
+
+UNPIVOT monthly_sales ON jan, feb, mar INTO NAME month VALUE sales;
+UNPIVOT monthly_sales ON COLUMNS(* EXCLUDE (empid, dept)) INTO NAME month VALUE sales;
+UNPIVOT monthly_sales ON (jan, feb, mar) AS q1, (apr, may, jun) AS q2 INTO NAME quarter VALUE month_1_sales, month_2_sales, month_3_sales;
+PIVOT_LONGER t ON a, b;
+
+---
+
+(source_file
+  (select_statement
+    (unpivot
+      (table_reference
+        (object_reference
+          (identifier)))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (identifier)
+      (identifier)))
+  (select_statement
+    (unpivot
+      (table_reference
+        (object_reference
+          (identifier)))
+      (function_call
+        (identifier)
+        (arguments
+          (star_expression
+            (column_reference
+              (identifier))
+            (column_reference
+              (identifier)))))
+      (identifier)
+      (identifier)))
+  (select_statement
+    (unpivot
+      (table_reference
+        (object_reference
+          (identifier)))
+      (aliased_expression
+        (row_constructor
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier)))
+        (identifier))
+      (aliased_expression
+        (row_constructor
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier)))
+        (identifier))
+      (identifier)
+      (identifier)
+      (identifier)
+      (identifier)))
+  (select_statement
+    (unpivot
+      (table_reference
+        (object_reference
+          (identifier)))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier)))))
+
+================================================================================
+PIVOT of the SQL standard
+================================================================================
+
+SELECT * FROM cities PIVOT (sum(population) FOR year IN (2000, 2010, 2020) GROUP BY country);
+SELECT * FROM cities PIVOT (sum(population) AS total, count(population) AS count FOR year IN (2000, 2010) country IN ('NL', 'US'));
+SELECT * FROM cities PIVOT (sum(population) FOR year IN year_enum) AS p;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (pivot_table
+          (table_reference
+            (object_reference
+              (identifier)))
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier))))
+          (pivot_values
+            (column_reference
+              (identifier))
+            (number)
+            (number)
+            (number))
+          (group_by_clause
+            (column_reference
+              (identifier)))))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (pivot_table
+          (table_reference
+            (object_reference
+              (identifier)))
+          (aliased_expression
+            (function_call
+              (identifier)
+              (arguments
+                (column_reference
+                  (identifier))))
+            (identifier))
+          (aliased_expression
+            (function_call
+              (identifier)
+              (arguments
+                (column_reference
+                  (identifier))))
+            (identifier))
+          (pivot_values
+            (column_reference
+              (identifier))
+            (number)
+            (number))
+          (pivot_values
+            (column_reference
+              (identifier))
+            (string)
+            (string))))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (pivot_table
+          (table_reference
+            (object_reference
+              (identifier)))
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier))))
+          (pivot_values
+            (column_reference
+              (identifier))
+            (identifier))
+          (identifier))))))
+
+================================================================================
+UNPIVOT of the SQL standard
+================================================================================
+
+FROM monthly_sales UNPIVOT (sales FOR month IN (jan, feb, mar, apr, may, jun));
+FROM monthly_sales UNPIVOT INCLUDE NULLS (sales FOR month IN (columns(* EXCLUDE (empid, dept)))) AS u;
+FROM monthly_sales UNPIVOT ((month_1_sales, month_2_sales, month_3_sales) FOR quarter IN ((jan, feb, mar) AS q1, (apr, may, jun) AS q2));
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (from_clause
+        (unpivot_table
+          (table_reference
+            (object_reference
+              (identifier)))
+          (identifier)
+          (pivot_values
+            (column_reference
+              (identifier))
+            (column_reference
+              (identifier))
+            (column_reference
+              (identifier))
+            (column_reference
+              (identifier))
+            (column_reference
+              (identifier))
+            (column_reference
+              (identifier))
+            (column_reference
+              (identifier)))))))
+  (select_statement
+    (select
+      (from_clause
+        (unpivot_table
+          (table_reference
+            (object_reference
+              (identifier)))
+          (identifier)
+          (pivot_values
+            (column_reference
+              (identifier))
+            (function_call
+              (identifier)
+              (arguments
+                (star_expression
+                  (column_reference
+                    (identifier))
+                  (column_reference
+                    (identifier))))))
+          (identifier)))))
+  (select_statement
+    (select
+      (from_clause
+        (unpivot_table
+          (table_reference
+            (object_reference
+              (identifier)))
+          (column_list
+            (identifier)
+            (identifier)
+            (identifier))
+          (pivot_values
+            (column_reference
+              (identifier))
+            (aliased_expression
+              (row_constructor
+                (column_reference
+                  (identifier))
+                (column_reference
+                  (identifier))
+                (column_reference
+                  (identifier)))
+              (identifier))
+            (aliased_expression
+              (row_constructor
+                (column_reference
+                  (identifier))
+                (column_reference
+                  (identifier))
+                (column_reference
+                  (identifier)))
+              (identifier))))))))
+
+================================================================================
+A query in parentheses with a clause after it
+================================================================================
+
+(SELECT a FROM t) ORDER BY a LIMIT 1;
+
+---
+
+(source_file
+  (select_statement
+    (parenthesized_query
+      (select
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))
+    (order_by_clause
+      (order_by_item
+        (column_reference
+          (identifier))))
+    (limit_clause
+      (number))))
+
+================================================================================
+Clauses in any order
+================================================================================
+
+FROM t SELECT a QUALIFY x > 1 WHERE b > 2 WINDOW w AS ();
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (column_reference
+        (identifier))
+      (qualify_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))
+      (window_clause
+        (window_definition
+          (identifier)
+          (window_specification))))))
+
+================================================================================
+Trailing commas in VALUES
+================================================================================
+
+VALUES (42,), (43,),;
+SELECT * FROM (VALUES (1, 2), (3, 4),) t(a, b);
+
+---
+
+(source_file
+  (select_statement
+    (values
+      (value_list
+        (number))
+      (value_list
+        (number))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (derived_table
+          (subquery
+            (values
+              (value_list
+                (number)
+                (number))
+              (value_list
+                (number)
+                (number))))
+          (identifier)
+          (column_list
+            (identifier)
+            (identifier)))))))
+
+================================================================================
+Star with a regular expression and ESCAPE
+================================================================================
+
+SELECT * ~ 'b.*' FROM t;
+SELECT * LIKE '\_%' ESCAPE '\' FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression
+        (operator)
+        (string))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (select_statement
+    (select
+      (star_expression
+        (string)
+        (string))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+ASOF SEMI and ASOF ANTI joins
+================================================================================
+
+SELECT * FROM l ASOF SEMI JOIN r ON l.t >= r.t;
+SELECT * FROM l ASOF ANTI JOIN r USING (k, t);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (join
+          (table_reference
+            (object_reference
+              (identifier)))
+          (table_reference
+            (object_reference
+              (identifier)))
+          (binary_expression
+            (column_reference
+              (identifier)
+              (identifier))
+            (operator)
+            (column_reference
+              (identifier)
+              (identifier)))))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (join
+          (table_reference
+            (object_reference
+              (identifier)))
+          (table_reference
+            (object_reference
+              (identifier)))
+          (column_list
+            (identifier)
+            (identifier)))))))
+
+================================================================================
+JOIN BY TYPE with a keyword
+================================================================================
+
+SELECT count(*) FROM t1 JOIN BY (TYPE inner) t2 ON (a = b);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (star_expression)))
+      (from_clause
+        (join
+          (table_reference
+            (object_reference
+              (identifier)))
+          (identifier)
+          (table_reference
+            (object_reference
+              (identifier)))
+          (parenthesized_expression
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (column_reference
+                (identifier)))))))))
+
+================================================================================
+WITH RECURSIVE and USING KEY with aggregates
+================================================================================
+
+WITH RECURSIVE t(k, v) USING KEY (k, max(v) AS v) AS (VALUES (1, 0) UNION SELECT k, v + 1 FROM t WHERE v < 3) FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (with_clause
+      (cte
+        (identifier)
+        (column_list
+          (identifier)
+          (identifier))
+        (column_reference
+          (identifier))
+        (aliased_expression
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier))))
+          (identifier))
+        (set_operation
+          (values
+            (value_list
+              (number)
+              (number)))
+          (select
+            (column_reference
+              (identifier))
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (number))
+            (from_clause
+              (table_reference
+                (object_reference
+                  (identifier))))
+            (where_clause
+              (binary_expression
+                (column_reference
+                  (identifier))
+                (operator)
+                (number)))))))
+    (select
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))

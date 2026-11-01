@@ -87,8 +87,8 @@ transit as rline and usql will (D53). Run them in the folder `_example`:
 | `go run ./highlight -dialect mysql -style monokai -colors 256` | It types a text of usql one key at a time, parses again with the old tree after each key, and finds the layer of each SQL statement with `inject`. It prints the text in the colors of a style of the module `styles`, and the time of each edit |
 | `go run ./complete -dialect postgres -text 'select * from '` | It completes at each cursor that it gets as a byte offset. It says whether the cursor is in a meta command, in a variable or in a SQL statement, and in a statement it lists the keywords and the kinds of node that can come next, from `Layer.StatesAt` |
 
-The flag `-dialect` takes `cql`, `generic`, `mysql`, `oracle`, `postgres`,
-`sqlite3` or `sqlserver`.
+The flag `-dialect` takes `cql`, `duckdb`, `generic`, `mysql`, `oracle`,
+`postgres`, `sqlite3` or `sqlserver`.
 
 ## Documents
 
@@ -265,6 +265,27 @@ savepoints, `ANALYZE`, `REINDEX`, `VACUUM` and `EXPLAIN`. SQLite reserves
 few of its keywords, so one identifier token covers each keyword that
 SQLite does not reserve. The grammar has no external scanner. The package
 adds about 0.6 MB to a binary.
+
+The package `github.com/xo/transit/grammars/duckdb` holds the grammar
+`duckdb`, which xo writes from the SQL documentation of DuckDB 2.0 (D126).
+It covers the lexical structure, with the names in double quotes and in
+backquotes, the strings with `E` before them, the dollar-quoted strings,
+the bit strings such as `B'0101'` and the hex strings such as `X'CAFE'`,
+the numbers with `_` between their digits, the parameters `?`, `$1` and
+`$name`, and the comments, which nest. It covers the expressions with the
+precedence of DuckDB, with `::` and `TRY_CAST`, the lists, the structs and
+the maps, the subscripts and the slices, the lambdas in both forms, the
+list comprehensions, the calls of a function after a dot, `COLUMNS` and
+`*COLUMNS`, the star with `EXCLUDE`, `REPLACE` and `RENAME`, the named
+arguments, `FILTER`, `WITHIN GROUP`, `IGNORE NULLS` and the window
+functions. It covers the types, and the full query: `WITH` with
+`RECURSIVE` and `USING KEY`, `SELECT` with `DISTINCT ON`, a query that
+starts with `FROM`, each kind of join with `ASOF`, `POSITIONAL`, `SEMI`,
+`ANTI` and `NEAREST`, the table functions, a file as a table, `PIVOT` and
+`UNPIVOT` in both forms, the samples, `GROUP BY ALL`, `QUALIFY`, the set
+operations with `BY NAME`, `ORDER BY ALL` and `LIMIT` with a percent. The
+other statements come later. The external scanner reads the comments and
+the dollar-quoted strings. The package adds about 0.9 MB to a binary.
 
 The package `github.com/xo/transit/grammars/postgres/postgres` holds the
 grammar `postgres`, which xo writes from the reference manual of

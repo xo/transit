@@ -5,6 +5,7 @@ go 1.27.1
 require (
 	github.com/xo/transit v0.6.0
 	github.com/xo/transit/grammars/cql v0.6.0
+	github.com/xo/transit/grammars/duckdb v0.6.0
 	github.com/xo/transit/grammars/mysql v0.6.0
 	github.com/xo/transit/grammars/oracle v0.6.0
 	github.com/xo/transit/grammars/postgres v0.6.0
@@ -18,6 +19,8 @@ require (
 replace github.com/xo/transit => ..
 
 replace github.com/xo/transit/grammars/cql => ../grammars/cql
+
+replace github.com/xo/transit/grammars/duckdb => ../grammars/duckdb
 
 replace github.com/xo/transit/grammars/mysql => ../grammars/mysql
 

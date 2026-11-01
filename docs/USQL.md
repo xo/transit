@@ -177,6 +177,14 @@ they speak the SQL of SQLite. The commands of the sqlite3 shell, such as
 commands and does not remove them, so a line such as `.mode csv` reaches
 the grammar as a part of the text of a statement. The grammar puts the line
 in an ERROR node, and the statement after the line parses with no error.
+usql gives `duckdb` the generic grammar today, which does not read the
+syntax of DuckDB, such as a query that starts with `FROM`, `QUALIFY` and
+the lambdas. So xo writes the DuckDB grammar from the SQL documentation of
+DuckDB in `grammars/duckdb` (D126). It reads the queries today, and the
+other statements come later. usql will give it to `duckdb`, and to
+`gizmosql` too, because GizmoSQL serves DuckDB. The commands of the duckdb
+shell, such as `.tables`, are not SQL. The grammar puts such a line in an
+ERROR node, as the SQLite grammar does.
 SQL++, InfluxQL, KSQL, PartiQL, ES|QL and
 PPL have no grammar at all. transit writes the missing grammars, and the
 usql grammar, in `grammars/` (D42, D104). The other missing grammars come
@@ -191,6 +199,7 @@ for the flag `-dialect`, with these options of `usql.Options`:
 | `postgres` | `github.com/xo/transit/grammars/postgres/postgres` | `DollarQuotes`, `BlockComments` |
 | `mysql` | `github.com/xo/transit/grammars/mysql` | `BlockComments`, `HashComments`, `Backticks`, `BeginEndBlocks` |
 | `sqlite3` | `github.com/xo/transit/grammars/sqlite3` | `BlockComments`, `Backticks` |
+| `duckdb` | `github.com/xo/transit/grammars/duckdb` | `DollarQuotes`, `BlockComments` |
 | `sqlserver` | `github.com/xo/transit/grammars/sqlserver` | `BlockComments`, `BeginEndBlocks` |
 | `oracle` | `github.com/xo/transit/grammars/oracle` | `BlockComments`, `BeginEndBlocks` |
 | `cql` | `github.com/xo/transit/grammars/cql` | `DollarQuotes`, `BlockComments`, `SlashComments`, `Batches` |
@@ -198,8 +207,8 @@ for the flag `-dialect`, with these options of `usql.Options`:
 
 usql keeps this match itself. The repository of `cql` has no highlight
 query, so xo wrote the highlight query of its package (D113). xo writes the
-highlight queries of `oracle`, `sqlite3` and `sqlserver` with their
-grammars.
+highlight queries of `oracle`, `sqlite3`, `duckdb` and `sqlserver` with
+their grammars.
 
 The usql grammar ends a statement at each semicolon outside parentheses.
 The body of a stored program of MySQL, SQL Server or Oracle that is a

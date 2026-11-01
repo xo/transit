@@ -16,6 +16,7 @@ import (
 
 	"github.com/xo/transit"
 	"github.com/xo/transit/grammars/cql"
+	"github.com/xo/transit/grammars/duckdb"
 	"github.com/xo/transit/grammars/mysql"
 	"github.com/xo/transit/grammars/oracle"
 	"github.com/xo/transit/grammars/postgres/postgres"
@@ -43,6 +44,7 @@ type Dialect struct {
 // statement.
 var dialects = []Dialect{
 	{"cql", usql.Options{DollarQuotes: true, BlockComments: true, SlashComments: true, Batches: true}, cql.Language, cql.Queries, cql.Keywords},
+	{"duckdb", usql.Options{DollarQuotes: true, BlockComments: true}, duckdb.Language, duckdb.Queries, duckdb.Keywords},
 	{"generic", usql.Options{BlockComments: true}, sql.Language, sql.Queries, sql.Keywords},
 	{"mysql", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true}, mysql.Language, mysql.Queries, mysql.Keywords},
 	{"oracle", usql.Options{BlockComments: true, BeginEndBlocks: true}, oracle.Language, oracle.Queries, oracle.Keywords},

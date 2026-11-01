@@ -348,6 +348,37 @@ reference of SQLite. It leaves out these forms:
   `USING define((SELECT 1; SELECT 2))`. SQLite gives the text of the
   argument to the module.
 
+### Finish the DuckDB grammar
+
+The DuckDB grammar that xo writes (D126) reads the queries of DuckDB 2.0.
+The other statements, such as `INSERT`, `CREATE TABLE`, `COPY` and
+`ATTACH`, come in the next parts of the work. The grammar leaves out these
+forms of a query:
+
+- A name with more parts than four for a column, three for a table and
+  three for a function or a type, as in `SELECT * FROM db.s1.s2.t`. DuckDB
+  2.0 lets a schema hold other schemas. With one token of lookahead, the
+  grammar cannot tell where the schemas of such a name end. A column with
+  more parts is a field of a struct, as in `db.s.t.c.f`.
+- A join on the right side of a join with no parentheses, as in
+  `a JOIN b JOIN c ON x ON y`.
+- `INTERVAL` as the name of a column, because `INTERVAL` starts an
+  interval, as in `INTERVAL (x) DAYS`.
+- `TRY_CAST` as the name of a column.
+- A star in `ORDER BY` and `GROUP BY`, as in `ORDER BY *`. It costs about
+  40 states.
+- `SELECT * EXCEPT SELECT ...`, a set operation after a star with no
+  `FROM`. The grammar reads `EXCEPT` after a star as the start of the
+  columns that the star leaves out.
+- A type with modifiers before a string, as in `DECIMAL(4,2) '1.23'`, and
+  a cast after `IS NULL`, as in `x IS NULL::VARCHAR`.
+- `//` before a comment with no space, as in `8//**/2`, which the lexer
+  reads as `//` and `**`.
+- A comma after the last item of a list, as in `GROUP BY a,`. The grammar
+  takes it only after the rows of `VALUES` and their values, the columns
+  of `SELECT`, the tables of `FROM`, a list in brackets and a list of
+  names, because each such list costs parse states.
+
 ## The setup of the repository
 
 These items come in phase 1 and later, as the plan says.

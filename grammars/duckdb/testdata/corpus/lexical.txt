@@ -1,0 +1,387 @@
+================================================================================
+Identifiers
+================================================================================
+
+SELECT abc, _x, a$b, été, "quoted ""name""", `back``quoted`, " § 🦆 ¶ " FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Strings
+================================================================================
+
+SELECT 'abc', 'it''s', '', 'line
+break';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string)
+      (string)
+      (string)
+      (string))))
+
+================================================================================
+Escape strings
+================================================================================
+
+SELECT e'Hello\nworld', E'it\'s', E'a\\b';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string)
+      (string)
+      (string))))
+
+================================================================================
+Implicit string concatenation
+================================================================================
+
+SELECT 'Hello'
+    ' '
+    'World' AS greeting;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (aliased_expression
+        (string)
+        (identifier)))))
+
+================================================================================
+Dollar-quoted strings
+================================================================================
+
+SELECT $$Hello
+world$$, $$The price is $9.95$$, $tag$ a $$b$$ c $tag$, $$$$;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (dollar_quoted_string
+        (string_content))
+      (dollar_quoted_string
+        (string_content))
+      (dollar_quoted_string
+        (string_content))
+      (dollar_quoted_string))))
+
+================================================================================
+Bit strings and hex strings
+================================================================================
+
+SELECT B'0101' AS b, X'CAFE' AS x, b'', x'00';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (aliased_expression
+        (bit_string)
+        (identifier))
+      (aliased_expression
+        (blob)
+        (identifier))
+      (bit_string)
+      (blob))))
+
+================================================================================
+Numbers
+================================================================================
+
+SELECT 1, 1.5, .50, 2., 1e2, 6.02214e23, 1e-10, 2E+4;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number))))
+
+================================================================================
+Numbers with separators
+================================================================================
+
+SELECT 100_000_000, 1_2.1_2E0_1, 3.141_592;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (number)
+      (number))))
+
+================================================================================
+Parameters
+================================================================================
+
+SELECT ?, ?1, ?23, $1, $name, $x_y;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (parameter)
+      (parameter)
+      (parameter)
+      (parameter)
+      (parameter)
+      (parameter))))
+
+================================================================================
+Positional references
+================================================================================
+
+SELECT #1, #2 FROM t ORDER BY #1;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (positional_reference)
+      (positional_reference)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))
+    (order_by_clause
+      (order_by_item
+        (positional_reference)))))
+
+================================================================================
+Line comment
+================================================================================
+
+SELECT 1 -- a comment
+;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)))
+  (comment))
+
+================================================================================
+Block comments
+================================================================================
+
+SELECT /* a
+comment */ 1 /**/ /* ** * */;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (comment)
+      (number)))
+  (comment)
+  (comment))
+
+================================================================================
+Nested block comments
+================================================================================
+
+SELECT 1 /* I /* love */ comments */ + 2, 1+/**/2, 1*/**/2;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (number)
+        (comment)
+        (operator)
+        (number))
+      (binary_expression
+        (number)
+        (operator)
+        (comment)
+        (number))
+      (binary_expression
+        (number)
+        (operator)
+        (comment)
+        (number)))))
+
+================================================================================
+Empty statements
+================================================================================
+
+;;SELECT 1;;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number))))
+
+================================================================================
+Statement with no semicolon
+================================================================================
+
+SELECT 1
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number))))
+
+================================================================================
+Keywords in any case
+================================================================================
+
+select A from T where B is not null order by C desc;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (is_expression
+          (column_reference
+            (identifier))
+          (null))))
+    (order_by_clause
+      (order_by_item
+        (column_reference
+          (identifier))))))
+
+================================================================================
+A keyword that DuckDB does not reserve as a name
+================================================================================
+
+SELECT year, month, day, name, type, value, key, version FROM t;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Reserved words as labels
+================================================================================
+
+SELECT 1 AS select, t.from FROM t AS "table";
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (aliased_expression
+        (number)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))
+          (identifier))))))
+
+================================================================================
+Trailing commas
+================================================================================
+
+SELECT
+    42 AS x,
+    ['a', 'b', 'c',] AS y,
+    'hello world' AS z,
+;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (aliased_expression
+        (number)
+        (identifier))
+      (aliased_expression
+        (list
+          (string)
+          (string)
+          (string))
+        (identifier))
+      (aliased_expression
+        (string)
+        (identifier)))))

@@ -10849,6 +10849,73 @@
       }
     },
     {
+      "name": "duckdb",
+      "package": "duckdb",
+      "repository": "https://github.com/xo/transit",
+      "commit": "",
+      "path": "grammars/duckdb",
+      "license": "MIT",
+      "scanner": true,
+      "set": "xo",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "c978699572ba296693c16202aa6385b0f5646faa5622f831c28441e2506b096c",
+          "node_types": "e10bee35e4605281519504ebf28e2621ac35265c608326f51a1a1e993f9917e9",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "anonymous unique alias",
+            "non-terminal alias map",
+            "keyword lexer",
+            "large character set",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "a4a3c74b6dfdee9390530017ddf1821de66d0ab91abb93e440051ecf5426ef21",
+          "node_types": "e10bee35e4605281519504ebf28e2621ac35265c608326f51a1a1e993f9917e9",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "anonymous unique alias",
+            "non-terminal alias map",
+            "keyword lexer",
+            "large character set",
+            "reserved words",
+            "reserved word set of a state",
+            "external scanner",
+            "external lex state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      },
+      "corpus": {
+        "tests": 131,
+        "failures": 0,
+        "transit": "same"
+      }
+    },
+    {
       "name": "mysql",
       "package": "mysql",
       "repository": "https://github.com/xo/transit",
