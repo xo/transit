@@ -1,0 +1,368 @@
+================================================================================
+EXECUTE of a procedure
+================================================================================
+
+EXEC dbo.uspGetEmployeeManagers 6;
+EXECUTE dbo.uspGetEmployeeManagers @EmployeeID = 6;
+
+---
+
+(source_file
+  (execute_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (execute_argument
+      (number)))
+  (execute_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (execute_argument
+      (variable)
+      (number))))
+
+================================================================================
+EXECUTE with several arguments
+================================================================================
+
+EXEC sp_addextendedproperty @name = N'MS_Description', @value = 'Employees', @level0type = N'SCHEMA', @level0name = dbo, @level1type = N'TABLE', @level1name = Employee
+
+---
+
+(source_file
+  (execute_statement
+    (object_reference
+      (identifier))
+    (execute_argument
+      (variable)
+      (string))
+    (execute_argument
+      (variable)
+      (string))
+    (execute_argument
+      (variable)
+      (string))
+    (execute_argument
+      (variable)
+      (identifier))
+    (execute_argument
+      (variable)
+      (string))
+    (execute_argument
+      (variable)
+      (identifier))))
+
+================================================================================
+EXECUTE with OUTPUT and DEFAULT
+================================================================================
+
+EXECUTE dbo.ProcTestDefaults @p1 = DEFAULT, @p2 = 'x', @p3 = -1;
+EXEC dbo.GetCount @count = @c OUTPUT, @n OUT
+
+---
+
+(source_file
+  (execute_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (execute_argument
+      (variable))
+    (execute_argument
+      (variable)
+      (string))
+    (execute_argument
+      (variable)
+      (operator)
+      (number)))
+  (execute_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (execute_argument
+      (variable)
+      (variable))
+    (execute_argument
+      (variable))))
+
+================================================================================
+EXECUTE with a return status
+================================================================================
+
+DECLARE @retstat INT;
+EXECUTE @retstat = SQLSERVER1.AdventureWorks2022.dbo.uspGetEmployeeManagers @BusinessEntityID = 6;
+
+---
+
+(source_file
+  (declare_statement
+    (variable_declaration
+      (variable)
+      (type
+        (identifier))))
+  (execute_statement
+    (variable)
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier)
+      (identifier))
+    (execute_argument
+      (variable)
+      (number))))
+
+================================================================================
+EXECUTE of a procedure in a variable
+================================================================================
+
+DECLARE @proc_name VARCHAR(30) = 'sys.sp_who';
+EXEC @proc_name;
+
+---
+
+(source_file
+  (declare_statement
+    (variable_declaration
+      (variable)
+      (type
+        (identifier)
+        (type_modifiers
+          (number)))
+      (string)))
+  (execute_statement
+    (variable)))
+
+================================================================================
+EXECUTE of a string
+================================================================================
+
+EXEC ('SELECT * FROM ' + @schemaname + '.' + @tablename + ';');
+EXECUTE (N'SELECT 1')
+
+---
+
+(source_file
+  (execute_statement
+    (binary_expression
+      (binary_expression
+        (binary_expression
+          (binary_expression
+            (string)
+            (operator)
+            (variable))
+          (operator)
+          (string))
+        (operator)
+        (variable))
+      (operator)
+      (string)))
+  (execute_statement
+    (string)))
+
+================================================================================
+EXECUTE of a string AS USER and AS LOGIN
+================================================================================
+
+EXECUTE ('CREATE TABLE Sales.SalesTable (SalesID INT, SalesName VARCHAR(10));') AS USER = 'User1';
+EXEC ('SELECT 1') AS LOGIN = 'login1'
+
+---
+
+(source_file
+  (execute_statement
+    (string)
+    (string))
+  (execute_statement
+    (string)
+    (string)))
+
+================================================================================
+EXECUTE AT a linked server
+================================================================================
+
+EXECUTE ('CREATE TABLE AdventureWorks2022.dbo.SalesTbl (SalesID INT, SalesName VARCHAR(10)); ') AT SeattleSales;
+EXECUTE ('SELECT ProductID, Name FROM AdventureWorks2022.Production.Product WHERE ProductID = ? ', 952) AT SeattleSales;
+EXEC ('SELECT ? ', @v OUTPUT) AT DATA_SOURCE my_source
+
+---
+
+(source_file
+  (execute_statement
+    (string)
+    (identifier))
+  (execute_statement
+    (string)
+    (number)
+    (identifier))
+  (execute_statement
+    (string)
+    (variable)
+    (identifier)))
+
+================================================================================
+EXECUTE WITH RECOMPILE
+================================================================================
+
+EXECUTE Production.uspGetList '%road%', 700, 800 WITH RECOMPILE;
+
+---
+
+(source_file
+  (execute_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (execute_argument
+      (string))
+    (execute_argument
+      (number))
+    (execute_argument
+      (number))
+    (execute_option)))
+
+================================================================================
+EXECUTE WITH RESULT SETS
+================================================================================
+
+EXEC uspGetEmployeeManagers 16
+WITH RESULT SETS
+(
+   ([Reporting Level] INT NOT NULL,
+    [ID of Employee] INT NOT NULL,
+    [Employee Name] NVARCHAR(50) COLLATE Latin1_General_CI_AS NULL
+   ),
+   AS OBJECT dbo.t,
+   AS TYPE dbo.tt,
+   AS FOR XML
+);
+EXEC p WITH RESULT SETS NONE;
+EXEC p WITH RESULT SETS UNDEFINED, RECOMPILE
+
+---
+
+(source_file
+  (execute_statement
+    (object_reference
+      (identifier))
+    (execute_argument
+      (number))
+    (execute_option
+      (result_set
+        (column_definition
+          (identifier)
+          (type
+            (identifier))
+          (null))
+        (column_definition
+          (identifier)
+          (type
+            (identifier))
+          (null))
+        (column_definition
+          (identifier)
+          (type
+            (identifier)
+            (type_modifiers
+              (number)))
+          (identifier)
+          (null)))
+      (result_set
+        (object_reference
+          (identifier)
+          (identifier)))
+      (result_set
+        (object_reference
+          (identifier)
+          (identifier)))
+      (result_set)))
+  (execute_statement
+    (object_reference
+      (identifier))
+    (execute_option))
+  (execute_statement
+    (object_reference
+      (identifier))
+    (execute_option)
+    (execute_option)))
+
+================================================================================
+EXECUTE with a name as a string
+================================================================================
+
+EXEC sp_helptext myproc
+EXEC sp_help [dbo.t]
+
+---
+
+(source_file
+  (execute_statement
+    (object_reference
+      (identifier))
+    (execute_argument
+      (identifier)))
+  (execute_statement
+    (object_reference
+      (identifier))
+    (execute_argument
+      (identifier))))
+
+================================================================================
+A call with no EXECUTE at the start of a batch
+================================================================================
+
+sp_who 'active'
+GO
+sp_helpdb
+GO
+dbo.my_proc @a = 1, @b = N'x'
+
+---
+
+(source_file
+  (execute_statement
+    (object_reference
+      (identifier))
+    (execute_argument
+      (string)))
+  (go_statement)
+  (execute_statement
+    (object_reference
+      (identifier)))
+  (go_statement)
+  (execute_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (execute_argument
+      (variable)
+      (number))
+    (execute_argument
+      (variable)
+      (string))))
+
+================================================================================
+EXECUTE AS and REVERT
+================================================================================
+
+EXECUTE AS LOGIN = 'login1';
+EXECUTE AS USER = 'user2' WITH NO REVERT;
+EXECUTE AS USER = 'user1' WITH COOKIE INTO @cookie;
+EXECUTE AS CALLER;
+REVERT;
+REVERT WITH COOKIE = @cookie;
+
+---
+
+(source_file
+  (execute_as_statement
+    (string))
+  (execute_as_statement
+    (string))
+  (execute_as_statement
+    (string)
+    (variable))
+  (execute_as_statement)
+  (revert_statement)
+  (revert_statement
+    (variable)))

@@ -27,18 +27,30 @@
 //
 // A statement of Transact-SQL can end at a semicolon, but it does not have
 // to, so two statements can follow each other with nothing between them.
-// The reserved keywords end the statement before them, as they do in the
-// server. A keyword that SQL Server does not reserve, such as THROW, can be
-// the alias of a table at the end of the statement before it, as in the
-// server, which needs a semicolon before such a statement.
+// If each word that starts a statement were a lookahead after each
+// expression, each state after an expression would take the large form. So
+// the external scanner gives _end, a token that holds no characters, where
+// the grammar can end a statement and the next word starts a statement, or
+// is ELSE or END. A simple statement in a batch or a block ends at a
+// semicolon or at _end. A statement that holds statements, such as IF or
+// a block, ends with the last statement in it. The scanner gives _end
+// also after the condition of IF and WHILE. A word that starts a
+// statement and that SQL Server does not reserve, such as THROW, starts a
+// statement after another statement, where the server reads it as an
+// alias.
 //
-// The external scanner in src/scanner.c reads the comments, which nest, and
-// a line with only GO and a count, which ends a batch in sqlcmd and in SQL
-// Server Management Studio. GO is not Transact-SQL, but a script holds it,
-// so the grammar takes it as the end of a batch. The other commands of
-// sqlcmd, such as :r and :setvar, belong to usql. The variables of usql
-// belong to the usql grammar, which hands this grammar a placeholder of the
-// same length in place of each variable (D101).
+// The procedural statements are written inline, as in the Oracle grammar:
+// BEGIN ... END, IF, WHILE, TRY ... CATCH, DECLARE and the statements of
+// cursors. The words that only these statements use, such as TRY and
+// CATCH, are not reserved.
+//
+// The external scanner in src/scanner.c reads the comments, which nest, a
+// line with only GO and a count, which ends a batch in sqlcmd and in SQL
+// Server Management Studio, and _end. GO is not Transact-SQL, but a script
+// holds it, so the grammar takes it as the end of a batch. The other
+// commands of sqlcmd, such as :r and :setvar, belong to usql. The variables
+// of usql belong to the usql grammar, which hands this grammar a
+// placeholder of the same length in place of each variable (D101).
 
 /// <reference types="tree-sitter-cli/dsl" />
 // @ts-check
@@ -197,6 +209,8 @@ module.exports = grammar({
   externals: $ => [
     $.comment,
     $._go,
+    $._end,
+    $._error_sentinel,
   ],
 
   word: $ => $.identifier,
@@ -239,21 +253,670 @@ module.exports = grammar({
     // A batch ends at a line with only GO. A statement can end at a
     // semicolon, and two statements can follow each other with nothing
     // between them.
-    source_file: $ => repeat(choice(
-      $._statement,
-      ';',
-      $.go_statement,
-    )),
-
-    // GO and a count, alone on its line, ends a batch, and runs it count
-    // times.
-    go_statement: $ => seq(
-      alias($._go, 'GO'),
-      optional(field('count', $.number)),
+    // The first statement of a batch can be the call of a procedure with no
+    // EXECUTE before it, as in sp_who.
+    source_file: $ => seq(
+      optional($._batch_start),
+      repeat($._item),
     ),
 
-    _statement: $ => choice(
+    _batch_start: $ => seq(alias($._procedure_call, $.execute_statement), $._terminator),
+
+    // A statement in a batch or a block ends at a semicolon, or where the
+    // external scanner gives _end, which holds no characters: before a word
+    // that starts a statement, before ELSE, END, a label or a line with
+    // GO, and at the end of the input. A statement that holds statements,
+    // such as IF, ends with the last statement in it.
+    _item: $ => choice(
+      seq($._simple_statement, $._terminator),
+      $._compound_statement,
+      $.label,
+      seq($.go_statement, optional($._batch_start)),
+      ';',
+    ),
+
+    _terminator: $ => choice(';', $._end),
+
+    // The statement after IF, ELSE or WHILE. A block can end with a
+    // semicolon before ELSE, as in IF a = 1 BEGIN PRINT 'a' END; ELSE PRINT
+    // 'b'.
+    _body: $ => choice(
+      seq($._simple_statement, $._terminator),
+      prec.right(seq(choice($.block, $.try_statement), optional(';'))),
+      $.if_statement,
+      $.while_statement,
+    ),
+
+    _compound_statement: $ => choice(
+      $.block,
+      $.if_statement,
+      $.while_statement,
+      $.try_statement,
+    ),
+
+    // GO and a count, alone on its line, ends a batch, and runs it count
+    // times. The grammar takes GO in each place where a statement can
+    // start, also in a block, where the server does not take it. Then the
+    // states after a statement in a block and after a statement of the
+    // batch are the same states.
+    go_statement: $ => prec.right(seq(
+      alias($._go, 'GO'),
+      optional(field('count', $.number)),
+    )),
+
+    _simple_statement: $ => choice(
       $.select_statement,
+      $.insert_statement,
+      $.update_statement,
+      $.delete_statement,
+      $.merge_statement,
+      $.bulk_insert_statement,
+      $.truncate_statement,
+      $.readtext_statement,
+      $.writetext_statement,
+      $.updatetext_statement,
+      $.begin_transaction_statement,
+      $.commit_statement,
+      $.rollback_statement,
+      $.save_transaction_statement,
+      $.set_statement,
+      $.use_statement,
+      $.execute_statement,
+      $.execute_as_statement,
+      $.revert_statement,
+      $.print_statement,
+      $.raiserror_statement,
+      $.throw_statement,
+      $.break_statement,
+      $.continue_statement,
+      $.goto_statement,
+      $.return_statement,
+      $.waitfor_statement,
+      $.declare_statement,
+      $.cursor_declaration,
+      $.open_statement,
+      $.fetch_statement,
+      $.close_statement,
+      $.deallocate_statement,
+    ),
+
+    // Changes of data
+
+    // The clauses after the first part of a statement that changes data
+    // come in any order, as the clauses of a query do. INSERT takes rows
+    // from VALUES, a query, EXECUTE, or DEFAULT VALUES.
+    insert_statement: $ => seq(
+      optional($.with_clause),
+      kw('INSERT'),
+      optional($.top_clause),
+      optional(kw('INTO')),
+      $._dml_table,
+      optional($.column_list),
+      repeat($.output_clause),
+      choice(
+        $.values_clause,
+        $._query,
+        $.execute_statement,
+        kws('DEFAULT', 'VALUES'),
+      ),
+    ),
+
+    values_clause: $ => seq(kw('VALUES'), commaSep1($.value_list)),
+
+    // An UPDATE sets columns, variables, the properties of a value of a CLR
+    // type, as in SET c.X = 1, or calls a method, as in SET
+    // c.WRITE(N'x', 0, NULL).
+    update_statement: $ => seq(
+      optional($.with_clause),
+      kw('UPDATE'),
+      optional($.top_clause),
+      $._dml_table,
+      $._set_clause,
+      repeat($._dml_clause),
+    ),
+
+    _set_clause: $ => seq(
+      kw('SET'),
+      commaSep1(choice(
+        alias($._update_assignment, $.assignment),
+        $.function_call,
+        $.field_expression,
+      )),
+    ),
+
+    _update_assignment: $ => seq(
+      field('left', choice($.column_reference, $.variable, $.field_expression)),
+      field('operator', choice('=', alias($._compound_operator, $.operator))),
+      field('right', choice($._expression, kw('DEFAULT'))),
+    ),
+
+    delete_statement: $ => seq(
+      optional($.with_clause),
+      kw('DELETE'),
+      optional($.top_clause),
+      optional(kw('FROM')),
+      $._dml_table,
+      repeat($._dml_clause),
+    ),
+
+    _dml_clause: $ => choice(
+      $.output_clause,
+      $.from_clause,
+      $.where_clause,
+      $.current_of_clause,
+      $.option_clause,
+    ),
+
+    // The table of INSERT, UPDATE, DELETE and MERGE: a table, a table
+    // variable or a rowset function, with its hints after WITH.
+    _dml_table: $ => prec.right(seq(
+      field('table', choice(
+        $.object_reference,
+        $.variable,
+        alias($._rowset_function, $.function_call),
+      )),
+      optional(alias($._with_table_hints, $.table_hints)),
+    )),
+
+    _with_table_hints: $ => seq(kw('WITH'), $._hint_list),
+
+    // WHERE CURRENT OF changes the row of a cursor.
+    current_of_clause: $ => seq(
+      kws('WHERE', 'CURRENT', 'OF'),
+      optional(kw('GLOBAL')),
+      field('cursor', choice($._name, $.variable)),
+    ),
+
+    // OUTPUT gives the rows that the statement changed, with INSERTED,
+    // DELETED and $action, and INTO puts them in a table.
+    output_clause: $ => prec.right(seq(
+      kw('OUTPUT'),
+      commaSep1($._select_item),
+      optional(seq(
+        kw('INTO'),
+        field('table', choice($.object_reference, $.variable)),
+        optional($.column_list),
+      )),
+    )),
+
+    // MERGE requires a semicolon at its end in the server, but the grammar
+    // does not.
+    merge_statement: $ => seq(
+      optional($.with_clause),
+      kw('MERGE'),
+      optional($.top_clause),
+      optional(kw('INTO')),
+      $._dml_table,
+      optional($._alias),
+      kw('USING'),
+      field('source', $._table_reference),
+      kw('ON'),
+      field('condition', $._expression),
+      repeat(choice(
+        $.merge_when_clause,
+        $.output_clause,
+        $.option_clause,
+      )),
+    ),
+
+    merge_when_clause: $ => seq(
+      kw('WHEN'),
+      optional(kw('NOT')),
+      kw('MATCHED'),
+      optional(seq(kw('BY'), choice(kw('TARGET'), kw('SOURCE')))),
+      optional(seq(kw('AND'), field('condition', $._expression))),
+      kw('THEN'),
+      choice(
+        seq(kw('UPDATE'), $._set_clause),
+        kw('DELETE'),
+        seq(
+          kw('INSERT'),
+          optional($.column_list),
+          choice($.values_clause, kws('DEFAULT', 'VALUES')),
+        ),
+      ),
+    ),
+
+    // BULK INSERT reads a file into a table. Its options are a list of
+    // words, as the hints of a table are.
+    bulk_insert_statement: $ => prec.right(seq(
+      kws('BULK', 'INSERT'),
+      field('table', $.object_reference),
+      kw('FROM'),
+      field('file', $.string),
+      optional(seq(kw('WITH'), $._hint_list)),
+    )),
+
+    // TRUNCATE TABLE, with the partitions in WITH (PARTITIONS (1, 3 TO 5)).
+    truncate_statement: $ => prec.right(seq(
+      kws('TRUNCATE', 'TABLE'),
+      field('table', $.object_reference),
+      optional(seq(kw('WITH'), $._option_group)),
+    )),
+
+    // READTEXT, WRITETEXT and UPDATETEXT read and change a value of text,
+    // ntext or image with a text pointer.
+    readtext_statement: $ => seq(
+      kw('READTEXT'),
+      field('column', $.column_reference),
+      field('pointer', $._text_value),
+      field('offset', $._text_value),
+      field('size', $._text_value),
+      optional(kw('HOLDLOCK')),
+    ),
+
+    writetext_statement: $ => seq(
+      kw('WRITETEXT'),
+      optional(kw('BULK')),
+      field('column', $.column_reference),
+      field('pointer', $._text_value),
+      optional(kws('WITH', 'LOG')),
+      field('data', $._text_value),
+    ),
+
+    updatetext_statement: $ => prec.right(seq(
+      kw('UPDATETEXT'),
+      optional(kw('BULK')),
+      field('column', $.column_reference),
+      field('pointer', $._text_value),
+      field('offset', $._text_value),
+      field('length', $._text_value),
+      optional(kws('WITH', 'LOG')),
+      optional(choice(
+        field('data', $._text_value),
+        seq(field('source', $.column_reference), field('source_pointer', $._text_value)),
+      )),
+    )),
+
+    _text_value: $ => choice($.variable, $._literal, $._negative_number),
+
+    // A number with a sign, where a constant can come.
+    _negative_number: $ => seq(alias($._unary_operator, $.operator), choice($.number, $.money)),
+
+    // Transactions
+
+    // BEGIN TRANSACTION, with its name and WITH MARK.
+    begin_transaction_statement: $ => prec.right(seq(
+      kw('BEGIN'),
+      optional(kw('DISTRIBUTED')),
+      $._transaction,
+      optional(seq(
+        field('name', choice($._name, $.variable)),
+        optional(seq(kws('WITH', 'MARK'), optional(field('description', $.string)))),
+      )),
+    )),
+
+    _transaction: _ => choice(kw('TRAN'), kw('TRANSACTION')),
+
+    // COMMIT, with the delayed durability of the transaction.
+    commit_statement: $ => prec.right(seq(
+      kw('COMMIT'),
+      optional(choice(
+        kw('WORK'),
+        seq($._transaction, optional(field('name', choice($._name, $.variable)))),
+      )),
+      optional(seq(kw('WITH'), $._option_group)),
+    )),
+
+    rollback_statement: $ => prec.right(seq(
+      kw('ROLLBACK'),
+      optional(choice(
+        kw('WORK'),
+        seq($._transaction, optional(field('name', choice($._name, $.variable)))),
+      )),
+    )),
+
+    save_transaction_statement: $ => seq(
+      kw('SAVE'),
+      $._transaction,
+      field('name', choice($._name, $.variable)),
+    ),
+
+    // SET sets a variable, the isolation level of the transactions, or an
+    // option of the session. The options that take ON or OFF, a number or a
+    // string are a list of words, as in SET ANSI_NULLS, QUOTED_IDENTIFIER
+    // ON or SET STATISTICS IO ON. The options that take a word have rules
+    // of their own, because the list of words cannot end at a word.
+    set_statement: $ => seq(
+      kw('SET'),
+      choice(
+        seq(
+          field('left', choice($.variable, $._variable_member)),
+          field('operator', choice('=', alias($._compound_operator, $.operator))),
+          field('right', choice($._expression, $.cursor_definition)),
+        ),
+        $._variable_member,
+        seq(
+          kws('TRANSACTION', 'ISOLATION', 'LEVEL'),
+          choice(
+            seq(kw('READ'), choice(kw('UNCOMMITTED'), kw('COMMITTED'))),
+            kws('REPEATABLE', 'READ'),
+            kw('SNAPSHOT'),
+            kw('SERIALIZABLE'),
+          ),
+        ),
+        seq(
+          choice(kw('DATEFORMAT'), kw('LANGUAGE'), kw('DEADLOCK_PRIORITY')),
+          field('value', choice($._name, $.variable, $._signed_number, $.string)),
+        ),
+        seq(
+          $._option_word,
+          repeat(choice($._option_word, ',', '.')),
+          field('value', choice(
+            kw('ON'),
+            kw('OFF'),
+            $._signed_number,
+            $.string,
+            $.binary,
+            $.variable,
+          )),
+        ),
+      ),
+    ),
+
+    // A property or a method of a variable of a CLR type, as in SET @p.X
+    // = 1 or SET @p.SetXY(1, 2).
+    _variable_member: $ => alias(prec.right(seq(
+      field('value', $.variable),
+      '.',
+      field('field', $._label),
+      optional($.arguments),
+    )), $.field_expression),
+
+    use_statement: $ => seq(kw('USE'), field('database', $._name)),
+
+    // EXECUTE
+
+    // EXECUTE runs a procedure, a string of Transact-SQL, or a command on a
+    // linked server.
+    execute_statement: $ => prec.right(seq(
+      choice(kw('EXEC'), kw('EXECUTE')),
+      choice(
+        $._procedure_call,
+        seq(
+          optional(seq(field('status', $.variable), '=')),
+          field('procedure', $.variable),
+          optional($._execute_arguments),
+          optional($._execute_options),
+        ),
+        seq(
+          parens(commaSep1($._execute_string_item)),
+          repeat(choice(
+            seq(kw('AS'), choice(kw('LOGIN'), $._user), '=', field('principal', $.string)),
+            seq(kw('AT'), optional(kw('DATA_SOURCE')), field('server', $._name)),
+          )),
+        ),
+      ),
+    )),
+
+    // The call of a procedure, with the variable that takes its status.
+    _procedure_call: $ => prec.right(seq(
+      optional(seq(field('status', $.variable), '=')),
+      field('procedure', $.object_reference),
+      optional($._execute_arguments),
+      optional($._execute_options),
+    )),
+
+    _execute_arguments: $ => commaSep1($.execute_argument),
+
+    // An argument is a constant, a variable, a name, which is a string with
+    // no quotes, or DEFAULT. A variable can take a value back, with OUTPUT.
+    execute_argument: $ => prec.right(seq(
+      optional(seq(field('name', $.variable), '=')),
+      field('value', choice(
+        $._literal,
+        $._negative_number,
+        $.variable,
+        $.global_variable,
+        $._name,
+        kw('DEFAULT'),
+      )),
+      optional(choice(kw('OUTPUT'), kw('OUT'))),
+    )),
+
+    _execute_string_item: $ => seq(
+      $._expression,
+      optional(choice(kw('OUTPUT'), kw('OUT'))),
+    ),
+
+    _execute_options: $ => seq(kw('WITH'), commaSep1($.execute_option)),
+
+    // RECOMPILE, or the result sets of the procedure.
+    execute_option: $ => choice(
+      kw('RECOMPILE'),
+      seq(
+        kws('RESULT', 'SETS'),
+        choice(
+          kw('UNDEFINED'),
+          kw('NONE'),
+          parens(commaSep1($.result_set)),
+        ),
+      ),
+    ),
+
+    result_set: $ => choice(
+      parens(commaSep1($.column_definition)),
+      seq(kw('AS'), choice(kw('OBJECT'), kw('TYPE')), field('name', $.object_reference)),
+      kws('AS', 'FOR', 'XML'),
+    ),
+
+    // USER is a niladic function, so its token is the token of the niladic
+    // functions.
+    _user: $ => alias($.niladic_function, 'USER'),
+
+    // EXECUTE AS changes the user of the session, and REVERT changes it
+    // back.
+    execute_as_statement: $ => prec.right(seq(
+      choice(kw('EXEC'), kw('EXECUTE')),
+      kw('AS'),
+      choice(
+        seq(choice(kw('LOGIN'), $._user), '=', field('principal', $.string)),
+        kw('CALLER'),
+      ),
+      optional(seq(
+        kw('WITH'),
+        choice(
+          kws('NO', 'REVERT'),
+          seq(kws('COOKIE', 'INTO'), field('cookie', $.variable)),
+        ),
+      )),
+    )),
+
+    revert_statement: $ => prec.right(seq(
+      kw('REVERT'),
+      optional(seq(kws('WITH', 'COOKIE'), '=', field('cookie', $.variable))),
+    )),
+
+    // Messages and errors
+
+    print_statement: $ => seq(kw('PRINT'), $._expression),
+
+    // RAISERROR takes a message, a severity, a state and the arguments of
+    // the message.
+    raiserror_statement: $ => prec.right(seq(
+      kw('RAISERROR'),
+      $.arguments,
+      optional(seq(kw('WITH'), commaSep1(choice(kw('LOG'), kw('NOWAIT'), kw('SETERROR'))))),
+    )),
+
+    // THROW with no arguments raises again the error of a CATCH block.
+    throw_statement: $ => prec.right(seq(
+      kw('THROW'),
+      optional(seq(
+        field('number', $._expression),
+        ',',
+        field('message', $._expression),
+        ',',
+        field('state', $._expression),
+      )),
+    )),
+
+    // The control-of-flow language
+
+    // A block holds statements between BEGIN and END.
+    block: $ => seq(
+      kw('BEGIN'),
+      repeat($._item),
+      kw('END'),
+    ),
+
+    // The scanner gives _end after the condition of IF and WHILE, before
+    // the word that starts the statement after it.
+    if_statement: $ => prec.right(seq(
+      kw('IF'),
+      field('condition', $._expression),
+      $._end,
+      field('consequence', $._body),
+      optional(seq(kw('ELSE'), field('alternative', $._body))),
+    )),
+
+    while_statement: $ => seq(
+      kw('WHILE'),
+      field('condition', $._expression),
+      $._end,
+      field('body', $._body),
+    ),
+
+    break_statement: _ => kw('BREAK'),
+
+    continue_statement: _ => kw('CONTINUE'),
+
+    goto_statement: $ => seq(kw('GOTO'), field('label', $._name)),
+
+    // A label is a name and a colon, as in retry:, which GOTO names. It is
+    // one token, so that a name at the end of a statement, such as the
+    // alias of a table, does not take it.
+    label: _ => token(seq(
+      /[A-Za-z_#\u0080-\u{10FFFF}][A-Za-z0-9_@$#\u0080-\u{10FFFF}]*/u,
+      ':',
+    )),
+
+    return_statement: $ => prec.right(seq(kw('RETURN'), optional(field('value', $._expression)))),
+
+    // WAITFOR waits for a time of day, or for a delay.
+    waitfor_statement: $ => seq(
+      kw('WAITFOR'),
+      choice(kw('DELAY'), kw('TIME')),
+      field('time', $._expression),
+    ),
+
+    // BEGIN TRY ... END TRY BEGIN CATCH ... END CATCH.
+    try_statement: $ => seq(
+      kws('BEGIN', 'TRY'),
+      repeat($._item),
+      kws('END', 'TRY'),
+      $.catch_block,
+    ),
+
+    catch_block: $ => seq(
+      kws('BEGIN', 'CATCH'),
+      repeat($._item),
+      kws('END', 'CATCH'),
+    ),
+
+    // Variables and cursors
+
+    // DECLARE declares variables, with a value, cursor variables and table
+    // variables.
+    declare_statement: $ => seq(
+      kw('DECLARE'),
+      commaSep1($.variable_declaration),
+    ),
+
+    // A variable of a natively compiled module can be NOT NULL.
+    variable_declaration: $ => seq(
+      field('name', $.variable),
+      optional(kw('AS')),
+      choice(
+        seq(
+          field('type', $.type),
+          optional(seq(kw('NOT'), $.null)),
+          optional(seq('=', field('value', $._expression))),
+        ),
+        kw('CURSOR'),
+        seq(kw('TABLE'), $.table_definition),
+      ),
+    ),
+
+    // The columns, the constraints and the indexes of a table variable.
+    table_definition: $ => parens(commaSep1(choice(
+      $.column_definition,
+      $.table_constraint,
+      $.table_index,
+    ))),
+
+    // A constraint of a table, as in PRIMARY KEY (a, b DESC).
+    table_constraint: $ => seq(
+      optional(seq(kw('CONSTRAINT'), field('name', $._name))),
+      choice(
+        seq(
+          choice(kws('PRIMARY', 'KEY'), kw('UNIQUE')),
+          optional(choice(kw('CLUSTERED'), kw('NONCLUSTERED'))),
+          $.index_columns,
+          optional(seq(kw('WITH'), $._hint_list)),
+        ),
+        seq(kw('CHECK'), $.parenthesized_expression),
+      ),
+    ),
+
+    table_index: $ => seq(
+      kw('INDEX'),
+      field('name', $._name),
+      optional(kw('UNIQUE')),
+      optional(choice(kw('CLUSTERED'), kw('NONCLUSTERED'))),
+      $.index_columns,
+    ),
+
+    index_columns: $ => parens(commaSep1($.order_by_item)),
+
+    // DECLARE CURSOR, in the form of ISO, with INSENSITIVE and SCROLL
+    // before CURSOR, or in the form of Transact-SQL, with the options
+    // after CURSOR.
+    cursor_declaration: $ => seq(
+      kw('DECLARE'),
+      field('name', $._name),
+      repeat(alias($.identifier, $.keyword)),
+      $.cursor_definition,
+    ),
+
+    // The options of a cursor are words, such as LOCAL and FAST_FORWARD.
+    // FOR UPDATE and FOR READ ONLY at the end are clauses of the query.
+    cursor_definition: $ => seq(
+      kw('CURSOR'),
+      repeat(alias($.identifier, $.keyword)),
+      kw('FOR'),
+      $._query,
+    ),
+
+    open_statement: $ => seq(kw('OPEN'), $._cursor),
+
+    // FETCH takes a row of a cursor into variables.
+    fetch_statement: $ => seq(
+      kw('FETCH'),
+      optional(seq(
+        optional(choice(
+          kw('NEXT'),
+          kw('PRIOR'),
+          kw('FIRST'),
+          kw('LAST'),
+          seq(
+            choice(kw('ABSOLUTE'), kw('RELATIVE')),
+            field('offset', choice($._signed_number, $.variable)),
+          ),
+        )),
+        kw('FROM'),
+      )),
+      $._cursor,
+      optional(seq(kw('INTO'), commaSep1($.variable))),
+    ),
+
+    close_statement: $ => seq(kw('CLOSE'), $._cursor),
+
+    deallocate_statement: $ => seq(kw('DEALLOCATE'), $._cursor),
+
+    _cursor: $ => seq(
+      optional(kw('GLOBAL')),
+      field('cursor', choice($._name, $.variable)),
     ),
 
     // Queries
@@ -300,7 +963,10 @@ module.exports = grammar({
       $.subquery,
     ),
 
-    column_list: $ => parens(commaSep1($._name)),
+    // The columns of a common table expression, an alias or an INSERT. The
+    // columns of an edge of a graph, $from_id and $to_id, are
+    // pseudocolumns.
+    column_list: $ => parens(commaSep1(choice($._name, $.pseudocolumn))),
 
     _query_body: $ => choice(
       $.select,
@@ -468,8 +1134,10 @@ module.exports = grammar({
     // form with no WITH. A comma between two hints is optional.
     table_hints: $ => seq(
       optional(kw('WITH')),
-      parens(seq($.hint, repeat(seq(optional(','), $.hint)))),
+      $._hint_list,
     ),
+
+    _hint_list: $ => parens(seq($.hint, repeat(seq(optional(','), $.hint)))),
 
     // A hint is a word, with a value after = or a list in parentheses, as
     // in INDEX(ix1, ix2), INDEX = ix and FORCESEEK(ix (a, b)).
@@ -544,12 +1212,58 @@ module.exports = grammar({
       ),
     ),
 
-    column_definition: $ => seq(
+    // A column of a table variable, of the result set of EXECUTE, or of a
+    // rowset function. A column of OPENJSON, OPENXML and OPENROWSET can have
+    // a path, as in id int '$.id', and AS JSON. A computed column has an
+    // expression in place of its type.
+    column_definition: $ => prec.right(seq(
       field('name', $._name),
-      field('type', $.type),
-      optional(seq(kw('COLLATE'), field('collation', $._name))),
-      optional(field('path', choice($.string, $.number))),
-      optional(kws('AS', 'JSON')),
+      choice(
+        field('type', $.type),
+        seq(kw('AS'), field('value', $._expression)),
+      ),
+      repeat(choice(
+        seq(kw('COLLATE'), field('collation', $._name)),
+        field('path', choice($.string, $.number)),
+        kws('AS', 'JSON'),
+        $._column_constraint,
+      )),
+    )),
+
+    // The constraints and the properties of a column. DEFAULT takes a
+    // constant, a function or an expression in parentheses, so that NOT
+    // after it starts NOT NULL.
+    _column_constraint: $ => choice(
+      $.null,
+      seq(kw('NOT'), $.null),
+      kw('PERSISTED'),
+      kw('ROWGUIDCOL'),
+      seq(
+        alias($._function_word, $.keyword),
+        optional(parens(seq(field('seed', $._signed_number), ',', field('increment', $._signed_number)))),
+      ),
+      seq(
+        optional(seq(kw('CONSTRAINT'), field('constraint', $._name))),
+        choice(
+          seq(
+            choice(kws('PRIMARY', 'KEY'), kw('UNIQUE')),
+            optional(choice(kw('CLUSTERED'), kw('NONCLUSTERED'))),
+          ),
+          seq(kw('CHECK'), $.parenthesized_expression),
+          seq(kw('DEFAULT'), field('default', choice(
+            $._literal,
+            $._negative_number,
+            $.niladic_function,
+            $.function_call,
+            $.parenthesized_expression,
+          ))),
+        ),
+      ),
+      seq(
+        kw('INDEX'),
+        field('index', $._name),
+        optional(choice(kw('CLUSTERED'), kw('NONCLUSTERED'))),
+      ),
     ),
 
     parenthesized_join: $ => prec.right(seq(
@@ -718,6 +1432,8 @@ module.exports = grammar({
       kw('FOR'),
       choice(
         kw('BROWSE'),
+        kws('READ', 'ONLY'),
+        seq(kw('UPDATE'), optional(seq(kw('OF'), commaSep1($.column_reference)))),
         seq(
           choice(kw('XML'), kw('JSON')),
           commaSep1($._for_option),
@@ -791,10 +1507,11 @@ module.exports = grammar({
     null: _ => kw('NULL'),
 
     // A column, with its table, its schema and its database. A part can be
-    // empty, as in db..t.
+    // empty, as in db..t. A pseudocolumn can follow a table, as in
+    // p.$node_id.
     column_reference: $ => prec.right(choice(
       field('name', $._name),
-      seq(field('table', $._name), '.', field('name', $._label)),
+      seq(field('table', $._name), '.', field('name', choice($._label, $.pseudocolumn))),
       seq(
         field('schema', $._name),
         '.',
@@ -894,6 +1611,8 @@ module.exports = grammar({
       seq($._expression, kw('AS'), $.type),
       // COUNT(*) and CHECKSUM(t.*).
       $.all_columns,
+      // The default value of an argument of a table-valued function.
+      kw('DEFAULT'),
       // The columns of FREETEXT and CONTAINS, as in FREETEXT((a, b), 'x').
       $.list,
       // OPENROWSET(BULK 'file', SINGLE_CLOB).

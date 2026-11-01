@@ -1,0 +1,894 @@
+================================================================================
+Statements with no semicolons
+================================================================================
+
+DECLARE @a int
+SET @a = 1
+SELECT @a
+PRINT @a
+
+---
+
+(source_file
+  (declare_statement
+    (variable_declaration
+      (variable)
+      (type
+        (identifier))))
+  (set_statement
+    (variable)
+    (number))
+  (select_statement
+    (select
+      (variable)))
+  (print_statement
+    (variable)))
+
+================================================================================
+BEGIN and END
+================================================================================
+
+BEGIN
+    SELECT 1;
+    SELECT 2
+END
+
+---
+
+(source_file
+  (block
+    (select_statement
+      (select
+        (number)))
+    (select_statement
+      (select
+        (number)))))
+
+================================================================================
+An empty block and nested blocks
+================================================================================
+
+BEGIN
+    BEGIN
+        PRINT 'a'
+    END
+    BEGIN END
+END;
+
+---
+
+(source_file
+  (block
+    (block
+      (print_statement
+        (string)))
+    (block)))
+
+================================================================================
+IF
+================================================================================
+
+IF DATENAME(weekday, GETDATE()) IN (N'Saturday', N'Sunday')
+       SELECT 'Weekend';
+ELSE
+       SELECT 'Weekday';
+
+---
+
+(source_file
+  (if_statement
+    (in_expression
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (function_call
+            (identifier)
+            (arguments))))
+      (list
+        (string)
+        (string)))
+    (select_statement
+      (select
+        (string)))
+    (select_statement
+      (select
+        (string)))))
+
+================================================================================
+IF with EXISTS and a block
+================================================================================
+
+IF EXISTS (SELECT * FROM sys.objects WHERE name = 'T1')
+BEGIN
+    DROP_ME:
+    PRINT 'exists'
+END
+ELSE
+BEGIN
+    PRINT 'missing'
+END
+
+---
+
+(source_file
+  (if_statement
+    (exists_expression
+      (subquery
+        (select
+          (all_columns)
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier)
+                (identifier))))
+          (where_clause
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (string))))))
+    (block
+      (label)
+      (print_statement
+        (string)))
+    (block
+      (print_statement
+        (string)))))
+
+================================================================================
+IF with no semicolon before ELSE
+================================================================================
+
+IF @a = 1 SELECT 1 ELSE SELECT 2
+
+---
+
+(source_file
+  (if_statement
+    (binary_expression
+      (variable)
+      (operator)
+      (number))
+    (select_statement
+      (select
+        (number)))
+    (select_statement
+      (select
+        (number)))))
+
+================================================================================
+ELSE IF
+================================================================================
+
+IF @n < 10 PRINT 'small'
+ELSE IF @n < 100 PRINT 'medium'
+ELSE PRINT 'large'
+
+---
+
+(source_file
+  (if_statement
+    (binary_expression
+      (variable)
+      (operator)
+      (number))
+    (print_statement
+      (string))
+    (if_statement
+      (binary_expression
+        (variable)
+        (operator)
+        (number))
+      (print_statement
+        (string))
+      (print_statement
+        (string)))))
+
+================================================================================
+Nested IF takes the nearest ELSE
+================================================================================
+
+IF @a = 1
+    IF @b = 1 PRINT 'a and b'
+    ELSE PRINT 'a and not b'
+
+---
+
+(source_file
+  (if_statement
+    (binary_expression
+      (variable)
+      (operator)
+      (number))
+    (if_statement
+      (binary_expression
+        (variable)
+        (operator)
+        (number))
+      (print_statement
+        (string))
+      (print_statement
+        (string)))))
+
+================================================================================
+IF and the statements after it
+================================================================================
+
+IF @a = 1 PRINT 'one'
+PRINT 'always'
+
+---
+
+(source_file
+  (if_statement
+    (binary_expression
+      (variable)
+      (operator)
+      (number))
+    (print_statement
+      (string)))
+  (print_statement
+    (string)))
+
+================================================================================
+WHILE with BREAK and CONTINUE
+================================================================================
+
+WHILE (SELECT AVG(ListPrice) FROM Production.Product) < $300
+BEGIN
+    UPDATE Production.Product
+        SET ListPrice = ListPrice * 2
+    SELECT MAX(ListPrice) FROM Production.Product
+    IF (SELECT MAX(ListPrice) FROM Production.Product) > $500
+        BREAK
+    ELSE
+        CONTINUE
+END
+PRINT 'Too much for the market to bear';
+
+---
+
+(source_file
+  (while_statement
+    (binary_expression
+      (subquery
+        (select
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier))))
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier)
+                (identifier))))))
+      (operator)
+      (money))
+    (block
+      (update_statement
+        (object_reference
+          (identifier)
+          (identifier))
+        (assignment
+          (column_reference
+            (identifier))
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number))))
+      (select_statement
+        (select
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier))))
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier)
+                (identifier))))))
+      (if_statement
+        (binary_expression
+          (subquery
+            (select
+              (function_call
+                (identifier)
+                (arguments
+                  (column_reference
+                    (identifier))))
+              (from_clause
+                (table_reference
+                  (object_reference
+                    (identifier)
+                    (identifier))))))
+          (operator)
+          (money))
+        (break_statement)
+        (continue_statement))))
+  (print_statement
+    (string)))
+
+================================================================================
+WHILE with one statement
+================================================================================
+
+WHILE @i < 10 SET @i += 1
+
+---
+
+(source_file
+  (while_statement
+    (binary_expression
+      (variable)
+      (operator)
+      (number))
+    (set_statement
+      (variable)
+      (operator)
+      (number))))
+
+================================================================================
+GOTO and labels
+================================================================================
+
+DECLARE @Counter int;
+SET @Counter = 1;
+WHILE @Counter < 10
+BEGIN
+    SELECT @Counter
+    SET @Counter = @Counter + 1
+    IF @Counter = 4 GOTO Branch_One
+    IF @Counter = 5 GOTO Branch_Two
+END
+Branch_One:
+    SELECT 'Jumping To Branch One.'
+    GOTO Branch_Three;
+Branch_Two:
+    SELECT 'Jumping To Branch Two.'
+Branch_Three:
+    SELECT 'Jumping To Branch Three.';
+
+---
+
+(source_file
+  (declare_statement
+    (variable_declaration
+      (variable)
+      (type
+        (identifier))))
+  (set_statement
+    (variable)
+    (number))
+  (while_statement
+    (binary_expression
+      (variable)
+      (operator)
+      (number))
+    (block
+      (select_statement
+        (select
+          (variable)))
+      (set_statement
+        (variable)
+        (binary_expression
+          (variable)
+          (operator)
+          (number)))
+      (if_statement
+        (binary_expression
+          (variable)
+          (operator)
+          (number))
+        (goto_statement
+          (identifier)))
+      (if_statement
+        (binary_expression
+          (variable)
+          (operator)
+          (number))
+        (goto_statement
+          (identifier)))))
+  (label)
+  (select_statement
+    (select
+      (string)))
+  (goto_statement
+    (identifier))
+  (label)
+  (select_statement
+    (select
+      (string)))
+  (label)
+  (select_statement
+    (select
+      (string))))
+
+================================================================================
+A label after a table
+================================================================================
+
+SELECT * FROM t
+retry:
+SELECT 1
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (label)
+  (select_statement
+    (select
+      (number))))
+
+================================================================================
+RETURN
+================================================================================
+
+IF @a IS NULL RETURN
+RETURN 1;
+RETURN @@ERROR
+RETURN (SELECT COUNT(*) FROM t)
+
+---
+
+(source_file
+  (if_statement
+    (is_expression
+      (variable)
+      (null))
+    (return_statement))
+  (return_statement
+    (number))
+  (return_statement
+    (global_variable))
+  (return_statement
+    (subquery
+      (select
+        (function_call
+          (identifier)
+          (arguments
+            (all_columns)))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))))
+
+================================================================================
+WAITFOR
+================================================================================
+
+WAITFOR DELAY '00:00:02';
+WAITFOR TIME '22:20';
+WAITFOR DELAY @delay
+
+---
+
+(source_file
+  (waitfor_statement
+    (string))
+  (waitfor_statement
+    (string))
+  (waitfor_statement
+    (variable)))
+
+================================================================================
+TRY and CATCH
+================================================================================
+
+BEGIN TRY
+    SELECT 1/0;
+END TRY
+BEGIN CATCH
+    SELECT
+        ERROR_NUMBER() AS ErrorNumber,
+        ERROR_MESSAGE() AS ErrorMessage;
+END CATCH;
+
+---
+
+(source_file
+  (try_statement
+    (select_statement
+      (select
+        (binary_expression
+          (number)
+          (operator)
+          (number))))
+    (catch_block
+      (select_statement
+        (select
+          (aliased_expression
+            (function_call
+              (identifier)
+              (arguments))
+            (identifier))
+          (aliased_expression
+            (function_call
+              (identifier)
+              (arguments))
+            (identifier)))))))
+
+================================================================================
+TRY and CATCH with no semicolons
+================================================================================
+
+BEGIN TRY
+    SELECT 1/0
+END TRY
+BEGIN CATCH
+    PRINT ERROR_MESSAGE()
+END CATCH
+SELECT 2
+
+---
+
+(source_file
+  (try_statement
+    (select_statement
+      (select
+        (binary_expression
+          (number)
+          (operator)
+          (number))))
+    (catch_block
+      (print_statement
+        (function_call
+          (identifier)
+          (arguments)))))
+  (select_statement
+    (select
+      (number))))
+
+================================================================================
+PRINT
+================================================================================
+
+PRINT N'This message was printed on ' + RTRIM(CAST(GETDATE() AS nvarchar(30))) + N'.';
+PRINT @@VERSION
+
+---
+
+(source_file
+  (print_statement
+    (binary_expression
+      (binary_expression
+        (string)
+        (operator)
+        (function_call
+          (identifier)
+          (arguments
+            (function_call
+              (identifier)
+              (arguments
+                (function_call
+                  (identifier)
+                  (arguments))
+                (type
+                  (identifier)
+                  (type_modifiers
+                    (number))))))))
+      (operator)
+      (string)))
+  (print_statement
+    (global_variable)))
+
+================================================================================
+RAISERROR
+================================================================================
+
+RAISERROR (N'This is message %s %d.', 10, 1, N'number', 5);
+RAISERROR (@ErrorMessage, @ErrorSeverity, @ErrorState);
+RAISERROR (50005, 10, 1, N'abc') WITH LOG, NOWAIT
+RAISERROR ('x', 16, 1) WITH SETERROR
+
+---
+
+(source_file
+  (raiserror_statement
+    (arguments
+      (string)
+      (number)
+      (number)
+      (string)
+      (number)))
+  (raiserror_statement
+    (arguments
+      (variable)
+      (variable)
+      (variable)))
+  (raiserror_statement
+    (arguments
+      (number)
+      (number)
+      (number)
+      (string)))
+  (raiserror_statement
+    (arguments
+      (string)
+      (number)
+      (number))))
+
+================================================================================
+THROW
+================================================================================
+
+THROW 51000, 'The record does not exist.', 1;
+THROW @ErrorNumber, @Message, 1
+THROW
+
+---
+
+(source_file
+  (throw_statement
+    (number)
+    (string)
+    (number))
+  (throw_statement
+    (variable)
+    (variable)
+    (number))
+  (throw_statement))
+
+================================================================================
+THROW after a table
+================================================================================
+
+SELECT * FROM t
+THROW 50000, N'x', 1
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (throw_statement
+    (number)
+    (string)
+    (number)))
+
+================================================================================
+Each statement word ends a statement
+================================================================================
+
+SELECT 1 INSERT t VALUES (1) UPDATE t SET a = 1 DELETE t MERGE t USING s ON 1 = 1 WHEN MATCHED THEN DELETE;
+SELECT 1 BEGIN TRAN COMMIT ROLLBACK SAVE TRAN s
+SELECT 1 SET NOCOUNT ON USE db EXEC p EXECUTE p REVERT PRINT 1 RAISERROR('x', 1, 1) THROW
+SELECT 1 BREAK CONTINUE GOTO x RETURN WAITFOR DELAY '1' DECLARE @a int OPEN c FETCH c CLOSE c DEALLOCATE c
+SELECT 1 TRUNCATE TABLE t BULK INSERT t FROM 'f' READTEXT t.c @p 1 1 WRITETEXT t.c @p 'x' UPDATETEXT t.c @p 0 0 'x'
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)))
+  (insert_statement
+    (object_reference
+      (identifier))
+    (values_clause
+      (value_list
+        (number))))
+  (update_statement
+    (object_reference
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (number)))
+  (delete_statement
+    (object_reference
+      (identifier)))
+  (merge_statement
+    (object_reference
+      (identifier))
+    (table_reference
+      (object_reference
+        (identifier)))
+    (binary_expression
+      (number)
+      (operator)
+      (number))
+    (merge_when_clause))
+  (select_statement
+    (select
+      (number)))
+  (begin_transaction_statement)
+  (commit_statement)
+  (rollback_statement)
+  (save_transaction_statement
+    (identifier))
+  (select_statement
+    (select
+      (number)))
+  (set_statement
+    (keyword))
+  (use_statement
+    (identifier))
+  (execute_statement
+    (object_reference
+      (identifier)))
+  (execute_statement
+    (object_reference
+      (identifier)))
+  (revert_statement)
+  (print_statement
+    (number))
+  (raiserror_statement
+    (arguments
+      (string)
+      (number)
+      (number)))
+  (throw_statement)
+  (select_statement
+    (select
+      (number)))
+  (break_statement)
+  (continue_statement)
+  (goto_statement
+    (identifier))
+  (return_statement)
+  (waitfor_statement
+    (string))
+  (declare_statement
+    (variable_declaration
+      (variable)
+      (type
+        (identifier))))
+  (open_statement
+    (identifier))
+  (fetch_statement
+    (identifier))
+  (close_statement
+    (identifier))
+  (deallocate_statement
+    (identifier))
+  (select_statement
+    (select
+      (number)))
+  (truncate_statement
+    (object_reference
+      (identifier)))
+  (bulk_insert_statement
+    (object_reference
+      (identifier))
+    (string))
+  (readtext_statement
+    (column_reference
+      (identifier)
+      (identifier))
+    (variable)
+    (number)
+    (number))
+  (writetext_statement
+    (column_reference
+      (identifier)
+      (identifier))
+    (variable)
+    (string))
+  (updatetext_statement
+    (column_reference
+      (identifier)
+      (identifier))
+    (variable)
+    (number)
+    (number)
+    (string)))
+
+================================================================================
+A common table expression after a statement with no semicolon
+================================================================================
+
+SELECT 1
+WITH c (a) AS (SELECT 1) SELECT a FROM c
+SELECT * FROM t WITH (NOLOCK)
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)))
+  (select_statement
+    (with_clause
+      (cte
+        (identifier)
+        (column_list
+          (identifier))
+        (subquery
+          (select
+            (number)))))
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))
+          (table_hints
+            (hint
+              (keyword))))))))
+
+================================================================================
+FETCH of a query and FETCH of a cursor
+================================================================================
+
+SELECT a FROM t ORDER BY a OFFSET 5 ROWS FETCH NEXT 5 ROWS ONLY
+SELECT a FROM t ORDER BY a OFFSET 5 ROWS FETCH FIRST 5 ROWS ONLY
+SELECT a FROM t ORDER BY a OFFSET 5 ROWS
+FETCH NEXT FROM c INTO @a
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))
+    (order_by_clause
+      (order_by_item
+        (column_reference
+          (identifier))))
+    (offset_clause
+      (number))
+    (fetch_clause
+      (number)))
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))
+    (order_by_clause
+      (order_by_item
+        (column_reference
+          (identifier))))
+    (offset_clause
+      (number))
+    (fetch_clause
+      (number)))
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))
+    (order_by_clause
+      (order_by_item
+        (column_reference
+          (identifier))))
+    (offset_clause
+      (number)))
+  (fetch_statement
+    (identifier)
+    (variable)))

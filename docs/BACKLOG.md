@@ -261,14 +261,38 @@ save no parse states (D125).
 
 ### Finish the SQL Server grammar
 
-The SQL Server grammar that xo writes (D124) reads the queries of
-Transact-SQL. The other statements and the procedural statements come in
-later parts. It leaves out these forms of a query:
+The SQL Server grammar that xo writes (D124) reads the queries, the
+statements that change data, the transactions, `SET`, `EXECUTE`, the
+control-of-flow language, `DECLARE` and the cursors of Transact-SQL. The
+statements that define objects and the other statements come in later
+parts. It leaves out these forms:
 
 - `MATCH` and `SHORTEST_PATH` of the graph tables, as in
   `WHERE MATCH(p-(f)->q)`, and `WITHIN GROUP (GRAPH PATH)`.
+- A statement that changes data with `OUTPUT` as a derived table, as in
+  `SELECT * FROM (DELETE FROM t OUTPUT deleted.*) AS d`. It costs about 720
+  parse states, because the parser needs the states of each such statement
+  again with `)` after it.
+- The number of a procedure in a group, as in `EXEC p;2`, because the `;`
+  ends the statement.
+- The old form of `RAISERROR` with no parentheses, as in
+  `RAISERROR 50001 'text'`, which SQL Server 2012 removed.
+- `WAITFOR` with `RECEIVE` or `GET CONVERSATION GROUP`, which comes with the
+  statements of Service Broker.
+- A query in parentheses as a statement right after a statement with no
+  semicolon, as in `SELECT 1 (SELECT 2)`. The external scanner gives the end
+  of a statement only before a word, because `RETURN (SELECT ...)` returns
+  the value of the query.
 
 These faults remain:
+
+- `THROW` is not reserved, but a word at the end of a statement that is
+  `THROW` starts a statement, as in `SELECT * FROM t THROW 50000, 'x', 1`.
+  The server reads such a `THROW` as the alias of the table.
+- The grammar takes `GO` in a block, and the server does not.
+- The grammar takes the clauses of `UPDATE`, `DELETE` and `MERGE` after
+  their first part in any order, and more than once, as it takes the
+  clauses of a query.
 
 - The reserved words that name functions, such as `LEFT`, `COALESCE` and
   `CURRENT_USER`, are not in the reserved set, because each group of them

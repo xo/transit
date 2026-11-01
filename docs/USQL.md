@@ -158,8 +158,14 @@ a package body, as one statement. `Crary-Systems/tree-sitter-tsql` covers
 little of Transact-SQL, so xo writes the SQL Server grammar from the
 Transact-SQL reference of SQL Server 2025 in `grammars/sqlserver` (D124).
 A line with only `GO` and an optional count ends a batch in sqlcmd. It is
-not Transact-SQL, but the SQL Server grammar reads such a line as the end
-of a batch, so that a script with `GO` has no error. SQL++, InfluxQL, KSQL, PartiQL, ES|QL and
+not Transact-SQL. usql ends a statement at `;` or `\g`, and it gives `GO`
+no meaning: it does not end a statement there and it does not remove the
+line. So a `GO` line reaches the SQL layer as a part of the text of a
+statement, as in `select 1`, a line with `GO`, and `select 2;`. The SQL
+Server grammar reads such a line as the end of a batch. Then the
+statements before and after it parse with no error, also when no `;` comes
+before the `GO`. If usql gives `GO` a meaning one day, that is a decision
+of Ken for the usql grammar, and not for the SQL Server grammar. SQL++, InfluxQL, KSQL, PartiQL, ES|QL and
 PPL have no grammar at all. transit writes the missing grammars, and the
 usql grammar, in `grammars/` (D42, D104). The other missing grammars come
 after phase 5, in the order of the dialects of dbmeta (D106). `bigquery` and

@@ -50,5 +50,5 @@ func ExampleLanguage() {
 	}
 	// Output:
 	// (source_file (select_statement (select (number))))
-	// patterns in queries/highlights.scm: 57
+	// patterns in queries/highlights.scm: 77
 }

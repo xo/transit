@@ -1,0 +1,229 @@
+================================================================================
+BEGIN TRANSACTION and COMMIT
+================================================================================
+
+BEGIN TRANSACTION;
+DELETE FROM HumanResources.JobCandidate
+    WHERE JobCandidateID = 13;
+COMMIT;
+
+---
+
+(source_file
+  (begin_transaction_statement)
+  (delete_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number))))
+  (commit_statement))
+
+================================================================================
+BEGIN TRAN with a name and WITH MARK
+================================================================================
+
+BEGIN TRANSACTION CandidateDelete
+    WITH MARK N'Deleting a Job Candidate';
+COMMIT TRANSACTION CandidateDelete;
+
+---
+
+(source_file
+  (begin_transaction_statement
+    (identifier)
+    (string))
+  (commit_statement
+    (identifier)))
+
+================================================================================
+BEGIN TRAN with a variable
+================================================================================
+
+DECLARE @TranName VARCHAR(20);
+SELECT @TranName = 'MyTransaction';
+BEGIN TRANSACTION @TranName;
+COMMIT TRAN @TranName;
+
+---
+
+(source_file
+  (declare_statement
+    (variable_declaration
+      (variable)
+      (type
+        (identifier)
+        (type_modifiers
+          (number)))))
+  (select_statement
+    (select
+      (assignment
+        (variable)
+        (string))))
+  (begin_transaction_statement
+    (variable))
+  (commit_statement
+    (variable)))
+
+================================================================================
+BEGIN DISTRIBUTED TRANSACTION
+================================================================================
+
+BEGIN DISTRIBUTED TRANSACTION;
+DELETE AdventureWorks2022.HumanResources.JobCandidate
+    WHERE JobCandidateID = 13;
+DELETE RemoteServer.AdventureWorks2022.HumanResources.JobCandidate
+    WHERE JobCandidateID = 13;
+COMMIT TRANSACTION;
+
+---
+
+(source_file
+  (begin_transaction_statement)
+  (delete_statement
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number))))
+  (delete_statement
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier)
+      (identifier))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number))))
+  (commit_statement))
+
+================================================================================
+COMMIT with delayed durability
+================================================================================
+
+COMMIT TRANSACTION WITH (DELAYED_DURABILITY = ON);
+
+---
+
+(source_file
+  (commit_statement
+    (keyword)
+    (keyword)))
+
+================================================================================
+COMMIT WORK and ROLLBACK WORK
+================================================================================
+
+BEGIN TRAN
+UPDATE t SET a = 1
+COMMIT WORK
+ROLLBACK WORK
+
+---
+
+(source_file
+  (begin_transaction_statement)
+  (update_statement
+    (object_reference
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (number)))
+  (commit_statement)
+  (rollback_statement))
+
+================================================================================
+ROLLBACK
+================================================================================
+
+BEGIN TRAN
+INSERT INTO ValueTable VALUES(1)
+ROLLBACK
+ROLLBACK TRAN
+ROLLBACK TRANSACTION @TransactionName
+
+---
+
+(source_file
+  (begin_transaction_statement)
+  (insert_statement
+    (object_reference
+      (identifier))
+    (values_clause
+      (value_list
+        (number))))
+  (rollback_statement)
+  (rollback_statement)
+  (rollback_statement
+    (variable)))
+
+================================================================================
+SAVE TRANSACTION
+================================================================================
+
+SAVE TRANSACTION ProcedureSave;
+ROLLBACK TRANSACTION ProcedureSave;
+SAVE TRAN @Savepoint
+
+---
+
+(source_file
+  (save_transaction_statement
+    (identifier))
+  (rollback_statement
+    (identifier))
+  (save_transaction_statement
+    (variable)))
+
+================================================================================
+Transactions in TRY and CATCH
+================================================================================
+
+BEGIN TRY
+    BEGIN TRANSACTION;
+    DELETE FROM Production.Product WHERE ProductID = 980;
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0
+        ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
+
+---
+
+(source_file
+  (try_statement
+    (begin_transaction_statement)
+    (delete_statement
+      (object_reference
+        (identifier)
+        (identifier))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))))
+    (commit_statement)
+    (catch_block
+      (if_statement
+        (binary_expression
+          (global_variable)
+          (operator)
+          (number))
+        (rollback_statement))
+      (throw_statement))))

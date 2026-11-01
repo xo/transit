@@ -117,3 +117,86 @@ Empty statements
   (select_statement
     (select
       (number))))
+
+================================================================================
+GO between two statements with no semicolon, as usql passes it
+================================================================================
+
+select 1
+GO
+select 2;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)))
+  (go_statement)
+  (select_statement
+    (select
+      (number))))
+
+================================================================================
+GO with a count after a statement with no semicolon
+================================================================================
+
+select 1
+GO 3
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)))
+  (go_statement
+    (number)))
+
+================================================================================
+GO alone
+================================================================================
+
+GO
+
+---
+
+(source_file
+  (go_statement))
+
+================================================================================
+go in lower case between statements
+================================================================================
+
+select 1
+go
+select 2
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)))
+  (go_statement)
+  (select_statement
+    (select
+      (number))))
+
+================================================================================
+GO in a block
+================================================================================
+
+BEGIN
+    SELECT 1
+GO
+END
+
+---
+
+(source_file
+  (block
+    (select_statement
+      (select
+        (number)))
+    (go_statement)))

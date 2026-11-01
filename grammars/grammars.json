@@ -11122,13 +11122,13 @@
       "status": "available",
       "golden": {
         "abi14": {
-          "parser_c": "2c1ed7f9e363df1a3c72e07550465924e41728d5b2282ccc6418287ef14f47af",
-          "node_types": "e7488c107ee4523b302dbcf640de05e436fc74913842d1324c3e862e8923b43a",
+          "parser_c": "f3e68e752e333caf2ae98b8ad29edc09534f484823ac70b19c9d39cc5cb2c0d2",
+          "node_types": "a16268e4530c42a69f5ada1d8e25810e8914f6387f5a211f728db35a6cb90d14",
           "paths": [
             "field map",
             "inherited field",
             "alias sequences",
-            "named unique alias",
+            "anonymous unique alias",
             "non-terminal alias map",
             "keyword lexer",
             "external scanner",
@@ -11145,13 +11145,13 @@
           ]
         },
         "abi15": {
-          "parser_c": "d5b2f0d5b59e0827beb1606129dd38cae1cdf617227a5ac4d8c85c1c211e2617",
-          "node_types": "e7488c107ee4523b302dbcf640de05e436fc74913842d1324c3e862e8923b43a",
+          "parser_c": "3b33232122708df2fc8350adea9b0f779252a87d42700aa842610c0dfbbf0367",
+          "node_types": "a16268e4530c42a69f5ada1d8e25810e8914f6387f5a211f728db35a6cb90d14",
           "paths": [
             "field map",
             "inherited field",
             "alias sequences",
-            "named unique alias",
+            "anonymous unique alias",
             "non-terminal alias map",
             "keyword lexer",
             "reserved words",
@@ -11172,7 +11172,7 @@
         }
       },
       "corpus": {
-        "tests": 149,
+        "tests": 277,
         "failures": 0,
         "transit": "same"
       }

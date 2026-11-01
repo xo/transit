@@ -1,0 +1,280 @@
+================================================================================
+SET of a variable
+================================================================================
+
+SET @myVar = 'This is a test';
+
+---
+
+(source_file
+  (set_statement
+    (variable)
+    (string)))
+
+================================================================================
+SET of a variable with a query
+================================================================================
+
+SET @rows = (SELECT COUNT(*) FROM Sales.Customer);
+
+---
+
+(source_file
+  (set_statement
+    (variable)
+    (subquery
+      (select
+        (function_call
+          (identifier)
+          (arguments
+            (all_columns)))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)
+              (identifier))))))))
+
+================================================================================
+SET with compound assignment
+================================================================================
+
+SET @NewBalance *= 10;
+SET @s += N'x';
+
+---
+
+(source_file
+  (set_statement
+    (variable)
+    (operator)
+    (number))
+  (set_statement
+    (variable)
+    (operator)
+    (string)))
+
+================================================================================
+SET of a property and a method of a CLR type
+================================================================================
+
+SET @p.X = @p.Y;
+SET @p.SetXY(22, 23);
+
+---
+
+(source_file
+  (set_statement
+    (field_expression)
+    (field_expression)
+    (field_expression)
+    (field_expression
+      (variable)
+      (identifier)))
+  (set_statement
+    (field_expression)
+    (field_expression)
+    (field_expression)
+    (field_expression
+      (number)
+      (number))))
+
+================================================================================
+SET of a cursor variable
+================================================================================
+
+SET @CursorVar = CURSOR SCROLL DYNAMIC
+FOR
+SELECT LastName, FirstName
+FROM AdventureWorks2022.HumanResources.vEmployee
+WHERE LastName like 'B%';
+
+---
+
+(source_file
+  (set_statement
+    (variable)
+    (cursor_definition
+      (keyword)
+      (keyword)
+      (select
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)
+              (identifier)
+              (identifier))))
+        (where_clause
+          (like_expression
+            (column_reference
+              (identifier))
+            (string)))))))
+
+================================================================================
+SET options that take ON or OFF
+================================================================================
+
+SET NOCOUNT ON;
+SET XACT_ABORT OFF
+SET ANSI_NULLS, QUOTED_IDENTIFIER ON;
+
+---
+
+(source_file
+  (set_statement
+    (keyword))
+  (set_statement
+    (keyword))
+  (set_statement
+    (keyword)
+    (keyword)))
+
+================================================================================
+SET STATISTICS
+================================================================================
+
+SET STATISTICS IO ON;
+SET STATISTICS IO, TIME OFF;
+SET STATISTICS XML ON
+
+---
+
+(source_file
+  (set_statement
+    (keyword)
+    (keyword))
+  (set_statement
+    (keyword)
+    (keyword)
+    (keyword))
+  (set_statement
+    (keyword)
+    (keyword)))
+
+================================================================================
+SET IDENTITY_INSERT
+================================================================================
+
+SET IDENTITY_INSERT dbo.Tool ON;
+
+---
+
+(source_file
+  (set_statement
+    (keyword)
+    (keyword)
+    (keyword)))
+
+================================================================================
+SET options that take a number or a string
+================================================================================
+
+SET ROWCOUNT 4;
+SET TEXTSIZE 2048
+SET LOCK_TIMEOUT -1;
+SET DATEFIRST @first
+SET CONTEXT_INFO 0x01010101;
+SET FIPS_FLAGGER 'ENTRY'
+SET QUERY_GOVERNOR_COST_LIMIT 0
+
+---
+
+(source_file
+  (set_statement
+    (keyword)
+    (number))
+  (set_statement
+    (keyword)
+    (number))
+  (set_statement
+    (keyword)
+    (operator)
+    (number))
+  (set_statement
+    (keyword)
+    (variable))
+  (set_statement
+    (keyword)
+    (binary))
+  (set_statement
+    (keyword)
+    (string))
+  (set_statement
+    (keyword)
+    (number)))
+
+================================================================================
+SET options that take a word
+================================================================================
+
+SET DATEFORMAT dmy;
+SET LANGUAGE us_english;
+SET LANGUAGE N'Italiano'
+SET DEADLOCK_PRIORITY LOW;
+SET DEADLOCK_PRIORITY -5
+
+---
+
+(source_file
+  (set_statement
+    (identifier))
+  (set_statement
+    (identifier))
+  (set_statement
+    (string))
+  (set_statement
+    (identifier))
+  (set_statement
+    (operator)
+    (number)))
+
+================================================================================
+SET OFFSETS
+================================================================================
+
+SET OFFSETS SELECT, FROM ON;
+
+---
+
+(source_file
+  (set_statement
+    (keyword)
+    (keyword)
+    (keyword)))
+
+================================================================================
+SET TRANSACTION ISOLATION LEVEL
+================================================================================
+
+SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED
+SET TRANSACTION ISOLATION LEVEL REPEATABLE READ
+SET TRANSACTION ISOLATION LEVEL SNAPSHOT
+SET TRANSACTION ISOLATION LEVEL SERIALIZABLE
+
+---
+
+(source_file
+  (set_statement)
+  (set_statement)
+  (set_statement)
+  (set_statement)
+  (set_statement))
+
+================================================================================
+USE
+================================================================================
+
+USE AdventureWorks2022;
+USE [master]
+
+---
+
+(source_file
+  (use_statement
+    (identifier))
+  (use_statement
+    (identifier)))

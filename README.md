@@ -224,10 +224,14 @@ binary and money constants and comments that nest. It covers the
 expressions, the types, the function calls with `OVER` and `WITHIN GROUP`,
 and the full `SELECT`, with `TOP`, `INTO`, `APPLY`, `PIVOT`, the table
 hints, `FOR SYSTEM_TIME`, the rowset functions such as `OPENJSON`, `FOR
-XML`, `FOR JSON` and `OPTION`. It does not read the other statements yet. A
-statement does not need a semicolon at its end. A line with only `GO` and
-an optional count ends a batch, as in sqlcmd. The package adds about 0.9 MB
-to a binary. The grammar of `Crary-Systems/tree-sitter-tsql` stays in the
+XML`, `FOR JSON` and `OPTION`. It also covers `INSERT`, `UPDATE`, `DELETE`
+and `MERGE` with `OUTPUT`, `BULK INSERT`, `TRUNCATE TABLE`, the statements
+of transactions, `SET`, `USE`, `EXECUTE`, `PRINT`, `RAISERROR`, `THROW`,
+the control-of-flow language, such as `IF`, `WHILE`, `BEGIN ... END` and
+`TRY ... CATCH`, `DECLARE` and the statements of cursors. It does not read
+the statements that define objects yet. A statement does not need a
+semicolon at its end. A line with only `GO` and an optional count ends a
+batch, as in sqlcmd. The package adds about 1.2 MB to a binary. The grammar of `Crary-Systems/tree-sitter-tsql` stays in the
 golden set, but it has no Go package.
 
 The package `github.com/xo/transit/grammars/postgres/postgres` holds the

@@ -325,6 +325,16 @@ Each one follows these rules, in addition to the rest of this document:
    group of them, and not with one keyword for each word. Then each state
    where an expression starts has fewer than 64 columns, and it does not
    take the large form.
+   A statement of Transact-SQL does not need a semicolon at its end. So
+   each word that starts a statement can come after each expression, and
+   each state after an expression would hold about 40 such words. More
+   than 900 states took the large form. The external scanner of the SQL
+   Server grammar gives a token that holds no characters, the end of a
+   statement, where the grammar can end a statement and the next word
+   starts a statement. Then a state after an expression holds this token
+   in place of the words, and 18 states take the large form. The comment
+   at the top of `grammars/sqlserver/src/scanner.c` gives the rules of the
+   token.
    The parser cannot merge two states when only one of them takes a token
    of the external scanner. So a statement of PL/SQL ends at a `;` or at a
    `/` alone on its line, as a statement of SQL does, and the states after

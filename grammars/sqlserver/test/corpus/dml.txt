@@ -1,0 +1,1767 @@
+================================================================================
+INSERT with VALUES
+================================================================================
+
+INSERT INTO Production.UnitMeasure VALUES (N'FT', N'Feet', '20080414');
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (values_clause
+      (value_list
+        (string)
+        (string)
+        (string)))))
+
+================================================================================
+INSERT with several rows
+================================================================================
+
+INSERT INTO Production.UnitMeasure
+VALUES (N'FT2', N'Square Feet ', '20080923'), (N'Y', N'Yards', '20080923'), (N'Y3', N'Cubic Yards', DEFAULT);
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (values_clause
+      (value_list
+        (string)
+        (string)
+        (string))
+      (value_list
+        (string)
+        (string)
+        (string))
+      (value_list
+        (string)
+        (string)))))
+
+================================================================================
+INSERT with columns
+================================================================================
+
+INSERT INTO Production.UnitMeasure (Name, UnitMeasureCode, ModifiedDate)
+VALUES (N'Square Yards', N'Y2', GETDATE());
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier)
+      (identifier))
+    (values_clause
+      (value_list
+        (string)
+        (string)
+        (function_call
+          (identifier)
+          (arguments))))))
+
+================================================================================
+INSERT without INTO
+================================================================================
+
+INSERT dbo.T1 (column_2) VALUES (NULL)
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (column_list
+      (identifier))
+    (values_clause
+      (value_list
+        (null)))))
+
+================================================================================
+INSERT DEFAULT VALUES
+================================================================================
+
+INSERT INTO T1 DEFAULT VALUES;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+INSERT with a query
+================================================================================
+
+INSERT INTO dbo.EmployeeSales
+    SELECT 'SELECT', sp.BusinessEntityID, c.LastName, sp.SalesYTD
+    FROM Sales.SalesPerson AS sp
+    INNER JOIN Person.Person AS c ON sp.BusinessEntityID = c.BusinessEntityID
+    WHERE sp.BusinessEntityID LIKE '2%'
+    ORDER BY sp.BusinessEntityID, c.LastName;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (select
+      (string)
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (from_clause
+        (join
+          (table_reference
+            (object_reference
+              (identifier)
+              (identifier))
+            (identifier))
+          (table_reference
+            (object_reference
+              (identifier)
+              (identifier))
+            (identifier))
+          (binary_expression
+            (column_reference
+              (identifier)
+              (identifier))
+            (operator)
+            (column_reference
+              (identifier)
+              (identifier)))))
+      (where_clause
+        (like_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (string))))
+    (order_by_clause
+      (order_by_item
+        (column_reference
+          (identifier)
+          (identifier)))
+      (order_by_item
+        (column_reference
+          (identifier)
+          (identifier))))))
+
+================================================================================
+INSERT with EXECUTE
+================================================================================
+
+INSERT INTO dbo.EmployeeSales
+EXECUTE dbo.uspGetEmployeeSales;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (execute_statement
+      (object_reference
+        (identifier)
+        (identifier)))))
+
+================================================================================
+INSERT with EXECUTE of a string
+================================================================================
+
+INSERT dbo.EmployeeSales
+EXECUTE ('SELECT ''EXEC STRING'', sp.BusinessEntityID FROM Sales.SalesPerson AS sp');
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (execute_statement
+      (string))))
+
+================================================================================
+INSERT with a common table expression
+================================================================================
+
+WITH EmployeeTemp (EmpID, LastName) AS (SELECT BusinessEntityID, LastName FROM HumanResources.Employee)
+INSERT INTO HumanResources.NewEmployee
+    SELECT EmpID, LastName FROM EmployeeTemp;
+
+---
+
+(source_file
+  (insert_statement
+    (with_clause
+      (cte
+        (identifier)
+        (column_list
+          (identifier)
+          (identifier))
+        (subquery
+          (select
+            (column_reference
+              (identifier))
+            (column_reference
+              (identifier))
+            (from_clause
+              (table_reference
+                (object_reference
+                  (identifier)
+                  (identifier))))))))
+    (object_reference
+      (identifier)
+      (identifier))
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+INSERT TOP
+================================================================================
+
+INSERT TOP (5) INTO dbo.EmployeeSales
+    OUTPUT inserted.EmployeeID, inserted.FirstName
+    SELECT sp.BusinessEntityID, c.LastName FROM Sales.SalesPerson AS sp;
+
+---
+
+(source_file
+  (insert_statement
+    (top_clause
+      (parenthesized_expression
+        (number)))
+    (object_reference
+      (identifier)
+      (identifier))
+    (output_clause
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier)))
+    (select
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)
+            (identifier))
+          (identifier))))))
+
+================================================================================
+INSERT into a table variable and a temporary table
+================================================================================
+
+INSERT INTO @MyTableVar (LocationID, CostRate) VALUES (1, 2.5);
+INSERT #temp SELECT * FROM t;
+
+---
+
+(source_file
+  (insert_statement
+    (variable)
+    (column_list
+      (identifier)
+      (identifier))
+    (values_clause
+      (value_list
+        (number)
+        (number))))
+  (insert_statement
+    (object_reference
+      (identifier))
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+INSERT with table hints
+================================================================================
+
+INSERT INTO Production.Location WITH (XLOCK) (Name, CostRate, Availability)
+VALUES ( N'Final Inventory', 15.00, 80.00);
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (table_hints
+      (hint
+        (keyword)))
+    (column_list
+      (identifier)
+      (identifier)
+      (identifier))
+    (values_clause
+      (value_list
+        (string)
+        (number)
+        (number)))))
+
+================================================================================
+INSERT into OPENQUERY
+================================================================================
+
+INSERT OPENQUERY (MyLinkServer, 'SELECT Name, GroupName FROM AdventureWorks2022.HumanResources.Department')
+VALUES ('Environmental Impact', 'Engineering');
+
+---
+
+(source_file
+  (insert_statement
+    (function_call
+      (arguments
+        (column_reference
+          (identifier))
+        (string)))
+    (values_clause
+      (value_list
+        (string)
+        (string)))))
+
+================================================================================
+INSERT with OUTPUT INTO
+================================================================================
+
+INSERT Production.ScrapReason
+    OUTPUT INSERTED.ScrapReasonID, INSERTED.Name, INSERTED.ModifiedDate
+        INTO @MyTableVar
+VALUES (N'Operator error', GETDATE());
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (output_clause
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (variable))
+    (values_clause
+      (value_list
+        (string)
+        (function_call
+          (identifier)
+          (arguments))))))
+
+================================================================================
+INSERT with OUTPUT INTO and columns
+================================================================================
+
+INSERT INTO dbo.ScrapReason (Name)
+OUTPUT inserted.* INTO dbo.Log (ID, Name, Modified)
+SELECT Name FROM s;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (column_list
+      (identifier))
+    (output_clause
+      (all_columns
+        (identifier))
+      (object_reference
+        (identifier)
+        (identifier))
+      (column_list
+        (identifier)
+        (identifier)
+        (identifier)))
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+INSERT with a value that is a query
+================================================================================
+
+INSERT INTO t (a) VALUES ((SELECT MAX(a) FROM t) + 1);
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier))
+    (values_clause
+      (value_list
+        (binary_expression
+          (subquery
+            (select
+              (function_call
+                (identifier)
+                (arguments
+                  (column_reference
+                    (identifier))))
+              (from_clause
+                (table_reference
+                  (object_reference
+                    (identifier))))))
+          (operator)
+          (number))))))
+
+================================================================================
+UPDATE with WHERE
+================================================================================
+
+UPDATE Person.Address
+SET ModifiedDate = GETDATE();
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (function_call
+        (identifier)
+        (arguments)))))
+
+================================================================================
+UPDATE of several columns
+================================================================================
+
+UPDATE Sales.SalesPerson
+SET Bonus = 6000, CommissionPct = .10, SalesQuota = NULL
+WHERE TerritoryID = 10;
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (number))
+    (assignment
+      (column_reference
+        (identifier))
+      (number))
+    (assignment
+      (column_reference
+        (identifier))
+      (null))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))))
+
+================================================================================
+UPDATE with FROM
+================================================================================
+
+UPDATE Sales.SalesPerson
+SET SalesYTD = SalesYTD + SubTotal
+FROM Sales.SalesPerson AS sp
+JOIN Sales.SalesOrderHeader AS so
+    ON sp.BusinessEntityID = so.SalesPersonID
+    AND so.OrderDate = (SELECT MAX(OrderDate)
+                        FROM Sales.SalesOrderHeader)
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier))))
+    (from_clause
+      (join
+        (table_reference
+          (object_reference
+            (identifier)
+            (identifier))
+          (identifier))
+        (table_reference
+          (object_reference
+            (identifier)
+            (identifier))
+          (identifier))
+        (binary_expression
+          (binary_expression
+            (column_reference
+              (identifier)
+              (identifier))
+            (operator)
+            (column_reference
+              (identifier)
+              (identifier)))
+          (binary_expression
+            (column_reference
+              (identifier)
+              (identifier))
+            (operator)
+            (subquery
+              (select
+                (function_call
+                  (identifier)
+                  (arguments
+                    (column_reference
+                      (identifier))))
+                (from_clause
+                  (table_reference
+                    (object_reference
+                      (identifier)
+                      (identifier))))))))))))
+
+================================================================================
+UPDATE with an alias of FROM
+================================================================================
+
+UPDATE sr
+SET sr.Name += ' - tool malfunction'
+FROM Production.ScrapReason AS sr
+JOIN Production.WorkOrder AS wo
+     ON sr.ScrapReasonID = wo.ScrapReasonID
+     AND wo.ScrappedQty > 300;
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier)
+        (identifier))
+      (operator)
+      (string))
+    (from_clause
+      (join
+        (table_reference
+          (object_reference
+            (identifier)
+            (identifier))
+          (identifier))
+        (table_reference
+          (object_reference
+            (identifier)
+            (identifier))
+          (identifier))
+        (binary_expression
+          (binary_expression
+            (column_reference
+              (identifier)
+              (identifier))
+            (operator)
+            (column_reference
+              (identifier)
+              (identifier)))
+          (binary_expression
+            (column_reference
+              (identifier)
+              (identifier))
+            (operator)
+            (number)))))))
+
+================================================================================
+UPDATE with compound assignment
+================================================================================
+
+UPDATE Production.Product
+SET ListPrice *= 2, Name += N' (new)', SafetyStockLevel -= 1;
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (operator)
+      (number))
+    (assignment
+      (column_reference
+        (identifier))
+      (operator)
+      (string))
+    (assignment
+      (column_reference
+        (identifier))
+      (operator)
+      (number))))
+
+================================================================================
+UPDATE with DEFAULT
+================================================================================
+
+UPDATE Production.Location
+SET CostRate = DEFAULT
+WHERE CostRate > 20.00;
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier)))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))))
+
+================================================================================
+UPDATE TOP
+================================================================================
+
+UPDATE TOP (10) HumanResources.Employee
+SET VacationHours = VacationHours * 1.25;
+
+---
+
+(source_file
+  (update_statement
+    (top_clause
+      (parenthesized_expression
+        (number)))
+    (object_reference
+      (identifier)
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))))
+
+================================================================================
+UPDATE with a common table expression
+================================================================================
+
+WITH Parts(AssemblyID, ComponentID) AS
+(
+    SELECT b.ProductAssemblyID, b.ComponentID FROM Production.BillOfMaterials AS b
+)
+UPDATE Production.BillOfMaterials
+SET PerAssemblyQty = c.PerAssemblyQty * 2
+FROM Production.BillOfMaterials AS c
+JOIN Parts AS d ON c.ProductAssemblyID = d.AssemblyID;
+
+---
+
+(source_file
+  (update_statement
+    (with_clause
+      (cte
+        (identifier)
+        (column_list
+          (identifier)
+          (identifier))
+        (subquery
+          (select
+            (column_reference
+              (identifier)
+              (identifier))
+            (column_reference
+              (identifier)
+              (identifier))
+            (from_clause
+              (table_reference
+                (object_reference
+                  (identifier)
+                  (identifier))
+                (identifier)))))))
+    (object_reference
+      (identifier)
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (number)))
+    (from_clause
+      (join
+        (table_reference
+          (object_reference
+            (identifier)
+            (identifier))
+          (identifier))
+        (table_reference
+          (object_reference
+            (identifier))
+          (identifier))
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)
+            (identifier)))))))
+
+================================================================================
+UPDATE with OUTPUT
+================================================================================
+
+UPDATE TOP (10) HumanResources.Employee
+SET VacationHours = VacationHours * 1.25,
+    ModifiedDate = GETDATE()
+OUTPUT inserted.BusinessEntityID,
+       deleted.VacationHours,
+       inserted.VacationHours,
+       inserted.ModifiedDate
+INTO @MyTableVar;
+
+---
+
+(source_file
+  (update_statement
+    (top_clause
+      (parenthesized_expression
+        (number)))
+    (object_reference
+      (identifier)
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))
+    (assignment
+      (column_reference
+        (identifier))
+      (function_call
+        (identifier)
+        (arguments)))
+    (output_clause
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (variable))))
+
+================================================================================
+UPDATE of a variable and a column
+================================================================================
+
+UPDATE t SET @v = c = c + 1, d = @v;
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier))
+    (assignment
+      (variable)
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))))
+    (assignment
+      (column_reference
+        (identifier))
+      (variable))))
+
+================================================================================
+UPDATE with .WRITE
+================================================================================
+
+UPDATE Production.Document
+SET DocumentSummary .WRITE (N'features', 28, 10)
+OUTPUT deleted.DocumentSummary
+WHERE Title = N'Crank Arm and Tire Maintenance';
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (function_call
+      (identifier)
+      (identifier)
+      (arguments
+        (string)
+        (number)
+        (number)))
+    (output_clause
+      (column_reference
+        (identifier)
+        (identifier)))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (string)))))
+
+================================================================================
+UPDATE of a property and a method of a CLR type
+================================================================================
+
+UPDATE dbo.Cities
+SET Location.X = 23.5, Location.SetXY(23.5, 23.5)
+WHERE Name = 'Anchorage';
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier)
+        (identifier))
+      (number))
+    (function_call
+      (identifier)
+      (identifier)
+      (arguments
+        (number)
+        (number)))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (string)))))
+
+================================================================================
+UPDATE with table hints and OPTION
+================================================================================
+
+UPDATE Production.Product WITH (TABLOCK)
+SET ListPrice = ListPrice * 1.10
+WHERE ProductNumber LIKE 'BK-%'
+OPTION (LABEL = N'label1', MAXDOP 1);
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (table_hints
+      (hint
+        (keyword)))
+    (assignment
+      (column_reference
+        (identifier))
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))
+    (where_clause
+      (like_expression
+        (column_reference
+          (identifier))
+        (string)))
+    (option_clause
+      (keyword)
+      (string)
+      (keyword)
+      (number))))
+
+================================================================================
+UPDATE WHERE CURRENT OF
+================================================================================
+
+UPDATE HumanResources.EmployeePayHistory
+SET PayFrequency = 2
+WHERE CURRENT OF complex_cursor;
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (number))
+    (current_of_clause
+      (identifier))))
+
+================================================================================
+UPDATE of a table variable
+================================================================================
+
+UPDATE @MyTableVar
+SET NewVacationHours = e.VacationHours + 20
+FROM @MyTableVar AS t
+JOIN HumanResources.Employee AS e ON e.BusinessEntityID = t.EmpID;
+
+---
+
+(source_file
+  (update_statement
+    (variable)
+    (assignment
+      (column_reference
+        (identifier))
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (number)))
+    (from_clause
+      (join
+        (table_reference
+          (variable)
+          (identifier))
+        (table_reference
+          (object_reference
+            (identifier)
+            (identifier))
+          (identifier))
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)
+            (identifier)))))))
+
+================================================================================
+DELETE
+================================================================================
+
+DELETE FROM Sales.SalesPersonQuotaHistory;
+
+---
+
+(source_file
+  (delete_statement
+    (object_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+DELETE without FROM
+================================================================================
+
+DELETE Production.ProductCostHistory
+WHERE StandardCost BETWEEN 12.00 AND 14.00
+      AND EndDate IS NULL;
+
+---
+
+(source_file
+  (delete_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (where_clause
+      (binary_expression
+        (between_expression
+          (column_reference
+            (identifier))
+          (number)
+          (number))
+        (is_expression
+          (column_reference
+            (identifier))
+          (null))))))
+
+================================================================================
+DELETE with a second FROM
+================================================================================
+
+DELETE FROM Sales.SalesPersonQuotaHistory
+FROM Sales.SalesPersonQuotaHistory AS spqh
+INNER JOIN Sales.SalesPerson AS sp
+ON spqh.BusinessEntityID = sp.BusinessEntityID
+WHERE sp.SalesYTD > 2500000.00;
+
+---
+
+(source_file
+  (delete_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (from_clause
+      (join
+        (table_reference
+          (object_reference
+            (identifier)
+            (identifier))
+          (identifier))
+        (table_reference
+          (object_reference
+            (identifier)
+            (identifier))
+          (identifier))
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)
+            (identifier)))))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (number)))))
+
+================================================================================
+DELETE of an alias
+================================================================================
+
+DELETE spqh
+  FROM Sales.SalesPersonQuotaHistory AS spqh
+  INNER JOIN Sales.SalesPerson AS sp
+  ON spqh.BusinessEntityID = sp.BusinessEntityID
+  WHERE sp.SalesYTD > 2500000.00;
+
+---
+
+(source_file
+  (delete_statement
+    (object_reference
+      (identifier))
+    (from_clause
+      (join
+        (table_reference
+          (object_reference
+            (identifier)
+            (identifier))
+          (identifier))
+        (table_reference
+          (object_reference
+            (identifier)
+            (identifier))
+          (identifier))
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)
+            (identifier)))))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (number)))))
+
+================================================================================
+DELETE TOP
+================================================================================
+
+DELETE TOP (20) PERCENT
+FROM Purchasing.PurchaseOrderDetail
+WHERE DueDate < '20020701';
+
+---
+
+(source_file
+  (delete_statement
+    (top_clause
+      (parenthesized_expression
+        (number)))
+    (object_reference
+      (identifier)
+      (identifier))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (string)))))
+
+================================================================================
+DELETE with OUTPUT
+================================================================================
+
+DELETE Sales.ShoppingCartItem
+OUTPUT DELETED.*
+WHERE ShoppingCartID = 20621;
+
+---
+
+(source_file
+  (delete_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (output_clause
+      (all_columns
+        (identifier)))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))))
+
+================================================================================
+DELETE with OUTPUT INTO and a common table expression
+================================================================================
+
+WITH old AS (SELECT TOP (10) * FROM dbo.Log ORDER BY ID)
+DELETE FROM old
+OUTPUT deleted.ID, deleted.Name INTO @deleted (ID, Name);
+
+---
+
+(source_file
+  (delete_statement
+    (with_clause
+      (cte
+        (identifier)
+        (subquery
+          (select
+            (top_clause
+              (parenthesized_expression
+                (number)))
+            (all_columns)
+            (from_clause
+              (table_reference
+                (object_reference
+                  (identifier)
+                  (identifier)))))
+          (order_by_clause
+            (order_by_item
+              (column_reference
+                (identifier)))))))
+    (object_reference
+      (identifier))
+    (output_clause
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (variable)
+      (column_list
+        (identifier)
+        (identifier)))))
+
+================================================================================
+DELETE WHERE CURRENT OF
+================================================================================
+
+DELETE FROM HumanResources.EmployeePayHistory
+WHERE CURRENT OF GLOBAL complex_cursor;
+
+---
+
+(source_file
+  (delete_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (current_of_clause
+      (identifier))))
+
+================================================================================
+DELETE with table hints
+================================================================================
+
+DELETE FROM Production.ProductCostHistory
+WITH (TABLOCK)
+WHERE StandardCost BETWEEN 12.00 AND 14.00;
+
+---
+
+(source_file
+  (delete_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (table_hints
+      (hint
+        (keyword)))
+    (where_clause
+      (between_expression
+        (column_reference
+          (identifier))
+        (number)
+        (number)))))
+
+================================================================================
+MERGE
+================================================================================
+
+MERGE Production.UnitMeasure AS tgt
+USING (SELECT @UnitMeasureCode, @Name) AS src (UnitMeasureCode, Name)
+ON (tgt.UnitMeasureCode = src.UnitMeasureCode)
+WHEN MATCHED THEN
+    UPDATE SET Name = src.Name
+WHEN NOT MATCHED THEN
+    INSERT (UnitMeasureCode, Name)
+    VALUES (src.UnitMeasureCode, src.Name)
+OUTPUT deleted.*, $action, inserted.* INTO #MyTempTable;
+
+---
+
+(source_file
+  (merge_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier)
+    (derived_table
+      (subquery
+        (select
+          (variable)
+          (variable)))
+      (identifier)
+      (column_list
+        (identifier)
+        (identifier)))
+    (parenthesized_expression
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)
+          (identifier))))
+    (merge_when_clause
+      (assignment
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier)
+          (identifier))))
+    (merge_when_clause
+      (column_list
+        (identifier)
+        (identifier))
+      (values_clause
+        (value_list
+          (column_reference
+            (identifier)
+            (identifier))
+          (column_reference
+            (identifier)
+            (identifier)))))
+    (output_clause
+      (all_columns
+        (identifier))
+      (pseudocolumn)
+      (all_columns
+        (identifier))
+      (object_reference
+        (identifier)))))
+
+================================================================================
+MERGE with conditions and DELETE
+================================================================================
+
+MERGE Production.ProductInventory AS tgt
+USING (SELECT ProductID, SUM(OrderQty) FROM Sales.SalesOrderDetail AS sod
+    GROUP BY ProductID) AS src (ProductID, OrderQty)
+ON (tgt.ProductID = src.ProductID)
+WHEN MATCHED AND tgt.Quantity - src.OrderQty <= 0
+    THEN DELETE
+WHEN MATCHED
+    THEN UPDATE SET tgt.Quantity = tgt.Quantity - src.OrderQty,
+                    tgt.ModifiedDate = GETDATE()
+OUTPUT $action, Inserted.ProductID, Deleted.ProductID;
+
+---
+
+(source_file
+  (merge_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier)
+    (derived_table
+      (subquery
+        (select
+          (column_reference
+            (identifier))
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier))))
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier)
+                (identifier))
+              (identifier)))
+          (group_by_clause
+            (column_reference
+              (identifier)))))
+      (identifier)
+      (column_list
+        (identifier)
+        (identifier)))
+    (parenthesized_expression
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)
+          (identifier))))
+    (merge_when_clause
+      (binary_expression
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)
+            (identifier)))
+        (operator)
+        (number)))
+    (merge_when_clause
+      (assignment
+        (column_reference
+          (identifier)
+          (identifier))
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)
+            (identifier))))
+      (assignment
+        (column_reference
+          (identifier)
+          (identifier))
+        (function_call
+          (identifier)
+          (arguments))))
+    (output_clause
+      (pseudocolumn)
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier)))))
+
+================================================================================
+MERGE with BY TARGET and BY SOURCE
+================================================================================
+
+MERGE INTO dbo.Target WITH (HOLDLOCK) AS t
+USING dbo.Source s
+ON t.ID = s.ID
+WHEN NOT MATCHED BY TARGET THEN INSERT DEFAULT VALUES
+WHEN NOT MATCHED BY SOURCE AND t.Active = 1 THEN UPDATE SET t.Active = 0
+OPTION (RECOMPILE);
+
+---
+
+(source_file
+  (merge_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (table_hints
+      (hint
+        (keyword)))
+    (identifier)
+    (table_reference
+      (object_reference
+        (identifier)
+        (identifier))
+      (identifier))
+    (binary_expression
+      (column_reference
+        (identifier)
+        (identifier))
+      (operator)
+      (column_reference
+        (identifier)
+        (identifier)))
+    (merge_when_clause)
+    (merge_when_clause
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (number))
+      (assignment
+        (column_reference
+          (identifier)
+          (identifier))
+        (number)))
+    (option_clause
+      (keyword))))
+
+================================================================================
+MERGE TOP with a common table expression
+================================================================================
+
+WITH src AS (SELECT * FROM dbo.Staging)
+MERGE TOP (100) dbo.Target AS t
+USING src ON t.ID = src.ID
+WHEN MATCHED THEN DELETE;
+
+---
+
+(source_file
+  (merge_statement
+    (with_clause
+      (cte
+        (identifier)
+        (subquery
+          (select
+            (all_columns)
+            (from_clause
+              (table_reference
+                (object_reference
+                  (identifier)
+                  (identifier))))))))
+    (top_clause
+      (parenthesized_expression
+        (number)))
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier)
+    (table_reference
+      (object_reference
+        (identifier)))
+    (binary_expression
+      (column_reference
+        (identifier)
+        (identifier))
+      (operator)
+      (column_reference
+        (identifier)
+        (identifier)))
+    (merge_when_clause)))
+
+================================================================================
+MERGE with VALUES
+================================================================================
+
+MERGE dbo.Settings AS t
+USING (VALUES (1, N'a'), (2, N'b')) AS s (ID, Name)
+ON t.ID = s.ID
+WHEN NOT MATCHED THEN INSERT (ID, Name) VALUES (s.ID, s.Name);
+
+---
+
+(source_file
+  (merge_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier)
+    (derived_table
+      (values
+        (value_list
+          (number)
+          (string))
+        (value_list
+          (number)
+          (string)))
+      (identifier)
+      (column_list
+        (identifier)
+        (identifier)))
+    (binary_expression
+      (column_reference
+        (identifier)
+        (identifier))
+      (operator)
+      (column_reference
+        (identifier)
+        (identifier)))
+    (merge_when_clause
+      (column_list
+        (identifier)
+        (identifier))
+      (values_clause
+        (value_list
+          (column_reference
+            (identifier)
+            (identifier))
+          (column_reference
+            (identifier)
+            (identifier)))))))
+
+================================================================================
+BULK INSERT
+================================================================================
+
+BULK INSERT AdventureWorks2022.Sales.SalesOrderDetail
+FROM 'f:\orders\lineitem.tbl'
+WITH
+  (
+     FIELDTERMINATOR = ' |',
+     ROWTERMINATOR = ' |\n',
+     FIRSTROW = 2,
+     TABLOCK
+  );
+
+---
+
+(source_file
+  (bulk_insert_statement
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier))
+    (string)
+    (hint
+      (keyword)
+      (string))
+    (hint
+      (keyword)
+      (string))
+    (hint
+      (keyword)
+      (number))
+    (hint
+      (keyword))))
+
+================================================================================
+BULK INSERT with a format
+================================================================================
+
+BULK INSERT Sales.Invoices
+FROM 'inv-2017-12-08.csv'
+WITH (DATA_SOURCE = 'MyAzureBlobStorage', FORMAT = 'CSV', CODEPAGE = 65001);
+
+---
+
+(source_file
+  (bulk_insert_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (string)
+    (hint
+      (keyword)
+      (string))
+    (hint
+      (keyword)
+      (string))
+    (hint
+      (keyword)
+      (number))))
+
+================================================================================
+TRUNCATE TABLE
+================================================================================
+
+TRUNCATE TABLE HumanResources.JobCandidate;
+
+---
+
+(source_file
+  (truncate_statement
+    (object_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+TRUNCATE TABLE with partitions
+================================================================================
+
+TRUNCATE TABLE PartitionTable1
+WITH (PARTITIONS (2, 4, 6 TO 8));
+
+---
+
+(source_file
+  (truncate_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (number)
+    (number)
+    (number)
+    (keyword)
+    (number)))
+
+================================================================================
+READTEXT
+================================================================================
+
+READTEXT pub_info.pr_info @ptrval 1 25;
+
+---
+
+(source_file
+  (readtext_statement
+    (column_reference
+      (identifier)
+      (identifier))
+    (variable)
+    (number)
+    (number)))
+
+================================================================================
+WRITETEXT
+================================================================================
+
+WRITETEXT pub_info.pr_info @ptrval WITH LOG 'New Moon Books (NMB) has just released another top ten publication.';
+
+---
+
+(source_file
+  (writetext_statement
+    (column_reference
+      (identifier)
+      (identifier))
+    (variable)
+    (string)))
+
+================================================================================
+UPDATETEXT
+================================================================================
+
+UPDATETEXT pub_info.pr_info @ptrval 88 1 'b';
+UPDATETEXT t.c @p NULL 0 t2.c @p2;
+
+---
+
+(source_file
+  (updatetext_statement
+    (column_reference
+      (identifier)
+      (identifier))
+    (variable)
+    (number)
+    (number)
+    (string))
+  (updatetext_statement
+    (column_reference
+      (identifier)
+      (identifier))
+    (variable)
+    (null)
+    (number)
+    (column_reference
+      (identifier)
+      (identifier))
+    (variable)))

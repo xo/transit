@@ -1,0 +1,497 @@
+================================================================================
+DECLARE
+================================================================================
+
+DECLARE @find VARCHAR(30);
+DECLARE @find2 AS VARCHAR(30) = 'Man%';
+
+---
+
+(source_file
+  (declare_statement
+    (variable_declaration
+      (variable)
+      (type
+        (identifier)
+        (type_modifiers
+          (number)))))
+  (declare_statement
+    (variable_declaration
+      (variable)
+      (type
+        (identifier)
+        (type_modifiers
+          (number)))
+      (string))))
+
+================================================================================
+DECLARE of several variables
+================================================================================
+
+DECLARE @Group nvarchar(50), @Sales MONEY = 0, @n int = (SELECT COUNT(*) FROM t);
+
+---
+
+(source_file
+  (declare_statement
+    (variable_declaration
+      (variable)
+      (type
+        (identifier)
+        (type_modifiers
+          (number))))
+    (variable_declaration
+      (variable)
+      (type
+        (identifier))
+      (number))
+    (variable_declaration
+      (variable)
+      (type
+        (identifier))
+      (subquery
+        (select
+          (function_call
+            (identifier)
+            (arguments
+              (all_columns)))
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier)))))))))
+
+================================================================================
+DECLARE of a cursor variable
+================================================================================
+
+DECLARE @CursorVar CURSOR;
+
+---
+
+(source_file
+  (declare_statement
+    (variable_declaration
+      (variable))))
+
+================================================================================
+DECLARE of a table variable
+================================================================================
+
+DECLARE @MyTableVar TABLE (
+    EmpID INT NOT NULL,
+    OldVacationHours INT,
+    NewVacationHours INT,
+    ModifiedDate DATETIME);
+
+---
+
+(source_file
+  (declare_statement
+    (variable_declaration
+      (variable)
+      (table_definition
+        (column_definition
+          (identifier)
+          (type
+            (identifier))
+          (null))
+        (column_definition
+          (identifier)
+          (type
+            (identifier)))
+        (column_definition
+          (identifier)
+          (type
+            (identifier)))
+        (column_definition
+          (identifier)
+          (type
+            (identifier)))))))
+
+================================================================================
+DECLARE of a table variable with constraints and indexes
+================================================================================
+
+DECLARE @t AS TABLE (
+    ID int IDENTITY(1, 1) PRIMARY KEY CLUSTERED,
+    Code char(3) COLLATE Latin1_General_CI_AS NOT NULL UNIQUE,
+    Name nvarchar(50) NULL DEFAULT N'',
+    Total AS (Price * Qty) PERSISTED,
+    Price money CHECK (Price >= 0),
+    Qty int DEFAULT 0 NOT NULL INDEX ix_qty,
+    Created datetime2 DEFAULT (SYSDATETIME()),
+    Row uniqueidentifier ROWGUIDCOL DEFAULT NEWID(),
+    CONSTRAINT pk_x UNIQUE NONCLUSTERED (Code ASC, Name DESC) WITH (IGNORE_DUP_KEY = ON),
+    CHECK (Qty < 100),
+    INDEX ix_name NONCLUSTERED (Name)
+);
+
+---
+
+(source_file
+  (declare_statement
+    (variable_declaration
+      (variable)
+      (table_definition
+        (column_definition
+          (identifier)
+          (type
+            (identifier))
+          (keyword)
+          (number)
+          (number))
+        (column_definition
+          (identifier)
+          (type
+            (identifier)
+            (type_modifiers
+              (number)))
+          (identifier)
+          (null))
+        (column_definition
+          (identifier)
+          (type
+            (identifier)
+            (type_modifiers
+              (number)))
+          (null)
+          (string))
+        (column_definition
+          (identifier)
+          (parenthesized_expression
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (column_reference
+                (identifier)))))
+        (column_definition
+          (identifier)
+          (type
+            (identifier))
+          (parenthesized_expression
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (number))))
+        (column_definition
+          (identifier)
+          (type
+            (identifier))
+          (number)
+          (null)
+          (identifier))
+        (column_definition
+          (identifier)
+          (type
+            (identifier))
+          (parenthesized_expression
+            (function_call
+              (identifier)
+              (arguments))))
+        (column_definition
+          (identifier)
+          (type
+            (identifier))
+          (function_call
+            (identifier)
+            (arguments)))
+        (table_constraint
+          (identifier)
+          (index_columns
+            (order_by_item
+              (column_reference
+                (identifier)))
+            (order_by_item
+              (column_reference
+                (identifier))))
+          (hint
+            (keyword)
+            (keyword)))
+        (table_constraint
+          (parenthesized_expression
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (number))))
+        (table_index
+          (identifier)
+          (index_columns
+            (order_by_item
+              (column_reference
+                (identifier)))))))))
+
+================================================================================
+DECLARE of a variable of a table type
+================================================================================
+
+DECLARE @LocationTVP AS LocationTableType;
+
+---
+
+(source_file
+  (declare_statement
+    (variable_declaration
+      (variable)
+      (type
+        (identifier)))))
+
+================================================================================
+DECLARE CURSOR
+================================================================================
+
+DECLARE vend_cursor CURSOR
+    FOR SELECT * FROM Purchasing.Vendor
+OPEN vend_cursor
+FETCH NEXT FROM vend_cursor;
+
+---
+
+(source_file
+  (cursor_declaration
+    (identifier)
+    (cursor_definition
+      (select
+        (all_columns)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)
+              (identifier)))))))
+  (open_statement
+    (identifier))
+  (fetch_statement
+    (identifier)))
+
+================================================================================
+DECLARE CURSOR in the form of ISO
+================================================================================
+
+DECLARE c INSENSITIVE SCROLL CURSOR FOR
+SELECT a FROM t
+FOR READ ONLY;
+
+---
+
+(source_file
+  (cursor_declaration
+    (identifier)
+    (keyword)
+    (keyword)
+    (cursor_definition
+      (select
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))
+      (for_clause))))
+
+================================================================================
+DECLARE CURSOR with options
+================================================================================
+
+DECLARE complex_cursor CURSOR LOCAL FORWARD_ONLY STATIC READ_ONLY TYPE_WARNING
+    FOR
+    SELECT a.BusinessEntityID
+    FROM HumanResources.EmployeePayHistory AS a
+    WHERE RateChangeDate <>
+         (SELECT MAX(RateChangeDate)
+          FROM HumanResources.EmployeePayHistory AS b
+          WHERE a.BusinessEntityID = b.BusinessEntityID)
+    FOR UPDATE OF a.RateChangeDate, Rate;
+
+---
+
+(source_file
+  (cursor_declaration
+    (identifier)
+    (cursor_definition
+      (keyword)
+      (keyword)
+      (keyword)
+      (keyword)
+      (keyword)
+      (select
+        (column_reference
+          (identifier)
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)
+              (identifier))
+            (identifier)))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (subquery
+              (select
+                (function_call
+                  (identifier)
+                  (arguments
+                    (column_reference
+                      (identifier))))
+                (from_clause
+                  (table_reference
+                    (object_reference
+                      (identifier)
+                      (identifier))
+                    (identifier)))
+                (where_clause
+                  (binary_expression
+                    (column_reference
+                      (identifier)
+                      (identifier))
+                    (operator)
+                    (column_reference
+                      (identifier)
+                      (identifier)))))))))
+      (for_clause
+        (column_reference
+          (identifier)
+          (identifier))
+        (column_reference
+          (identifier))))))
+
+================================================================================
+The statements of a cursor
+================================================================================
+
+DECLARE @vendor_id INT, @vendor_name NVARCHAR(50);
+DECLARE vendor_cursor CURSOR FAST_FORWARD FOR
+SELECT VendorID, Name FROM Purchasing.Vendor WHERE PreferredVendorStatus = 1 ORDER BY VendorID;
+OPEN vendor_cursor
+FETCH NEXT FROM vendor_cursor INTO @vendor_id, @vendor_name
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    PRINT @vendor_name
+    FETCH NEXT FROM vendor_cursor INTO @vendor_id, @vendor_name
+END
+CLOSE vendor_cursor;
+DEALLOCATE vendor_cursor;
+
+---
+
+(source_file
+  (declare_statement
+    (variable_declaration
+      (variable)
+      (type
+        (identifier)))
+    (variable_declaration
+      (variable)
+      (type
+        (identifier)
+        (type_modifiers
+          (number)))))
+  (cursor_declaration
+    (identifier)
+    (cursor_definition
+      (keyword)
+      (select
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)
+              (identifier))))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number))))
+      (order_by_clause
+        (order_by_item
+          (column_reference
+            (identifier))))))
+  (open_statement
+    (identifier))
+  (fetch_statement
+    (identifier)
+    (variable)
+    (variable))
+  (while_statement
+    (binary_expression
+      (global_variable)
+      (operator)
+      (number))
+    (block
+      (print_statement
+        (variable))
+      (fetch_statement
+        (identifier)
+        (variable)
+        (variable))))
+  (close_statement
+    (identifier))
+  (deallocate_statement
+    (identifier)))
+
+================================================================================
+FETCH with the directions
+================================================================================
+
+FETCH LAST FROM contact_cursor;
+FETCH PRIOR FROM contact_cursor;
+FETCH ABSOLUTE 2 FROM contact_cursor;
+FETCH RELATIVE -3 FROM contact_cursor INTO @a;
+FETCH ABSOLUTE @n FROM GLOBAL contact_cursor
+FETCH FIRST FROM @cursor_var
+FETCH FROM c
+FETCH c
+
+---
+
+(source_file
+  (fetch_statement
+    (identifier))
+  (fetch_statement
+    (identifier))
+  (fetch_statement
+    (number)
+    (identifier))
+  (fetch_statement
+    (operator)
+    (number)
+    (identifier)
+    (variable))
+  (fetch_statement
+    (variable)
+    (identifier))
+  (fetch_statement
+    (variable))
+  (fetch_statement
+    (identifier))
+  (fetch_statement
+    (identifier)))
+
+================================================================================
+OPEN, CLOSE and DEALLOCATE of a global cursor and a variable
+================================================================================
+
+OPEN GLOBAL c
+CLOSE @MyCursor
+DEALLOCATE GLOBAL c
+DEALLOCATE @MyCursor
+
+---
+
+(source_file
+  (open_statement
+    (identifier))
+  (close_statement
+    (variable))
+  (deallocate_statement
+    (identifier))
+  (deallocate_statement
+    (variable)))
