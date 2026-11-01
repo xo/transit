@@ -1,0 +1,307 @@
+================================================================================
+BACKUP DATABASE
+================================================================================
+
+BACKUP DATABASE AdventureWorks2022
+TO DISK = 'Z:\SQLServerBackups\AdventureWorks2022.Bak'
+   WITH FORMAT,
+      MEDIANAME = 'Z_SQLServerBackups',
+      NAME = 'Full Backup of AdventureWorks2022';
+
+---
+
+(source_file
+  (backup_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (string)))
+
+================================================================================
+BACKUP LOG to a variable and mirrors
+================================================================================
+
+BACKUP LOG @db TO DISK = @path MIRROR TO DISK = N'y.trn' WITH COMPRESSION, STATS = 10, CHECKSUM
+
+---
+
+(source_file
+  (backup_statement
+    (variable)
+    (keyword)
+    (keyword)
+    (variable)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)))
+
+================================================================================
+BACKUP of files and to a URL
+================================================================================
+
+BACKUP DATABASE Sales FILEGROUP = 'SalesGroup1', FILEGROUP = 'SalesGroup2'
+TO URL = 'https://mystorageaccount.blob.core.windows.net/mycontainer/Sales.bak'
+WITH CREDENTIAL = 'mycredential', ENCRYPTION (ALGORITHM = AES_256, SERVER CERTIFICATE = BackupCert)
+
+---
+
+(source_file
+  (backup_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (string)
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)))
+
+================================================================================
+BACKUP of a certificate and of keys
+================================================================================
+
+BACKUP CERTIFICATE sales05 TO FILE = 'c:\storedcerts\sales05cert'
+    WITH PRIVATE KEY (FILE = 'c:\storedkeys\sales05key', ENCRYPTION BY PASSWORD = '997jkhUbhk$w4ez0876hKHJH5gh');
+BACKUP MASTER KEY TO FILE = 'c:\temp\exportedmasterkey' ENCRYPTION BY PASSWORD = 'sd092735kjn$&adsg';
+BACKUP SERVICE MASTER KEY TO FILE = 'c:\temp_backups\keys\service_master_key' ENCRYPTION BY PASSWORD = '3dH85Hhk003GHk2597gheij4';
+
+---
+
+(source_file
+  (backup_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string))
+  (backup_statement
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string))
+  (backup_statement
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string)))
+
+================================================================================
+RESTORE DATABASE
+================================================================================
+
+RESTORE DATABASE AdventureWorks2022
+   FROM DISK = 'Z:\SQLServerBackups\AdventureWorks2022.bak'
+   WITH NORECOVERY, REPLACE,
+   MOVE 'AdventureWorks2022_Data' TO 'C:\MySQLServer\testdb.mdf',
+   MOVE 'AdventureWorks2022_Log' TO 'C:\MySQLServer\testdb.ldf';
+RESTORE LOG AdventureWorks2022 FROM AdventureWorksBackups WITH FILE = 2, STOPAT = 'Apr 15, 2020 12:00 AM', RECOVERY;
+RESTORE DATABASE d WITH RECOVERY
+
+---
+
+(source_file
+  (restore_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (string)
+    (keyword)
+    (string)
+    (keyword)
+    (string))
+  (restore_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)
+    (string)
+    (keyword))
+  (restore_statement
+    (object_reference
+      (identifier))
+    (keyword)))
+
+================================================================================
+RESTORE of the header and of keys
+================================================================================
+
+RESTORE FILELISTONLY FROM DISK = N'x.bak' WITH FILE = 1
+RESTORE HEADERONLY FROM DISK = @path
+RESTORE VERIFYONLY FROM TAPE = '\\.\tape0'
+RESTORE MASTER KEY FROM FILE = 'c:\backups\keys\AdventureWorks2022_master_key'
+    DECRYPTION BY PASSWORD = '3dH85Hhk003#GHk$09%GHkj4'
+    ENCRYPTION BY PASSWORD = '259087M#MyjkFkjhywiyedfgGDFD' FORCE;
+
+---
+
+(source_file
+  (restore_statement
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (number))
+  (restore_statement
+    (keyword)
+    (keyword)
+    (variable))
+  (restore_statement
+    (keyword)
+    (keyword)
+    (string))
+  (restore_statement
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)))
+
+================================================================================
+DBCC
+================================================================================
+
+DBCC CHECKDB (N'AdventureWorks2022', NOINDEX) WITH NO_INFOMSGS, ALL_ERRORMSGS;
+DBCC FREEPROCCACHE
+DBCC SHRINKFILE (DataFile1, 7)
+DBCC TRACEON (3205, -1)
+DBCC INPUTBUFFER (@@SPID)
+DBCC CHECKIDENT ('Person.AddressType', RESEED, 10)
+DBCC SQLPERF (LOGSPACE) WITH NO_INFOMSGS
+DBCC USEROPTIONS
+
+---
+
+(source_file
+  (dbcc_statement
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)
+    (keyword))
+  (dbcc_statement
+    (keyword))
+  (dbcc_statement
+    (keyword)
+    (keyword)
+    (number))
+  (dbcc_statement
+    (keyword)
+    (number)
+    (operator)
+    (number))
+  (dbcc_statement
+    (keyword)
+    (global_variable))
+  (dbcc_statement
+    (keyword)
+    (string)
+    (keyword)
+    (number))
+  (dbcc_statement
+    (keyword)
+    (keyword)
+    (keyword))
+  (dbcc_statement
+    (keyword)))
+
+================================================================================
+CHECKPOINT, RECONFIGURE, SHUTDOWN and SETUSER
+================================================================================
+
+CHECKPOINT
+CHECKPOINT 10
+RECONFIGURE
+RECONFIGURE WITH OVERRIDE;
+SETUSER 'mary'
+SETUSER
+SHUTDOWN WITH NOWAIT
+
+---
+
+(source_file
+  (checkpoint_statement)
+  (checkpoint_statement
+    (number))
+  (reconfigure_statement)
+  (reconfigure_statement)
+  (setuser_statement
+    (string))
+  (setuser_statement)
+  (shutdown_statement))
+
+================================================================================
+KILL
+================================================================================
+
+KILL 53;
+KILL 54 WITH STATUSONLY;
+KILL 'D5499C66-E398-45CA-BF7E-DC9C194B48CF' WITH COMMIT
+KILL QUERY NOTIFICATION SUBSCRIPTION ALL
+KILL QUERY NOTIFICATION SUBSCRIPTION 73
+KILL STATS JOB 1
+
+---
+
+(source_file
+  (kill_statement
+    (number))
+  (kill_statement
+    (number))
+  (kill_statement
+    (string))
+  (kill_statement)
+  (kill_statement
+    (number))
+  (kill_statement
+    (number)))

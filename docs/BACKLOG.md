@@ -259,13 +259,10 @@ The words that only PL/SQL reserves, such as `BEGIN` and `END`, are not in
 the reserved set. A reserved set changes only the lexer, so these words
 save no parse states (D125).
 
-### Finish the SQL Server grammar
+### Forms that the SQL Server grammar leaves out
 
-The SQL Server grammar that xo writes (D124) reads the queries, the
-statements that change data, the transactions, `SET`, `EXECUTE`, the
-control-of-flow language, `DECLARE`, the cursors and the statements that
-define objects of Transact-SQL. Procedures, functions, triggers and the
-other statements come in a later part. It leaves out these forms:
+The SQL Server grammar that xo writes (D124) reads each statement of the
+Transact-SQL reference of SQL Server 2025. It leaves out these forms:
 
 - `MATCH` and `SHORTEST_PATH` of the graph tables, as in
   `WHERE MATCH(p-(f)->q)`, and `WITHIN GROUP (GRAPH PATH)`.
@@ -273,12 +270,18 @@ other statements come in a later part. It leaves out these forms:
   `SELECT * FROM (DELETE FROM t OUTPUT deleted.*) AS d`. It costs about 720
   parse states, because the parser needs the states of each such statement
   again with `)` after it.
-- The number of a procedure in a group, as in `EXEC p;2`, because the `;`
-  ends the statement.
+- The number of a procedure in a group, as in `EXEC p;2` and `CREATE
+  PROCEDURE p;2`, because the `;` ends the statement.
 - The old form of `RAISERROR` with no parentheses, as in
   `RAISERROR 50001 'text'`, which SQL Server 2012 removed.
-- `WAITFOR` with `RECEIVE` or `GET CONVERSATION GROUP`, which comes with the
-  statements of Service Broker.
+- `MOVE CONVERSATION` right after a statement with no semicolon. `MOVE` is
+  not a word that starts a statement for the external scanner, because
+  `MOVE` comes after a comma in the options of `RESTORE`, where the list of
+  words can end.
+- `ORDER` after the columns of a CLR table-valued function, as in `RETURNS
+  TABLE (a int) ORDER (a) AS EXTERNAL NAME x.y.z`.
+- A join on the right side of a join with no parentheses, as in `a JOIN b
+  JOIN c ON c.x = b.x ON b.y = a.y`.
 - A query in parentheses as a statement right after a statement with no
   semicolon, as in `SELECT 1 (SELECT 2)`. The external scanner gives the end
   of a statement only before a word, because `RETURN (SELECT ...)` returns
@@ -290,9 +293,10 @@ other statements come in a later part. It leaves out these forms:
   statement with no semicolon. `ADD` is not a word that starts a statement
   for the external scanner, because `ADD` comes in the options of a
   statement, as in `CREATE EVENT SESSION s ON SERVER ADD EVENT e`.
-- The statements of Azure Synapse Analytics and Analytics Platform System
-  that SQL Server does not have, such as `CREATE MATERIALIZED VIEW`,
-  `CREATE REMOTE TABLE AS SELECT` and `RENAME OBJECT`.
+- The statements of Azure Synapse Analytics, Analytics Platform System and
+  Microsoft Fabric that SQL Server does not have, such as `CREATE
+  MATERIALIZED VIEW`, `CREATE REMOTE TABLE AS SELECT`, `RENAME OBJECT`,
+  `COPY INTO` and `EXPLAIN`.
 
 These faults remain:
 
@@ -319,6 +323,11 @@ These faults remain:
   where the server finds an error.
 - `PRECISION` is not in the reserved set, because scripts read the column
   `precision` of `sys.columns` with no brackets.
+- `ENABLE` and `DISABLE` are one token, so a batch cannot start with the
+  call of a procedure with the name `enable` or `disable` and no `EXECUTE`.
+- The command of `DBCC` and the words of its options are keywords in the
+  tree, as the options of the other statements that end in a list of words
+  are.
 
 ## The setup of the repository
 

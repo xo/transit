@@ -135,11 +135,12 @@ static bool scan_go(TSLexer *lexer) {
 static const char *const statement_words[] = {
   "ALTER", "BACKUP", "BEGIN", "BREAK", "BULK", "CHECKPOINT", "CLOSE", "COMMIT",
   "CONTINUE", "CREATE", "DBCC", "DEALLOCATE", "DECLARE", "DELETE", "DENY",
-  "DROP", "ELSE", "END", "EXEC", "EXECUTE", "FETCH", "GOTO", "GRANT", "IF",
-  "INSERT", "KILL", "MERGE", "OPEN", "PRINT", "RAISERROR", "READTEXT",
-  "RECONFIGURE", "RESTORE", "RETURN", "REVERT", "REVOKE", "ROLLBACK", "SAVE",
-  "SELECT", "SET", "SETUSER", "SHUTDOWN", "THROW", "TRUNCATE", "UPDATE",
-  "UPDATETEXT", "USE", "WAITFOR", "WHILE", "WITH", "WRITETEXT",
+  "DISABLE", "DROP", "ELSE", "ENABLE", "END", "EXEC", "EXECUTE", "FETCH",
+  "GET", "GOTO", "GRANT", "IF", "INSERT", "KILL", "MERGE", "OPEN",
+  "PRINT", "RAISERROR", "READTEXT", "RECEIVE", "RECONFIGURE", "RESTORE",
+  "RETURN", "REVERT", "REVOKE", "ROLLBACK", "SAVE", "SELECT", "SEND", "SET",
+  "SETUSER", "SHUTDOWN", "THROW", "TRUNCATE", "UPDATE", "UPDATETEXT", "USE",
+  "WAITFOR", "WHILE", "WITH", "WRITETEXT",
 };
 
 // The longest word that the scanner compares, with room for the end of the

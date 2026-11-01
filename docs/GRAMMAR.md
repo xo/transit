@@ -349,6 +349,12 @@ Each one follows these rules, in addition to the rest of this document:
    statement or comes in parentheses, so that no keyword comes after a
    list. A name before a list has a rule of its own, as the comments of
    `_options` and `_object_name` in `grammars/sqlserver/grammar.js` say.
+   The parts of a procedure, a function or a trigger before its body are
+   a hidden rule of their own in the SQL Server grammar, and so are the
+   body and the events of a trigger. Each optional part of a rule makes
+   one more production of the rule. Without the hidden rules, the parse
+   states that start the body were copied for each production, and more
+   than 200 states took the large form.
 
 A change to such a grammar is a change to transit. It follows "Before you
 stage" in `AGENTS.md`, and its golden files are made again.

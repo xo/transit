@@ -1,0 +1,219 @@
+================================================================================
+BEGIN DIALOG CONVERSATION
+================================================================================
+
+DECLARE @dialog_handle uniqueidentifier
+BEGIN DIALOG CONVERSATION @dialog_handle
+   FROM SERVICE [//Adventure-Works.com/ExpenseClient]
+   TO SERVICE '//Adventure-Works.com/Expenses', 'CURRENT DATABASE'
+   ON CONTRACT [//Adventure-Works.com/Expenses/ExpenseSubmission]
+   WITH RELATED_CONVERSATION = @existing_conversation_handle, LIFETIME = 600, ENCRYPTION = OFF;
+
+---
+
+(source_file
+  (declare_statement
+    (variable_declaration
+      (variable)
+      (type
+        (identifier))))
+  (begin_dialog_statement
+    (variable)
+    (identifier)
+    (string)
+    (string)
+    (identifier)
+    (keyword)
+    (variable)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)))
+
+================================================================================
+BEGIN DIALOG with no options
+================================================================================
+
+BEGIN DIALOG @h FROM SERVICE s TO SERVICE 'target'
+SEND ON CONVERSATION @h
+
+---
+
+(source_file
+  (begin_dialog_statement
+    (variable)
+    (identifier)
+    (string))
+  (send_statement
+    (variable)))
+
+================================================================================
+BEGIN CONVERSATION TIMER
+================================================================================
+
+BEGIN CONVERSATION TIMER (@dialog_handle) TIMEOUT = 120;
+
+---
+
+(source_file
+  (begin_conversation_timer_statement
+    (variable)
+    (number)))
+
+================================================================================
+SEND
+================================================================================
+
+SEND ON CONVERSATION @dialog_handle
+    MESSAGE TYPE [//Adventure-Works.com/Expenses/SubmitExpense]
+    (@ExpenseReport);
+SEND ON CONVERSATION (@h1, @h2) MESSAGE TYPE m;
+
+---
+
+(source_file
+  (send_statement
+    (variable)
+    (identifier)
+    (variable))
+  (send_statement
+    (variable)
+    (variable)
+    (identifier)))
+
+================================================================================
+RECEIVE
+================================================================================
+
+RECEIVE TOP (1) conversation_handle, message_type_name, @body = CAST(message_body AS xml)
+FROM ExpenseQueue
+INTO @t
+WHERE conversation_group_id = @conversation_group_id;
+RECEIVE * FROM dbo.q
+
+---
+
+(source_file
+  (receive_statement
+    (top_clause
+      (parenthesized_expression
+        (number)))
+    (column_reference
+      (identifier))
+    (column_reference
+      (identifier))
+    (assignment
+      (variable)
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (type
+            (identifier)))))
+    (object_reference
+      (identifier))
+    (variable)
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (variable))))
+  (receive_statement
+    (all_columns)
+    (object_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+WAITFOR RECEIVE and GET CONVERSATION GROUP
+================================================================================
+
+WAITFOR (
+    RECEIVE TOP (1) @h = conversation_handle, @type = message_type_name FROM dbo.TargetQueue
+), TIMEOUT 5000;
+WAITFOR (GET CONVERSATION GROUP @conversation_group_id FROM ExpenseQueue);
+GET CONVERSATION GROUP @conversation_group_id FROM AdventureWorks.dbo.ExpenseQueue
+
+---
+
+(source_file
+  (waitfor_statement
+    (receive_statement
+      (top_clause
+        (parenthesized_expression
+          (number)))
+      (assignment
+        (variable)
+        (column_reference
+          (identifier)))
+      (assignment
+        (variable)
+        (column_reference
+          (identifier)))
+      (object_reference
+        (identifier)
+        (identifier)))
+    (number))
+  (waitfor_statement
+    (get_conversation_group_statement
+      (variable)
+      (object_reference
+        (identifier))))
+  (get_conversation_group_statement
+    (variable)
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier))))
+
+================================================================================
+MOVE and END CONVERSATION
+================================================================================
+
+MOVE CONVERSATION @conversation_handle TO @conversation_group_id;
+END CONVERSATION @dialog_handle;
+END CONVERSATION @h WITH ERROR = 1234 DESCRIPTION = 'The expense report is invalid.';
+END CONVERSATION @h WITH CLEANUP
+
+---
+
+(source_file
+  (move_conversation_statement
+    (variable)
+    (variable))
+  (end_conversation_statement
+    (variable))
+  (end_conversation_statement
+    (variable)
+    (number)
+    (string))
+  (end_conversation_statement
+    (variable)))
+
+================================================================================
+END CONVERSATION in a block
+================================================================================
+
+IF @type = N'http://schemas.microsoft.com/SQL/ServiceBroker/EndDialog'
+BEGIN
+    END CONVERSATION @h
+END
+ELSE
+    SEND ON CONVERSATION @h (@body)
+
+---
+
+(source_file
+  (if_statement
+    (binary_expression
+      (variable)
+      (operator)
+      (string))
+    (block
+      (end_conversation_statement
+        (variable)))
+    (send_statement
+      (variable)
+      (variable))))

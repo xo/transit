@@ -258,7 +258,8 @@ those of `gmr/tree-sitter-postgres`, which stay in the golden set without a
 Go package (D122). xo writes the Oracle grammar in place of that of
 `andreasmaierde/tree-sitter-plsql`, which stays in the golden set without
 a Go package (D124). In the same way, xo writes the SQL Server grammar in
-place of that of `Crary-Systems/tree-sitter-tsql` (D124).
+place of that of `Crary-Systems/tree-sitter-tsql`, which stays in the
+golden set without a Go package (D124).
 
 ## The dialects of dbmeta
 

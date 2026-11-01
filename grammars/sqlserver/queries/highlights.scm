@@ -37,6 +37,7 @@
   "ALWAYS"
   "AND"
   "ANY"
+  "APPEND"
   "APPLICATION"
   "APPLY"
   "ARRAY"
@@ -45,9 +46,11 @@
   "ASSEMBLY"
   "ASYMMETRIC"
   "AT"
+  "ATOMIC"
   "AUDIT"
   "AUTHORIZATION"
   "AVAILABILITY"
+  "BACKUP"
   "BEFORE"
   "BEGIN"
   "BETWEEN"
@@ -65,8 +68,10 @@
   "CATCH"
   "CERTIFICATE"
   "CHECK"
+  "CHECKPOINT"
   "CLASSIFICATION"
   "CLASSIFIER"
+  "CLEANUP"
   "CLOSE"
   "CLUSTERED"
   "COLLATE"
@@ -98,6 +103,7 @@
   "DATABASE"
   "DATA_SOURCE"
   "DATEFORMAT"
+  "DBCC"
   "DEADLOCK_PRIORITY"
   "DEALLOCATE"
   "DECLARE"
@@ -106,6 +112,8 @@
   "DELETE"
   "DENY"
   "DESC"
+  "DESCRIPTION"
+  "DIALOG"
   "DISTINCT"
   "DISTRIBUTED"
   "DOCUMENT"
@@ -117,6 +125,7 @@
   "ENCRYPTION"
   "END"
   "ENDPOINT"
+  "ERROR"
   "ESCAPE"
   "EVENT"
   "EXCEPT"
@@ -126,6 +135,7 @@
   "EXTERNAL"
   "FETCH"
   "FILE"
+  "FILELISTONLY"
   "FILESTREAM"
   "FILESTREAM_ON"
   "FILETABLE"
@@ -141,6 +151,7 @@
   "FULLTEXT"
   "FUNCTION"
   "GENERATED"
+  "GET"
   "GLOBAL"
   "GOTO"
   "GOVERNOR"
@@ -150,6 +161,7 @@
   "GROUPS"
   "HASH"
   "HAVING"
+  "HEADERONLY"
   "HIDDEN"
   "HOLDLOCK"
   "IF"
@@ -158,6 +170,7 @@
   "INCLUDE"
   "INDEX"
   "INSERT"
+  "INSTEAD"
   "INTERSECT"
   "INTO"
   "IS"
@@ -167,6 +180,8 @@
   "JSON"
   "KEY"
   "KEYS"
+  "KILL"
+  "LABELONLY"
   "LANGUAGE"
   "LAST"
   "LEADING"
@@ -183,6 +198,7 @@
   "MERGE"
   "MESSAGE"
   "MODEL"
+  "MOVE"
   "NAME"
   "NATIONAL"
   "NEXT"
@@ -192,6 +208,7 @@
   "NODE"
   "NONCLUSTERED"
   "NONE"
+  "NORESET"
   "NOT"
   "NOTIFICATION"
   "NOWAIT"
@@ -214,6 +231,7 @@
   "OUT"
   "OUTPUT"
   "OVER"
+  "OVERRIDE"
   "PARTITION"
   "PERCENT"
   "PERIOD"
@@ -231,12 +249,16 @@
   "PROCEDURE"
   "PROPERTY"
   "PROVIDER"
+  "QUERY"
   "QUEUE"
   "RAISERROR"
   "RANGE"
   "READ"
+  "READONLY"
   "READTEXT"
+  "RECEIVE"
   "RECOMPILE"
+  "RECONFIGURE"
   "REFERENCES"
   "RELATIVE"
   "REMOTE"
@@ -244,11 +266,14 @@
   "REPLICATION"
   "RESOURCE"
   "RESPECT"
+  "RESTORE"
   "RESULT"
   "RETURN"
   "RETURNING"
+  "RETURNS"
   "REVERT"
   "REVOKE"
+  "REWINDONLY"
   "ROLE"
   "ROLLBACK"
   "ROLLUP"
@@ -269,6 +294,7 @@
   "SEMANTICKEYPHRASETABLE"
   "SEMANTICSIMILARITYDETAILSTABLE"
   "SEMANTICSIMILARITYTABLE"
+  "SEND"
   "SENSITIVITY"
   "SEQUENCE"
   "SEQUENCE_NUMBER"
@@ -279,6 +305,8 @@
   "SET"
   "SETERROR"
   "SETS"
+  "SETUSER"
+  "SHUTDOWN"
   "SIGNATURE"
   "SNAPSHOT"
   "SOME"
@@ -288,9 +316,12 @@
   "SPECIFICATION"
   "START"
   "STATISTICS"
+  "STATS"
+  "STATUSONLY"
   "STOPLIST"
   "STREAM"
   "STREAMING"
+  "SUBSCRIPTION"
   "SYMMETRIC"
   "SYNONYM"
   "SYSTEM"
@@ -302,6 +333,8 @@
   "THROW"
   "TIES"
   "TIME"
+  "TIMEOUT"
+  "TIMER"
   "TO"
   "TOP"
   "TRAILING"
@@ -327,6 +360,7 @@
   "VALUES"
   "VARYING"
   "VECTOR"
+  "VERIFYONLY"
   "VIEW"
   "WAITFOR"
   "WHEN"
@@ -639,6 +673,45 @@
 
 (column_definition
   index: (identifier) @label)
+
+[
+  (create_procedure_statement
+    name: (object_reference
+      name: (identifier) @function))
+  (create_function_statement
+    name: (object_reference
+      name: (identifier) @function))
+  (create_trigger_statement
+    name: (object_reference
+      name: (identifier) @function))
+  (enable_trigger_statement
+    name: (object_reference
+      name: (identifier) @function))
+]
+
+[
+  (create_procedure_statement
+    method: (object_reference
+      name: (identifier) @function))
+  (create_function_statement
+    method: (object_reference
+      name: (identifier) @function))
+]
+
+(create_function_statement
+  "RETURN" @keyword.return)
+
+(begin_dialog_statement
+  [
+    from: (identifier)
+    contract: (identifier)
+  ] @type)
+
+(send_statement
+  message_type: (identifier) @type)
+
+(dbcc_statement
+  command: (keyword) @function.builtin)
 
 (operator) @operator
 

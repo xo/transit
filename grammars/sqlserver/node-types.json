@@ -39,6 +39,10 @@
           "named": true
         },
         {
+          "type": "global_variable",
+          "named": true
+        },
+        {
           "type": "identifier",
           "named": true
         },
@@ -263,6 +267,10 @@
           "named": true
         },
         {
+          "type": "global_variable",
+          "named": true
+        },
+        {
           "type": "identifier",
           "named": true
         },
@@ -324,6 +332,10 @@
       "types": [
         {
           "type": "binary",
+          "named": true
+        },
+        {
+          "type": "global_variable",
           "named": true
         },
         {
@@ -391,6 +403,10 @@
           "named": true
         },
         {
+          "type": "global_variable",
+          "named": true
+        },
+        {
           "type": "identifier",
           "named": true
         },
@@ -454,6 +470,10 @@
         },
         {
           "type": "drop_clause",
+          "named": true
+        },
+        {
+          "type": "global_variable",
           "named": true
         },
         {
@@ -1091,6 +1111,206 @@
           }
         ]
       }
+    }
+  },
+  {
+    "type": "backup_statement",
+    "named": true,
+    "fields": {
+      "database": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "object_reference",
+            "named": true
+          },
+          {
+            "type": "variable",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "object_reference",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "binary",
+          "named": true
+        },
+        {
+          "type": "global_variable",
+          "named": true
+        },
+        {
+          "type": "identifier",
+          "named": true
+        },
+        {
+          "type": "keyword",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "operator",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "variable",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "begin_conversation_timer_statement",
+    "named": true,
+    "fields": {
+      "handle": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "variable",
+            "named": true
+          }
+        ]
+      },
+      "timeout": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "variable",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "begin_dialog_statement",
+    "named": true,
+    "fields": {
+      "broker": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "variable",
+            "named": true
+          }
+        ]
+      },
+      "contract": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "from": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "handle": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "variable",
+            "named": true
+          }
+        ]
+      },
+      "to": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "variable",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "binary",
+          "named": true
+        },
+        {
+          "type": "global_variable",
+          "named": true
+        },
+        {
+          "type": "identifier",
+          "named": true
+        },
+        {
+          "type": "keyword",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "operator",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "variable",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -1756,7 +1976,23 @@
           "named": true
         },
         {
+          "type": "backup_statement",
+          "named": true
+        },
+        {
+          "type": "begin_conversation_timer_statement",
+          "named": true
+        },
+        {
+          "type": "begin_dialog_statement",
+          "named": true
+        },
+        {
           "type": "begin_transaction_statement",
+          "named": true
+        },
+        {
+          "type": "binary",
           "named": true
         },
         {
@@ -1769,6 +2005,10 @@
         },
         {
           "type": "bulk_insert_statement",
+          "named": true
+        },
+        {
+          "type": "checkpoint_statement",
           "named": true
         },
         {
@@ -1828,6 +2068,10 @@
           "named": true
         },
         {
+          "type": "dbcc_statement",
+          "named": true
+        },
+        {
           "type": "deallocate_statement",
           "named": true
         },
@@ -1848,6 +2092,14 @@
           "named": true
         },
         {
+          "type": "enable_trigger_statement",
+          "named": true
+        },
+        {
+          "type": "end_conversation_statement",
+          "named": true
+        },
+        {
           "type": "execute_as_statement",
           "named": true
         },
@@ -1857,6 +2109,14 @@
         },
         {
           "type": "fetch_statement",
+          "named": true
+        },
+        {
+          "type": "get_conversation_group_statement",
+          "named": true
+        },
+        {
+          "type": "global_variable",
           "named": true
         },
         {
@@ -1872,11 +2132,23 @@
           "named": true
         },
         {
+          "type": "identifier",
+          "named": true
+        },
+        {
           "type": "if_statement",
           "named": true
         },
         {
           "type": "insert_statement",
+          "named": true
+        },
+        {
+          "type": "keyword",
+          "named": true
+        },
+        {
+          "type": "kill_statement",
           "named": true
         },
         {
@@ -1888,11 +2160,23 @@
           "named": true
         },
         {
+          "type": "move_conversation_statement",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
           "type": "open_key_statement",
           "named": true
         },
         {
           "type": "open_statement",
+          "named": true
+        },
+        {
+          "type": "operator",
           "named": true
         },
         {
@@ -1905,6 +2189,18 @@
         },
         {
           "type": "readtext_statement",
+          "named": true
+        },
+        {
+          "type": "receive_statement",
+          "named": true
+        },
+        {
+          "type": "reconfigure_statement",
+          "named": true
+        },
+        {
+          "type": "restore_statement",
           "named": true
         },
         {
@@ -1932,7 +2228,23 @@
           "named": true
         },
         {
+          "type": "send_statement",
+          "named": true
+        },
+        {
           "type": "set_statement",
+          "named": true
+        },
+        {
+          "type": "setuser_statement",
+          "named": true
+        },
+        {
+          "type": "shutdown_statement",
+          "named": true
+        },
+        {
+          "type": "string",
           "named": true
         },
         {
@@ -1961,6 +2273,10 @@
         },
         {
           "type": "use_statement",
+          "named": true
+        },
+        {
+          "type": "variable",
           "named": true
         },
         {
@@ -2292,6 +2608,18 @@
           "named": true
         },
         {
+          "type": "backup_statement",
+          "named": true
+        },
+        {
+          "type": "begin_conversation_timer_statement",
+          "named": true
+        },
+        {
+          "type": "begin_dialog_statement",
+          "named": true
+        },
+        {
           "type": "begin_transaction_statement",
           "named": true
         },
@@ -2305,6 +2633,10 @@
         },
         {
           "type": "bulk_insert_statement",
+          "named": true
+        },
+        {
+          "type": "checkpoint_statement",
           "named": true
         },
         {
@@ -2364,6 +2696,10 @@
           "named": true
         },
         {
+          "type": "dbcc_statement",
+          "named": true
+        },
+        {
           "type": "deallocate_statement",
           "named": true
         },
@@ -2384,6 +2720,14 @@
           "named": true
         },
         {
+          "type": "enable_trigger_statement",
+          "named": true
+        },
+        {
+          "type": "end_conversation_statement",
+          "named": true
+        },
+        {
           "type": "execute_as_statement",
           "named": true
         },
@@ -2393,6 +2737,10 @@
         },
         {
           "type": "fetch_statement",
+          "named": true
+        },
+        {
+          "type": "get_conversation_group_statement",
           "named": true
         },
         {
@@ -2416,11 +2764,19 @@
           "named": true
         },
         {
+          "type": "kill_statement",
+          "named": true
+        },
+        {
           "type": "label",
           "named": true
         },
         {
           "type": "merge_statement",
+          "named": true
+        },
+        {
+          "type": "move_conversation_statement",
           "named": true
         },
         {
@@ -2441,6 +2797,18 @@
         },
         {
           "type": "readtext_statement",
+          "named": true
+        },
+        {
+          "type": "receive_statement",
+          "named": true
+        },
+        {
+          "type": "reconfigure_statement",
+          "named": true
+        },
+        {
+          "type": "restore_statement",
           "named": true
         },
         {
@@ -2468,7 +2836,19 @@
           "named": true
         },
         {
+          "type": "send_statement",
+          "named": true
+        },
+        {
           "type": "set_statement",
+          "named": true
+        },
+        {
+          "type": "setuser_statement",
+          "named": true
+        },
+        {
+          "type": "shutdown_statement",
           "named": true
         },
         {
@@ -2524,6 +2904,22 @@
         "types": [
           {
             "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "checkpoint_statement",
+    "named": true,
+    "fields": {
+      "duration": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "number",
             "named": true
           }
         ]
@@ -3000,6 +3396,10 @@
           "named": true
         },
         {
+          "type": "global_variable",
+          "named": true
+        },
+        {
           "type": "identifier",
           "named": true
         },
@@ -3132,6 +3532,10 @@
       "types": [
         {
           "type": "binary",
+          "named": true
+        },
+        {
+          "type": "global_variable",
           "named": true
         },
         {
@@ -3444,6 +3848,10 @@
           "named": true
         },
         {
+          "type": "global_variable",
+          "named": true
+        },
+        {
           "type": "identifier",
           "named": true
         },
@@ -3465,6 +3873,114 @@
         },
         {
           "type": "variable",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "create_function_statement",
+    "named": true,
+    "fields": {
+      "method": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "object_reference",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "object_reference",
+            "named": true
+          }
+        ]
+      },
+      "table": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "variable",
+            "named": true
+          }
+        ]
+      },
+      "type": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "type",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "block",
+          "named": true
+        },
+        {
+          "type": "fetch_clause",
+          "named": true
+        },
+        {
+          "type": "for_clause",
+          "named": true
+        },
+        {
+          "type": "keyword",
+          "named": true
+        },
+        {
+          "type": "offset_clause",
+          "named": true
+        },
+        {
+          "type": "option_clause",
+          "named": true
+        },
+        {
+          "type": "order_by_clause",
+          "named": true
+        },
+        {
+          "type": "parameters",
+          "named": true
+        },
+        {
+          "type": "parenthesized_query",
+          "named": true
+        },
+        {
+          "type": "select",
+          "named": true
+        },
+        {
+          "type": "set_operation",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "table_definition",
+          "named": true
+        },
+        {
+          "type": "with_clause",
           "named": true
         }
       ]
@@ -3528,6 +4044,10 @@
           "named": true
         },
         {
+          "type": "global_variable",
+          "named": true
+        },
+        {
           "type": "identifier",
           "named": true
         },
@@ -3557,6 +4077,350 @@
         },
         {
           "type": "where_clause",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "create_procedure_statement",
+    "named": true,
+    "fields": {
+      "method": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "object_reference",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "object_reference",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "add_statement",
+          "named": true
+        },
+        {
+          "type": "alter_index_statement",
+          "named": true
+        },
+        {
+          "type": "alter_statement",
+          "named": true
+        },
+        {
+          "type": "alter_table_statement",
+          "named": true
+        },
+        {
+          "type": "alter_view_statement",
+          "named": true
+        },
+        {
+          "type": "backup_statement",
+          "named": true
+        },
+        {
+          "type": "begin_conversation_timer_statement",
+          "named": true
+        },
+        {
+          "type": "begin_dialog_statement",
+          "named": true
+        },
+        {
+          "type": "begin_transaction_statement",
+          "named": true
+        },
+        {
+          "type": "block",
+          "named": true
+        },
+        {
+          "type": "break_statement",
+          "named": true
+        },
+        {
+          "type": "bulk_insert_statement",
+          "named": true
+        },
+        {
+          "type": "checkpoint_statement",
+          "named": true
+        },
+        {
+          "type": "close_key_statement",
+          "named": true
+        },
+        {
+          "type": "close_statement",
+          "named": true
+        },
+        {
+          "type": "commit_statement",
+          "named": true
+        },
+        {
+          "type": "continue_statement",
+          "named": true
+        },
+        {
+          "type": "create_fulltext_index_statement",
+          "named": true
+        },
+        {
+          "type": "create_index_statement",
+          "named": true
+        },
+        {
+          "type": "create_schema_statement",
+          "named": true
+        },
+        {
+          "type": "create_statement",
+          "named": true
+        },
+        {
+          "type": "create_statistics_statement",
+          "named": true
+        },
+        {
+          "type": "create_synonym_statement",
+          "named": true
+        },
+        {
+          "type": "create_table_statement",
+          "named": true
+        },
+        {
+          "type": "create_type_statement",
+          "named": true
+        },
+        {
+          "type": "create_view_statement",
+          "named": true
+        },
+        {
+          "type": "cursor_declaration",
+          "named": true
+        },
+        {
+          "type": "dbcc_statement",
+          "named": true
+        },
+        {
+          "type": "deallocate_statement",
+          "named": true
+        },
+        {
+          "type": "declare_statement",
+          "named": true
+        },
+        {
+          "type": "delete_statement",
+          "named": true
+        },
+        {
+          "type": "deny_statement",
+          "named": true
+        },
+        {
+          "type": "drop_statement",
+          "named": true
+        },
+        {
+          "type": "enable_trigger_statement",
+          "named": true
+        },
+        {
+          "type": "end_conversation_statement",
+          "named": true
+        },
+        {
+          "type": "execute_as_statement",
+          "named": true
+        },
+        {
+          "type": "execute_statement",
+          "named": true
+        },
+        {
+          "type": "fetch_statement",
+          "named": true
+        },
+        {
+          "type": "get_conversation_group_statement",
+          "named": true
+        },
+        {
+          "type": "goto_statement",
+          "named": true
+        },
+        {
+          "type": "grant_statement",
+          "named": true
+        },
+        {
+          "type": "if_statement",
+          "named": true
+        },
+        {
+          "type": "insert_statement",
+          "named": true
+        },
+        {
+          "type": "keyword",
+          "named": true
+        },
+        {
+          "type": "kill_statement",
+          "named": true
+        },
+        {
+          "type": "label",
+          "named": true
+        },
+        {
+          "type": "merge_statement",
+          "named": true
+        },
+        {
+          "type": "move_conversation_statement",
+          "named": true
+        },
+        {
+          "type": "open_key_statement",
+          "named": true
+        },
+        {
+          "type": "open_statement",
+          "named": true
+        },
+        {
+          "type": "parameters",
+          "named": true
+        },
+        {
+          "type": "print_statement",
+          "named": true
+        },
+        {
+          "type": "raiserror_statement",
+          "named": true
+        },
+        {
+          "type": "readtext_statement",
+          "named": true
+        },
+        {
+          "type": "receive_statement",
+          "named": true
+        },
+        {
+          "type": "reconfigure_statement",
+          "named": true
+        },
+        {
+          "type": "restore_statement",
+          "named": true
+        },
+        {
+          "type": "return_statement",
+          "named": true
+        },
+        {
+          "type": "revert_statement",
+          "named": true
+        },
+        {
+          "type": "revoke_statement",
+          "named": true
+        },
+        {
+          "type": "rollback_statement",
+          "named": true
+        },
+        {
+          "type": "save_transaction_statement",
+          "named": true
+        },
+        {
+          "type": "select_statement",
+          "named": true
+        },
+        {
+          "type": "send_statement",
+          "named": true
+        },
+        {
+          "type": "set_statement",
+          "named": true
+        },
+        {
+          "type": "setuser_statement",
+          "named": true
+        },
+        {
+          "type": "shutdown_statement",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "throw_statement",
+          "named": true
+        },
+        {
+          "type": "truncate_statement",
+          "named": true
+        },
+        {
+          "type": "try_statement",
+          "named": true
+        },
+        {
+          "type": "update_statement",
+          "named": true
+        },
+        {
+          "type": "update_statistics_statement",
+          "named": true
+        },
+        {
+          "type": "updatetext_statement",
+          "named": true
+        },
+        {
+          "type": "use_statement",
+          "named": true
+        },
+        {
+          "type": "waitfor_statement",
+          "named": true
+        },
+        {
+          "type": "while_statement",
+          "named": true
+        },
+        {
+          "type": "writetext_statement",
           "named": true
         }
       ]
@@ -3609,6 +4473,10 @@
       "types": [
         {
           "type": "binary",
+          "named": true
+        },
+        {
+          "type": "global_variable",
           "named": true
         },
         {
@@ -3693,6 +4561,10 @@
         },
         {
           "type": "column_list",
+          "named": true
+        },
+        {
+          "type": "global_variable",
           "named": true
         },
         {
@@ -3804,6 +4676,10 @@
           "named": true
         },
         {
+          "type": "global_variable",
+          "named": true
+        },
+        {
           "type": "identifier",
           "named": true
         },
@@ -3863,6 +4739,390 @@
     }
   },
   {
+    "type": "create_trigger_statement",
+    "named": true,
+    "fields": {
+      "event": {
+        "multiple": true,
+        "required": true,
+        "types": [
+          {
+            "type": "DELETE",
+            "named": false
+          },
+          {
+            "type": "INSERT",
+            "named": false
+          },
+          {
+            "type": "UPDATE",
+            "named": false
+          },
+          {
+            "type": "keyword",
+            "named": true
+          }
+        ]
+      },
+      "method": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "object_reference",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "object_reference",
+            "named": true
+          }
+        ]
+      },
+      "table": {
+        "multiple": true,
+        "required": true,
+        "types": [
+          {
+            "type": "ALL",
+            "named": false
+          },
+          {
+            "type": "DATABASE",
+            "named": false
+          },
+          {
+            "type": "SERVER",
+            "named": false
+          },
+          {
+            "type": "object_reference",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "add_statement",
+          "named": true
+        },
+        {
+          "type": "alter_index_statement",
+          "named": true
+        },
+        {
+          "type": "alter_statement",
+          "named": true
+        },
+        {
+          "type": "alter_table_statement",
+          "named": true
+        },
+        {
+          "type": "alter_view_statement",
+          "named": true
+        },
+        {
+          "type": "backup_statement",
+          "named": true
+        },
+        {
+          "type": "begin_conversation_timer_statement",
+          "named": true
+        },
+        {
+          "type": "begin_dialog_statement",
+          "named": true
+        },
+        {
+          "type": "begin_transaction_statement",
+          "named": true
+        },
+        {
+          "type": "block",
+          "named": true
+        },
+        {
+          "type": "break_statement",
+          "named": true
+        },
+        {
+          "type": "bulk_insert_statement",
+          "named": true
+        },
+        {
+          "type": "checkpoint_statement",
+          "named": true
+        },
+        {
+          "type": "close_key_statement",
+          "named": true
+        },
+        {
+          "type": "close_statement",
+          "named": true
+        },
+        {
+          "type": "commit_statement",
+          "named": true
+        },
+        {
+          "type": "continue_statement",
+          "named": true
+        },
+        {
+          "type": "create_fulltext_index_statement",
+          "named": true
+        },
+        {
+          "type": "create_index_statement",
+          "named": true
+        },
+        {
+          "type": "create_schema_statement",
+          "named": true
+        },
+        {
+          "type": "create_statement",
+          "named": true
+        },
+        {
+          "type": "create_statistics_statement",
+          "named": true
+        },
+        {
+          "type": "create_synonym_statement",
+          "named": true
+        },
+        {
+          "type": "create_table_statement",
+          "named": true
+        },
+        {
+          "type": "create_type_statement",
+          "named": true
+        },
+        {
+          "type": "create_view_statement",
+          "named": true
+        },
+        {
+          "type": "cursor_declaration",
+          "named": true
+        },
+        {
+          "type": "dbcc_statement",
+          "named": true
+        },
+        {
+          "type": "deallocate_statement",
+          "named": true
+        },
+        {
+          "type": "declare_statement",
+          "named": true
+        },
+        {
+          "type": "delete_statement",
+          "named": true
+        },
+        {
+          "type": "deny_statement",
+          "named": true
+        },
+        {
+          "type": "drop_statement",
+          "named": true
+        },
+        {
+          "type": "enable_trigger_statement",
+          "named": true
+        },
+        {
+          "type": "end_conversation_statement",
+          "named": true
+        },
+        {
+          "type": "execute_as_statement",
+          "named": true
+        },
+        {
+          "type": "execute_statement",
+          "named": true
+        },
+        {
+          "type": "fetch_statement",
+          "named": true
+        },
+        {
+          "type": "get_conversation_group_statement",
+          "named": true
+        },
+        {
+          "type": "goto_statement",
+          "named": true
+        },
+        {
+          "type": "grant_statement",
+          "named": true
+        },
+        {
+          "type": "if_statement",
+          "named": true
+        },
+        {
+          "type": "insert_statement",
+          "named": true
+        },
+        {
+          "type": "keyword",
+          "named": true
+        },
+        {
+          "type": "kill_statement",
+          "named": true
+        },
+        {
+          "type": "label",
+          "named": true
+        },
+        {
+          "type": "merge_statement",
+          "named": true
+        },
+        {
+          "type": "move_conversation_statement",
+          "named": true
+        },
+        {
+          "type": "open_key_statement",
+          "named": true
+        },
+        {
+          "type": "open_statement",
+          "named": true
+        },
+        {
+          "type": "print_statement",
+          "named": true
+        },
+        {
+          "type": "raiserror_statement",
+          "named": true
+        },
+        {
+          "type": "readtext_statement",
+          "named": true
+        },
+        {
+          "type": "receive_statement",
+          "named": true
+        },
+        {
+          "type": "reconfigure_statement",
+          "named": true
+        },
+        {
+          "type": "restore_statement",
+          "named": true
+        },
+        {
+          "type": "return_statement",
+          "named": true
+        },
+        {
+          "type": "revert_statement",
+          "named": true
+        },
+        {
+          "type": "revoke_statement",
+          "named": true
+        },
+        {
+          "type": "rollback_statement",
+          "named": true
+        },
+        {
+          "type": "save_transaction_statement",
+          "named": true
+        },
+        {
+          "type": "select_statement",
+          "named": true
+        },
+        {
+          "type": "send_statement",
+          "named": true
+        },
+        {
+          "type": "set_statement",
+          "named": true
+        },
+        {
+          "type": "setuser_statement",
+          "named": true
+        },
+        {
+          "type": "shutdown_statement",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "throw_statement",
+          "named": true
+        },
+        {
+          "type": "truncate_statement",
+          "named": true
+        },
+        {
+          "type": "try_statement",
+          "named": true
+        },
+        {
+          "type": "update_statement",
+          "named": true
+        },
+        {
+          "type": "update_statistics_statement",
+          "named": true
+        },
+        {
+          "type": "updatetext_statement",
+          "named": true
+        },
+        {
+          "type": "use_statement",
+          "named": true
+        },
+        {
+          "type": "waitfor_statement",
+          "named": true
+        },
+        {
+          "type": "while_statement",
+          "named": true
+        },
+        {
+          "type": "writetext_statement",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "create_type_statement",
     "named": true,
     "fields": {
@@ -3903,6 +5163,10 @@
       "types": [
         {
           "type": "binary",
+          "named": true
+        },
+        {
+          "type": "global_variable",
           "named": true
         },
         {
@@ -4265,6 +5529,60 @@
     }
   },
   {
+    "type": "dbcc_statement",
+    "named": true,
+    "fields": {
+      "command": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "keyword",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "binary",
+          "named": true
+        },
+        {
+          "type": "global_variable",
+          "named": true
+        },
+        {
+          "type": "identifier",
+          "named": true
+        },
+        {
+          "type": "keyword",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "operator",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "variable",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "deallocate_statement",
     "named": true,
     "fields": {
@@ -4475,6 +5793,10 @@
           "named": true
         },
         {
+          "type": "global_variable",
+          "named": true
+        },
+        {
           "type": "identifier",
           "named": true
         },
@@ -4547,6 +5869,10 @@
           "named": true
         },
         {
+          "type": "global_variable",
+          "named": true
+        },
+        {
           "type": "identifier",
           "named": true
         },
@@ -4577,6 +5903,102 @@
     "type": "empty_grouping_set",
     "named": true,
     "fields": {}
+  },
+  {
+    "type": "enable_trigger_statement",
+    "named": true,
+    "fields": {
+      "action": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "keyword",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "object_reference",
+            "named": true
+          }
+        ]
+      },
+      "table": {
+        "multiple": true,
+        "required": true,
+        "types": [
+          {
+            "type": "ALL",
+            "named": false
+          },
+          {
+            "type": "DATABASE",
+            "named": false
+          },
+          {
+            "type": "SERVER",
+            "named": false
+          },
+          {
+            "type": "object_reference",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "end_conversation_statement",
+    "named": true,
+    "fields": {
+      "description": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "variable",
+            "named": true
+          }
+        ]
+      },
+      "error": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "operator",
+            "named": true
+          },
+          {
+            "type": "variable",
+            "named": true
+          }
+        ]
+      },
+      "handle": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "variable",
+            "named": true
+          }
+        ]
+      }
+    }
   },
   {
     "type": "execute_argument",
@@ -5599,6 +7021,32 @@
     }
   },
   {
+    "type": "get_conversation_group_statement",
+    "named": true,
+    "fields": {
+      "group": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "variable",
+            "named": true
+          }
+        ]
+      },
+      "queue": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "object_reference",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "go_statement",
     "named": true,
     "fields": {
@@ -6147,6 +7595,18 @@
             "named": true
           },
           {
+            "type": "backup_statement",
+            "named": true
+          },
+          {
+            "type": "begin_conversation_timer_statement",
+            "named": true
+          },
+          {
+            "type": "begin_dialog_statement",
+            "named": true
+          },
+          {
             "type": "begin_transaction_statement",
             "named": true
           },
@@ -6160,6 +7620,10 @@
           },
           {
             "type": "bulk_insert_statement",
+            "named": true
+          },
+          {
+            "type": "checkpoint_statement",
             "named": true
           },
           {
@@ -6219,6 +7683,10 @@
             "named": true
           },
           {
+            "type": "dbcc_statement",
+            "named": true
+          },
+          {
             "type": "deallocate_statement",
             "named": true
           },
@@ -6239,6 +7707,14 @@
             "named": true
           },
           {
+            "type": "enable_trigger_statement",
+            "named": true
+          },
+          {
+            "type": "end_conversation_statement",
+            "named": true
+          },
+          {
             "type": "execute_as_statement",
             "named": true
           },
@@ -6248,6 +7724,10 @@
           },
           {
             "type": "fetch_statement",
+            "named": true
+          },
+          {
+            "type": "get_conversation_group_statement",
             "named": true
           },
           {
@@ -6267,7 +7747,15 @@
             "named": true
           },
           {
+            "type": "kill_statement",
+            "named": true
+          },
+          {
             "type": "merge_statement",
+            "named": true
+          },
+          {
+            "type": "move_conversation_statement",
             "named": true
           },
           {
@@ -6288,6 +7776,18 @@
           },
           {
             "type": "readtext_statement",
+            "named": true
+          },
+          {
+            "type": "receive_statement",
+            "named": true
+          },
+          {
+            "type": "reconfigure_statement",
+            "named": true
+          },
+          {
+            "type": "restore_statement",
             "named": true
           },
           {
@@ -6315,7 +7815,19 @@
             "named": true
           },
           {
+            "type": "send_statement",
+            "named": true
+          },
+          {
             "type": "set_statement",
+            "named": true
+          },
+          {
+            "type": "setuser_statement",
+            "named": true
+          },
+          {
+            "type": "shutdown_statement",
             "named": true
           },
           {
@@ -6503,6 +8015,18 @@
             "named": true
           },
           {
+            "type": "backup_statement",
+            "named": true
+          },
+          {
+            "type": "begin_conversation_timer_statement",
+            "named": true
+          },
+          {
+            "type": "begin_dialog_statement",
+            "named": true
+          },
+          {
             "type": "begin_transaction_statement",
             "named": true
           },
@@ -6516,6 +8040,10 @@
           },
           {
             "type": "bulk_insert_statement",
+            "named": true
+          },
+          {
+            "type": "checkpoint_statement",
             "named": true
           },
           {
@@ -6575,6 +8103,10 @@
             "named": true
           },
           {
+            "type": "dbcc_statement",
+            "named": true
+          },
+          {
             "type": "deallocate_statement",
             "named": true
           },
@@ -6595,6 +8127,14 @@
             "named": true
           },
           {
+            "type": "enable_trigger_statement",
+            "named": true
+          },
+          {
+            "type": "end_conversation_statement",
+            "named": true
+          },
+          {
             "type": "execute_as_statement",
             "named": true
           },
@@ -6604,6 +8144,10 @@
           },
           {
             "type": "fetch_statement",
+            "named": true
+          },
+          {
+            "type": "get_conversation_group_statement",
             "named": true
           },
           {
@@ -6623,7 +8167,15 @@
             "named": true
           },
           {
+            "type": "kill_statement",
+            "named": true
+          },
+          {
             "type": "merge_statement",
+            "named": true
+          },
+          {
+            "type": "move_conversation_statement",
             "named": true
           },
           {
@@ -6644,6 +8196,18 @@
           },
           {
             "type": "readtext_statement",
+            "named": true
+          },
+          {
+            "type": "receive_statement",
+            "named": true
+          },
+          {
+            "type": "reconfigure_statement",
+            "named": true
+          },
+          {
+            "type": "restore_statement",
             "named": true
           },
           {
@@ -6671,7 +8235,19 @@
             "named": true
           },
           {
+            "type": "send_statement",
+            "named": true
+          },
+          {
             "type": "set_statement",
+            "named": true
+          },
+          {
+            "type": "setuser_statement",
+            "named": true
+          },
+          {
+            "type": "shutdown_statement",
             "named": true
           },
           {
@@ -7391,6 +8967,50 @@
           },
           {
             "type": "table_reference",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "kill_statement",
+    "named": true,
+    "fields": {
+      "job": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "number",
+            "named": true
+          }
+        ]
+      },
+      "session": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "variable",
+            "named": true
+          }
+        ]
+      },
+      "subscription": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "number",
             "named": true
           }
         ]
@@ -8229,6 +9849,32 @@
     }
   },
   {
+    "type": "move_conversation_statement",
+    "named": true,
+    "fields": {
+      "group": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "variable",
+            "named": true
+          }
+        ]
+      },
+      "handle": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "variable",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "next_value_for",
     "named": true,
     "fields": {
@@ -8477,6 +10123,10 @@
           "named": true
         },
         {
+          "type": "global_variable",
+          "named": true
+        },
+        {
           "type": "identifier",
           "named": true
         },
@@ -8533,6 +10183,10 @@
       "types": [
         {
           "type": "binary",
+          "named": true
+        },
+        {
+          "type": "global_variable",
           "named": true
         },
         {
@@ -8868,6 +10522,99 @@
       "types": [
         {
           "type": "window_specification",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "parameter_declaration",
+    "named": true,
+    "fields": {
+      "default": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "binary",
+            "named": true
+          },
+          {
+            "type": "global_variable",
+            "named": true
+          },
+          {
+            "type": "money",
+            "named": true
+          },
+          {
+            "type": "null",
+            "named": true
+          },
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "operator",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "global_variable",
+            "named": true
+          },
+          {
+            "type": "variable",
+            "named": true
+          }
+        ]
+      },
+      "type": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "CURSOR",
+            "named": false
+          },
+          {
+            "type": "type",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "null",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "parameters",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "parameter_declaration",
           "named": true
         }
       ]
@@ -9438,6 +11185,239 @@
           }
         ]
       }
+    }
+  },
+  {
+    "type": "receive_statement",
+    "named": true,
+    "fields": {
+      "queue": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "object_reference",
+            "named": true
+          }
+        ]
+      },
+      "table": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "variable",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "aliased_expression",
+          "named": true
+        },
+        {
+          "type": "all_columns",
+          "named": true
+        },
+        {
+          "type": "assignment",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
+          "named": true
+        },
+        {
+          "type": "between_expression",
+          "named": true
+        },
+        {
+          "type": "binary",
+          "named": true
+        },
+        {
+          "type": "binary_expression",
+          "named": true
+        },
+        {
+          "type": "case_expression",
+          "named": true
+        },
+        {
+          "type": "collate_expression",
+          "named": true
+        },
+        {
+          "type": "column_reference",
+          "named": true
+        },
+        {
+          "type": "convert_expression",
+          "named": true
+        },
+        {
+          "type": "exists_expression",
+          "named": true
+        },
+        {
+          "type": "field_expression",
+          "named": true
+        },
+        {
+          "type": "function_call",
+          "named": true
+        },
+        {
+          "type": "global_variable",
+          "named": true
+        },
+        {
+          "type": "in_expression",
+          "named": true
+        },
+        {
+          "type": "is_expression",
+          "named": true
+        },
+        {
+          "type": "like_expression",
+          "named": true
+        },
+        {
+          "type": "money",
+          "named": true
+        },
+        {
+          "type": "next_value_for",
+          "named": true
+        },
+        {
+          "type": "niladic_function",
+          "named": true
+        },
+        {
+          "type": "null",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "odbc_escape",
+          "named": true
+        },
+        {
+          "type": "parenthesized_expression",
+          "named": true
+        },
+        {
+          "type": "pseudocolumn",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "subquery",
+          "named": true
+        },
+        {
+          "type": "top_clause",
+          "named": true
+        },
+        {
+          "type": "unary_expression",
+          "named": true
+        },
+        {
+          "type": "variable",
+          "named": true
+        },
+        {
+          "type": "where_clause",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "reconfigure_statement",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "restore_statement",
+    "named": true,
+    "fields": {
+      "database": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "object_reference",
+            "named": true
+          },
+          {
+            "type": "variable",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "object_reference",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "binary",
+          "named": true
+        },
+        {
+          "type": "global_variable",
+          "named": true
+        },
+        {
+          "type": "identifier",
+          "named": true
+        },
+        {
+          "type": "keyword",
+          "named": true
+        },
+        {
+          "type": "number",
+          "named": true
+        },
+        {
+          "type": "operator",
+          "named": true
+        },
+        {
+          "type": "string",
+          "named": true
+        },
+        {
+          "type": "variable",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -10020,6 +12000,146 @@
     }
   },
   {
+    "type": "send_statement",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
+            "type": "between_expression",
+            "named": true
+          },
+          {
+            "type": "binary",
+            "named": true
+          },
+          {
+            "type": "binary_expression",
+            "named": true
+          },
+          {
+            "type": "case_expression",
+            "named": true
+          },
+          {
+            "type": "collate_expression",
+            "named": true
+          },
+          {
+            "type": "column_reference",
+            "named": true
+          },
+          {
+            "type": "convert_expression",
+            "named": true
+          },
+          {
+            "type": "exists_expression",
+            "named": true
+          },
+          {
+            "type": "field_expression",
+            "named": true
+          },
+          {
+            "type": "function_call",
+            "named": true
+          },
+          {
+            "type": "global_variable",
+            "named": true
+          },
+          {
+            "type": "in_expression",
+            "named": true
+          },
+          {
+            "type": "is_expression",
+            "named": true
+          },
+          {
+            "type": "like_expression",
+            "named": true
+          },
+          {
+            "type": "money",
+            "named": true
+          },
+          {
+            "type": "next_value_for",
+            "named": true
+          },
+          {
+            "type": "niladic_function",
+            "named": true
+          },
+          {
+            "type": "null",
+            "named": true
+          },
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "odbc_escape",
+            "named": true
+          },
+          {
+            "type": "parenthesized_expression",
+            "named": true
+          },
+          {
+            "type": "pseudocolumn",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "subquery",
+            "named": true
+          },
+          {
+            "type": "unary_expression",
+            "named": true
+          },
+          {
+            "type": "variable",
+            "named": true
+          }
+        ]
+      },
+      "handle": {
+        "multiple": true,
+        "required": true,
+        "types": [
+          {
+            "type": "variable",
+            "named": true
+          }
+        ]
+      },
+      "message_type": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "set_operation",
     "named": true,
     "fields": {
@@ -10302,6 +12422,27 @@
     }
   },
   {
+    "type": "setuser_statement",
+    "named": true,
+    "fields": {
+      "user": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "string",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "shutdown_statement",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "source_file",
     "named": true,
     "root": true,
@@ -10331,6 +12472,18 @@
           "named": true
         },
         {
+          "type": "backup_statement",
+          "named": true
+        },
+        {
+          "type": "begin_conversation_timer_statement",
+          "named": true
+        },
+        {
+          "type": "begin_dialog_statement",
+          "named": true
+        },
+        {
           "type": "begin_transaction_statement",
           "named": true
         },
@@ -10344,6 +12497,10 @@
         },
         {
           "type": "bulk_insert_statement",
+          "named": true
+        },
+        {
+          "type": "checkpoint_statement",
           "named": true
         },
         {
@@ -10367,7 +12524,15 @@
           "named": true
         },
         {
+          "type": "create_function_statement",
+          "named": true
+        },
+        {
           "type": "create_index_statement",
+          "named": true
+        },
+        {
+          "type": "create_procedure_statement",
           "named": true
         },
         {
@@ -10391,6 +12556,10 @@
           "named": true
         },
         {
+          "type": "create_trigger_statement",
+          "named": true
+        },
+        {
           "type": "create_type_statement",
           "named": true
         },
@@ -10400,6 +12569,10 @@
         },
         {
           "type": "cursor_declaration",
+          "named": true
+        },
+        {
+          "type": "dbcc_statement",
           "named": true
         },
         {
@@ -10423,6 +12596,14 @@
           "named": true
         },
         {
+          "type": "enable_trigger_statement",
+          "named": true
+        },
+        {
+          "type": "end_conversation_statement",
+          "named": true
+        },
+        {
           "type": "execute_as_statement",
           "named": true
         },
@@ -10432,6 +12613,10 @@
         },
         {
           "type": "fetch_statement",
+          "named": true
+        },
+        {
+          "type": "get_conversation_group_statement",
           "named": true
         },
         {
@@ -10455,11 +12640,19 @@
           "named": true
         },
         {
+          "type": "kill_statement",
+          "named": true
+        },
+        {
           "type": "label",
           "named": true
         },
         {
           "type": "merge_statement",
+          "named": true
+        },
+        {
+          "type": "move_conversation_statement",
           "named": true
         },
         {
@@ -10480,6 +12673,18 @@
         },
         {
           "type": "readtext_statement",
+          "named": true
+        },
+        {
+          "type": "receive_statement",
+          "named": true
+        },
+        {
+          "type": "reconfigure_statement",
+          "named": true
+        },
+        {
+          "type": "restore_statement",
           "named": true
         },
         {
@@ -10507,7 +12712,19 @@
           "named": true
         },
         {
+          "type": "send_statement",
+          "named": true
+        },
+        {
           "type": "set_statement",
+          "named": true
+        },
+        {
+          "type": "setuser_statement",
+          "named": true
+        },
+        {
+          "type": "shutdown_statement",
           "named": true
         },
         {
@@ -11104,6 +13321,10 @@
           "named": true
         },
         {
+          "type": "global_variable",
+          "named": true
+        },
+        {
           "type": "identifier",
           "named": true
         },
@@ -11229,6 +13450,10 @@
         },
         {
           "type": "column_list",
+          "named": true
+        },
+        {
+          "type": "global_variable",
           "named": true
         },
         {
@@ -11952,6 +14177,10 @@
           "named": true
         },
         {
+          "type": "global_variable",
+          "named": true
+        },
+        {
           "type": "identifier",
           "named": true
         },
@@ -12007,6 +14236,18 @@
           "named": true
         },
         {
+          "type": "backup_statement",
+          "named": true
+        },
+        {
+          "type": "begin_conversation_timer_statement",
+          "named": true
+        },
+        {
+          "type": "begin_dialog_statement",
+          "named": true
+        },
+        {
           "type": "begin_transaction_statement",
           "named": true
         },
@@ -12024,6 +14265,10 @@
         },
         {
           "type": "catch_block",
+          "named": true
+        },
+        {
+          "type": "checkpoint_statement",
           "named": true
         },
         {
@@ -12083,6 +14328,10 @@
           "named": true
         },
         {
+          "type": "dbcc_statement",
+          "named": true
+        },
+        {
           "type": "deallocate_statement",
           "named": true
         },
@@ -12103,6 +14352,14 @@
           "named": true
         },
         {
+          "type": "enable_trigger_statement",
+          "named": true
+        },
+        {
+          "type": "end_conversation_statement",
+          "named": true
+        },
+        {
           "type": "execute_as_statement",
           "named": true
         },
@@ -12112,6 +14369,10 @@
         },
         {
           "type": "fetch_statement",
+          "named": true
+        },
+        {
+          "type": "get_conversation_group_statement",
           "named": true
         },
         {
@@ -12135,11 +14396,19 @@
           "named": true
         },
         {
+          "type": "kill_statement",
+          "named": true
+        },
+        {
           "type": "label",
           "named": true
         },
         {
           "type": "merge_statement",
+          "named": true
+        },
+        {
+          "type": "move_conversation_statement",
           "named": true
         },
         {
@@ -12160,6 +14429,18 @@
         },
         {
           "type": "readtext_statement",
+          "named": true
+        },
+        {
+          "type": "receive_statement",
+          "named": true
+        },
+        {
+          "type": "reconfigure_statement",
+          "named": true
+        },
+        {
+          "type": "restore_statement",
           "named": true
         },
         {
@@ -12187,7 +14468,19 @@
           "named": true
         },
         {
+          "type": "send_statement",
+          "named": true
+        },
+        {
           "type": "set_statement",
+          "named": true
+        },
+        {
+          "type": "setuser_statement",
+          "named": true
+        },
+        {
+          "type": "shutdown_statement",
           "named": true
         },
         {
@@ -12571,6 +14864,10 @@
         },
         {
           "type": "column_list",
+          "named": true
+        },
+        {
+          "type": "global_variable",
           "named": true
         },
         {
@@ -13121,7 +15418,121 @@
     "fields": {
       "time": {
         "multiple": false,
-        "required": true,
+        "required": false,
+        "types": [
+          {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
+            "type": "between_expression",
+            "named": true
+          },
+          {
+            "type": "binary",
+            "named": true
+          },
+          {
+            "type": "binary_expression",
+            "named": true
+          },
+          {
+            "type": "case_expression",
+            "named": true
+          },
+          {
+            "type": "collate_expression",
+            "named": true
+          },
+          {
+            "type": "column_reference",
+            "named": true
+          },
+          {
+            "type": "convert_expression",
+            "named": true
+          },
+          {
+            "type": "exists_expression",
+            "named": true
+          },
+          {
+            "type": "field_expression",
+            "named": true
+          },
+          {
+            "type": "function_call",
+            "named": true
+          },
+          {
+            "type": "global_variable",
+            "named": true
+          },
+          {
+            "type": "in_expression",
+            "named": true
+          },
+          {
+            "type": "is_expression",
+            "named": true
+          },
+          {
+            "type": "like_expression",
+            "named": true
+          },
+          {
+            "type": "money",
+            "named": true
+          },
+          {
+            "type": "next_value_for",
+            "named": true
+          },
+          {
+            "type": "niladic_function",
+            "named": true
+          },
+          {
+            "type": "null",
+            "named": true
+          },
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "odbc_escape",
+            "named": true
+          },
+          {
+            "type": "parenthesized_expression",
+            "named": true
+          },
+          {
+            "type": "pseudocolumn",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "subquery",
+            "named": true
+          },
+          {
+            "type": "unary_expression",
+            "named": true
+          },
+          {
+            "type": "variable",
+            "named": true
+          }
+        ]
+      },
+      "timeout": {
+        "multiple": false,
+        "required": false,
         "types": [
           {
             "type": "at_time_zone_expression",
@@ -13233,6 +15644,20 @@
           }
         ]
       }
+    },
+    "children": {
+      "multiple": false,
+      "required": false,
+      "types": [
+        {
+          "type": "get_conversation_group_statement",
+          "named": true
+        },
+        {
+          "type": "receive_statement",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -13621,6 +16046,18 @@
             "named": true
           },
           {
+            "type": "backup_statement",
+            "named": true
+          },
+          {
+            "type": "begin_conversation_timer_statement",
+            "named": true
+          },
+          {
+            "type": "begin_dialog_statement",
+            "named": true
+          },
+          {
             "type": "begin_transaction_statement",
             "named": true
           },
@@ -13634,6 +16071,10 @@
           },
           {
             "type": "bulk_insert_statement",
+            "named": true
+          },
+          {
+            "type": "checkpoint_statement",
             "named": true
           },
           {
@@ -13693,6 +16134,10 @@
             "named": true
           },
           {
+            "type": "dbcc_statement",
+            "named": true
+          },
+          {
             "type": "deallocate_statement",
             "named": true
           },
@@ -13713,6 +16158,14 @@
             "named": true
           },
           {
+            "type": "enable_trigger_statement",
+            "named": true
+          },
+          {
+            "type": "end_conversation_statement",
+            "named": true
+          },
+          {
             "type": "execute_as_statement",
             "named": true
           },
@@ -13722,6 +16175,10 @@
           },
           {
             "type": "fetch_statement",
+            "named": true
+          },
+          {
+            "type": "get_conversation_group_statement",
             "named": true
           },
           {
@@ -13741,7 +16198,15 @@
             "named": true
           },
           {
+            "type": "kill_statement",
+            "named": true
+          },
+          {
             "type": "merge_statement",
+            "named": true
+          },
+          {
+            "type": "move_conversation_statement",
             "named": true
           },
           {
@@ -13762,6 +16227,18 @@
           },
           {
             "type": "readtext_statement",
+            "named": true
+          },
+          {
+            "type": "receive_statement",
+            "named": true
+          },
+          {
+            "type": "reconfigure_statement",
+            "named": true
+          },
+          {
+            "type": "restore_statement",
             "named": true
           },
           {
@@ -13789,7 +16266,19 @@
             "named": true
           },
           {
+            "type": "send_statement",
+            "named": true
+          },
+          {
             "type": "set_statement",
+            "named": true
+          },
+          {
+            "type": "setuser_statement",
+            "named": true
+          },
+          {
+            "type": "shutdown_statement",
             "named": true
           },
           {
@@ -14384,6 +16873,10 @@
     "named": false
   },
   {
+    "type": "APPEND",
+    "named": false
+  },
+  {
     "type": "APPLICATION",
     "named": false
   },
@@ -14416,6 +16909,10 @@
     "named": false
   },
   {
+    "type": "ATOMIC",
+    "named": false
+  },
+  {
     "type": "AUDIT",
     "named": false
   },
@@ -14425,6 +16922,10 @@
   },
   {
     "type": "AVAILABILITY",
+    "named": false
+  },
+  {
+    "type": "BACKUP",
     "named": false
   },
   {
@@ -14496,11 +16997,19 @@
     "named": false
   },
   {
+    "type": "CHECKPOINT",
+    "named": false
+  },
+  {
     "type": "CLASSIFICATION",
     "named": false
   },
   {
     "type": "CLASSIFIER",
+    "named": false
+  },
+  {
+    "type": "CLEANUP",
     "named": false
   },
   {
@@ -14628,6 +17137,10 @@
     "named": false
   },
   {
+    "type": "DBCC",
+    "named": false
+  },
+  {
     "type": "DEADLOCK_PRIORITY",
     "named": false
   },
@@ -14657,6 +17170,14 @@
   },
   {
     "type": "DESC",
+    "named": false
+  },
+  {
+    "type": "DESCRIPTION",
+    "named": false
+  },
+  {
+    "type": "DIALOG",
     "named": false
   },
   {
@@ -14704,6 +17225,10 @@
     "named": false
   },
   {
+    "type": "ERROR",
+    "named": false
+  },
+  {
     "type": "ESCAPE",
     "named": false
   },
@@ -14737,6 +17262,10 @@
   },
   {
     "type": "FILE",
+    "named": false
+  },
+  {
+    "type": "FILELISTONLY",
     "named": false
   },
   {
@@ -14800,6 +17329,10 @@
     "named": false
   },
   {
+    "type": "GET",
+    "named": false
+  },
+  {
     "type": "GLOBAL",
     "named": false
   },
@@ -14840,6 +17373,10 @@
     "named": false
   },
   {
+    "type": "HEADERONLY",
+    "named": false
+  },
+  {
     "type": "HIDDEN",
     "named": false
   },
@@ -14869,6 +17406,10 @@
   },
   {
     "type": "INSERT",
+    "named": false
+  },
+  {
+    "type": "INSTEAD",
     "named": false
   },
   {
@@ -14905,6 +17446,14 @@
   },
   {
     "type": "KEYS",
+    "named": false
+  },
+  {
+    "type": "KILL",
+    "named": false
+  },
+  {
+    "type": "LABELONLY",
     "named": false
   },
   {
@@ -14972,6 +17521,10 @@
     "named": false
   },
   {
+    "type": "MOVE",
+    "named": false
+  },
+  {
     "type": "NAME",
     "named": false
   },
@@ -15005,6 +17558,10 @@
   },
   {
     "type": "NONE",
+    "named": false
+  },
+  {
+    "type": "NORESET",
     "named": false
   },
   {
@@ -15096,6 +17653,10 @@
     "named": false
   },
   {
+    "type": "OVERRIDE",
+    "named": false
+  },
+  {
     "type": "PARTITION",
     "named": false
   },
@@ -15164,6 +17725,10 @@
     "named": false
   },
   {
+    "type": "QUERY",
+    "named": false
+  },
+  {
     "type": "QUEUE",
     "named": false
   },
@@ -15180,11 +17745,23 @@
     "named": false
   },
   {
+    "type": "READONLY",
+    "named": false
+  },
+  {
     "type": "READTEXT",
     "named": false
   },
   {
+    "type": "RECEIVE",
+    "named": false
+  },
+  {
     "type": "RECOMPILE",
+    "named": false
+  },
+  {
+    "type": "RECONFIGURE",
     "named": false
   },
   {
@@ -15216,6 +17793,10 @@
     "named": false
   },
   {
+    "type": "RESTORE",
+    "named": false
+  },
+  {
     "type": "RESULT",
     "named": false
   },
@@ -15228,11 +17809,19 @@
     "named": false
   },
   {
+    "type": "RETURNS",
+    "named": false
+  },
+  {
     "type": "REVERT",
     "named": false
   },
   {
     "type": "REVOKE",
+    "named": false
+  },
+  {
+    "type": "REWINDONLY",
     "named": false
   },
   {
@@ -15316,6 +17905,10 @@
     "named": false
   },
   {
+    "type": "SEND",
+    "named": false
+  },
+  {
     "type": "SENSITIVITY",
     "named": false
   },
@@ -15356,6 +17949,14 @@
     "named": false
   },
   {
+    "type": "SETUSER",
+    "named": false
+  },
+  {
+    "type": "SHUTDOWN",
+    "named": false
+  },
+  {
     "type": "SIGNATURE",
     "named": false
   },
@@ -15392,6 +17993,14 @@
     "named": false
   },
   {
+    "type": "STATS",
+    "named": false
+  },
+  {
+    "type": "STATUSONLY",
+    "named": false
+  },
+  {
     "type": "STOPLIST",
     "named": false
   },
@@ -15401,6 +18010,10 @@
   },
   {
     "type": "STREAMING",
+    "named": false
+  },
+  {
+    "type": "SUBSCRIPTION",
     "named": false
   },
   {
@@ -15445,6 +18058,14 @@
   },
   {
     "type": "TIME",
+    "named": false
+  },
+  {
+    "type": "TIMEOUT",
+    "named": false
+  },
+  {
+    "type": "TIMER",
     "named": false
   },
   {
@@ -15545,6 +18166,10 @@
   },
   {
     "type": "VECTOR",
+    "named": false
+  },
+  {
+    "type": "VERIFYONLY",
     "named": false
   },
   {

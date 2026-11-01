@@ -1,0 +1,325 @@
+================================================================================
+a DML trigger with a message
+================================================================================
+
+CREATE TRIGGER reminder1
+ON Sales.Customer
+AFTER INSERT, UPDATE
+AS RAISERROR ('Notify Customer Relations', 16, 10);
+GO
+
+---
+
+(source_file
+  (create_trigger_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (raiserror_statement
+      (arguments
+        (string)
+        (number)
+        (number))))
+  (go_statement))
+
+================================================================================
+a trigger FOR DELETE with a block
+================================================================================
+
+CREATE OR ALTER TRIGGER dbo.trd ON dbo.t FOR DELETE
+AS
+BEGIN
+    SET NOCOUNT ON
+    INSERT INTO dbo.t_log (id, action) SELECT id, 'D' FROM deleted
+END
+
+---
+
+(source_file
+  (create_trigger_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (block
+      (set_statement
+        (keyword))
+      (insert_statement
+        (object_reference
+          (identifier)
+          (identifier))
+        (column_list
+          (identifier)
+          (identifier))
+        (select
+          (column_reference
+            (identifier))
+          (string)
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier)))))))))
+
+================================================================================
+an INSTEAD OF trigger with options
+================================================================================
+
+CREATE TRIGGER dbo.tri ON dbo.v
+WITH ENCRYPTION, EXECUTE AS CALLER
+INSTEAD OF INSERT
+NOT FOR REPLICATION
+AS
+IF UPDATE(a) OR COLUMNS_UPDATED() & 2 = 2
+    INSERT INTO dbo.t (a) SELECT a FROM inserted
+
+---
+
+(source_file
+  (create_trigger_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword)
+    (keyword)
+    (if_statement
+      (binary_expression
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier))))
+        (binary_expression
+          (binary_expression
+            (function_call
+              (identifier)
+              (arguments))
+            (operator)
+            (number))
+          (operator)
+          (number)))
+      (insert_statement
+        (object_reference
+          (identifier)
+          (identifier))
+        (column_list
+          (identifier))
+        (select
+          (column_reference
+            (identifier))
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier)))))))))
+
+================================================================================
+an old trigger WITH APPEND
+================================================================================
+
+CREATE TRIGGER t1 ON dbo.t FOR UPDATE WITH APPEND AS PRINT 'x'
+
+---
+
+(source_file
+  (create_trigger_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (print_statement
+      (string))))
+
+================================================================================
+a DDL trigger of the database
+================================================================================
+
+CREATE TRIGGER safety
+ON DATABASE
+FOR DROP_SYNONYM, ALTER_TABLE
+AS
+IF (@@ROWCOUNT = 0)
+RETURN;
+   RAISERROR ('You must disable Trigger "safety" to remove synonyms!', 10, 1)
+   ROLLBACK
+GO
+DROP TRIGGER safety ON DATABASE;
+
+---
+
+(source_file
+  (create_trigger_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (if_statement
+      (parenthesized_expression
+        (binary_expression
+          (global_variable)
+          (operator)
+          (number)))
+      (return_statement))
+    (raiserror_statement
+      (arguments
+        (string)
+        (number)
+        (number)))
+    (rollback_statement))
+  (go_statement)
+  (drop_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+a DDL trigger of the server
+================================================================================
+
+CREATE TRIGGER ddl_trig_database
+ON ALL SERVER
+FOR CREATE_DATABASE
+AS
+    PRINT 'Database Created.'
+    SELECT EVENTDATA().value('(/EVENT_INSTANCE/TSQLCommand/CommandText)[1]', 'nvarchar(max)')
+
+---
+
+(source_file
+  (create_trigger_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (print_statement
+      (string))
+    (select_statement
+      (select
+        (field_expression
+          (function_call
+            (identifier)
+            (arguments))
+          (identifier)
+          (arguments
+            (string)
+            (string)))))))
+
+================================================================================
+a logon trigger
+================================================================================
+
+CREATE TRIGGER connection_limit_trigger
+ON ALL SERVER WITH EXECUTE AS 'login_test'
+FOR LOGON
+AS
+BEGIN
+IF ORIGINAL_LOGIN()= 'login_test' AND
+    (SELECT COUNT(*) FROM sys.dm_exec_sessions
+            WHERE is_user_process = 1 AND
+                original_login_name = 'login_test') > 3
+    ROLLBACK;
+END;
+
+---
+
+(source_file
+  (create_trigger_statement
+    (object_reference
+      (identifier))
+    (string)
+    (keyword)
+    (block
+      (if_statement
+        (binary_expression
+          (binary_expression
+            (function_call
+              (identifier)
+              (arguments))
+            (operator)
+            (string))
+          (binary_expression
+            (subquery
+              (select
+                (function_call
+                  (identifier)
+                  (arguments
+                    (all_columns)))
+                (from_clause
+                  (table_reference
+                    (object_reference
+                      (identifier)
+                      (identifier))))
+                (where_clause
+                  (binary_expression
+                    (binary_expression
+                      (column_reference
+                        (identifier))
+                      (operator)
+                      (number))
+                    (binary_expression
+                      (column_reference
+                        (identifier))
+                      (operator)
+                      (string))))))
+            (operator)
+            (number)))
+        (rollback_statement)))))
+
+================================================================================
+ALTER TRIGGER
+================================================================================
+
+ALTER TRIGGER dbo.trd ON dbo.t AFTER INSERT, UPDATE, DELETE AS RETURN
+
+---
+
+(source_file
+  (create_trigger_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (return_statement)))
+
+================================================================================
+ENABLE and DISABLE TRIGGER
+================================================================================
+
+DISABLE TRIGGER Person.uAddress ON Person.Address
+ENABLE TRIGGER safety ON DATABASE;
+DISABLE TRIGGER ALL ON ALL SERVER;
+ENABLE TRIGGER a, dbo.b ON dbo.t
+
+---
+
+(source_file
+  (enable_trigger_statement
+    (keyword)
+    (object_reference
+      (identifier)
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier)))
+  (enable_trigger_statement
+    (keyword)
+    (object_reference
+      (identifier)))
+  (enable_trigger_statement
+    (keyword))
+  (enable_trigger_statement
+    (keyword)
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))))

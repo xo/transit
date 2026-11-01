@@ -1,0 +1,613 @@
+================================================================================
+CREATE PROCEDURE with no parameters
+================================================================================
+
+CREATE PROCEDURE HumanResources.uspGetAllEmployees
+AS
+    SET NOCOUNT ON;
+    SELECT LastName, FirstName, JobTitle, Department
+    FROM HumanResources.vEmployeeDepartment;
+GO
+EXEC HumanResources.uspGetAllEmployees;
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (set_statement
+      (keyword))
+    (select_statement
+      (select
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)
+              (identifier)))))))
+  (go_statement)
+  (execute_statement
+    (object_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+CREATE PROCEDURE with parameters and a block
+================================================================================
+
+CREATE PROCEDURE HumanResources.uspGetEmployees
+    @LastName nvarchar(50),
+    @FirstName nvarchar(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT FirstName, LastName, Department
+    FROM HumanResources.vEmployeeDepartmentHistory
+    WHERE FirstName = @FirstName AND LastName = @LastName
+    AND EndDate IS NULL;
+END
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (parameters
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier)
+          (type_modifiers
+            (number))))
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier)
+          (type_modifiers
+            (number)))))
+    (block
+      (set_statement
+        (keyword))
+      (select_statement
+        (select
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier)
+                (identifier))))
+          (where_clause
+            (binary_expression
+              (binary_expression
+                (binary_expression
+                  (column_reference
+                    (identifier))
+                  (operator)
+                  (variable))
+                (binary_expression
+                  (column_reference
+                    (identifier))
+                  (operator)
+                  (variable)))
+              (is_expression
+                (column_reference
+                  (identifier))
+                (null)))))))))
+
+================================================================================
+CREATE PROC with defaults and wildcards
+================================================================================
+
+CREATE PROC HumanResources.uspGetEmployees2
+    @LastName nvarchar(50) = N'D%',
+    @FirstName nvarchar(50) = N'%',
+    @Count int = -1
+AS
+    SELECT FirstName, LastName FROM HumanResources.vEmployee
+    WHERE FirstName LIKE @FirstName AND LastName LIKE @LastName
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (parameters
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier)
+          (type_modifiers
+            (number)))
+        (string))
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier)
+          (type_modifiers
+            (number)))
+        (string))
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier))
+        (operator)
+        (number)))
+    (select_statement
+      (select
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)
+              (identifier))))
+        (where_clause
+          (binary_expression
+            (like_expression
+              (column_reference
+                (identifier))
+              (variable))
+            (like_expression
+              (column_reference
+                (identifier))
+              (variable))))))))
+
+================================================================================
+parameters in parentheses with OUTPUT and READONLY
+================================================================================
+
+CREATE PROCEDURE dbo.p (@id int, @total money OUTPUT, @rows dbo.IdList READONLY, @name AS sysname = NULL OUT)
+AS
+SELECT @total = SUM(Amount) FROM dbo.Orders WHERE Id IN (SELECT Id FROM @rows)
+RETURN 0
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (parameters
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier)))
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier)))
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier)
+          (identifier)))
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier))
+        (null)))
+    (select_statement
+      (select
+        (assignment
+          (variable)
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier)))))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)
+              (identifier))))
+        (where_clause
+          (in_expression
+            (column_reference
+              (identifier))
+            (subquery
+              (select
+                (column_reference
+                  (identifier))
+                (from_clause
+                  (table_reference
+                    (variable)))))))))
+    (return_statement
+      (number))))
+
+================================================================================
+a cursor parameter
+================================================================================
+
+CREATE PROCEDURE dbo.uspCurrencyCursor
+    @CurrencyCursor CURSOR VARYING OUTPUT
+AS
+    SET NOCOUNT ON;
+    SET @CurrencyCursor = CURSOR FORWARD_ONLY STATIC FOR
+      SELECT CurrencyCode, Name FROM Sales.Currency;
+    OPEN @CurrencyCursor;
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (parameters
+      (parameter_declaration
+        (variable)))
+    (set_statement
+      (keyword))
+    (set_statement
+      (variable)
+      (cursor_definition
+        (keyword)
+        (keyword)
+        (select
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier)
+                (identifier)))))))
+    (open_statement
+      (variable))))
+
+================================================================================
+WITH options and FOR REPLICATION
+================================================================================
+
+CREATE PROCEDURE dbo.p2 @a int
+WITH RECOMPILE, ENCRYPTION, EXECUTE AS OWNER
+FOR REPLICATION
+AS
+EXEC dbo.p @a
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (parameters
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier))))
+    (keyword)
+    (keyword)
+    (keyword)
+    (execute_statement
+      (object_reference
+        (identifier)
+        (identifier))
+      (execute_argument
+        (variable)))))
+
+================================================================================
+EXECUTE AS a user
+================================================================================
+
+CREATE PROCEDURE dbo.p3
+WITH EXECUTE AS 'CompanyDomain\SqlUser1'
+AS
+SELECT user_name();
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (string)
+    (select_statement
+      (select
+        (function_call
+          (identifier)
+          (arguments))))))
+
+================================================================================
+CREATE OR ALTER and ALTER PROCEDURE
+================================================================================
+
+CREATE OR ALTER PROCEDURE dbo.p4 AS SELECT 1
+GO
+ALTER PROC dbo.p4 @x int AS SELECT @x
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (select_statement
+      (select
+        (number))))
+  (go_statement)
+  (create_procedure_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (parameters
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier))))
+    (select_statement
+      (select
+        (variable)))))
+
+================================================================================
+a natively compiled procedure
+================================================================================
+
+CREATE PROCEDURE dbo.usp_add_kitchen @dept_id int, @kitchen_count int NOT NULL
+WITH EXECUTE AS OWNER, SCHEMABINDING, NATIVE_COMPILATION
+AS
+BEGIN ATOMIC WITH (TRANSACTION ISOLATION LEVEL = SNAPSHOT, LANGUAGE = N'us_english')
+    UPDATE dbo.Departments
+    SET kitchen_count = ISNULL(kitchen_count, 0) + @kitchen_count
+    WHERE ID = @dept_id
+END;
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (parameters
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier)))
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier))
+        (null)))
+    (keyword)
+    (keyword)
+    (keyword)
+    (block
+      (keyword)
+      (keyword)
+      (keyword)
+      (keyword)
+      (keyword)
+      (string)
+      (update_statement
+        (object_reference
+          (identifier)
+          (identifier))
+        (assignment
+          (column_reference
+            (identifier))
+          (binary_expression
+            (function_call
+              (identifier)
+              (arguments
+                (column_reference
+                  (identifier))
+                (number)))
+            (operator)
+            (variable)))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (variable)))))))
+
+================================================================================
+a CLR procedure
+================================================================================
+
+CREATE PROCEDURE dbo.GetPhotoFromDB
+(
+    @ProductPhotoID int,
+    @CurrentDirectory nvarchar(1024),
+    @FileName nvarchar(1024)
+)
+AS EXTERNAL NAME HandlingLOBUsingCLR.LargeObjectBinary.GetPhotoFromDB;
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (parameters
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier)))
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier)
+          (type_modifiers
+            (number))))
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier)
+          (type_modifiers
+            (number)))))
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier))))
+
+================================================================================
+a procedure with TRY CATCH and a transaction
+================================================================================
+
+CREATE PROCEDURE dbo.usp_Transfer @from int, @to int, @amount money
+AS
+SET XACT_ABORT ON
+BEGIN TRY
+    BEGIN TRANSACTION
+    UPDATE dbo.Accounts SET Balance -= @amount WHERE Id = @from
+    UPDATE dbo.Accounts SET Balance += @amount WHERE Id = @to
+    COMMIT
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK
+    ;THROW
+END CATCH
+GO
+EXEC dbo.usp_Transfer 1, 2, $10.00
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (parameters
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier)))
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier)))
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier))))
+    (set_statement
+      (keyword))
+    (try_statement
+      (begin_transaction_statement)
+      (update_statement
+        (object_reference
+          (identifier)
+          (identifier))
+        (assignment
+          (column_reference
+            (identifier))
+          (operator)
+          (variable))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (variable))))
+      (update_statement
+        (object_reference
+          (identifier)
+          (identifier))
+        (assignment
+          (column_reference
+            (identifier))
+          (operator)
+          (variable))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (variable))))
+      (commit_statement)
+      (catch_block
+        (if_statement
+          (binary_expression
+            (global_variable)
+            (operator)
+            (number))
+          (rollback_statement))
+        (throw_statement))))
+  (go_statement)
+  (execute_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (execute_argument
+      (number))
+    (execute_argument
+      (number))
+    (execute_argument
+      (money))))
+
+================================================================================
+the body runs to the end of the batch
+================================================================================
+
+CREATE PROCEDURE dbo.p5 AS
+IF 1 = 1
+    PRINT 'one'
+ELSE
+    PRINT 'two'
+WHILE 1 = 0 BREAK
+retry:
+DECLARE @n int = 1;
+GO
+SELECT 2
+
+---
+
+(source_file
+  (create_procedure_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (if_statement
+      (binary_expression
+        (number)
+        (operator)
+        (number))
+      (print_statement
+        (string))
+      (print_statement
+        (string)))
+    (while_statement
+      (binary_expression
+        (number)
+        (operator)
+        (number))
+      (break_statement))
+    (label)
+    (declare_statement
+      (variable_declaration
+        (variable)
+        (type
+          (identifier))
+        (number))))
+  (go_statement)
+  (select_statement
+    (select
+      (number))))

@@ -1,0 +1,541 @@
+================================================================================
+a scalar function
+================================================================================
+
+CREATE FUNCTION dbo.ISOweek (@DATE datetime)
+RETURNS int
+WITH EXECUTE AS CALLER
+AS
+BEGIN
+    DECLARE @ISOweek int;
+    SET @ISOweek = DATEPART(wk, @DATE) + 1
+        - DATEPART(wk, CAST(DATEPART(yy, @DATE) AS CHAR(4)) + '0104');
+    IF (@ISOweek = 0)
+        SET @ISOweek = dbo.ISOweek(CAST(DATEPART(yy, @DATE) - 1 AS CHAR(4)) + '12' + CAST(24 + DATEPART(DAY, @DATE) AS CHAR(2))) + 1;
+    RETURN(@ISOweek);
+END;
+
+---
+
+(source_file
+  (create_function_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (parameters
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier))))
+    (type
+      (identifier))
+    (keyword)
+    (block
+      (declare_statement
+        (variable_declaration
+          (variable)
+          (type
+            (identifier))))
+      (set_statement
+        (variable)
+        (binary_expression
+          (binary_expression
+            (function_call
+              (identifier)
+              (arguments
+                (column_reference
+                  (identifier))
+                (variable)))
+            (operator)
+            (number))
+          (operator)
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier))
+              (binary_expression
+                (function_call
+                  (identifier)
+                  (arguments
+                    (function_call
+                      (identifier)
+                      (arguments
+                        (column_reference
+                          (identifier))
+                        (variable)))
+                    (type
+                      (identifier)
+                      (type_modifiers
+                        (number)))))
+                (operator)
+                (string))))))
+      (if_statement
+        (parenthesized_expression
+          (binary_expression
+            (variable)
+            (operator)
+            (number)))
+        (set_statement
+          (variable)
+          (binary_expression
+            (function_call
+              (identifier)
+              (identifier)
+              (arguments
+                (binary_expression
+                  (binary_expression
+                    (function_call
+                      (identifier)
+                      (arguments
+                        (binary_expression
+                          (function_call
+                            (identifier)
+                            (arguments
+                              (column_reference
+                                (identifier))
+                              (variable)))
+                          (operator)
+                          (number))
+                        (type
+                          (identifier)
+                          (type_modifiers
+                            (number)))))
+                    (operator)
+                    (string))
+                  (operator)
+                  (function_call
+                    (identifier)
+                    (arguments
+                      (binary_expression
+                        (number)
+                        (operator)
+                        (function_call
+                          (identifier)
+                          (arguments
+                            (column_reference
+                              (identifier))
+                            (variable))))
+                      (type
+                        (identifier)
+                        (type_modifiers
+                          (number))))))))
+            (operator)
+            (number))))
+      (return_statement
+        (parenthesized_expression
+          (variable))))))
+
+================================================================================
+a scalar function with no AS and options
+================================================================================
+
+CREATE OR ALTER FUNCTION dbo.f (@a int = 0, @b AS decimal(10, 2))
+RETURNS decimal(10, 2)
+WITH SCHEMABINDING, RETURNS NULL ON NULL INPUT, INLINE = OFF
+BEGIN
+    RETURN @a * @b
+END
+
+---
+
+(source_file
+  (create_function_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (parameters
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier))
+        (number))
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier)
+          (type_modifiers
+            (number)
+            (number)))))
+    (type
+      (identifier)
+      (type_modifiers
+        (number)
+        (number)))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (block
+      (return_statement
+        (binary_expression
+          (variable)
+          (operator)
+          (variable))))))
+
+================================================================================
+an inline table-valued function
+================================================================================
+
+CREATE FUNCTION Sales.ufn_SalesByStore (@storeid int)
+RETURNS TABLE
+AS
+RETURN
+(
+    SELECT P.ProductID, P.Name, SUM(SD.LineTotal) AS 'Total'
+    FROM Production.Product AS P
+    JOIN Sales.SalesOrderDetail AS SD ON SD.ProductID = P.ProductID
+    WHERE C.StoreID = @storeid
+    GROUP BY P.ProductID, P.Name
+);
+
+---
+
+(source_file
+  (create_function_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (parameters
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier))))
+    (parenthesized_query
+      (select
+        (column_reference
+          (identifier)
+          (identifier))
+        (column_reference
+          (identifier)
+          (identifier))
+        (aliased_expression
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier)
+                (identifier))))
+          (string))
+        (from_clause
+          (join
+            (table_reference
+              (object_reference
+                (identifier)
+                (identifier))
+              (identifier))
+            (table_reference
+              (object_reference
+                (identifier)
+                (identifier))
+              (identifier))
+            (binary_expression
+              (column_reference
+                (identifier)
+                (identifier))
+              (operator)
+              (column_reference
+                (identifier)
+                (identifier)))))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier)
+              (identifier))
+            (operator)
+            (variable)))
+        (group_by_clause
+          (column_reference
+            (identifier)
+            (identifier))
+          (column_reference
+            (identifier)
+            (identifier)))))))
+
+================================================================================
+an inline function with a query and no parentheses
+================================================================================
+
+CREATE FUNCTION dbo.f2 ()
+RETURNS TABLE WITH SCHEMABINDING
+AS RETURN SELECT 1 AS n
+GO
+SELECT * FROM dbo.f2()
+
+---
+
+(source_file
+  (create_function_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (parameters)
+    (keyword)
+    (select
+      (aliased_expression
+        (number)
+        (identifier))))
+  (go_statement)
+  (select_statement
+    (select
+      (all_columns)
+      (from_clause
+        (function_table
+          (function_call
+            (identifier)
+            (identifier)
+            (arguments)))))))
+
+================================================================================
+an inline function with a common table expression
+================================================================================
+
+ALTER FUNCTION dbo.f3 (@n int) RETURNS TABLE AS RETURN
+WITH c AS (SELECT 1 AS n UNION ALL SELECT n + 1 FROM c WHERE n < @n)
+SELECT n FROM c;
+
+---
+
+(source_file
+  (create_function_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (parameters
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier))))
+    (with_clause
+      (cte
+        (identifier)
+        (subquery
+          (set_operation
+            (select
+              (aliased_expression
+                (number)
+                (identifier)))
+            (select
+              (binary_expression
+                (column_reference
+                  (identifier))
+                (operator)
+                (number))
+              (from_clause
+                (table_reference
+                  (object_reference
+                    (identifier))))
+              (where_clause
+                (binary_expression
+                  (column_reference
+                    (identifier))
+                  (operator)
+                  (variable))))))))
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+a multi-statement table-valued function
+================================================================================
+
+CREATE FUNCTION dbo.ufn_FindReports (@InEmpID INTEGER)
+RETURNS @retFindReports TABLE
+(
+    EmployeeID int primary key NOT NULL,
+    FirstName nvarchar(255) NOT NULL
+)
+AS
+BEGIN
+    INSERT @retFindReports
+    SELECT EmployeeID, FirstName FROM dbo.Employees WHERE ManagerID = @InEmpID;
+    RETURN
+END;
+
+---
+
+(source_file
+  (create_function_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (parameters
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier))))
+    (variable)
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (null))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (number)))
+        (null)))
+    (block
+      (insert_statement
+        (variable)
+        (select
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier))
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier)
+                (identifier))))
+          (where_clause
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (variable)))))
+      (return_statement))))
+
+================================================================================
+a CLR function
+================================================================================
+
+CREATE FUNCTION dbo.len_s (@str nvarchar(4000))
+RETURNS bigint
+WITH EXECUTE AS CALLER
+AS EXTERNAL NAME [SurrogateStringFunction].[Microsoft.Samples.SqlServer.SurrogateStringFunction].[LenS];
+
+---
+
+(source_file
+  (create_function_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (parameters
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier)
+          (type_modifiers
+            (number)))))
+    (type
+      (identifier))
+    (keyword)
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier))))
+
+================================================================================
+a CLR table-valued function
+================================================================================
+
+CREATE FUNCTION dbo.f4 (@s nvarchar(max))
+RETURNS TABLE (item nvarchar(100), n int)
+AS EXTERNAL NAME a.[b.c].d
+
+---
+
+(source_file
+  (create_function_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (parameters
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier)
+          (type_modifiers
+            (object_reference
+              (identifier))))))
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (number))))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))))
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier))))
+
+================================================================================
+a natively compiled function
+================================================================================
+
+CREATE FUNCTION dbo.ufnLeadingZeros_native (@Value int)
+RETURNS varchar(8)
+WITH NATIVE_COMPILATION, SCHEMABINDING
+AS
+BEGIN ATOMIC WITH (TRANSACTION ISOLATION LEVEL = SNAPSHOT, LANGUAGE = N'English')
+    DECLARE @ReturnValue varchar(8);
+    SET @ReturnValue = RIGHT('00000000' + CAST(@Value AS varchar(8)), 8);
+    RETURN (@ReturnValue);
+END
+
+---
+
+(source_file
+  (create_function_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (parameters
+      (parameter_declaration
+        (variable)
+        (type
+          (identifier))))
+    (type
+      (identifier)
+      (type_modifiers
+        (number)))
+    (keyword)
+    (keyword)
+    (block
+      (keyword)
+      (keyword)
+      (keyword)
+      (keyword)
+      (keyword)
+      (string)
+      (declare_statement
+        (variable_declaration
+          (variable)
+          (type
+            (identifier)
+            (type_modifiers
+              (number)))))
+      (set_statement
+        (variable)
+        (function_call
+          (identifier)
+          (arguments
+            (binary_expression
+              (string)
+              (operator)
+              (function_call
+                (identifier)
+                (arguments
+                  (variable)
+                  (type
+                    (identifier)
+                    (type_modifiers
+                      (number))))))
+            (number))))
+      (return_statement
+        (parenthesized_expression
+          (variable))))))

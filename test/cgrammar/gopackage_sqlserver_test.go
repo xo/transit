@@ -16,8 +16,10 @@ func init() {
 // GO alone on its line, with a count and a comment, and in places where it
 // is not alone. The inputs also reach each branch of the end of a statement
 // with no semicolon: a word that starts a statement, a word that does not, a
-// label, GO, FETCH of a query and of a cursor, and WITH before a common
-// table expression, before CHECK OPTION and before table hints.
+// label, GO, FETCH of a query and of a cursor, WITH before a common table
+// expression, before CHECK OPTION and before table hints, the words that
+// start the statements of triggers and of Service Broker, and MOVE, which
+// starts no statement for the scanner.
 var sqlServerScannerInputs = []string{
 	// comments
 	"SELECT 1 -- a\r\n;",
@@ -76,6 +78,11 @@ var sqlServerScannerInputs = []string{
 	"SELECT 1 WITH CHECK x",
 	"IF @a = 1 SELECT 1 ELSE SELECT 2",
 	"SELECT 1 ) SELECT 2",
+	"SELECT 1 ENABLE TRIGGER t ON DATABASE DISABLE TRIGGER ALL ON t",
+	"SELECT 1 GET CONVERSATION GROUP @g FROM q RECEIVE * FROM q SEND ON CONVERSATION @h",
+	"SELECT 1 MOVE CONVERSATION @h TO @g",
+	"RESTORE DATABASE d FROM DISK = 'd.bak' WITH REPLACE,\nMOVE 'a' TO 'b'",
+	"CREATE PROCEDURE p AS SELECT 1 END CONVERSATION @h\nGO\nSELECT 2",
 	// white space and other characters
 	" \t\r\n\f\vSELECT 1 FROM t",
 	"SELECT 'a -- b', \"c /* d\", [e -- f] FROM t",

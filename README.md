@@ -233,10 +233,16 @@ statements that define objects: `CREATE`, `ALTER` and `DROP` of tables,
 with temporal, ledger, graph and memory-optimized tables, of each kind of
 index, of views, schemas, synonyms, types, statistics, databases, logins,
 users, roles and the other objects of the reference, and `GRANT`, `DENY`,
-`REVOKE` and `UPDATE STATISTICS`. It does not read procedures, functions
-and triggers yet. A statement does not need a semicolon at its end. A line
-with only `GO` and an optional count ends a batch, as in sqlcmd. The
-package adds about 1.4 MB to a binary. The grammar of `Crary-Systems/tree-sitter-tsql` stays in the
+`REVOKE` and `UPDATE STATISTICS`. It reads `CREATE` and `ALTER` of
+procedures, functions and triggers, with their parameters and options, the
+natively compiled modules with `BEGIN ATOMIC`, and the modules of an
+assembly. It reads `ENABLE TRIGGER`, the statements of Service Broker, such
+as `SEND`, `RECEIVE` and `WAITFOR (RECEIVE ...)`, `BACKUP`, `RESTORE`,
+`DBCC`, `KILL`, `CHECKPOINT` and the other statements of the reference. A
+statement does not need a semicolon at its end. A line with only `GO` and
+an optional count ends a batch, as in sqlcmd. The body of a procedure or a
+trigger runs to the end of its batch. The package adds about 1.5 MB to a
+binary. The grammar of `Crary-Systems/tree-sitter-tsql` stays in the
 golden set, but it has no Go package.
 
 The package `github.com/xo/transit/grammars/postgres/postgres` holds the

@@ -164,7 +164,8 @@ line. So a `GO` line reaches the SQL layer as a part of the text of a
 statement, as in `select 1`, a line with `GO`, and `select 2;`. The SQL
 Server grammar reads such a line as the end of a batch. Then the
 statements before and after it parse with no error, also when no `;` comes
-before the `GO`. If usql gives `GO` a meaning one day, that is a decision
+before the `GO`. The body of a procedure or a trigger runs to the end of
+its batch, so the `GO` line also ends the body. If usql gives `GO` a meaning one day, that is a decision
 of Ken for the usql grammar, and not for the SQL Server grammar. SQL++, InfluxQL, KSQL, PartiQL, ES|QL and
 PPL have no grammar at all. transit writes the missing grammars, and the
 usql grammar, in `grammars/` (D42, D104). The other missing grammars come

@@ -50,7 +50,14 @@
 // The procedural statements are written inline, as in the Oracle grammar:
 // BEGIN ... END, IF, WHILE, TRY ... CATCH, DECLARE and the statements of
 // cursors. The words that only these statements use, such as TRY and
-// CATCH, are not reserved.
+// CATCH, are not reserved. A procedure, a function and a trigger come only
+// in a batch, as the server requires. The body of a procedure and of a
+// trigger is the statements after AS, to the end of the batch, so a line
+// with GO ends it.
+//
+// DBCC, BACKUP and RESTORE read the name of the command or of the object,
+// and the rest is a list of words, as the statements that define objects
+// do.
 //
 // The external scanner in src/scanner.c reads the comments, which nest, a
 // line with only GO and a count, which ends a batch in sqlcmd and in SQL
@@ -137,7 +144,9 @@ const NILADIC_FUNCTIONS = [
 
 // The reserved words that are also the names of functions, as in
 // LEFT(s, 2) and CONTAINS(c, 'x'). They are one token, the node identifier,
-// for the same reason.
+// for the same reason. UPDATE, as in UPDATE(c) of a trigger, is not in the
+// group, because it is a keyword of the grammar. A function call takes the
+// token of the keyword as its name.
 const FUNCTION_WORDS = [
   'COALESCE', 'CONTAINS', 'FREETEXT', 'IDENTITY', 'LEFT', 'NULLIF', 'RIGHT',
 ];
@@ -175,7 +184,7 @@ const OBJECT_KINDS = [
 // The kinds of objects that DROP names as it names the kinds above, but that
 // CREATE or ALTER does not read with them: the kinds that have a rule of
 // their own for CREATE, PARTITION FUNCTION, which has a form of its own in
-// ALTER, and the units that a later part reads.
+// ALTER, and the procedures, the functions and the triggers.
 const OWN_KINDS = [
   'EXTERNAL TABLE', 'FUNCTION', 'INDEX', 'PARTITION FUNCTION', 'PROC',
   'PROCEDURE', 'SCHEMA', 'STATISTICS', 'SYNONYM', 'TABLE', 'TRIGGER', 'TYPE',
@@ -350,9 +359,11 @@ module.exports = grammar({
     // between them.
     // The first statement of a batch can be the call of a procedure with no
     // EXECUTE before it, as in sp_who.
+    // A procedure, a function or a trigger comes only in a batch, not in a
+    // block.
     source_file: $ => seq(
       optional($._batch_start),
-      repeat($._item),
+      repeat(choice($._item, $._unit)),
     ),
 
     _batch_start: $ => seq(alias($._procedure_call, $.execute_statement), $._terminator),
@@ -363,10 +374,16 @@ module.exports = grammar({
     // GO, and at the end of the input. A statement that holds statements,
     // such as IF, ends with the last statement in it.
     _item: $ => choice(
+      $._unit_item,
+      seq($.go_statement, optional($._batch_start)),
+    ),
+
+    // A statement of the body of a procedure or a trigger, which runs to the
+    // end of the batch, so GO ends it.
+    _unit_item: $ => choice(
       seq($._simple_statement, $._terminator),
       $._compound_statement,
       $.label,
-      seq($.go_statement, optional($._batch_start)),
       ';',
     ),
 
@@ -454,6 +471,22 @@ module.exports = grammar({
       $.open_key_statement,
       $.close_key_statement,
       $.add_statement,
+      $.enable_trigger_statement,
+      $.begin_dialog_statement,
+      $.begin_conversation_timer_statement,
+      $.end_conversation_statement,
+      $.get_conversation_group_statement,
+      $.move_conversation_statement,
+      $.receive_statement,
+      $.send_statement,
+      $.backup_statement,
+      $.restore_statement,
+      $.dbcc_statement,
+      $.checkpoint_statement,
+      $.kill_statement,
+      $.reconfigure_statement,
+      $.shutdown_statement,
+      $.setuser_statement,
     ),
 
     // Changes of data
@@ -869,9 +902,13 @@ module.exports = grammar({
 
     // The control-of-flow language
 
-    // A block holds statements between BEGIN and END.
+    // A block holds statements between BEGIN and END. The block of a
+    // natively compiled procedure or function is ATOMIC, with its options,
+    // as in BEGIN ATOMIC WITH (TRANSACTION ISOLATION LEVEL = SNAPSHOT,
+    // LANGUAGE = N'us_english').
     block: $ => seq(
       kw('BEGIN'),
+      optional(seq(kws('ATOMIC', 'WITH'), $._option_group)),
       repeat($._item),
       kw('END'),
     ),
@@ -909,11 +946,17 @@ module.exports = grammar({
 
     return_statement: $ => prec.right(seq(kw('RETURN'), optional(field('value', $._expression)))),
 
-    // WAITFOR waits for a time of day, or for a delay.
+    // WAITFOR waits for a time of day, for a delay, or for a message of
+    // Service Broker, as in WAITFOR (RECEIVE * FROM q), TIMEOUT 1000.
     waitfor_statement: $ => seq(
       kw('WAITFOR'),
-      choice(kw('DELAY'), kw('TIME')),
-      field('time', $._expression),
+      choice(
+        seq(choice(kw('DELAY'), kw('TIME')), field('time', $._expression)),
+        seq(
+          parens(choice($.receive_statement, $.get_conversation_group_statement)),
+          optional(seq(',', kw('TIMEOUT'), field('timeout', $._expression))),
+        ),
+      ),
     ),
 
     // BEGIN TRY ... END TRY BEGIN CATCH ... END CATCH.
@@ -1468,6 +1511,341 @@ module.exports = grammar({
       ),
       $._word_list,
     ),
+
+    // Procedures, functions and triggers
+
+    _unit: $ => choice(
+      $.create_procedure_statement,
+      $.create_function_statement,
+      $.create_trigger_statement,
+    ),
+
+    // CREATE, CREATE OR ALTER or ALTER of a procedure, a function or a
+    // trigger.
+    _create_or_alter: $ => choice($._create, kw('ALTER')),
+
+    // CREATE PROCEDURE. The parameters can be in parentheses or not. The
+    // body is the statements after AS, to the end of the batch, or the
+    // method of an assembly, as in AS EXTERNAL NAME a.c.m.
+    create_procedure_statement: $ => seq($._procedure_head, $._unit_body),
+
+    // The parts of a unit before its body are a hidden rule of their own, and
+    // so is the body. Then each unit has one production, and one parse state
+    // starts its body, whichever optional parts come before it.
+    _procedure_head: $ => seq(
+      $._create_or_alter,
+      choice(kw('PROC'), kw('PROCEDURE')),
+      field('name', $.object_reference),
+      optional(choice(
+        $.parameters,
+        alias($._parameter_list, $.parameters),
+      )),
+      optional($._unit_options),
+      optional(kws('FOR', 'REPLICATION')),
+    ),
+
+    parameters: $ => parens(optional($._parameter_list)),
+
+    _parameter_list: $ => commaSep1($.parameter_declaration),
+
+    // A parameter, with its type, as in @n int = 0 OUTPUT, @t dbo.tt
+    // READONLY or @c CURSOR VARYING OUTPUT. A parameter of a natively
+    // compiled module can be NOT NULL. The default is a constant, or a
+    // function with @@, as in @s sysname = @@SERVERNAME. The server takes a
+    // name that starts with @@, as in @@n int.
+    parameter_declaration: $ => seq(
+      field('name', choice($.variable, $.global_variable)),
+      optional(kw('AS')),
+      field('type', choice($.type, kw('CURSOR'))),
+      repeat(choice(
+        kw('VARYING'),
+        $.null,
+        seq(kw('NOT'), $.null),
+        seq('=', field('default', choice($._literal, $._negative_number, $.global_variable))),
+        kw('OUT'),
+        kw('OUTPUT'),
+        kw('READONLY'),
+      )),
+    ),
+
+    // The options of a procedure, a function or a trigger, as in WITH
+    // RECOMPILE, EXECUTE AS OWNER, RETURNS NULL ON NULL INPUT or INLINE = ON.
+    // They are words, but for EXECUTE AS, which holds a word that starts a
+    // statement.
+    _unit_options: $ => seq(
+      kw('WITH'),
+      repeat1(choice(
+        alias($.identifier, $.keyword),
+        kw('NULL'),
+        kw('ON'),
+        kw('OFF'),
+        '=',
+        ',',
+        seq(
+          choice(kw('EXEC'), kw('EXECUTE')),
+          kw('AS'),
+          choice(alias($.identifier, $.keyword), $.string),
+        ),
+      )),
+    ),
+
+    // The statements of a procedure or a trigger run to the end of the
+    // batch.
+    _unit_body: $ => seq(
+      kw('AS'),
+      choice(
+        $._external_name,
+        prec.right(repeat1($._unit_item)),
+      ),
+    ),
+
+    _external_name: $ => seq(
+      kws('EXTERNAL', 'NAME'),
+      field('method', $.object_reference),
+      $._terminator,
+    ),
+
+    // CREATE FUNCTION makes a scalar function, an inline table-valued
+    // function, which returns a query, a multi-statement table-valued
+    // function, which fills a table variable, or a CLR function. The body
+    // of a scalar function and of a multi-statement table-valued function is
+    // a block.
+    create_function_statement: $ => seq($._function_head, $._function_body),
+
+    _function_head: $ => seq(
+      $._create_or_alter,
+      kw('FUNCTION'),
+      field('name', $.object_reference),
+      $.parameters,
+      kw('RETURNS'),
+      choice(
+        field('type', $.type),
+        seq(
+          optional(field('table', $.variable)),
+          kw('TABLE'),
+          optional($.table_definition),
+        ),
+      ),
+      optional($._unit_options),
+    ),
+
+    _function_body: $ => seq(
+      optional(kw('AS')),
+      choice(
+        $.block,
+        seq(kw('RETURN'), $._query, $._terminator),
+        $._external_name,
+      ),
+    ),
+
+    // CREATE TRIGGER makes a trigger of a table or a view, which runs FOR,
+    // AFTER or INSTEAD OF INSERT, UPDATE and DELETE, a trigger of the
+    // database or of the server, which runs FOR or AFTER the events of DDL,
+    // as in FOR CREATE_TABLE, DDL_LOGIN_EVENTS, or a logon trigger, which
+    // runs FOR LOGON.
+    create_trigger_statement: $ => seq($._trigger_head, $._unit_body),
+
+    _trigger_head: $ => seq(
+      $._create_or_alter,
+      kw('TRIGGER'),
+      field('name', $.object_reference),
+      kw('ON'),
+      $._trigger_target,
+      optional($._unit_options),
+      $._trigger_events,
+    ),
+
+    // The events of a trigger are a rule of their own, so that the parse
+    // states after them are not copied for each form of the parts before
+    // them.
+    _trigger_events: $ => seq(
+      choice(kw('FOR'), kw('AFTER'), kws('INSTEAD', 'OF')),
+      commaSep1(field('event', choice(
+        kw('INSERT'),
+        kw('UPDATE'),
+        kw('DELETE'),
+        alias($.identifier, $.keyword),
+      ))),
+      optional(kws('WITH', 'APPEND')),
+      optional(kws('NOT', 'FOR', 'REPLICATION')),
+    ),
+
+    _trigger_target: $ => field('table', choice(
+      $.object_reference,
+      kw('DATABASE'),
+      kws('ALL', 'SERVER'),
+    )),
+
+    // ENABLE TRIGGER and DISABLE TRIGGER.
+    enable_trigger_statement: $ => seq(
+      field('action', alias($._enable, $.keyword)),
+      kw('TRIGGER'),
+      choice(kw('ALL'), commaSep1(field('name', $.object_reference))),
+      kw('ON'),
+      $._trigger_target,
+    ),
+
+    // ENABLE and DISABLE are one token, so that they take one column of
+    // each parse state where a statement can start. Four more states take
+    // the large form when they are two keywords.
+    _enable: _ => token(prec(1, choice(keyword('ENABLE'), keyword('DISABLE')))),
+
+    // Service Broker
+
+    // BEGIN DIALOG starts a conversation from a service to a service. The
+    // options after WITH are a list of words.
+    begin_dialog_statement: $ => seq(
+      kws('BEGIN', 'DIALOG'),
+      optional(kw('CONVERSATION')),
+      field('handle', $.variable),
+      kws('FROM', 'SERVICE'),
+      field('from', $._name),
+      kws('TO', 'SERVICE'),
+      field('to', choice($.string, $.variable)),
+      optional(seq(',', field('broker', choice($.string, $.variable)))),
+      optional(seq(kws('ON', 'CONTRACT'), field('contract', $._name))),
+      optional(seq(kw('WITH'), $._word_list)),
+    ),
+
+    begin_conversation_timer_statement: $ => seq(
+      kws('BEGIN', 'CONVERSATION', 'TIMER'),
+      parens(field('handle', $.variable)),
+      kw('TIMEOUT'),
+      '=',
+      field('timeout', choice($.number, $.variable)),
+    ),
+
+    // END CONVERSATION ends a conversation, with an error or with CLEANUP.
+    end_conversation_statement: $ => seq(
+      kws('END', 'CONVERSATION'),
+      field('handle', $.variable),
+      optional(seq(kw('WITH'), choice(
+        kw('CLEANUP'),
+        seq(
+          kw('ERROR'),
+          '=',
+          field('error', choice($._signed_number, $.variable)),
+          kw('DESCRIPTION'),
+          '=',
+          field('description', choice($.string, $.variable)),
+        ),
+      ))),
+    ),
+
+    get_conversation_group_statement: $ => seq(
+      kws('GET', 'CONVERSATION', 'GROUP'),
+      field('group', $.variable),
+      kw('FROM'),
+      field('queue', $.object_reference),
+    ),
+
+    move_conversation_statement: $ => seq(
+      kws('MOVE', 'CONVERSATION'),
+      field('handle', $.variable),
+      kw('TO'),
+      field('group', $.variable),
+    ),
+
+    // RECEIVE takes messages from a queue, as a query takes rows from a
+    // table.
+    receive_statement: $ => seq(
+      kw('RECEIVE'),
+      optional($.top_clause),
+      commaSep1($._select_item),
+      kw('FROM'),
+      field('queue', $.object_reference),
+      optional(seq(kw('INTO'), field('table', $.variable))),
+      optional($.where_clause),
+    ),
+
+    // SEND sends a message on one or more conversations.
+    send_statement: $ => prec.right(seq(
+      kws('SEND', 'ON', 'CONVERSATION'),
+      choice(
+        field('handle', $.variable),
+        parens(commaSep1(field('handle', $.variable))),
+      ),
+      optional(seq(kws('MESSAGE', 'TYPE'), field('message_type', $._name))),
+      optional(parens(field('body', $._expression))),
+    )),
+
+    // Backup, restore and the other statements
+
+    // BACKUP of a database, of its log, of a certificate or of a key. The
+    // devices and the options are a list of words, as in TO DISK = 'd.bak'
+    // WITH COMPRESSION, STATS = 10.
+    backup_statement: $ => seq(
+      kw('BACKUP'),
+      $._backup_object,
+      $._option_list,
+    ),
+
+    _backup_object: $ => choice(
+      seq(choice(kw('DATABASE'), kw('LOG')), field('database', choice($._object_name, $.variable))),
+      seq(choice(kw('CERTIFICATE'), kws('SYMMETRIC', 'KEY')), field('name', $._object_name)),
+      kws('MASTER', 'KEY'),
+      kws('SERVICE', 'MASTER', 'KEY'),
+    ),
+
+    // RESTORE of a database, of its log, or of a key, and the statements
+    // that read a backup, such as RESTORE FILELISTONLY.
+    restore_statement: $ => seq(
+      kw('RESTORE'),
+      choice(
+        $._backup_object,
+        ...['FILELISTONLY', 'HEADERONLY', 'LABELONLY', 'REWINDONLY', 'VERIFYONLY'].map(kw),
+      ),
+      $._option_list,
+    ),
+
+    // DBCC runs a command of the database console, as in DBCC CHECKDB
+    // (N'd') WITH NO_INFOMSGS. The arguments and the options are a list of
+    // words.
+    dbcc_statement: $ => prec.right(seq(
+      kw('DBCC'),
+      field('command', alias($.identifier, $.keyword)),
+      optional($._option_list),
+    )),
+
+    checkpoint_statement: $ => prec.right(seq(
+      kw('CHECKPOINT'),
+      optional(field('duration', $.number)),
+    )),
+
+    // KILL ends a session, a unit of work, which it can commit or roll
+    // back, a query notification subscription or a job of statistics.
+    kill_statement: $ => prec.right(seq(
+      kw('KILL'),
+      choice(
+        seq(
+          field('session', choice($.number, $.string, $.variable)),
+          optional(seq(kw('WITH'), choice(kw('STATUSONLY'), kw('COMMIT'), kw('ROLLBACK')))),
+        ),
+        seq(
+          kws('QUERY', 'NOTIFICATION', 'SUBSCRIPTION'),
+          choice(kw('ALL'), field('subscription', $.number)),
+        ),
+        seq(kws('STATS', 'JOB'), field('job', $.number)),
+      ),
+    )),
+
+    reconfigure_statement: $ => prec.right(seq(
+      kw('RECONFIGURE'),
+      optional(kws('WITH', 'OVERRIDE')),
+    )),
+
+    shutdown_statement: $ => prec.right(seq(
+      kw('SHUTDOWN'),
+      optional(kws('WITH', 'NOWAIT')),
+    )),
+
+    setuser_statement: $ => prec.right(seq(
+      kw('SETUSER'),
+      optional(seq(
+        field('user', $.string),
+        optional(kws('WITH', 'NORESET')),
+      )),
+    )),
 
     // Queries
 
@@ -2063,6 +2441,7 @@ module.exports = grammar({
       $.number,
       seq(alias($._unary_operator, $.operator), $.number),
       $.variable,
+      $.global_variable,
       $.binary,
     ),
 
@@ -2172,7 +2551,11 @@ module.exports = grammar({
     // after the arguments come in any order.
     function_call: $ => prec.right(seq(
       choice(
-        field('name', choice($._name, alias($._function_word, $.identifier))),
+        field('name', choice(
+          $._name,
+          alias($._function_word, $.identifier),
+          alias(keyword('UPDATE'), $.identifier),
+        )),
         seq(field('schema', $._name), '.', field('name', $._label)),
         seq(
           field('database', $._name),
