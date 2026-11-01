@@ -130,7 +130,7 @@ An open question is not a decision. It goes at the end of
 | [D109](D109-the-grammar-modules-fit-a-runner-of-ci.md) | The grammar modules fit a runner of CI | Decided |
 | [D110](D110-no-grammar-for-bigquery-or-spanner.md) | No grammar for bigquery or spanner | Decided, amends D107 |
 | [D111](D111-inject-gives-the-replaced-text-of-a-layer.md) | inject gives the replaced text of a layer | Decided |
-| [D112](D112-the-usql-grammar-can-keep-a-block-in-one-statement.md) | The usql grammar can keep a block in one statement | Decided, amends D108 |
+| [D112](D112-the-usql-grammar-can-keep-a-block-in-one-statement.md) | The usql grammar can keep a block in one statement | Decided, amends D108, amended by D128 |
 | [D113](D113-xo-writes-the-highlight-queries-that-upstream-lacks.md) | xo writes the highlight queries that upstream lacks | Decided |
 | [D114](D114-usql-language-has-the-options-of-postgres.md) | usql.Language has the options of PostgreSQL | Decided, amends D108 |
 | [D115](D115-each-grammar-package-has-a-generated-example.md) | Each grammar package has a generated example | Decided, amends D53 |
@@ -146,3 +146,5 @@ An open question is not a decision. It goes at the end of
 | [D125](D125-the-oracle-grammar-has-no-fixed-size-budget.md) | The Oracle grammar has no fixed size budget | Decided, amends D124 |
 | [D126](D126-xo-writes-the-sqlite-and-duckdb-grammars.md) | xo writes the SQLite and DuckDB grammars | Decided, amends D106 |
 | [D127](D127-xo-writes-the-clickhouse-and-trino-grammars.md) | xo writes the ClickHouse and Trino grammars | Decided, amends D106 |
+| [D128](D128-the-usql-grammar-can-keep-an-anonymous-block-in-one-statement.md) | The usql grammar can keep an anonymous block in one statement | Decided, amends D112 |
+| [D129](D129-the-size-choices-of-the-sqlite-and-duckdb-grammars.md) | The size choices of the SQLite and DuckDB grammars | Decided |

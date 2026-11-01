@@ -1,6 +1,6 @@
 # D112. The usql grammar can keep a block in one statement
 
-Status: Decided, amends D108.
+Status: Decided, amends D108, amended by D128.
 
 A stored program of MySQL, SQL Server or Oracle has a body between `BEGIN`
 and `END` that holds `;`. The usql grammar ends a statement at each `;`, so it

@@ -973,8 +973,9 @@ records them. On 2026-10-31, Ken chose to write the PostgreSQL, Oracle and
 SQL Server grammars and to tune the MySQL grammar, and questions 95 to 98
 asked for the versions. D121 to D124 record the answers. The Oracle grammar raised
 questions 99 to 101, and D125 records the answers. Question 102 asked for
-the SQLite and DuckDB grammars, and D126 records the answer. The next
-question is question 103.
+the SQLite and DuckDB grammars, and D126 records the answer. The usql
+peer raised question 103 on 2026-11-01, and D128 records the answer. The
+next question is question 104.
 
 No question is open.
 
