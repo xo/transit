@@ -1,0 +1,171 @@
+================================================================================
+Oracle anonymous blocks: BEGIN ... END and a select
+================================================================================
+
+begin
+  null;
+  null;
+end;
+select 3 from dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement))
+
+================================================================================
+Oracle anonymous blocks: DECLARE ... BEGIN ... END
+================================================================================
+
+DECLARE
+  v NUMBER := 0;
+  s VARCHAR2(10) := 'x';
+BEGIN
+  :total := v;
+  DBMS_OUTPUT.PUT_LINE(s);
+END;
+SELECT 1 FROM dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (string)
+    (variable
+      (variable_name)))
+  (statement))
+
+================================================================================
+Oracle anonymous blocks: nested blocks
+================================================================================
+
+BEGIN
+  BEGIN
+    NULL;
+  END;
+  DECLARE
+    w NUMBER;
+  BEGIN
+    w := 1;
+  END inner_block;
+  <<outer>>
+  BEGIN
+    :x := 2;
+  END;
+END;
+SELECT 2 FROM dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (variable
+      (variable_name)))
+  (statement))
+
+================================================================================
+Oracle anonymous blocks: IF, LOOP and CASE inside a block
+================================================================================
+
+begin
+  for i in 1 .. 3 loop
+    if i > 1 then
+      null;
+    elsif i = 1 then
+      null;
+    end if;
+  end loop;
+  while true loop
+    exit;
+  end loop;
+  case 1
+    when 1 then null;
+  end case;
+  x := case when 1 > 0 then 1 else 0 end;
+end;
+select 4 from dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement))
+
+================================================================================
+Oracle anonymous blocks: a line with only a slash ends the block
+================================================================================
+
+BEGIN
+  NULL;
+END
+/
+SELECT 5 FROM dual;
+DECLARE
+  v NUMBER;
+BEGIN
+  v := 1;
+  /
+SELECT 6 FROM dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement)
+  (statement)
+  (statement))
+
+================================================================================
+Oracle anonymous blocks: a slash that is not alone on its line
+================================================================================
+
+BEGIN
+  x := 6
+  / 2;
+  y := 1 /
+  3;
+END;
+SELECT 7 FROM dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement))
+
+================================================================================
+Oracle anonymous blocks: a comment before the block
+================================================================================
+
+-- a comment
+/* another comment */ Begin
+  null;
+End;
+select 8 from dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (comment)
+  (comment)
+  (statement)
+  (statement))
+
+================================================================================
+Oracle anonymous blocks: statements that do not start a block
+================================================================================
+
+SELECT 1 FROM dual;
+UPDATE t SET a = 1 WHERE b IN (SELECT c FROM u);
+INSERT INTO t (begin_date) VALUES (SYSDATE);
+SELECT 2 FROM dual
+/
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement)
+  (statement)
+  (statement))

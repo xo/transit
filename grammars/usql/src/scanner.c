@@ -1,4 +1,4 @@
-// The external scanner of the usql grammar (D101, D102, D108, D112).
+// The external scanner of the usql grammar (D101, D102, D108, D112, D128).
 //
 // The scanner reads every token of the grammar. It finds the end of a
 // statement, the strings, the dollar quotes, the comments and the depth of
@@ -26,6 +26,13 @@
 // statement, a ; does not end the statement until APPLY BATCH. The words
 // that it reads are in keywords below.
 //
+// With USQL_ANONYMOUS_BLOCKS, the scanner keeps an anonymous block of
+// PL/SQL in one statement (D128). A statement that starts with BEGIN or
+// DECLARE is a block. The scanner counts BEGIN and END as it does for a
+// stored program, and every BEGIN in the block starts a block. The
+// statement ends at the ; after the END of the outer BEGIN, or at a / alone
+// on its line, as in SQL*Plus.
+//
 // After a colon and a quote, the scanner must read the name and the closing
 // quote before it knows whether the colon starts a variable, as :'name', or
 // is text before a string, as :'a b'. A token cannot end before a character
@@ -47,7 +54,8 @@
 #define USQL_HASH_COMMENTS 8   // # starts a comment
 #define USQL_BACKTICKS 16      // `...` is a quoted identifier
 #define USQL_BEGIN_END_BLOCKS 32 // BEGIN ... END of a stored program is in one statement
-#define USQL_BATCHES 64          // BEGIN BATCH ... APPLY BATCH of CQL is in one statement
+#define USQL_ANONYMOUS_BLOCKS 64 // an anonymous block of PL/SQL is in one statement
+#define USQL_BATCHES 128         // BEGIN BATCH ... APPLY BATCH of CQL is in one statement
 
 // The options of the scanner. The default is dollar quotes and block
 // comments, the options of PostgreSQL. The upstream tool and the golden
@@ -113,10 +121,10 @@ enum Context {
 
 // The number of bytes that tree_sitter_usql_external_scanner_serialize
 // writes.
-#define SERIALIZED_SIZE 10
+#define SERIALIZED_SIZE 11
 
 // Block is the part of a statement that the scanner is in, with the option
-// USQL_BEGIN_END_BLOCKS or USQL_BATCHES.
+// USQL_BEGIN_END_BLOCKS, USQL_ANONYMOUS_BLOCKS or USQL_BATCHES.
 enum Block {
   // BLOCK_START is before the first word of the statement.
   BLOCK_START,
@@ -134,8 +142,8 @@ enum Block {
   // BLOCK_ROUTINE is in a stored program before its BEGIN. A ; ends the
   // statement.
   BLOCK_ROUTINE,
-  // BLOCK_DECLARE is in the declarations of a stored program before its
-  // BEGIN. A ; does not end the statement.
+  // BLOCK_DECLARE is in the declarations of a stored program or of an
+  // anonymous block before its BEGIN. A ; does not end the statement.
   BLOCK_DECLARE,
   // BLOCK_BODY is inside the body, from BEGIN to its END.
   BLOCK_BODY,
@@ -151,7 +159,8 @@ enum Block {
 enum Pending {
   PENDING_NONE,
   // PENDING_BEGIN is after BEGIN, which starts a transaction when WORK,
-  // TRANSACTION, TRAN, DISTRIBUTED or ; comes next, and else a block.
+  // TRANSACTION, TRAN, DISTRIBUTED or ; comes next, and else a block. In an
+  // anonymous block, it always starts a block.
   PENDING_BEGIN,
   // PENDING_END is after END, which ends a statement when IF, LOOP, WHILE
   // or REPEAT comes next, and else a block.
@@ -271,11 +280,14 @@ typedef struct {
   // makes COMMAND_END, which reads no character, change the state.
   uint8_t command;
   // block is the enum Block of the statement, pending its enum Pending, and
-  // level the number of blocks of the body that are open. They stay 0
-  // without USQL_BEGIN_END_BLOCKS and USQL_BATCHES.
+  // level the number of blocks of the body that are open. anonymous is 1 in
+  // a statement that starts with BEGIN or DECLARE, with
+  // USQL_ANONYMOUS_BLOCKS. They stay 0 without USQL_BEGIN_END_BLOCKS,
+  // USQL_ANONYMOUS_BLOCKS and USQL_BATCHES.
   uint8_t block;
   uint8_t pending;
   uint8_t level;
+  uint8_t anonymous;
   // variable is the enum Variable that VARIABLE_CHECK found for the next
   // token.
   uint8_t variable;
@@ -601,6 +613,7 @@ static void reset_blocks(Scanner *s) {
   s->block = BLOCK_START;
   s->pending = PENDING_NONE;
   s->level = 0;
+  s->anonymous = 0;
 }
 
 // open_block opens a block of the body: the first BEGIN of the body, a
@@ -629,21 +642,24 @@ static void close_block(Scanner *s) {
 }
 
 // resolve_pending gives the pending word its meaning when a character that
-// is not in a word comes after it: BEGIN does not start a block, END ends
-// one, and AS does not start declarations.
+// is not in a word comes after it: BEGIN does not start a block, but in an
+// anonymous block it does, END ends one, and AS does not start
+// declarations.
 static void resolve_pending(Scanner *s) {
   enum Pending pending = (enum Pending)s->pending;
   s->pending = PENDING_NONE;
   if (pending == PENDING_END) {
     close_block(s);
+  } else if (pending == PENDING_BEGIN && s->anonymous) {
+    open_block(s);
   }
 }
 
 // ends_statement reports whether a ; outside parentheses ends the
 // statement. It is not the end inside the declarations or the body of a
-// stored program, or inside a batch.
+// stored program or of an anonymous block, or inside a batch.
 static bool ends_statement(Scanner *s, int options) {
-  if (!(options & (USQL_BEGIN_END_BLOCKS | USQL_BATCHES))) {
+  if (!(options & (USQL_BEGIN_END_BLOCKS | USQL_ANONYMOUS_BLOCKS | USQL_BATCHES))) {
     return true;
   }
   resolve_pending(s);
@@ -704,7 +720,8 @@ static void scan_keyword(Scanner *s, enum Keyword kw, int options) {
   case PENDING_NONE:
     break;
   case PENDING_BEGIN:
-    if (kw == KW_WORK || kw == KW_TRANSACTION || kw == KW_TRAN || kw == KW_DISTRIBUTED) {
+    if (!s->anonymous &&
+        (kw == KW_WORK || kw == KW_TRANSACTION || kw == KW_TRAN || kw == KW_DISTRIBUTED)) {
       return;
     }
     open_block(s);
@@ -742,6 +759,12 @@ static void scan_keyword(Scanner *s, enum Keyword kw, int options) {
       s->block = BLOCK_CREATE;
     } else if (kw == KW_BEGIN && (options & USQL_BATCHES)) {
       s->block = BLOCK_BATCH_START;
+    } else if (kw == KW_BEGIN && (options & USQL_ANONYMOUS_BLOCKS)) {
+      s->anonymous = 1;
+      open_block(s);
+    } else if (kw == KW_DECLARE && (options & USQL_ANONYMOUS_BLOCKS)) {
+      s->anonymous = 1;
+      s->block = BLOCK_DECLARE;
     } else {
       s->block = BLOCK_NONE;
     }
@@ -866,6 +889,15 @@ static void end_word(Scanner *s, Word *w, int32_t c, int options) {
 static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int options,
                       enum Context ctx, bool content, int32_t prev);
 
+// scan_slash_line reads the white space after a / and reports whether the
+// line ends there, so that the / is alone on its line.
+static bool scan_slash_line(TSLexer *lexer) {
+  while (!lexer->eof(lexer) && is_space(lexer->lookahead) && !is_newline(lexer->lookahead)) {
+    advance(lexer);
+  }
+  return lexer->eof(lexer) || is_newline(lexer->lookahead);
+}
+
 // scan_variable_start scans from the colon of a variable. It returns the
 // sigil when a valid variable follows. Else the colon is text in the
 // context ctx. After :' or :", it first returns VARIABLE_CHECK, with no
@@ -950,17 +982,28 @@ static bool scan_variable_start(Scanner *s, TSLexer *lexer, const bool *valid_sy
 // of an argument, or a word of a list of options. content is true when the
 // token already holds text, and prev is the last character of that text.
 // The token ends at its last character that is not white space. With
-// USQL_BEGIN_END_BLOCKS or USQL_BATCHES, scan_text reads the words of SQL
-// text.
+// USQL_BEGIN_END_BLOCKS, USQL_ANONYMOUS_BLOCKS or USQL_BATCHES, scan_text
+// reads the words of SQL text. When prev ends a line, the first character
+// is at the start of its line.
 static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int options,
                       enum Context ctx, bool content, int32_t prev) {
-  bool blocks = ctx == CONTEXT_SQL && (options & (USQL_BEGIN_END_BLOCKS | USQL_BATCHES));
+  bool blocks = ctx == CONTEXT_SQL &&
+                (options & (USQL_BEGIN_END_BLOCKS | USQL_ANONYMOUS_BLOCKS | USQL_BATCHES));
   Word w = {{0}, 0, false};
+  // line_start is true when only white space comes before the lookahead on
+  // its line.
+  bool line_start = is_newline(prev);
   for (;;) {
     if (lexer->eof(lexer)) {
       break;
     }
     int32_t c = lexer->lookahead;
+    bool alone = line_start;
+    if (is_newline(c)) {
+      line_start = true;
+    } else if (!is_space(c)) {
+      line_start = false;
+    }
     if (blocks) {
       if (is_word_char(&w, c)) {
         add_word_char(&w, c);
@@ -1007,6 +1050,23 @@ static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int
           }
           advance(lexer);
           return line ? scan_line_comment(lexer) : scan_block_comment(lexer);
+        }
+        if (c == '/' && alone && s->anonymous && (lexer->eof(lexer) || is_space(d))) {
+          if (content) {
+            // the next token starts at the /, at the start of its line
+            break;
+          }
+          lexer->mark_end(lexer);
+          if (scan_slash_line(lexer)) {
+            // a / alone on its line ends an anonymous block, as in SQL*Plus
+            s->depth = 0;
+            reset_blocks(s);
+            lexer->result_symbol = SEMICOLON;
+            return true;
+          }
+          content = true;
+          prev = c;
+          continue;
         }
         lexer->mark_end(lexer);
         content = true;
@@ -1241,7 +1301,12 @@ static bool scan_arguments(Scanner *s, TSLexer *lexer, const bool *valid_symbols
 
 // scan_sql scans a token of SQL, or the name of a meta command.
 static bool scan_sql(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int options) {
+  // prev is a new line when the white space ends a line
+  int32_t prev = 0;
   while (!lexer->eof(lexer) && is_space(lexer->lookahead)) {
+    if (is_newline(lexer->lookahead)) {
+      prev = '\n';
+    }
     skip(lexer);
   }
   if (lexer->eof(lexer)) {
@@ -1252,10 +1317,10 @@ static bool scan_sql(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int 
     advance(lexer);
     if (lexer->lookahead == ';' || lexer->lookahead == ':') {
       // \; and \: put the character in the statement, as psql does
-      int32_t prev = lexer->lookahead;
+      int32_t d = lexer->lookahead;
       advance(lexer);
       lexer->mark_end(lexer);
-      return scan_text(s, lexer, valid_symbols, options, CONTEXT_SQL, true, prev);
+      return scan_text(s, lexer, valid_symbols, options, CONTEXT_SQL, true, d);
     }
     return scan_command_name(s, lexer, valid_symbols);
   }
@@ -1273,7 +1338,7 @@ static bool scan_sql(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int 
   if (c == '"' || (c == '`' && (options & USQL_BACKTICKS))) {
     return scan_quoted(lexer, QUOTED_IDENTIFIER, false);
   }
-  return scan_text(s, lexer, valid_symbols, options, CONTEXT_SQL, false, 0);
+  return scan_text(s, lexer, valid_symbols, options, CONTEXT_SQL, false, prev);
 }
 
 void *tree_sitter_usql_external_scanner_create(void) { return ts_calloc(1, sizeof(Scanner)); }
@@ -1281,7 +1346,8 @@ void *tree_sitter_usql_external_scanner_create(void) { return ts_calloc(1, sizeo
 void tree_sitter_usql_external_scanner_destroy(void *payload) { ts_free(payload); }
 
 // tree_sitter_usql_external_scanner_serialize writes the depth in its first
-// 4 bytes, then base, command, block, pending, level and variable.
+// 4 bytes, then base, command, block, pending, level, variable and
+// anonymous.
 unsigned tree_sitter_usql_external_scanner_serialize(void *payload, char *buffer) {
   Scanner *s = (Scanner *)payload;
   memcpy(buffer, &s->depth, sizeof(s->depth));
@@ -1291,6 +1357,7 @@ unsigned tree_sitter_usql_external_scanner_serialize(void *payload, char *buffer
   buffer[7] = (char)s->pending;
   buffer[8] = (char)s->level;
   buffer[9] = (char)s->variable;
+  buffer[10] = (char)s->anonymous;
   return SERIALIZED_SIZE;
 }
 
@@ -1312,6 +1379,7 @@ void tree_sitter_usql_external_scanner_deserialize(void *payload, const char *bu
     s->pending = (uint8_t)buffer[7];
     s->level = (uint8_t)buffer[8];
     s->variable = (uint8_t)buffer[9];
+    s->anonymous = (uint8_t)buffer[10];
   }
 }
 

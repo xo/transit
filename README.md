@@ -174,9 +174,10 @@ lang := usql.LanguageFor(usql.Options{BlockComments: true, HashComments: true, B
 
 The fields of `usql.Options` are the flags of the type `Syntax` of dbmeta:
 `DollarQuotes`, `BlockComments`, `SlashComments`, `HashComments` and
-`Backticks`. Two more fields are not flags of dbmeta. `BeginEndBlocks` is
-described below. `Batches` keeps a batch of CQL, from `BEGIN BATCH` to
-`APPLY BATCH`, in one statement. It is off by default.
+`Backticks`. Three more fields are not flags of dbmeta. `BeginEndBlocks`
+and `AnonymousBlocks` are described below. `Batches` keeps a batch of CQL,
+from `BEGIN BATCH` to `APPLY BATCH`, in one statement. It is off by
+default.
 
 The package `github.com/xo/transit/grammars/mysql` holds the grammar
 `mysql`, which xo writes from the reference manual of MySQL 8.4 (D42, D106).
@@ -212,7 +213,11 @@ because Oracle does not put PL/SQL in a quoted string: anonymous blocks,
 BODY`, `CREATE TRIGGER`, `CREATE TYPE BODY`, the functions of `WITH`, each
 declaration and statement of PL/SQL, and the conditional compilation with
 `$IF`. A `/` alone on its line ends a statement, as in a script of
-SQL*Plus. The package adds about 3.3 MB to a binary (D125). The
+SQL*Plus. The option `BeginEndBlocks` of `usql.Options` keeps a stored
+program in one statement, and the option `AnonymousBlocks` keeps an
+anonymous block, which starts with `BEGIN` or `DECLARE`, in one statement
+(D128). Both are off by default. The package adds about 3.3 MB to a binary
+(D125). The
 grammar of `andreasmaierde/tree-sitter-plsql` stays in the golden set, but
 it has no Go package.
 

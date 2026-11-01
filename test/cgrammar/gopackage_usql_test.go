@@ -18,11 +18,13 @@ func init() {
 }
 
 // usqlOptionSets are the options of the families of dialects of D101, which
-// had a grammar each before D108, sets with BeginEndBlocks (D112), and sets
-// with Batches. The test builds the C scanner once for each of them (D108). The options of
-// SQL Server and Oracle with BeginEndBlocks are those of standard with
-// BeginEndBlocks, and postgres with BeginEndBlocks reaches the branches of
-// dollar quotes.
+// had a grammar each before D108, sets with BeginEndBlocks (D112), sets
+// with AnonymousBlocks (D128), and sets with Batches. The test builds the C
+// scanner once for each of them (D108). The options of SQL Server and Oracle
+// with BeginEndBlocks are those of standard with BeginEndBlocks, and
+// postgres with BeginEndBlocks reaches the branches of dollar quotes. The
+// options of Oracle are those of standard_anonymous, and
+// mysql_anonymous_batches reaches the options together.
 var usqlOptionSets = []struct {
 	name string
 	opts usql.Options
@@ -36,8 +38,11 @@ var usqlOptionSets = []struct {
 	{"mysql_blocks", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true}},
 	{"standard_blocks", usql.Options{BlockComments: true, BeginEndBlocks: true}},
 	{"postgres_blocks", usql.Options{DollarQuotes: true, BlockComments: true, BeginEndBlocks: true}},
+	{"standard_anonymous", usql.Options{BlockComments: true, BeginEndBlocks: true, AnonymousBlocks: true}},
+	{"anonymous", usql.Options{BlockComments: true, AnonymousBlocks: true}},
 	{"cql_batches", usql.Options{DollarQuotes: true, BlockComments: true, SlashComments: true, Batches: true}},
 	{"mysql_blocks_batches", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true, Batches: true}},
+	{"mysql_anonymous_batches", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true, AnonymousBlocks: true, Batches: true}},
 }
 
 // usqlDefine returns the C macro of src/scanner.c of the usql grammar that
@@ -243,6 +248,47 @@ var usqlScannerInputs = []string{
 	"x; BEGIN BATCH y; APPLY BATCH; BEGIN BATCH",
 	"SELECT 1 BEGIN BATCH x; y",
 	"CREATE PROCEDURE p() BEGIN BATCH x; END; y; BEGIN BATCH z; APPLY BATCH; w",
+	// the anonymous blocks of PL/SQL (D128)
+	"begin\n  null;\n" + "  null;\nend;\nselect 3 from dual;",
+	"BEGIN x; END; BEGIN WORK; y; END; z",
+	"BEGIN " + "BEGIN TRANSACTION; x; END; y; END; z",
+	"BEGIN x; BEGIN :a := 1; END; y; END; z",
+	"BEGIN x; BEGIN; y; END; z; END; w",
+	"BEGIN(1); x; END; y",
+	"DECLARE v NUMBER; w NUMBER; BEGIN x; END; y",
+	"DECLARE v NUMBER; BEGIN :a := 1; END; y",
+	"DECLARE v NUMBER; BEGIN WORK; END; y",
+	"declare\n  v number;\nbegin\n  declare w number; begin null; end;\n" + "end;\nselect 1 from dual;",
+	"BEGIN IF a THEN x; END IF; LOOP y; END LOOP; CASE b WHEN 1 THEN z; END CASE; END; w",
+	"BEGIN x := CASE WHEN a THEN 1 ELSE 2 END; END lbl; y",
+	"BEGIN x; END\n/\nselect 1;",
+	"BEGIN x;\n  /  \n y;",
+	"BEGIN x;\n/",
+	"BEGIN x;\r\n/\r\ny;",
+	"BEGIN x;\n/ y; END; z",
+	"BEGIN x;\n/2; END; z",
+	"BEGIN x;\n/* a */ y; END; z",
+	"BEGIN x;\n// a\n y; END; z",
+	"BEGIN x;\n-- a\n/\ny;",
+	"BEGIN x;\n/* a */\n/\ny;",
+	"BEGIN x; /* a */ /\ny; END; z",
+	"BEGIN x := (1;\n/\ny;",
+	"BEGIN x; 'a'\n/\ny;",
+	"BEGIN x;\n\t/\t\ny;",
+	"BEGIN x\n/\n/\ny;",
+	"select 1\n/\nselect 2;",
+	"/\nselect 1;",
+	"x; /* a */ BEGIN y; END; z",
+	"-- a\nDECLARE x; BEGIN y; END; z",
+	"(BEGIN x; END); y",
+	"SELECT 1 BEGIN x; END; y",
+	"BEGIN x; \\g\nselect 1; y",
+	"BEGIN x; :'a'; :\"b\"; END; y",
+	"BEGIN x; $$ end; $$; END; y",
+	"BEGIN BATCH x; APPLY BATCH; y",
+	"DECLARE @x int; SELECT @x; y",
+	"CREATE PROCEDURE p IS BEGIN x; END\n/\ny;",
+	"BEGIN " + strings.Repeat("BEGIN x; ", 300) + strings.Repeat("END; ", 301) + "y; z",
 }
 
 // TestUsqlScannersMatchC compares the Go scanner of the usql grammar with
@@ -299,7 +345,7 @@ func TestUsqlScannerOptionsDiffer(t *testing.T) {
 
 // TestUsqlScannerDeserializeMatchesC gives random bytes to Deserialize of
 // the Go scanner and of the C scanner of the usql grammar, and compares what
-// Serialize writes after it. Every fifth run gives 10 bytes, the size of the
+// Serialize writes after it. Every fifth run gives 11 bytes, the size of the
 // state. The options do not change the state, so the test uses the default
 // options.
 func TestUsqlScannerDeserializeMatchesC(t *testing.T) {
@@ -311,7 +357,7 @@ func TestUsqlScannerDeserializeMatchesC(t *testing.T) {
 	for i := range 1000 {
 		size := r.IntN(abi.SerializationBufferSize + 1)
 		if i%5 == 0 {
-			size = 10
+			size = 11
 		}
 		in := make([]byte, size)
 		for k := range in {

@@ -8,14 +8,14 @@ import (
 )
 
 // Options are the options of the syntax of a SQL dialect that the external
-// scanner reads (D108). Each field but BeginEndBlocks and Batches is a flag
-// of the type Syntax of dbmeta, with the same name. With the zero value, none of
-// these texts is a string or a comment, and a ; outside parentheses always
-// ends a statement. A comment that starts with -- is a comment with every
+// scanner reads (D108). Each field but BeginEndBlocks, AnonymousBlocks and
+// Batches is a flag of the type Syntax of dbmeta, with the same name. With
+// the zero value, none of these texts is a string or a comment, and a ;
+// outside parentheses always ends a statement. A comment that starts with -- is a comment with every
 // set of options.
 //
 // Each field is the flag of the same name in src/scanner.c, such as
-// USQL_DOLLAR_QUOTES for DollarQuotes.
+// USQL_DOLLAR_QUOTES for DollarQuotes, and field i is the flag 1<<i.
 type Options struct {
 	// DollarQuotes makes $tag$ ... $tag$ and $$ ... $$ a string.
 	DollarQuotes bool
@@ -33,6 +33,13 @@ type Options struct {
 	// TRIGGER or EVENT, the scanner counts BEGIN and END, and a ; inside
 	// the body does not end the statement. It is not a flag of dbmeta.
 	BeginEndBlocks bool
+	// AnonymousBlocks keeps an anonymous block of PL/SQL in one statement
+	// (D128). A statement that starts with BEGIN or DECLARE is a block. The
+	// scanner counts BEGIN and END, and the statement ends at the ; after
+	// the END of the outer BEGIN, or at a line with only /, as in SQL*Plus.
+	// A statement that starts with another word does not change. It is not
+	// a flag of dbmeta.
+	AnonymousBlocks bool
 	// Batches keeps a batch of CQL in one statement. After BEGIN BATCH,
 	// BEGIN UNLOGGED BATCH or BEGIN COUNTER BATCH at the start of a
 	// statement, a ; does not end the statement until APPLY BATCH. It is not

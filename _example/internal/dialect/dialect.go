@@ -41,15 +41,16 @@ type Dialect struct {
 // dialects are the dialects that the flag -dialect chooses from. The
 // options are those of the syntax of each dialect in dbmeta. MySQL, Oracle
 // and SQL Server also turn on BeginEndBlocks, so that a stored program is
-// one statement (D112). CQL also turns on Batches, so that a batch is one
-// statement.
+// one statement (D112). Oracle also turns on AnonymousBlocks, so that an
+// anonymous block is one statement (D128). CQL also turns on Batches, so
+// that a batch is one statement.
 var dialects = []Dialect{
 	{"clickhouse", usql.Options{BlockComments: true, SlashComments: true, HashComments: true, Backticks: true}, clickhouse.Language, clickhouse.Queries, clickhouse.Keywords},
 	{"cql", usql.Options{DollarQuotes: true, BlockComments: true, SlashComments: true, Batches: true}, cql.Language, cql.Queries, cql.Keywords},
 	{"duckdb", usql.Options{DollarQuotes: true, BlockComments: true}, duckdb.Language, duckdb.Queries, duckdb.Keywords},
 	{"generic", usql.Options{BlockComments: true}, sql.Language, sql.Queries, sql.Keywords},
 	{"mysql", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true}, mysql.Language, mysql.Queries, mysql.Keywords},
-	{"oracle", usql.Options{BlockComments: true, BeginEndBlocks: true}, oracle.Language, oracle.Queries, oracle.Keywords},
+	{"oracle", usql.Options{BlockComments: true, BeginEndBlocks: true, AnonymousBlocks: true}, oracle.Language, oracle.Queries, oracle.Keywords},
 	{"postgres", usql.Options{DollarQuotes: true, BlockComments: true}, postgres.Language, postgres.Queries, postgres.Keywords},
 	{"sqlite3", usql.Options{BlockComments: true, Backticks: true}, sqlite3.Language, sqlite3.Queries, sqlite3.Keywords},
 	{"sqlserver", usql.Options{BlockComments: true, BeginEndBlocks: true}, sqlserver.Language, sqlserver.Queries, sqlserver.Keywords},

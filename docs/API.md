@@ -816,8 +816,8 @@ writes this API in `options.go`, beside the generated files:
 package usql
 
 // Options are the options of the syntax of a SQL dialect that the external
-// scanner reads. Each field but BeginEndBlocks and Batches is a flag of the
-// type Syntax of dbmeta, with the same name.
+// scanner reads. Each field but BeginEndBlocks, AnonymousBlocks and Batches
+// is a flag of the type Syntax of dbmeta, with the same name.
 type Options struct {
 	DollarQuotes  bool // $tag$ ... $tag$ and $$ ... $$ are a string
 	BlockComments bool // /* ... */ is a comment
@@ -825,8 +825,9 @@ type Options struct {
 	HashComments  bool // # starts a comment
 	Backticks     bool // `...` is a quoted identifier
 
-	BeginEndBlocks bool // a stored program with BEGIN ... END is one statement
-	Batches        bool // a batch of CQL, BEGIN BATCH ... APPLY BATCH, is one statement
+	BeginEndBlocks  bool // a stored program with BEGIN ... END is one statement
+	AnonymousBlocks bool // an anonymous block of PL/SQL is one statement
+	Batches         bool // a batch of CQL, BEGIN BATCH ... APPLY BATCH, is one statement
 }
 
 // LanguageFor returns the language with an external scanner that reads
@@ -848,6 +849,13 @@ on, a statement that starts with `CREATE ... PROCEDURE`, `FUNCTION`,
 `TRIGGER` or `EVENT` keeps its `BEGIN ... END` body, and a `;` inside the
 body does not end the statement. `docs/USQL.md` says which words the
 scanner reads.
+
+`AnonymousBlocks` is the option of D128, and it is off by default. With it
+on, a statement that starts with `BEGIN` or `DECLARE` is an anonymous block
+of PL/SQL. The scanner counts `BEGIN` and `END` as it does for
+`BeginEndBlocks`. The statement ends at the `;` after the `END` of the outer
+`BEGIN`, or at a line with only `/`, as in SQL*Plus. A statement that starts
+with another word does not change. usql turns it on for Oracle only.
 
 `Batches` keeps a batch of CQL in one statement, and it is off by default.
 With it on, a statement that starts with `BEGIN BATCH`, `BEGIN UNLOGGED

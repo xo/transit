@@ -1,7 +1,7 @@
 package usql
 
 // This file is a port of src/scanner.c of the usql grammar of transit, in
-// grammars/usql (D101, D102, D108, D112).
+// grammars/usql (D101, D102, D108, D112, D128).
 //
 // The scanner reads every token of the grammar. It finds the end of a
 // statement, the strings, the dollar quotes, the comments and the depth of
@@ -28,6 +28,13 @@ package usql
 // one statement. After BEGIN [UNLOGGED | COUNTER] BATCH at the start of a
 // statement, a ; does not end the statement until APPLY BATCH. The words
 // that it reads are in keywords below.
+//
+// With the option AnonymousBlocks, the scanner keeps an anonymous block of
+// PL/SQL in one statement (D128). A statement that starts with BEGIN or
+// DECLARE is a block. The scanner counts BEGIN and END as it does for a
+// stored program, and every BEGIN in the block starts a block. The
+// statement ends at the ; after the END of the outer BEGIN, or at a / alone
+// on its line, as in SQL*Plus.
 //
 // After a colon and a quote, the scanner must read the name and the closing
 // quote before it knows whether the colon starts a variable, as :'name', or
@@ -109,10 +116,10 @@ const maxWordLength = 16
 
 // serializedSize is SERIALIZED_SIZE, the number of bytes that Serialize
 // writes.
-const serializedSize = 10
+const serializedSize = 11
 
 // block is the C enum Block, the part of a statement that the scanner is
-// in, with the option BeginEndBlocks or Batches.
+// in, with the option BeginEndBlocks, AnonymousBlocks or Batches.
 type block uint8
 
 const (
@@ -132,8 +139,8 @@ const (
 	// blockRoutine is in a stored program before its BEGIN. A ; ends the
 	// statement.
 	blockRoutine
-	// blockDeclare is in the declarations of a stored program before its
-	// BEGIN. A ; does not end the statement.
+	// blockDeclare is in the declarations of a stored program or of an
+	// anonymous block before its BEGIN. A ; does not end the statement.
 	blockDeclare
 	// blockBody is inside the body, from BEGIN to its END.
 	blockBody
@@ -152,7 +159,8 @@ type pending uint8
 const (
 	pendingNone pending = iota
 	// pendingBegin is after BEGIN, which starts a transaction when WORK,
-	// TRANSACTION, TRAN, DISTRIBUTED or ; comes next, and else a block.
+	// TRANSACTION, TRAN, DISTRIBUTED or ; comes next, and else a block. In
+	// an anonymous block, it always starts a block.
 	pendingBegin
 	// pendingEnd is after END, which ends a statement when IF, LOOP, WHILE
 	// or REPEAT comes next, and else a block.
@@ -283,11 +291,14 @@ type scanner struct {
 	// makes commandEnd, which reads no character, change the state.
 	command uint8
 	// block is the block of the statement, pending its pending word, and
-	// level the number of blocks of the body that are open. They stay 0
-	// without the options BeginEndBlocks and Batches.
-	block   block
-	pending pending
-	level   uint8
+	// level the number of blocks of the body that are open. anonymous is 1
+	// in a statement that starts with BEGIN or DECLARE, with the option
+	// AnonymousBlocks. They stay 0 without the options BeginEndBlocks,
+	// AnonymousBlocks and Batches.
+	block     block
+	pending   pending
+	level     uint8
+	anonymous uint8
 	// variable is what variableCheck found for the next token.
 	variable variable
 }
@@ -615,6 +626,7 @@ func (s *scanner) resetBlocks() {
 	s.block = blockStart
 	s.pending = pendingNone
 	s.level = 0
+	s.anonymous = 0
 }
 
 // openBlock is open_block. It opens a block of the body: the first BEGIN of
@@ -644,20 +656,25 @@ func (s *scanner) closeBlock() {
 
 // resolvePending is resolve_pending. It gives the pending word its meaning
 // when a character that is not in a word comes after it: BEGIN does not
-// start a block, END ends one, and AS does not start declarations.
+// start a block, but in an anonymous block it does, END ends one, and AS
+// does not start declarations.
 func (s *scanner) resolvePending() {
 	p := s.pending
 	s.pending = pendingNone
-	if p == pendingEnd {
+	switch {
+	case p == pendingEnd:
 		s.closeBlock()
+	case p == pendingBegin && s.anonymous != 0:
+		s.openBlock()
 	}
 }
 
 // endsStatement is ends_statement. It reports whether a ; outside
 // parentheses ends the statement. It is not the end inside the
-// declarations or the body of a stored program, or inside a batch.
+// declarations or the body of a stored program or of an anonymous block, or
+// inside a batch.
 func (s *scanner) endsStatement(opts Options) bool {
-	if !opts.BeginEndBlocks && !opts.Batches {
+	if !opts.BeginEndBlocks && !opts.AnonymousBlocks && !opts.Batches {
 		return true
 	}
 	s.resolvePending()
@@ -706,7 +723,8 @@ func (s *scanner) scanKeyword(kw keyword, opts Options) {
 	switch p {
 	case pendingNone:
 	case pendingBegin:
-		if kw == kwWork || kw == kwTransaction || kw == kwTran || kw == kwDistributed {
+		if s.anonymous == 0 &&
+			(kw == kwWork || kw == kwTransaction || kw == kwTran || kw == kwDistributed) {
 			return
 		}
 		s.openBlock()
@@ -741,6 +759,12 @@ func (s *scanner) scanKeyword(kw keyword, opts Options) {
 			s.block = blockCreate
 		case kw == kwBegin && opts.Batches:
 			s.block = blockBatchStart
+		case kw == kwBegin && opts.AnonymousBlocks:
+			s.anonymous = 1
+			s.openBlock()
+		case kw == kwDeclare && opts.AnonymousBlocks:
+			s.anonymous = 1
+			s.block = blockDeclare
 		default:
 			s.block = blockNone
 		}
@@ -840,6 +864,15 @@ func (s *scanner) endWord(w *sqlWord, c int32, opts Options) {
 	w.spoiled = c == '.' || c == '@' || c == '$' || c == '#' || c == '['
 }
 
+// scanSlashLine is scan_slash_line. It reads the white space after a / and
+// reports whether the line ends there, so that the / is alone on its line.
+func scanSlashLine(lexer *abi.Lexer) bool {
+	for !lexer.EOF() && isSpace(lexer.Lookahead) && !isNewline(lexer.Lookahead) {
+		advance(lexer)
+	}
+	return lexer.EOF() || isNewline(lexer.Lookahead)
+}
+
 // scanVariableStart is scan_variable_start. It scans from the colon of a
 // variable. It returns the sigil when a valid variable follows. Else the
 // colon is text in the context ctx. After :' or :", it first returns
@@ -932,13 +965,23 @@ func (s *scanner) scanVariableStart(lexer *abi.Lexer, validSymbols []bool, opts 
 // SQL text, a word of an argument, or a word of a list of options. content
 // is true when the token already holds text, and prev is the last character
 // of that text. The token ends at its last character that is not white
-// space. With the option BeginEndBlocks or Batches, scanText reads the words
-// of SQL text.
+// space. With the option BeginEndBlocks, AnonymousBlocks or Batches,
+// scanText reads the words of SQL text. When prev ends a line, the first
+// character is at the start of its line.
 func (s *scanner) scanText(lexer *abi.Lexer, validSymbols []bool, opts Options, ctx context, content bool, prev int32) bool {
-	blocks := ctx == contextSQL && (opts.BeginEndBlocks || opts.Batches)
+	blocks := ctx == contextSQL && (opts.BeginEndBlocks || opts.AnonymousBlocks || opts.Batches)
 	var w sqlWord
+	// lineStart is true when only white space comes before the lookahead on
+	// its line.
+	lineStart := isNewline(prev)
 	for !lexer.EOF() {
 		c := lexer.Lookahead
+		alone := lineStart
+		if isNewline(c) {
+			lineStart = true
+		} else if !isSpace(c) {
+			lineStart = false
+		}
 		if blocks {
 			if isWordChar(&w, c) {
 				addWordChar(&w, c)
@@ -988,6 +1031,25 @@ func (s *scanner) scanText(lexer *abi.Lexer, validSymbols []bool, opts Options, 
 						return scanLineComment(lexer)
 					}
 					return scanBlockComment(lexer)
+				}
+				if c == '/' && alone && s.anonymous != 0 && (lexer.EOF() || isSpace(d)) {
+					if content {
+						// the next token starts at the /, at the start of its
+						// line
+						break
+					}
+					lexer.MarkEnd()
+					if scanSlashLine(lexer) {
+						// a / alone on its line ends an anonymous block, as in
+						// SQL*Plus
+						s.depth = 0
+						s.resetBlocks()
+						lexer.ResultSymbol = semicolon
+						return true
+					}
+					content = true
+					prev = c
+					continue
 				}
 				lexer.MarkEnd()
 				content = true
@@ -1234,7 +1296,12 @@ func (s *scanner) scanArguments(lexer *abi.Lexer, validSymbols []bool, opts Opti
 // scanSQL is scan_sql. It scans a token of SQL, or the name of a meta
 // command.
 func (s *scanner) scanSQL(lexer *abi.Lexer, validSymbols []bool, opts Options) bool {
+	// prev is a new line when the white space ends a line
+	var prev int32
 	for !lexer.EOF() && isSpace(lexer.Lookahead) {
+		if isNewline(lexer.Lookahead) {
+			prev = '\n'
+		}
 		skip(lexer)
 	}
 	if lexer.EOF() {
@@ -1245,10 +1312,10 @@ func (s *scanner) scanSQL(lexer *abi.Lexer, validSymbols []bool, opts Options) b
 		advance(lexer)
 		if lexer.Lookahead == ';' || lexer.Lookahead == ':' {
 			// \; and \: put the character in the statement, as psql does
-			prev := lexer.Lookahead
+			d := lexer.Lookahead
 			advance(lexer)
 			lexer.MarkEnd()
-			return s.scanText(lexer, validSymbols, opts, contextSQL, true, prev)
+			return s.scanText(lexer, validSymbols, opts, contextSQL, true, d)
 		}
 		return s.scanCommandName(lexer, validSymbols)
 	}
@@ -1266,7 +1333,7 @@ func (s *scanner) scanSQL(lexer *abi.Lexer, validSymbols []bool, opts Options) b
 	if c == '"' || (c == '`' && opts.Backticks) {
 		return scanQuoted(lexer, quotedIdentifier, false)
 	}
-	return s.scanText(lexer, validSymbols, opts, contextSQL, false, 0)
+	return s.scanText(lexer, validSymbols, opts, contextSQL, false, prev)
 }
 
 // newScanner returns a new scanner with the default options.
@@ -1275,7 +1342,7 @@ func (s *scanner) scanSQL(lexer *abi.Lexer, validSymbols []bool, opts Options) b
 func newScanner() *scanner { return &scanner{options: defaultOptions} }
 
 // Serialize writes the depth in its first 4 bytes, in little-endian order,
-// then base, command, block, pending, level and variable.
+// then base, command, block, pending, level, variable and anonymous.
 //
 // Serialize is tree_sitter_usql_external_scanner_serialize.
 func (s *scanner) Serialize(buffer []byte) int {
@@ -1286,6 +1353,7 @@ func (s *scanner) Serialize(buffer []byte) int {
 	buffer[7] = byte(s.pending)
 	buffer[8] = s.level
 	buffer[9] = byte(s.variable)
+	buffer[10] = s.anonymous
 	return serializedSize
 }
 
@@ -1307,6 +1375,7 @@ func (s *scanner) Deserialize(buffer []byte) {
 		s.pending = pending(buffer[7])
 		s.level = buffer[8]
 		s.variable = variable(buffer[9])
+		s.anonymous = buffer[10]
 	}
 }
 

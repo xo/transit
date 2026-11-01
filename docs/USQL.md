@@ -52,10 +52,12 @@ change transit from usql.
    and `Backticks`. `usql.Language` has dollar quotes and block comments,
    the options of PostgreSQL. A comment that starts with `--` is a comment
    with every set of options.
-10. `usql.Options` has two more options. `BeginEndBlocks` keeps the
+10. `usql.Options` has three more options. `BeginEndBlocks` keeps the
     `BEGIN ... END` body of a stored program in one statement (D112).
-    `Batches` keeps a batch of CQL, from `BEGIN BATCH` to `APPLY BATCH`, in
-    one statement. They are off by default. "Dialects" below says more.
+    `AnonymousBlocks` keeps an anonymous block of PL/SQL, which starts with
+    `BEGIN` or `DECLARE`, in one statement (D128). `Batches` keeps a batch
+    of CQL, from `BEGIN BATCH` to `APPLY BATCH`, in one statement. They are
+    off by default. "Dialects" below says more.
 
 ## What usql will replace
 
@@ -211,7 +213,7 @@ for the flag `-dialect`, with these options of `usql.Options`:
 | `duckdb` | `github.com/xo/transit/grammars/duckdb` | `DollarQuotes`, `BlockComments` |
 | `clickhouse` | `github.com/xo/transit/grammars/clickhouse` | `BlockComments`, `SlashComments`, `HashComments`, `Backticks` |
 | `sqlserver` | `github.com/xo/transit/grammars/sqlserver` | `BlockComments`, `BeginEndBlocks` |
-| `oracle` | `github.com/xo/transit/grammars/oracle` | `BlockComments`, `BeginEndBlocks` |
+| `oracle` | `github.com/xo/transit/grammars/oracle` | `BlockComments`, `BeginEndBlocks`, `AnonymousBlocks` |
 | `cql` | `github.com/xo/transit/grammars/cql` | `DollarQuotes`, `BlockComments`, `SlashComments`, `Batches` |
 | `generic` | `github.com/xo/transit/grammars/sql` | `BlockComments` |
 
@@ -260,7 +262,8 @@ rules hold:
 The option does not cover these texts:
 
 1. An anonymous block of PL/SQL or of T-SQL, such as `BEGIN ... END;` or
-   `DECLARE ... BEGIN ... END;` with no `CREATE`.
+   `DECLARE ... BEGIN ... END;` with no `CREATE`. The option
+   `AnonymousBlocks` below covers an anonymous block of PL/SQL.
 2. A body of a stored program with no `BEGIN`, such as a MySQL
    `IF ... END IF;`, or a T-SQL procedure whose statements run to `GO`.
 3. A subprogram in the declarations of PL/SQL, such as
@@ -275,6 +278,30 @@ The option does not cover these texts:
 The Oracle grammar reads each of these texts of Oracle when it gets the
 whole text. When the usql grammar gives it one part of such a text, the
 Oracle grammar finds an error in that part.
+
+An anonymous block of PL/SQL has no `CREATE`. It starts with `BEGIN` or
+`DECLARE`. In SQLite, MySQL and PostgreSQL, a `BEGIN` with no `CREATE`
+starts a transaction, and in SQL Server `DECLARE @x int;` is a statement of
+its own. So the option `AnonymousBlocks` keeps an anonymous block in one
+statement (D128). It is off by default, and usql turns it on for Oracle
+only. These rules hold:
+
+1. The statement must start with `BEGIN` or `DECLARE`, in any case. White
+   space and comments can come before it.
+2. The scanner counts `BEGIN` and `END` with rules 3 and 6 of
+   `BeginEndBlocks` above. In the block, every `BEGIN` opens a block, also
+   when `;`, `WORK` or `TRANSACTION` comes next. After `DECLARE`, a `;` does
+   not end the statement until the body ends.
+3. The statement ends at the first `;` after the `END` of the outer
+   `BEGIN`.
+4. A line with only `/` and white space also ends the statement, as in
+   SQL*Plus. The `/` is the end of the statement in the tree, where a `;`
+   can be, so the SQL layer holds it, and the Oracle grammar reads it as the
+   end of a statement. A `/` with other text on its line is text.
+5. A meta command ends the statement, as it ends any statement.
+6. The option does not change a statement that starts with another word. A
+   `/` alone on its line after such a statement stays a part of the text,
+   as it does without the option.
 
 A batch of CQL holds semicolons too. usql collects a batch from
 `BEGIN BATCH` to `APPLY BATCH` today. With the option `Batches` on, the

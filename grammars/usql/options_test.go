@@ -23,6 +23,7 @@ var optionSets = map[string]Options{
 	"mysql_blocks":     {BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true},
 	"sqlserver_blocks": {BlockComments: true, BeginEndBlocks: true},
 	"oracle_blocks":    {BlockComments: true, BeginEndBlocks: true},
+	"oracle_anonymous": {BlockComments: true, BeginEndBlocks: true, AnonymousBlocks: true},
 	"cql_batches":      {DollarQuotes: true, BlockComments: true, SlashComments: true, Batches: true},
 }
 
