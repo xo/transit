@@ -1,7 +1,7 @@
 package usql
 
 // This file is a port of src/scanner.c of the usql grammar of transit, in
-// grammars/usql (D101, D102, D108, D112, D128).
+// grammars/usql (D101, D102, D108, D112, D128, D130, D131).
 //
 // The scanner reads every token of the grammar. It finds the end of a
 // statement, the strings, the dollar quotes, the comments and the depth of
@@ -24,17 +24,21 @@ package usql
 // statement (D112). It reads the words of the SQL text, outside strings,
 // quoted identifiers and comments. After CREATE ... PROCEDURE, FUNCTION,
 // TRIGGER or EVENT, it counts BEGIN and END, and a ; inside the body does
-// not end the statement. With the option Batches, it keeps a batch of CQL in
-// one statement. After BEGIN [UNLOGGED | COUNTER] BATCH at the start of a
+// not end the statement. EXECUTE BLOCK of Firebird and DO BEGIN of SAP HANA
+// at the start of a statement open a block too (D130). A ; in the
+// declarations of EXECUTE BLOCK before its BEGIN does not end the
+// statement. With the option Batches, it keeps a batch of CQL in one
+// statement. After BEGIN [UNLOGGED | COUNTER] BATCH at the start of a
 // statement, a ; does not end the statement until APPLY BATCH. The words
 // that it reads are in keywords below.
 //
 // With the option AnonymousBlocks, the scanner keeps an anonymous block of
 // PL/SQL in one statement (D128). A statement that starts with BEGIN or
 // DECLARE is a block. The scanner counts BEGIN and END as it does for a
-// stored program, and every BEGIN in the block starts a block. The
-// statement ends at the ; after the END of the outer BEGIN, or at a / alone
-// on its line, as in SQL*Plus.
+// stored program. Every BEGIN in the block starts a block, but a BEGIN that
+// a ;, WORK or TRANSACTION follows does not (D131). The statement ends at
+// the ; after the END of the outer BEGIN, or at a / alone on its line, as
+// in SQL*Plus.
 //
 // After a colon and a quote, the scanner must read the name and the closing
 // quote before it knows whether the colon starts a variable, as :'name', or
@@ -160,7 +164,8 @@ const (
 	pendingNone pending = iota
 	// pendingBegin is after BEGIN, which starts a transaction when WORK,
 	// TRANSACTION, TRAN, DISTRIBUTED or ; comes next, and else a block. In
-	// an anonymous block, it always starts a block.
+	// an anonymous block, it starts a transaction only when WORK,
+	// TRANSACTION or ; comes next.
 	pendingBegin
 	// pendingEnd is after END, which ends a statement when IF, LOOP, WHILE
 	// or REPEAT comes next, and else a block.
@@ -171,6 +176,13 @@ const (
 	// pendingApply is after APPLY in blockBatch, which ends the batch when
 	// BATCH comes next.
 	pendingApply
+	// pendingExecute is after EXECUTE at the start of a statement, with the
+	// option BeginEndBlocks, which starts the declarations of a block when
+	// BLOCK comes next.
+	pendingExecute
+	// pendingDo is after DO at the start of a statement, with the option
+	// BeginEndBlocks, which opens a block when BEGIN comes next.
+	pendingDo
 )
 
 // variable is the C enum Variable, what the scanner found after a colon and
@@ -200,6 +212,7 @@ const (
 	kwAs
 	kwBatch
 	kwBegin
+	kwBlock
 	kwCall
 	kwCase
 	kwCatch
@@ -210,6 +223,7 @@ const (
 	kwDefiner
 	kwDelete
 	kwDistributed
+	kwDo
 	kwEditionable
 	kwEnd
 	kwEvent
@@ -250,9 +264,10 @@ const (
 // keywords holds the text of each keyword, in lower case.
 var keywords = [...]string{
 	"", "aggregate", "alter", "apply", "as", "batch",
-	"begin", "call", "case", "catch", "constraint", "counter",
-	"create", "declare", "definer", "delete", "distributed", "editionable",
-	"end", "event", "exec", "execute", "external", "function",
+	"begin", "block", "call", "case", "catch", "constraint",
+	"counter", "create", "declare", "definer", "delete", "distributed",
+	"do", "editionable", "end", "event", "exec", "execute",
+	"external", "function",
 	"if", "insert", "is", "language", "loop", "merge",
 	"noneditionable", "or", "print", "proc", "procedure", "repeat",
 	"replace", "return", "select", "set", "temp", "temporary",
@@ -655,16 +670,16 @@ func (s *scanner) closeBlock() {
 }
 
 // resolvePending is resolve_pending. It gives the pending word its meaning
-// when a character that is not in a word comes after it: BEGIN does not
-// start a block, but in an anonymous block it does, END ends one, and AS
-// does not start declarations.
-func (s *scanner) resolvePending() {
+// when the character c, which is not in a word, comes after it: BEGIN does
+// not start a block, but in an anonymous block it does unless c is a ;, END
+// ends one, and AS, EXECUTE and DO do not start a block or declarations.
+func (s *scanner) resolvePending(c int32) {
 	p := s.pending
 	s.pending = pendingNone
 	switch {
 	case p == pendingEnd:
 		s.closeBlock()
-	case p == pendingBegin && s.anonymous != 0:
+	case p == pendingBegin && s.anonymous != 0 && c != ';':
 		s.openBlock()
 	}
 }
@@ -677,16 +692,23 @@ func (s *scanner) endsStatement(opts Options) bool {
 	if !opts.BeginEndBlocks && !opts.AnonymousBlocks && !opts.Batches {
 		return true
 	}
-	s.resolvePending()
+	s.resolvePending(';')
 	return s.block != blockDeclare && s.block != blockBody && s.block != blockBatch
 }
 
 // scanString is scan_string. It notes a string in SQL text. After IS or AS,
 // a string is the body of the stored program, so no declarations follow.
+// After EXECUTE or DO, a string is not BLOCK or BEGIN, so no block follows.
 func (s *scanner) scanString(opts Options) {
-	if opts.BeginEndBlocks && s.pending == pendingAs {
+	if !opts.BeginEndBlocks {
+		return
+	}
+	switch s.pending {
+	case pendingAs:
 		s.pending = pendingNone
 		s.block = blockRoutine
+	case pendingExecute, pendingDo:
+		s.pending = pendingNone
 	}
 }
 
@@ -723,8 +745,8 @@ func (s *scanner) scanKeyword(kw keyword, opts Options) {
 	switch p {
 	case pendingNone:
 	case pendingBegin:
-		if s.anonymous == 0 &&
-			(kw == kwWork || kw == kwTransaction || kw == kwTran || kw == kwDistributed) {
+		if kw == kwWork || kw == kwTransaction ||
+			(s.anonymous == 0 && (kw == kwTran || kw == kwDistributed)) {
 			return
 		}
 		s.openBlock()
@@ -751,6 +773,16 @@ func (s *scanner) scanKeyword(kw keyword, opts Options) {
 			s.block = blockNone
 			return
 		}
+	case pendingExecute:
+		if kw == kwBlock {
+			s.block = blockDeclare
+			return
+		}
+	case pendingDo:
+		if kw == kwBegin {
+			s.openBlock()
+			return
+		}
 	}
 	switch s.block {
 	case blockStart:
@@ -765,6 +797,12 @@ func (s *scanner) scanKeyword(kw keyword, opts Options) {
 		case kw == kwDeclare && opts.AnonymousBlocks:
 			s.anonymous = 1
 			s.block = blockDeclare
+		case kw == kwExecute && opts.BeginEndBlocks:
+			s.block = blockNone
+			s.pending = pendingExecute
+		case kw == kwDo && opts.BeginEndBlocks:
+			s.block = blockNone
+			s.pending = pendingDo
 		default:
 			s.block = blockNone
 		}
@@ -1117,7 +1155,7 @@ func (s *scanner) scanText(lexer *abi.Lexer, validSymbols []bool, opts Options, 
 			}
 		}
 		if blocks && !isSpace(c) && w.n == 0 {
-			s.resolvePending()
+			s.resolvePending(c)
 		}
 		advance(lexer)
 		if !isSpace(c) {

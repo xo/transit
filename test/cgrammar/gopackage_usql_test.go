@@ -20,8 +20,8 @@ func init() {
 // usqlOptionSets are the options of the families of dialects of D101, which
 // had a grammar each before D108, sets with BeginEndBlocks (D112), sets
 // with AnonymousBlocks (D128), and sets with Batches. The test builds the C
-// scanner once for each of them (D108). The options of SQL Server and Oracle
-// with BeginEndBlocks are those of standard with BeginEndBlocks, and
+// scanner once for each of them (D108). The options of SQL Server, Oracle,
+// Firebird and SAP HANA with BeginEndBlocks are those of standard_blocks, and
 // postgres with BeginEndBlocks reaches the branches of dollar quotes. The
 // options of Oracle are those of standard_anonymous, and
 // mysql_anonymous_batches reaches the options together.
@@ -289,6 +289,36 @@ var usqlScannerInputs = []string{
 	"DECLARE @x int; SELECT @x; y",
 	"CREATE PROCEDURE p IS BEGIN x; END\n/\ny;",
 	"BEGIN " + strings.Repeat("BEGIN x; ", 300) + strings.Repeat("END; ", 301) + "y; z",
+	// a BEGIN that starts a transaction in an anonymous block (D131)
+	"BEGIN x; BEGIN WORK; y; END; z",
+	"BEGIN x; begin transaction; y; END; z",
+	"BEGIN x; Begin ; y; END; z",
+	"BEGIN x; BEGIN TRAN; y; END; z; END; w",
+	"BEGIN x; BEGIN DISTRIBUTED TRANSACTION; y; END; z; END; w",
+	"DECLARE v NUMBER; BEGIN x; BEGIN WORK; y; END; z",
+	"BEGIN x; BEGIN /* a */ WORK; y; END; z",
+	"BEGIN x; BEGIN 'a'; y; END; z; END; w",
+	// EXECUTE BLOCK and DO BEGIN (D130)
+	"execute block as\ndeclare x int;\nbegin\n  x = 1;\n  x = 2;\nend;\nselect 1;",
+	"execute block returns (n int) as\nbegin\n  n = 1;\n  suspend;\nend;\nselect 1;",
+	"do begin\n  declare x int;\n  x = 1;\n  select :x from dummy;\nend;\nselect 1;",
+	"EXECUTE BLOCK (a INT = ?) AS DECLARE VARIABLE i INT; BEGIN WHILE (i < a) DO BEGIN i = i + 1; END END; y",
+	"Execute -- a\n Block AS BEGIN x; END; y",
+	"DO /* a */ BEGIN x; BEGIN y; END; z; END; w",
+	"EXECUTE PROCEDURE p; EXECUTE STATEMENT 'x; y'; z",
+	"EXECUTE 'BLOCK'; BEGIN x; END; y",
+	"EXECUTE (BLOCK) AS BEGIN x; END; y",
+	"EXECUTE BLOCK; x; y",
+	"DO 1; DO 'BEGIN x'; DO $$ BEGIN x; END $$; DO (BEGIN); y",
+	"DO SLEEP(1); x; DO @a := 1; y",
+	"DO BEGIN; x; END; y",
+	"x; DO BEGIN y; END; z",
+	"SELECT 1 DO BEGIN x; END; y",
+	"SELECT 1; EXECUTE BLOCK AS BEGIN x; END; y",
+	"(DO BEGIN x; END); y",
+	"DO BEGIN x; \\g\nselect 1; y",
+	"EXECUTE BLOCK AS BEGIN x; END\n/\ny;",
+	"DO BEGIN " + "BEGIN WORK; x; END; y",
 }
 
 // TestUsqlScannersMatchC compares the Go scanner of the usql grammar with

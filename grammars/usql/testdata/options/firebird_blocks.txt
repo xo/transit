@@ -1,0 +1,116 @@
+================================================================================
+Firebird blocks: EXECUTE BLOCK with declarations
+================================================================================
+
+execute block as
+declare x int;
+begin
+  x = 1;
+  x = 2;
+end;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement))
+
+================================================================================
+Firebird blocks: EXECUTE BLOCK with declarations and a select
+================================================================================
+
+execute block as
+declare x int;
+begin
+  x = 1;
+  x = 2;
+end;
+select 1 from rdb$database;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement))
+
+================================================================================
+Firebird blocks: EXECUTE BLOCK with RETURNS
+================================================================================
+
+execute block returns (n int) as
+begin
+  n = 1;
+  suspend;
+end;
+select 1 from rdb$database;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement))
+
+================================================================================
+Firebird blocks: EXECUTE BLOCK with parameters and nested blocks
+================================================================================
+
+EXECUTE BLOCK (A INTEGER = ?) RETURNS (B INTEGER)
+AS
+  DECLARE VARIABLE I INTEGER;
+  DECLARE VARIABLE J INTEGER;
+BEGIN
+  I = 0;
+  WHILE (I < A) DO
+  BEGIN
+    I = I + 1;
+    IF (I = 2) THEN
+    BEGIN
+      J = I;
+    END
+  END
+  B = I;
+  SUSPEND;
+END;
+SELECT 2 FROM RDB$DATABASE;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement))
+
+================================================================================
+Firebird blocks: a comment before EXECUTE BLOCK
+================================================================================
+
+/* a block */
+-- that sets x
+Execute
+  Block As
+Begin
+  x = 1;
+End;
+select 1 from rdb$database;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (comment)
+  (comment)
+  (statement)
+  (statement))
+
+================================================================================
+Firebird blocks: EXECUTE that is not EXECUTE BLOCK
+================================================================================
+
+EXECUTE PROCEDURE p;
+EXECUTE STATEMENT 'select 1 from rdb$database';
+SELECT block FROM t;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement
+    (string))
+  (statement))

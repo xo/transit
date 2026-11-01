@@ -847,15 +847,19 @@ root package exports nothing new for it.
 `BeginEndBlocks` is the option of D112, and it is off by default. With it
 on, a statement that starts with `CREATE ... PROCEDURE`, `FUNCTION`,
 `TRIGGER` or `EVENT` keeps its `BEGIN ... END` body, and a `;` inside the
-body does not end the statement. `docs/USQL.md` says which words the
-scanner reads.
+body does not end the statement. `EXECUTE BLOCK` of Firebird and
+`DO BEGIN` of SAP HANA at the start of a statement open a block too (D130).
+A `;` in the declarations of `EXECUTE BLOCK` before its `BEGIN` does not
+end the statement. `docs/USQL.md` says which words the scanner reads.
 
 `AnonymousBlocks` is the option of D128, and it is off by default. With it
 on, a statement that starts with `BEGIN` or `DECLARE` is an anonymous block
 of PL/SQL. The scanner counts `BEGIN` and `END` as it does for
 `BeginEndBlocks`. The statement ends at the `;` after the `END` of the outer
-`BEGIN`, or at a line with only `/`, as in SQL*Plus. A statement that starts
-with another word does not change. usql turns it on for Oracle only.
+`BEGIN`, or at a line with only `/`, as in SQL*Plus. In the block, a `BEGIN`
+that a `;`, `WORK` or `TRANSACTION` follows does not open a block (D131). A
+statement that starts with another word does not change. usql turns it on
+for Oracle only.
 
 `Batches` keeps a batch of CQL in one statement, and it is off by default.
 With it on, a statement that starts with `BEGIN BATCH`, `BEGIN UNLOGGED

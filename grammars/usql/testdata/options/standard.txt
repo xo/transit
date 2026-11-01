@@ -13,3 +13,23 @@ select `a;b`, $$c;d$$ /* e; */ # f; g // h;
     (comment))
   (statement))
 
+================================================================================
+Standard: EXECUTE BLOCK and DO BEGIN without BeginEndBlocks
+================================================================================
+
+execute block as
+begin
+  x = 1;
+end;
+do begin
+  x = 1;
+end;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement)
+  (statement)
+  (statement))
+

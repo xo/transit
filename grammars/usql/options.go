@@ -31,14 +31,19 @@ type Options struct {
 	// BeginEndBlocks keeps a stored program of MySQL, SQL Server or Oracle
 	// in one statement (D112). After CREATE ... PROCEDURE, FUNCTION,
 	// TRIGGER or EVENT, the scanner counts BEGIN and END, and a ; inside
-	// the body does not end the statement. It is not a flag of dbmeta.
+	// the body does not end the statement. EXECUTE BLOCK of Firebird and
+	// DO BEGIN of SAP HANA at the start of a statement open a block too
+	// (D130). A ; in the declarations of EXECUTE BLOCK before its BEGIN
+	// does not end the statement. The statement ends at the ; after the
+	// END of the block. It is not a flag of dbmeta.
 	BeginEndBlocks bool
 	// AnonymousBlocks keeps an anonymous block of PL/SQL in one statement
 	// (D128). A statement that starts with BEGIN or DECLARE is a block. The
 	// scanner counts BEGIN and END, and the statement ends at the ; after
 	// the END of the outer BEGIN, or at a line with only /, as in SQL*Plus.
-	// A statement that starts with another word does not change. It is not
-	// a flag of dbmeta.
+	// In the block, a BEGIN that a ;, WORK or TRANSACTION follows starts a
+	// transaction and not a block (D131). A statement that starts with
+	// another word does not change. It is not a flag of dbmeta.
 	AnonymousBlocks bool
 	// Batches keeps a batch of CQL in one statement. After BEGIN BATCH,
 	// BEGIN UNLOGGED BATCH or BEGIN COUNTER BATCH at the start of a

@@ -65,6 +65,35 @@ SELECT 2 FROM dual;
   (statement))
 
 ================================================================================
+Oracle anonymous blocks: a BEGIN that starts a transaction in a block
+================================================================================
+
+BEGIN
+  BEGIN WORK;
+  NULL;
+  begin transaction;
+  NULL;
+  Begin;
+  NULL;
+END;
+SELECT 3 FROM dual;
+DECLARE
+  v NUMBER;
+BEGIN
+  BEGIN WORK;
+  v := 1;
+END;
+SELECT 4 FROM dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement)
+  (statement)
+  (statement))
+
+================================================================================
 Oracle anonymous blocks: IF, LOOP and CASE inside a block
 ================================================================================
 

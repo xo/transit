@@ -53,7 +53,8 @@ change transit from usql.
    the options of PostgreSQL. A comment that starts with `--` is a comment
    with every set of options.
 10. `usql.Options` has three more options. `BeginEndBlocks` keeps the
-    `BEGIN ... END` body of a stored program in one statement (D112).
+    `BEGIN ... END` body of a stored program, of `EXECUTE BLOCK` and of
+    `DO BEGIN` in one statement (D112, D130).
     `AnonymousBlocks` keeps an anonymous block of PL/SQL, which starts with
     `BEGIN` or `DECLARE`, in one statement (D128). `Batches` keeps a batch
     of CQL, from `BEGIN BATCH` to `APPLY BATCH`, in one statement. They are
@@ -235,13 +236,17 @@ need it, and it is off by default. The scanner reads the words of the SQL
 text, outside strings, quoted identifiers and comments, in any case. These
 rules hold:
 
-1. The statement must start with `CREATE`. Then `OR`, `REPLACE`, `ALTER`,
-   `DEFINER = <user>`, `EDITIONABLE`, `NONEDITIONABLE`, `AGGREGATE`,
-   `CONSTRAINT`, `TEMP` or `TEMPORARY` can come before `PROCEDURE`, `PROC`,
-   `FUNCTION`, `TRIGGER` or `EVENT`.
+1. The statement must start with `CREATE`, `EXECUTE BLOCK` or `DO BEGIN`.
+   White space and comments can come before it. After `CREATE`, the words
+   `OR`, `REPLACE`, `ALTER`, `DEFINER = <user>`, `EDITIONABLE`,
+   `NONEDITIONABLE`, `AGGREGATE`, `CONSTRAINT`, `TEMP` or `TEMPORARY` can
+   come before `PROCEDURE`, `PROC`, `FUNCTION`, `TRIGGER` or `EVENT`.
 2. The first `BEGIN` after that starts the body. A `;` before it ends the
    statement, so a body that is one statement with no `BEGIN` ends at its
-   `;`, as it did before.
+   `;`, as it did before. After `EXECUTE BLOCK`, a `;` before the `BEGIN`
+   does not end the statement, so the `RETURNS (...)` list and the
+   `DECLARE` lines of Firebird stay in it (D130). The `BEGIN` of
+   `DO BEGIN` of SAP HANA is the start of the body.
 3. In the body, `BEGIN` and `CASE` open a block, and `END` closes one.
    `END IF`, `END LOOP`, `END WHILE` and `END REPEAT` do not close a block.
    `END CASE`, `END TRY`, `END CATCH` and `END <label>` close one. The
@@ -289,9 +294,10 @@ only. These rules hold:
 1. The statement must start with `BEGIN` or `DECLARE`, in any case. White
    space and comments can come before it.
 2. The scanner counts `BEGIN` and `END` with rules 3 and 6 of
-   `BeginEndBlocks` above. In the block, every `BEGIN` opens a block, also
-   when `;`, `WORK` or `TRANSACTION` comes next. After `DECLARE`, a `;` does
-   not end the statement until the body ends.
+   `BeginEndBlocks` above. In the block, a `BEGIN` opens a block, but not
+   when `;`, `WORK` or `TRANSACTION` comes next (D131). A `BEGIN` that
+   `TRAN` or `DISTRIBUTED` follows opens a block. After `DECLARE`, a `;`
+   does not end the statement until the body ends.
 3. The statement ends at the first `;` after the `END` of the outer
    `BEGIN`.
 4. A line with only `/` and white space also ends the statement, as in

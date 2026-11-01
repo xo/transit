@@ -1,4 +1,5 @@
-// The external scanner of the usql grammar (D101, D102, D108, D112, D128).
+// The external scanner of the usql grammar (D101, D102, D108, D112, D128,
+// D130, D131).
 //
 // The scanner reads every token of the grammar. It finds the end of a
 // statement, the strings, the dollar quotes, the comments and the depth of
@@ -21,17 +22,21 @@
 // statement (D112). It reads the words of the SQL text, outside strings,
 // quoted identifiers and comments. After CREATE ... PROCEDURE, FUNCTION,
 // TRIGGER or EVENT, it counts BEGIN and END, and a ; inside the body does
-// not end the statement. With USQL_BATCHES, it keeps a batch of CQL in one
-// statement. After BEGIN [UNLOGGED | COUNTER] BATCH at the start of a
-// statement, a ; does not end the statement until APPLY BATCH. The words
-// that it reads are in keywords below.
+// not end the statement. EXECUTE BLOCK of Firebird and DO BEGIN of SAP HANA
+// at the start of a statement open a block too (D130). A ; in the
+// declarations of EXECUTE BLOCK before its BEGIN does not end the
+// statement. With USQL_BATCHES, it keeps a batch of CQL in one statement.
+// After BEGIN [UNLOGGED | COUNTER] BATCH at the start of a statement, a ;
+// does not end the statement until APPLY BATCH. The words that it reads are
+// in keywords below.
 //
 // With USQL_ANONYMOUS_BLOCKS, the scanner keeps an anonymous block of
 // PL/SQL in one statement (D128). A statement that starts with BEGIN or
 // DECLARE is a block. The scanner counts BEGIN and END as it does for a
-// stored program, and every BEGIN in the block starts a block. The
-// statement ends at the ; after the END of the outer BEGIN, or at a / alone
-// on its line, as in SQL*Plus.
+// stored program. Every BEGIN in the block starts a block, but a BEGIN that
+// a ;, WORK or TRANSACTION follows does not (D131). The statement ends at
+// the ; after the END of the outer BEGIN, or at a / alone on its line, as
+// in SQL*Plus.
 //
 // After a colon and a quote, the scanner must read the name and the closing
 // quote before it knows whether the colon starts a variable, as :'name', or
@@ -160,7 +165,8 @@ enum Pending {
   PENDING_NONE,
   // PENDING_BEGIN is after BEGIN, which starts a transaction when WORK,
   // TRANSACTION, TRAN, DISTRIBUTED or ; comes next, and else a block. In an
-  // anonymous block, it always starts a block.
+  // anonymous block, it starts a transaction only when WORK, TRANSACTION or
+  // ; comes next.
   PENDING_BEGIN,
   // PENDING_END is after END, which ends a statement when IF, LOOP, WHILE
   // or REPEAT comes next, and else a block.
@@ -171,6 +177,13 @@ enum Pending {
   // PENDING_APPLY is after APPLY in BLOCK_BATCH, which ends the batch when
   // BATCH comes next.
   PENDING_APPLY,
+  // PENDING_EXECUTE is after EXECUTE at the start of a statement, with
+  // USQL_BEGIN_END_BLOCKS, which starts the declarations of a block when
+  // BLOCK comes next.
+  PENDING_EXECUTE,
+  // PENDING_DO is after DO at the start of a statement, with
+  // USQL_BEGIN_END_BLOCKS, which opens a block when BEGIN comes next.
+  PENDING_DO,
 };
 
 // Variable is what the scanner found after a colon and a quote, which
@@ -196,6 +209,7 @@ enum Keyword {
   KW_AS,
   KW_BATCH,
   KW_BEGIN,
+  KW_BLOCK,
   KW_CALL,
   KW_CASE,
   KW_CATCH,
@@ -206,6 +220,7 @@ enum Keyword {
   KW_DEFINER,
   KW_DELETE,
   KW_DISTRIBUTED,
+  KW_DO,
   KW_EDITIONABLE,
   KW_END,
   KW_EVENT,
@@ -246,9 +261,10 @@ enum Keyword {
 // keywords holds the text of each Keyword, in lower case.
 static const char *const keywords[] = {
     "", "aggregate", "alter", "apply", "as", "batch",
-    "begin", "call", "case", "catch", "constraint", "counter",
-    "create", "declare", "definer", "delete", "distributed", "editionable",
-    "end", "event", "exec", "execute", "external", "function",
+    "begin", "block", "call", "case", "catch", "constraint",
+    "counter", "create", "declare", "definer", "delete", "distributed",
+    "do", "editionable", "end", "event", "exec", "execute",
+    "external", "function",
     "if", "insert", "is", "language", "loop", "merge",
     "noneditionable", "or", "print", "proc", "procedure", "repeat",
     "replace", "return", "select", "set", "temp", "temporary",
@@ -641,16 +657,16 @@ static void close_block(Scanner *s) {
   }
 }
 
-// resolve_pending gives the pending word its meaning when a character that
-// is not in a word comes after it: BEGIN does not start a block, but in an
-// anonymous block it does, END ends one, and AS does not start
-// declarations.
-static void resolve_pending(Scanner *s) {
+// resolve_pending gives the pending word its meaning when the character c,
+// which is not in a word, comes after it: BEGIN does not start a block, but
+// in an anonymous block it does unless c is a ;, END ends one, and AS,
+// EXECUTE and DO do not start a block or declarations.
+static void resolve_pending(Scanner *s, int32_t c) {
   enum Pending pending = (enum Pending)s->pending;
   s->pending = PENDING_NONE;
   if (pending == PENDING_END) {
     close_block(s);
-  } else if (pending == PENDING_BEGIN && s->anonymous) {
+  } else if (pending == PENDING_BEGIN && s->anonymous && c != ';') {
     open_block(s);
   }
 }
@@ -662,16 +678,22 @@ static bool ends_statement(Scanner *s, int options) {
   if (!(options & (USQL_BEGIN_END_BLOCKS | USQL_ANONYMOUS_BLOCKS | USQL_BATCHES))) {
     return true;
   }
-  resolve_pending(s);
+  resolve_pending(s, ';');
   return s->block != BLOCK_DECLARE && s->block != BLOCK_BODY && s->block != BLOCK_BATCH;
 }
 
 // scan_string notes a string in SQL text. After IS or AS, a string is the
-// body of the stored program, so no declarations follow.
+// body of the stored program, so no declarations follow. After EXECUTE or
+// DO, a string is not BLOCK or BEGIN, so no block follows.
 static void scan_string(Scanner *s, int options) {
-  if ((options & USQL_BEGIN_END_BLOCKS) && s->pending == PENDING_AS) {
+  if (!(options & USQL_BEGIN_END_BLOCKS)) {
+    return;
+  }
+  if (s->pending == PENDING_AS) {
     s->pending = PENDING_NONE;
     s->block = BLOCK_ROUTINE;
+  } else if (s->pending == PENDING_EXECUTE || s->pending == PENDING_DO) {
+    s->pending = PENDING_NONE;
   }
 }
 
@@ -720,8 +742,8 @@ static void scan_keyword(Scanner *s, enum Keyword kw, int options) {
   case PENDING_NONE:
     break;
   case PENDING_BEGIN:
-    if (!s->anonymous &&
-        (kw == KW_WORK || kw == KW_TRANSACTION || kw == KW_TRAN || kw == KW_DISTRIBUTED)) {
+    if (kw == KW_WORK || kw == KW_TRANSACTION ||
+        (!s->anonymous && (kw == KW_TRAN || kw == KW_DISTRIBUTED))) {
       return;
     }
     open_block(s);
@@ -752,6 +774,18 @@ static void scan_keyword(Scanner *s, enum Keyword kw, int options) {
       return;
     }
     break;
+  case PENDING_EXECUTE:
+    if (kw == KW_BLOCK) {
+      s->block = BLOCK_DECLARE;
+      return;
+    }
+    break;
+  case PENDING_DO:
+    if (kw == KW_BEGIN) {
+      open_block(s);
+      return;
+    }
+    break;
   }
   switch ((enum Block)s->block) {
   case BLOCK_START:
@@ -765,6 +799,12 @@ static void scan_keyword(Scanner *s, enum Keyword kw, int options) {
     } else if (kw == KW_DECLARE && (options & USQL_ANONYMOUS_BLOCKS)) {
       s->anonymous = 1;
       s->block = BLOCK_DECLARE;
+    } else if (kw == KW_EXECUTE && (options & USQL_BEGIN_END_BLOCKS)) {
+      s->block = BLOCK_NONE;
+      s->pending = PENDING_EXECUTE;
+    } else if (kw == KW_DO && (options & USQL_BEGIN_END_BLOCKS)) {
+      s->block = BLOCK_NONE;
+      s->pending = PENDING_DO;
     } else {
       s->block = BLOCK_NONE;
     }
@@ -1131,7 +1171,7 @@ static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int
       }
     }
     if (blocks && !is_space(c) && w.n == 0) {
-      resolve_pending(s);
+      resolve_pending(s, c);
     }
     advance(lexer);
     if (!is_space(c)) {

@@ -1,0 +1,98 @@
+================================================================================
+SAP HANA blocks: DO BEGIN ... END
+================================================================================
+
+do begin
+  declare x int;
+  x = 1;
+  select :x from dummy;
+end;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (variable
+      (variable_name))))
+
+================================================================================
+SAP HANA blocks: DO BEGIN ... END and a select
+================================================================================
+
+do begin
+  declare x int;
+  x = 1;
+  select :x from dummy;
+end;
+select 1 from dummy;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (variable
+      (variable_name)))
+  (statement))
+
+================================================================================
+SAP HANA blocks: DO BEGIN with nested blocks
+================================================================================
+
+DO BEGIN
+  DECLARE i INT = 0;
+  WHILE :i < 3 DO
+    i = :i + 1;
+  END WHILE;
+  IF :i = 3 THEN
+    BEGIN
+      SELECT :i FROM DUMMY;
+    END;
+  END IF;
+END;
+SELECT 2 FROM DUMMY;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (variable
+      (variable_name))
+    (variable
+      (variable_name))
+    (variable
+      (variable_name))
+    (variable
+      (variable_name)))
+  (statement))
+
+================================================================================
+SAP HANA blocks: a comment between DO and BEGIN
+================================================================================
+
+Do /* a block */ Begin
+  x = 1;
+End;
+select 1 from dummy;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (comment))
+  (statement))
+
+================================================================================
+SAP HANA blocks: DO that is not DO BEGIN
+================================================================================
+
+DO 1 + 1;
+DO 'begin';
+SELECT 1 FROM DUMMY;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement
+    (string))
+  (statement))
