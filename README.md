@@ -302,7 +302,7 @@ documentation: `COPY`, `EXPORT DATABASE`, `IMPORT DATABASE`, `ATTACH`,
 statements, `CALL`, the statements of transactions and `COMMENT ON`. It
 does not read the statements of the extension DuckPGQ, such as `CREATE
 PROPERTY GRAPH`. The external scanner reads the comments and the
-dollar-quoted strings. The package adds about 1.1 MB to a binary.
+dollar-quoted strings. The package adds about 1.3 MB to a binary.
 
 The package `github.com/xo/transit/grammars/clickhouse` holds the grammar
 `clickhouse`, which xo writes from the SQL reference of ClickHouse (D127).

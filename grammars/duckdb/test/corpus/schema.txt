@@ -277,6 +277,49 @@ CREATE TABLE t (a, b) AS SELECT 1, 2;
         (number)))))
 
 ================================================================================
+Create table as a query with or without data
+================================================================================
+
+CREATE TABLE t1 AS SELECT 42 WITH DATA;
+CREATE TABLE t2 AS SELECT * FROM t1 WHERE a > 1 WITH NO DATA;
+CREATE TABLE t3 AS FROM t2 with no data;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (number))))
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number))))))
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))))
+
+================================================================================
 Create or replace, temporary and if not exists
 ================================================================================
 
@@ -799,8 +842,9 @@ CREATE OR REPLACE SEQUENCE IF NOT EXISTS s NO CYCLE OWNED BY t;
     (sequence_option
       (number))
     (sequence_option
-      (operator)
-      (number))
+      (unary_expression
+        (operator)
+        (number)))
     (sequence_option
       (number)))
   (create_sequence_statement
@@ -841,6 +885,67 @@ ALTER SEQUENCE IF EXISTS s RESTART WITH 1 INCREMENT BY 2;
       (number))
     (sequence_option
       (number))))
+
+================================================================================
+Sequence options with expressions
+================================================================================
+
+CREATE SEQUENCE s START WITH 1 + 1 INCREMENT BY -(2) MINVALUE -10 MAXVALUE 10 * 10;
+CREATE SEQUENCE s START (SELECT max(id) FROM t) CYCLE;
+ALTER SEQUENCE s RESTART WITH abs(-5) NO MAXVALUE;
+
+---
+
+(source_file
+  (create_sequence_statement
+    (object_reference
+      (identifier))
+    (sequence_option
+      (binary_expression
+        (number)
+        (operator)
+        (number)))
+    (sequence_option
+      (unary_expression
+        (operator)
+        (parenthesized_expression
+          (number))))
+    (sequence_option
+      (unary_expression
+        (operator)
+        (number)))
+    (sequence_option
+      (binary_expression
+        (number)
+        (operator)
+        (number))))
+  (create_sequence_statement
+    (object_reference
+      (identifier))
+    (sequence_option
+      (subquery
+        (select
+          (function_call
+            (identifier)
+            (arguments
+              (column_reference
+                (identifier))))
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier)))))))
+    (sequence_option))
+  (alter_sequence_statement
+    (object_reference
+      (identifier))
+    (sequence_option
+      (function_call
+        (identifier)
+        (arguments
+          (unary_expression
+            (operator)
+            (number)))))
+    (sequence_option)))
 
 ================================================================================
 Create schema

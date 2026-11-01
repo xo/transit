@@ -481,14 +481,16 @@ module.exports = grammar({
 
     // CREATE TABLE gives the columns and the constraints of a table, or it
     // takes them from a query. The names of the columns before AS are
-    // columns with no type.
+    // columns with no type. WITH DATA and WITH NO DATA after the query cost
+    // about 540 parse states, because the states after an expression where
+    // WITH can come do not merge with the others (D129).
     create_table_statement: $ => seq(
       $._create,
       kw('TABLE'),
       $._create_name,
       optional($._table_body),
       optional(choice(
-        seq(kw('AS'), $.select_statement),
+        seq(kw('AS'), $.select_statement, optional(seq(kw('WITH'), optional(kw('NO')), kw('DATA')))),
         seq(kws('ON', 'COMMIT'), choice(kw('PRESERVE'), kw('DELETE')), kw('ROWS')),
       )),
     ),
@@ -699,15 +701,15 @@ module.exports = grammar({
       choice($._rename_to, repeat1($.sequence_option)),
     ),
 
-    // An option of a sequence. Its values are numbers, because the states
-    // after an expression that INCREMENT, START and the others can follow
-    // cost more than 350 parse states.
+    // An option of a sequence. Its values are expressions. The states after
+    // an expression that INCREMENT, START and the others can follow cost
+    // about 370 parse states (D129).
     sequence_option: $ => choice(
-      seq(kw('INCREMENT'), optional(kw('BY')), field('increment', $._signed_number)),
-      seq(kw('MINVALUE'), field('minimum', $._signed_number)),
-      seq(kw('MAXVALUE'), field('maximum', $._signed_number)),
-      seq(kw('START'), optional(kw('WITH')), field('start', $._signed_number)),
-      seq(kw('RESTART'), optional(seq(optional(kw('WITH')), field('start', $._signed_number)))),
+      seq(kw('INCREMENT'), optional(kw('BY')), field('increment', $._expression)),
+      seq(kw('MINVALUE'), field('minimum', $._expression)),
+      seq(kw('MAXVALUE'), field('maximum', $._expression)),
+      seq(kw('START'), optional(kw('WITH')), field('start', $._expression)),
+      seq(kw('RESTART'), optional(seq(optional(kw('WITH')), field('start', $._expression)))),
       seq(optional(kw('NO')), choice(kw('CYCLE'), kw('MINVALUE'), kw('MAXVALUE'))),
       seq(kws('OWNED', 'BY'), field('owner', $.object_reference)),
     ),

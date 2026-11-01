@@ -351,12 +351,14 @@ Each one follows these rules, in addition to the rest of this document:
    grammar hold a choice or an optional part, they are a hidden rule of
    their own, such as `_insert_target` and `_trigger_head`. The parts of
    `CREATE TRIGGER` before its body cost 283 states in one rule, and 16 as
-   a hidden rule. The options of a sequence take numbers and not
-   expressions, because an expression before `INCREMENT` cost about 370
-   states. The grammar does not read `WITH DATA` and `WITH NO DATA` after
-   the query of `CREATE TABLE`, because they cost more than 700 states. The
-   upstream tool does not merge the states after an expression where `WITH`
-   can come with the states where `WITHIN` can come.
+   a hidden rule. The options of a sequence take expressions, and an
+   expression before `INCREMENT` costs 366 states. The grammar reads `WITH
+   DATA` and `WITH NO DATA` after the query of `CREATE TABLE`, and they cost
+   542 states. The upstream tool does not merge the states after an
+   expression where `WITH` can come with the states where `WITHIN` can
+   come. A token of its own for `WITH DATA` costs more. Ken accepted both
+   costs (D129). Together they add 908 states, 17 of them large, and
+   about 160 KB to a binary.
    The path of `ATTACH` can be an expression, and the options in
    parentheses can come after it, as in `ATTACH 'file.db' (READ_ONLY)`. A
    name before `(` would then read as a column or as the name of a

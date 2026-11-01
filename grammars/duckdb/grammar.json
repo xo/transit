@@ -1877,6 +1877,54 @@
                     {
                       "type": "SYMBOL",
                       "name": "select_statement"
+                    },
+                    {
+                      "type": "CHOICE",
+                      "members": [
+                        {
+                          "type": "SEQ",
+                          "members": [
+                            {
+                              "type": "ALIAS",
+                              "content": {
+                                "type": "PATTERN",
+                                "value": "[wW][iI][tT][hH]"
+                              },
+                              "named": false,
+                              "value": "WITH"
+                            },
+                            {
+                              "type": "CHOICE",
+                              "members": [
+                                {
+                                  "type": "ALIAS",
+                                  "content": {
+                                    "type": "PATTERN",
+                                    "value": "[nN][oO]"
+                                  },
+                                  "named": false,
+                                  "value": "NO"
+                                },
+                                {
+                                  "type": "BLANK"
+                                }
+                              ]
+                            },
+                            {
+                              "type": "ALIAS",
+                              "content": {
+                                "type": "PATTERN",
+                                "value": "[dD][aA][tT][aA]"
+                              },
+                              "named": false,
+                              "value": "DATA"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "BLANK"
+                        }
+                      ]
                     }
                   ]
                 },
@@ -4199,7 +4247,7 @@
               "name": "increment",
               "content": {
                 "type": "SYMBOL",
-                "name": "_signed_number"
+                "name": "_expression"
               }
             }
           ]
@@ -4221,7 +4269,7 @@
               "name": "minimum",
               "content": {
                 "type": "SYMBOL",
-                "name": "_signed_number"
+                "name": "_expression"
               }
             }
           ]
@@ -4243,7 +4291,7 @@
               "name": "maximum",
               "content": {
                 "type": "SYMBOL",
-                "name": "_signed_number"
+                "name": "_expression"
               }
             }
           ]
@@ -4282,7 +4330,7 @@
               "name": "start",
               "content": {
                 "type": "SYMBOL",
-                "name": "_signed_number"
+                "name": "_expression"
               }
             }
           ]
@@ -4327,7 +4375,7 @@
                       "name": "start",
                       "content": {
                         "type": "SYMBOL",
-                        "name": "_signed_number"
+                        "name": "_expression"
                       }
                     }
                   ]

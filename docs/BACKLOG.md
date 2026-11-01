@@ -384,11 +384,6 @@ DuckDB. The grammar leaves out these forms of a query:
 The grammar leaves out these forms of the statements that change rows or
 the schema:
 
-- `WITH DATA` and `WITH NO DATA` after the query of `CREATE TABLE ... AS`.
-  They cost more than 700 parse states, as `docs/GRAMMAR.md` says.
-- An expression as an option of a sequence, as in `START WITH 1 + 1`. The
-  grammar takes a number with a sign or not. An expression costs about 370
-  states.
 - `COLLATE` after the type of `ALTER COLUMN ... TYPE`, as in `TYPE VARCHAR
   COLLATE nocase`. It costs about 50 states.
 - A table macro with more than one definition, when the query of a

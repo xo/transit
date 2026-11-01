@@ -35,3 +35,15 @@ CREATE TYPE mood AS ENUM ('sad', 'happy'); DROP TABLE IF EXISTS t CASCADE;
 --                                         ^ keyword
 --                                                       ^ keyword
 --                                                                ^ keyword
+CREATE TABLE t2 AS SELECT 1 WITH NO DATA;
+--                        ^ number
+--                          ^ keyword
+--                               ^ keyword
+--                                  ^ keyword
+CREATE SEQUENCE s START WITH 1 + 1 INCREMENT BY -2;
+--                ^ keyword
+--                           ^ number
+--                             ^ operator
+--                                 ^ keyword
+--                                              ^ operator
+--                                               ^ number
