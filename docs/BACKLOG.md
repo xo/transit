@@ -263,9 +263,9 @@ save no parse states (D125).
 
 The SQL Server grammar that xo writes (D124) reads the queries, the
 statements that change data, the transactions, `SET`, `EXECUTE`, the
-control-of-flow language, `DECLARE` and the cursors of Transact-SQL. The
-statements that define objects and the other statements come in later
-parts. It leaves out these forms:
+control-of-flow language, `DECLARE`, the cursors and the statements that
+define objects of Transact-SQL. Procedures, functions, triggers and the
+other statements come in a later part. It leaves out these forms:
 
 - `MATCH` and `SHORTEST_PATH` of the graph tables, as in
   `WHERE MATCH(p-(f)->q)`, and `WITHIN GROUP (GRAPH PATH)`.
@@ -283,6 +283,16 @@ parts. It leaves out these forms:
   semicolon, as in `SELECT 1 (SELECT 2)`. The external scanner gives the end
   of a statement only before a word, because `RETURN (SELECT ...)` returns
   the value of the query.
+- `WITH XMLNAMESPACES` in `CREATE SELECTIVE XML INDEX`. The external scanner
+  gives the end of a statement before `WITH XMLNAMESPACES`, because it
+  starts a query.
+- `ADD SIGNATURE` and `ADD SENSITIVITY CLASSIFICATION` right after a
+  statement with no semicolon. `ADD` is not a word that starts a statement
+  for the external scanner, because `ADD` comes in the options of a
+  statement, as in `CREATE EVENT SESSION s ON SERVER ADD EVENT e`.
+- The statements of Azure Synapse Analytics and Analytics Platform System
+  that SQL Server does not have, such as `CREATE MATERIALIZED VIEW`,
+  `CREATE REMOTE TABLE AS SELECT` and `RENAME OBJECT`.
 
 These faults remain:
 
@@ -293,6 +303,15 @@ These faults remain:
 - The grammar takes the clauses of `UPDATE`, `DELETE` and `MERGE` after
   their first part in any order, and more than once, as it takes the
   clauses of a query.
+- The grammar takes the parts of a constraint and the properties of a
+  column in any order, and `OR ALTER` after `CREATE` for each kind of
+  object.
+- The statements that define objects with no rule of their own, such as
+  `CREATE LOGIN` and `ALTER DATABASE`, read their options as a list of
+  words. The words in the tree are keywords, also where they name an
+  object, as in `CREATE USER u FOR LOGIN l`.
+- `FOREIGN` is not in the reserved set, so it can be a name where the
+  server finds an error.
 
 - The reserved words that name functions, such as `LEFT`, `COALESCE` and
   `CURRENT_USER`, are not in the reserved set, because each group of them

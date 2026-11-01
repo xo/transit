@@ -27,40 +27,75 @@
 [
   "ABSENT"
   "ABSOLUTE"
+  "ACTION"
+  "ADD"
+  "AFTER"
+  "AGGREGATE"
   "ALL"
+  "ALL_SPARSE_COLUMNS"
+  "ALTER"
+  "ALWAYS"
   "AND"
   "ANY"
+  "APPLICATION"
   "APPLY"
   "ARRAY"
   "AS"
   "ASC"
+  "ASSEMBLY"
+  "ASYMMETRIC"
   "AT"
+  "AUDIT"
+  "AUTHORIZATION"
+  "AVAILABILITY"
+  "BEFORE"
   "BEGIN"
   "BETWEEN"
+  "BINDING"
   "BOTH"
   "BREAK"
+  "BROKER"
   "BROWSE"
   "BULK"
   "BY"
   "CALLER"
+  "CASCADE"
   "CASE"
+  "CATALOG"
   "CATCH"
+  "CERTIFICATE"
   "CHECK"
+  "CLASSIFICATION"
+  "CLASSIFIER"
   "CLOSE"
   "CLUSTERED"
   "COLLATE"
+  "COLLECTION"
+  "COLUMN"
+  "COLUMNSTORE"
+  "COLUMN_SET"
   "COMMIT"
   "COMMITTED"
+  "CONFIGURATION"
+  "CONNECTION"
   "CONSTRAINT"
   "CONTAINED"
   "CONTAINSTABLE"
   "CONTENT"
   "CONTINUE"
+  "CONTRACT"
+  "CONVERSATION"
   "CONVERT"
   "COOKIE"
+  "COUNTER"
+  "CREATE"
+  "CREDENTIAL"
+  "CRYPTOGRAPHIC"
   "CUBE"
   "CURRENT"
   "CURSOR"
+  "DATA"
+  "DATABASE"
   "DATA_SOURCE"
   "DATEFORMAT"
   "DEADLOCK_PRIORITY"
@@ -69,62 +104,96 @@
   "DEFAULT"
   "DELAY"
   "DELETE"
+  "DENY"
   "DESC"
   "DISTINCT"
   "DISTRIBUTED"
   "DOCUMENT"
   "DOUBLE"
+  "DROP"
+  "EDGE"
   "ELSE"
+  "ENCRYPTED"
+  "ENCRYPTION"
   "END"
+  "ENDPOINT"
   "ESCAPE"
+  "EVENT"
   "EXCEPT"
   "EXEC"
   "EXECUTE"
   "EXISTS"
+  "EXTERNAL"
   "FETCH"
+  "FILE"
+  "FILESTREAM"
+  "FILESTREAM_ON"
+  "FILETABLE"
+  "FILLFACTOR"
   "FIRST"
   "FOLLOWING"
   "FOR"
   "FOR SYSTEM_TIME"
+  "FOREIGN"
+  "FORMAT"
   "FREETEXTTABLE"
   "FROM"
+  "FULLTEXT"
+  "FUNCTION"
+  "GENERATED"
   "GLOBAL"
   "GOTO"
+  "GOVERNOR"
+  "GRANT"
   "GROUP"
   "GROUPING"
   "GROUPS"
+  "HASH"
   "HAVING"
+  "HIDDEN"
   "HOLDLOCK"
   "IF"
   "IGNORE"
   "IN"
+  "INCLUDE"
   "INDEX"
   "INSERT"
   "INTERSECT"
   "INTO"
   "IS"
   "ISOLATION"
+  "JOB"
   "JOIN"
   "JSON"
   "KEY"
+  "KEYS"
   "LANGUAGE"
   "LAST"
   "LEADING"
   "LEVEL"
+  "LIBRARY"
   "LIKE"
+  "LIST"
   "LOG"
   "LOGIN"
   "MARK"
+  "MASKED"
+  "MASTER"
   "MATCHED"
   "MERGE"
+  "MESSAGE"
   "MODEL"
+  "NAME"
   "NATIONAL"
   "NEXT"
   "NEXT VALUE FOR"
   "NO"
+  "NOCHECK"
+  "NODE"
   "NONCLUSTERED"
   "NONE"
   "NOT"
+  "NOTIFICATION"
   "NOWAIT"
   "NULL"
   "NULLS"
@@ -147,46 +216,88 @@
   "OVER"
   "PARTITION"
   "PERCENT"
+  "PERIOD"
   "PERSISTED"
   "PIVOT"
+  "POLICY"
+  "POOL"
   "PRECEDING"
   "PRECISION"
   "PRIMARY"
   "PRINT"
   "PRIOR"
+  "PRIORITY"
+  "PROC"
+  "PROCEDURE"
+  "PROPERTY"
+  "PROVIDER"
+  "QUEUE"
   "RAISERROR"
   "RANGE"
   "READ"
   "READTEXT"
   "RECOMPILE"
+  "REFERENCES"
   "RELATIVE"
+  "REMOTE"
   "REPEATABLE"
+  "REPLICATION"
+  "RESOURCE"
   "RESPECT"
   "RESULT"
   "RETURN"
   "RETURNING"
   "REVERT"
+  "REVOKE"
+  "ROLE"
   "ROLLBACK"
   "ROLLUP"
+  "ROUTE"
   "ROW"
   "ROWGUIDCOL"
   "ROWS"
+  "RULE"
   "SAVE"
+  "SCHEMA"
+  "SCHEME"
+  "SCOPED"
+  "SEARCH"
+  "SECONDARY"
+  "SECURITY"
   "SELECT"
+  "SELECTIVE"
   "SEMANTICKEYPHRASETABLE"
   "SEMANTICSIMILARITYDETAILSTABLE"
   "SEMANTICSIMILARITYTABLE"
+  "SENSITIVITY"
+  "SEQUENCE"
+  "SEQUENCE_NUMBER"
   "SERIALIZABLE"
+  "SERVER"
+  "SERVICE"
+  "SESSION"
   "SET"
   "SETERROR"
   "SETS"
+  "SIGNATURE"
   "SNAPSHOT"
   "SOME"
   "SOURCE"
+  "SPARSE"
+  "SPATIAL"
+  "SPECIFICATION"
+  "START"
+  "STATISTICS"
+  "STOPLIST"
+  "STREAM"
+  "STREAMING"
+  "SYMMETRIC"
+  "SYNONYM"
   "SYSTEM"
   "TABLE"
   "TABLESAMPLE"
   "TARGET"
+  "TEXTIMAGE_ON"
   "THEN"
   "THROW"
   "TIES"
@@ -196,6 +307,8 @@
   "TRAILING"
   "TRAN"
   "TRANSACTION"
+  "TRANSACTION_ID"
+  "TRIGGER"
   "TRUNCATE"
   "TRY"
   "TRY_CONVERT"
@@ -213,6 +326,8 @@
   "USING"
   "VALUES"
   "VARYING"
+  "VECTOR"
+  "VIEW"
   "WAITFOR"
   "WHEN"
   "WHERE"
@@ -221,6 +336,7 @@
   "WITH"
   "WITHIN"
   "WORK"
+  "WORKLOAD"
   "WRAPPER"
   "WRITETEXT"
   "XML"
@@ -438,7 +554,82 @@
 ]
 
 (table_constraint
-  name: (identifier) @label)
+  constraint: (identifier) @label)
+
+(table_constraint
+  column: (identifier) @variable.member)
+
+[
+  (create_index_statement
+    name: (identifier) @label)
+  (create_statistics_statement
+    name: (identifier) @label)
+  (alter_index_statement
+    name: (identifier) @label)
+  (update_statistics_statement
+    statistics: (identifier) @label)
+  (check_constraint_clause
+    constraint: (identifier) @label)
+]
+
+[
+  (create_table_statement
+    filegroup: (identifier) @module)
+  (create_index_statement
+    filegroup: (identifier) @module)
+  (create_statistics_statement
+    filegroup: (identifier) @module)
+  (table_index
+    filegroup: (identifier) @module)
+  (table_constraint
+    filegroup: (identifier) @module)
+  (column_definition
+    filegroup: (identifier) @module)
+]
+
+[
+  (create_table_statement
+    column: (identifier) @variable.member)
+  (create_index_statement
+    column: (identifier) @variable.member)
+  (create_statistics_statement
+    column: (identifier) @variable.member)
+  (table_index
+    column: (identifier) @variable.member)
+  (table_constraint
+    column: (identifier) @variable.member)
+  (column_definition
+    column: (identifier) @variable.member)
+  (create_fulltext_index_statement
+    column: (identifier) @variable.member)
+  (alter_column_clause
+    name: (identifier) @variable.member)
+  (drop_clause
+    name: (identifier) @variable.member)
+  (period_definition
+    [
+      start: (identifier)
+      end: (identifier)
+    ] @variable.member)
+]
+
+(create_schema_statement
+  name: (identifier) @module)
+
+[
+  (create_schema_statement
+    owner: (identifier) @variable)
+  (grant_statement
+    principal: (identifier) @variable)
+  (deny_statement
+    principal: (identifier) @variable)
+  (revoke_statement
+    principal: (identifier) @variable)
+  (open_key_statement
+    name: (identifier) @variable)
+  (close_key_statement
+    name: (identifier) @variable)
+]
 
 (table_index
   name: (identifier) @label)

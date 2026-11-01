@@ -119,7 +119,6 @@ COMMIT TRANSACTION WITH (DELAYED_DURABILITY = ON);
 
 (source_file
   (commit_statement
-    (keyword)
     (keyword)))
 
 ================================================================================

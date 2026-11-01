@@ -1,0 +1,494 @@
+================================================================================
+DROP
+================================================================================
+
+DROP TABLE dbo.Employee;
+DROP TABLE IF EXISTS #t, dbo.T1, AdventureWorks2022.dbo.T2;
+DROP VIEW IF EXISTS dbo.v;
+DROP PROCEDURE IF EXISTS dbo.p1, dbo.p2;
+DROP PROC p;
+DROP FUNCTION dbo.f;
+DROP TRIGGER IF EXISTS safety ON DATABASE;
+DROP TRIGGER ddl_trig_login ON ALL SERVER;
+DROP TYPE IF EXISTS dbo.SSN;
+DROP SCHEMA Sprockets;
+DROP SYNONYM IF EXISTS dbo.MyProduct;
+DROP SEQUENCE Test.CountBy1;
+
+---
+
+(source_file
+  (drop_statement
+    (object_reference
+      (identifier)
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+DROP of the other objects
+================================================================================
+
+DROP DATABASE IF EXISTS Sales, NewSales;
+DROP LOGIN WilliJo;
+DROP USER IF EXISTS AbolrousHazem;
+DROP ROLE purchasing;
+DROP EXTERNAL TABLE dbo.Logs;
+DROP EXTERNAL DATA SOURCE MyOracleServer;
+DROP PARTITION SCHEME myRangePS1;
+DROP PARTITION FUNCTION myRangePF1;
+DROP XML SCHEMA COLLECTION ManuInstructionsSchemaCollection;
+DROP EVENT SESSION test_session ON SERVER;
+DROP BROKER PRIORITY InitiatorAToTargetPriority;
+DROP FULLTEXT INDEX ON HumanResources.JobCandidate;
+DROP MASTER KEY;
+DROP DATABASE ENCRYPTION KEY;
+DROP COUNTER SIGNATURE FROM dbo.p BY CERTIFICATE c1;
+DROP SENSITIVITY CLASSIFICATION FROM dbo.sales.price, dbo.sales.discount;
+
+---
+
+(source_file
+  (drop_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)
+      (identifier)))
+  (drop_statement)
+  (drop_statement)
+  (drop_statement
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (drop_statement
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)))
+
+================================================================================
+GRANT
+================================================================================
+
+GRANT SELECT ON OBJECT::Person.Address TO RosaQdM;
+GRANT EXECUTE ON dbo.uspGetEmployees TO Recruiting11;
+GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.t TO public, [Contoso\Mary] WITH GRANT OPTION;
+GRANT SELECT (a, b) ON dbo.t TO u AS dbo;
+GRANT CREATE TABLE TO MelanieK;
+GRANT ALL PRIVILEGES ON dbo.t TO u;
+GRANT VIEW DEFINITION ON SCHEMA::Sales TO u;
+GRANT ALTER ANY LOGIN, VIEW SERVER STATE TO TerryEminhizer;
+GRANT IMPERSONATE ON USER::HamithaL TO AccountsPayable17;
+GRANT CONTROL ON XML SCHEMA COLLECTION::Sales.Invoices4 TO RosaQdM;
+GRANT REFERENCES ON CERTIFICATE::Shipping04 TO u;
+
+---
+
+(source_file
+  (grant_statement
+    (permission
+      (keyword))
+    (keyword)
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier))
+  (grant_statement
+    (permission
+      (keyword))
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier))
+  (grant_statement
+    (permission
+      (keyword))
+    (permission
+      (keyword))
+    (permission
+      (keyword))
+    (permission
+      (keyword))
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier)
+    (identifier))
+  (grant_statement
+    (permission
+      (keyword)
+      (column_list
+        (identifier)
+        (identifier)))
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier)
+    (identifier))
+  (grant_statement
+    (permission
+      (keyword)
+      (keyword))
+    (identifier))
+  (grant_statement
+    (permission
+      (keyword)
+      (keyword))
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier))
+  (grant_statement
+    (permission
+      (keyword)
+      (keyword))
+    (keyword)
+    (object_reference
+      (identifier))
+    (identifier))
+  (grant_statement
+    (permission
+      (keyword)
+      (keyword)
+      (keyword))
+    (permission
+      (keyword)
+      (keyword)
+      (keyword))
+    (identifier))
+  (grant_statement
+    (permission
+      (keyword))
+    (keyword)
+    (object_reference
+      (identifier))
+    (identifier))
+  (grant_statement
+    (permission
+      (keyword))
+    (keyword)
+    (keyword)
+    (keyword)
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier))
+  (grant_statement
+    (permission
+      (keyword))
+    (keyword)
+    (object_reference
+      (identifier))
+    (identifier)))
+
+================================================================================
+DENY
+================================================================================
+
+DENY SELECT ON OBJECT::Person.Address TO RosaQdM CASCADE;
+DENY VIEW DEFINITION ON ROLE::SammamishParking TO JinghaoLiu CASCADE AS dbo;
+DENY CREATE CERTIFICATE TO MelanieK;
+
+---
+
+(source_file
+  (deny_statement
+    (permission
+      (keyword))
+    (keyword)
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier))
+  (deny_statement
+    (permission
+      (keyword)
+      (keyword))
+    (keyword)
+    (object_reference
+      (identifier))
+    (identifier)
+    (identifier))
+  (deny_statement
+    (permission
+      (keyword)
+      (keyword))
+    (identifier)))
+
+================================================================================
+REVOKE
+================================================================================
+
+REVOKE SELECT ON OBJECT::Person.Address FROM RosaQdM;
+REVOKE GRANT OPTION FOR EXECUTE ON dbo.p FROM u CASCADE;
+REVOKE CONNECT FROM guest;
+REVOKE VIEW SERVER STATE TO WanidaBenshoof AS sa;
+
+---
+
+(source_file
+  (revoke_statement
+    (permission
+      (keyword))
+    (keyword)
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier))
+  (revoke_statement
+    (permission
+      (keyword))
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier))
+  (revoke_statement
+    (permission
+      (keyword))
+    (identifier))
+  (revoke_statement
+    (permission
+      (keyword)
+      (keyword)
+      (keyword))
+    (identifier)
+    (identifier)))
+
+================================================================================
+OPEN and CLOSE of keys
+================================================================================
+
+OPEN MASTER KEY DECRYPTION BY PASSWORD = '43987hkhj4325tsku7';
+CLOSE MASTER KEY;
+OPEN SYMMETRIC KEY SymKey01 DECRYPTION BY CERTIFICATE Cert01 WITH PASSWORD = 'p';
+CLOSE SYMMETRIC KEY SymKey01;
+CLOSE ALL SYMMETRIC KEYS;
+
+---
+
+(source_file
+  (open_key_statement
+    (keyword)
+    (keyword)
+    (keyword)
+    (string))
+  (close_key_statement)
+  (open_key_statement
+    (identifier)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string))
+  (close_key_statement
+    (identifier))
+  (close_key_statement))
+
+================================================================================
+ADD SIGNATURE and ADD SENSITIVITY CLASSIFICATION
+================================================================================
+
+ADD SIGNATURE TO HumanResources.uspUpdateEmployeeLogin BY CERTIFICATE HumanResourcesDP;
+ADD COUNTER SIGNATURE TO dbo.p BY CERTIFICATE c1 WITH PASSWORD = 'x';
+ADD SENSITIVITY CLASSIFICATION TO dbo.sales.price, dbo.sales.discount WITH (LABEL = 'Highly Confidential', INFORMATION_TYPE = 'Financial', RANK = CRITICAL);
+
+---
+
+(source_file
+  (add_statement
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (add_statement
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string))
+  (add_statement
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)))
+
+================================================================================
+Definitions in a batch with no semicolons
+================================================================================
+
+IF OBJECT_ID('dbo.t') IS NOT NULL
+    DROP TABLE dbo.t
+CREATE TABLE dbo.t (a int)
+CREATE INDEX ix ON dbo.t (a)
+GRANT SELECT ON dbo.t TO public
+ALTER TABLE dbo.t ADD b int
+UPDATE STATISTICS dbo.t
+DROP INDEX ix ON dbo.t
+SELECT 1
+
+---
+
+(source_file
+  (if_statement
+    (is_expression
+      (function_call
+        (identifier)
+        (arguments
+          (string)))
+      (null))
+    (drop_statement
+      (object_reference
+        (identifier)
+        (identifier))))
+  (create_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))))
+  (create_index_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))
+    (index_columns
+      (order_by_item
+        (column_reference
+          (identifier)))))
+  (grant_statement
+    (permission
+      (keyword))
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier))
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (add_clause
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))))
+  (update_statistics_statement
+    (object_reference
+      (identifier)
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier)))
+  (select_statement
+    (select
+      (number))))

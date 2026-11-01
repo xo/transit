@@ -31,7 +31,10 @@ const (
 // scanner reads the words after them. FETCH starts a statement unless FIRST
 // or NEXT comes after it with no FROM, as in OFFSET 5 ROWS FETCH NEXT 5
 // ROWS ONLY. WITH starts a statement when a common table expression comes
-// after it, as in WITH c (a) AS, or XMLNAMESPACES.
+// after it, as in WITH c (a) AS, or XMLNAMESPACES. The scanner also gives
+// endStatement before WITH CHECK OPTION, which ends the query of a view, so
+// that the parse states after the query of a view are the states after a
+// query.
 //
 // errorSentinel is a token that the grammar never uses. When it is valid,
 // the parser recovers from an error, and the scanner gives no endStatement.
@@ -216,7 +219,7 @@ func readWord(lexer *abi.Lexer) string {
 
 // isCTE is is_cte. It reports whether a common table expression comes after
 // WITH: a name, the names of its columns in parentheses, and AS, or
-// XMLNAMESPACES.
+// XMLNAMESPACES. It also reports whether CHECK OPTION comes after WITH.
 func isCTE(lexer *abi.Lexer) bool {
 	skipBlank(lexer)
 	c := lexer.Lookahead
@@ -232,8 +235,11 @@ func isCTE(lexer *abi.Lexer) bool {
 		}
 		advance(lexer)
 	case isNameStart(c):
-		if readName(lexer) == "XMLNAMESPACES" {
+		switch readName(lexer) {
+		case "XMLNAMESPACES":
 			return true
+		case "CHECK":
+			return readWord(lexer) == "OPTION"
 		}
 	default:
 		return false

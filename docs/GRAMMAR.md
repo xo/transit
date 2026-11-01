@@ -339,6 +339,16 @@ Each one follows these rules, in addition to the rest of this document:
    of the external scanner. So a statement of PL/SQL ends at a `;` or at a
    `/` alone on its line, as a statement of SQL does, and the states after
    them are the same.
+   The upstream tool merges two states that reduce the same rule in two
+   places, and the merged state takes the reserved words and the keywords
+   of both places. So a word of a list of options can be read as a
+   keyword after a name or after another word of the list, and the parse
+   fails. The SQL Server grammar reads its lists of words with a rule that
+   is right recursive, and its parts are inlined, so that each word is
+   read in a state that expects a word of the list. A list ends a
+   statement or comes in parentheses, so that no keyword comes after a
+   list. A name before a list has a rule of its own, as the comments of
+   `_options` and `_object_name` in `grammars/sqlserver/grammar.js` say.
 
 A change to such a grammar is a change to transit. It follows "Before you
 stage" in `AGENTS.md`, and its golden files are made again.

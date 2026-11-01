@@ -1,0 +1,1219 @@
+================================================================================
+CREATE TABLE with columns and a primary key
+================================================================================
+
+CREATE TABLE dbo.Employee (
+    EmployeeID int NOT NULL,
+    Name nvarchar(50) NULL,
+    CONSTRAINT PK_Employee PRIMARY KEY CLUSTERED (EmployeeID ASC)
+);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (null))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (number)))
+        (null))
+      (table_constraint
+        (identifier)
+        (index_columns
+          (order_by_item
+            (column_reference
+              (identifier))))))))
+
+================================================================================
+CREATE TABLE of a temporary table
+================================================================================
+
+CREATE TABLE #t (a int, b varchar(max));
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (object_reference
+              (identifier))))))))
+
+================================================================================
+CREATE TABLE with IDENTITY and a default
+================================================================================
+
+CREATE TABLE dbo.T1 (
+    column_1 int IDENTITY(1, 1) NOT FOR REPLICATION,
+    column_2 varchar(30) CONSTRAINT default_name DEFAULT ('my column default'),
+    column_3 timestamp,
+    column_4 varchar(40) NULL,
+    created datetime2 DEFAULT (sysdatetime()),
+    spid int DEFAULT @@SPID
+);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (keyword)
+        (number)
+        (number))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (number)))
+        (identifier)
+        (parenthesized_expression
+          (string)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (number)))
+        (null))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (parenthesized_expression
+          (function_call
+            (identifier)
+            (arguments))))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (global_variable)))))
+
+================================================================================
+CREATE TABLE with a computed column
+================================================================================
+
+CREATE TABLE dbo.mytable (
+    low int,
+    high int,
+    myavg AS (low + high) / 2 PERSISTED NOT NULL
+);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (binary_expression
+          (parenthesized_expression
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (column_reference
+                (identifier))))
+          (operator)
+          (number))
+        (null)))))
+
+================================================================================
+CREATE TABLE with constraints on columns
+================================================================================
+
+CREATE TABLE dbo.Orders (
+    OrderID int PRIMARY KEY NONCLUSTERED,
+    CustomerID int NOT NULL FOREIGN KEY REFERENCES dbo.Customers (CustomerID),
+    Amount money CHECK (Amount > 0),
+    Code char(3) UNIQUE,
+    Guid uniqueidentifier ROWGUIDCOL NOT NULL UNIQUE DEFAULT newid()
+);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (null)
+        (object_reference
+          (identifier)
+          (identifier))
+        (column_list
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (parenthesized_expression
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number))))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (number))))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (null)
+        (function_call
+          (identifier)
+          (arguments))))))
+
+================================================================================
+CREATE TABLE with constraints of the table
+================================================================================
+
+CREATE TABLE dbo.OrderLines (
+    OrderID int,
+    LineID int,
+    ProductID int,
+    CONSTRAINT PK_OrderLines PRIMARY KEY (OrderID, LineID DESC) WITH (FILLFACTOR = 80) ON [PRIMARY],
+    CONSTRAINT FK_Orders FOREIGN KEY (OrderID) REFERENCES dbo.Orders (OrderID) ON DELETE CASCADE ON UPDATE NO ACTION,
+    CONSTRAINT FK_Products FOREIGN KEY (ProductID) REFERENCES dbo.Products (ProductID) ON DELETE SET NULL NOT FOR REPLICATION,
+    CONSTRAINT CK_Line CHECK NOT FOR REPLICATION (LineID > 0),
+    UNIQUE NONCLUSTERED (ProductID) WITH FILLFACTOR = 70
+);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (table_constraint
+        (identifier)
+        (index_columns
+          (order_by_item
+            (column_reference
+              (identifier)))
+          (order_by_item
+            (column_reference
+              (identifier))))
+        (keyword)
+        (number)
+        (identifier))
+      (table_constraint
+        (identifier)
+        (column_list
+          (identifier))
+        (object_reference
+          (identifier)
+          (identifier))
+        (column_list
+          (identifier)))
+      (table_constraint
+        (identifier)
+        (column_list
+          (identifier))
+        (object_reference
+          (identifier)
+          (identifier))
+        (column_list
+          (identifier)))
+      (table_constraint
+        (identifier)
+        (parenthesized_expression
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number))))
+      (table_constraint
+        (index_columns
+          (order_by_item
+            (column_reference
+              (identifier))))
+        (number)))))
+
+================================================================================
+CREATE TABLE with storage clauses
+================================================================================
+
+CREATE TABLE dbo.Docs (
+    ID int NOT NULL,
+    Body varbinary(max) FILESTREAM NULL,
+    RowID uniqueidentifier ROWGUIDCOL NOT NULL UNIQUE
+) ON ps_docs (ID) TEXTIMAGE_ON [PRIMARY] FILESTREAM_ON fs_group;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (null))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (object_reference
+              (identifier))))
+        (null))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (null)))
+    (identifier)
+    (identifier)
+    (identifier)
+    (identifier)))
+
+================================================================================
+CREATE TABLE with a comma after the last column
+================================================================================
+
+CREATE TABLE dbo.T2 (
+    a int,
+    b int,
+);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))))))
+
+================================================================================
+CREATE TABLE of a temporal table
+================================================================================
+
+CREATE TABLE dbo.Department (
+    DeptID int NOT NULL PRIMARY KEY CLUSTERED,
+    DeptName varchar(50) NOT NULL,
+    ValidFrom datetime2 GENERATED ALWAYS AS ROW START HIDDEN NOT NULL,
+    ValidTo datetime2 GENERATED ALWAYS AS ROW END HIDDEN NOT NULL,
+    PERIOD FOR SYSTEM_TIME (ValidFrom, ValidTo)
+)
+WITH (SYSTEM_VERSIONING = ON (HISTORY_TABLE = dbo.DepartmentHistory, HISTORY_RETENTION_PERIOD = 6 MONTHS));
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (null))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (number)))
+        (null))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (null))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (null))
+      (period_definition
+        (identifier)
+        (identifier)))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)))
+
+================================================================================
+CREATE TABLE of a ledger table
+================================================================================
+
+CREATE TABLE dbo.Accounts (
+    AccountID int NOT NULL,
+    Balance decimal(10, 2) NOT NULL,
+    TxID bigint GENERATED ALWAYS AS TRANSACTION_ID START HIDDEN NOT NULL,
+    SeqNo bigint GENERATED ALWAYS AS SEQUENCE_NUMBER START HIDDEN NOT NULL
+)
+WITH (SYSTEM_VERSIONING = ON, LEDGER = ON (APPEND_ONLY = OFF, LEDGER_VIEW = dbo.AccountsLedger (TRANSACTION_ID_COLUMN_NAME = TxID)));
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (null))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (number)
+            (number)))
+        (null))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (null))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (null)))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)))
+
+================================================================================
+CREATE TABLE of a memory-optimized table
+================================================================================
+
+CREATE TABLE dbo.ShoppingCart (
+    ShoppingCartId int IDENTITY(1, 1) PRIMARY KEY NONCLUSTERED,
+    UserId int NOT NULL INDEX ix_UserId NONCLUSTERED HASH WITH (BUCKET_COUNT = 1000000),
+    CreatedDate datetime2 NOT NULL,
+    TotalPrice money,
+    INDEX ix_Created NONCLUSTERED (CreatedDate),
+    INDEX cci CLUSTERED COLUMNSTORE
+) WITH (MEMORY_OPTIMIZED = ON, DURABILITY = SCHEMA_AND_DATA);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (keyword)
+        (number)
+        (number))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (null)
+        (identifier)
+        (keyword)
+        (number))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (null))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (table_index
+        (identifier)
+        (index_columns
+          (order_by_item
+            (column_reference
+              (identifier)))))
+      (table_index
+        (identifier)))
+    (keyword)
+    (keyword)
+    (keyword)))
+
+================================================================================
+CREATE TABLE with indexes of the table
+================================================================================
+
+CREATE TABLE dbo.Events (
+    id int NOT NULL,
+    region int,
+    kind varchar(10),
+    INDEX ix_region UNIQUE NONCLUSTERED (region DESC) INCLUDE (kind) WHERE region IS NOT NULL WITH (DATA_COMPRESSION = PAGE) ON [PRIMARY],
+    INDEX ix_hash HASH (id) WITH (BUCKET_COUNT = 64),
+    INDEX ix_kind (kind) FILESTREAM_ON "NULL"
+);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (null))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (number))))
+      (table_index
+        (identifier)
+        (index_columns
+          (order_by_item
+            (column_reference
+              (identifier))))
+        (column_list
+          (identifier))
+        (where_clause
+          (is_expression
+            (column_reference
+              (identifier))
+            (null)))
+        (keyword)
+        (keyword)
+        (identifier))
+      (table_index
+        (identifier)
+        (index_columns
+          (order_by_item
+            (column_reference
+              (identifier))))
+        (keyword)
+        (number))
+      (table_index
+        (identifier)
+        (index_columns
+          (order_by_item
+            (column_reference
+              (identifier))))
+        (identifier)))))
+
+================================================================================
+CREATE TABLE with sparse columns, masks and encryption
+================================================================================
+
+CREATE TABLE dbo.Patients (
+    ID int,
+    Notes varchar(100) SPARSE NULL,
+    AllSparse xml COLUMN_SET FOR ALL_SPARSE_COLUMNS,
+    Email varchar(100) MASKED WITH (FUNCTION = 'email()') NULL,
+    SSN char(11) COLLATE Latin1_General_BIN2 ENCRYPTED WITH (COLUMN_ENCRYPTION_KEY = CEK1, ENCRYPTION_TYPE = DETERMINISTIC, ALGORITHM = 'AEAD_AES_256_CBC_HMAC_SHA_256') NOT NULL
+);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (number)))
+        (null))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (number)))
+        (keyword)
+        (string)
+        (null))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (number)))
+        (identifier)
+        (keyword)
+        (keyword)
+        (keyword)
+        (keyword)
+        (keyword)
+        (string)
+        (null)))))
+
+================================================================================
+CREATE TABLE of the nodes and the edges of a graph
+================================================================================
+
+CREATE TABLE dbo.Person (ID int PRIMARY KEY, name varchar(100)) AS NODE;
+CREATE TABLE dbo.friendOf (
+    since date,
+    CONSTRAINT ec_friend CONNECTION (dbo.Person TO dbo.Person) ON DELETE CASCADE
+) AS EDGE;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (number))))))
+  (create_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (table_constraint
+        (identifier)
+        (object_reference
+          (identifier)
+          (identifier))
+        (object_reference
+          (identifier)
+          (identifier))))))
+
+================================================================================
+CREATE TABLE of a FileTable
+================================================================================
+
+CREATE TABLE dbo.DocumentStore AS FILETABLE
+WITH (FILETABLE_DIRECTORY = 'DocumentTable', FILETABLE_COLLATE_FILENAME = database_default);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)))
+
+================================================================================
+CREATE TABLE with a column with a column store index
+================================================================================
+
+CREATE TABLE dbo.t_colstor (
+    a int NOT NULL,
+    b varchar(10) INDEX ix_ab CLUSTERED (a, b)
+);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (null))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (number)))
+        (identifier)
+        (index_columns
+          (order_by_item
+            (column_reference
+              (identifier)))
+          (order_by_item
+            (column_reference
+              (identifier))))))))
+
+================================================================================
+CREATE TABLE AS SELECT
+================================================================================
+
+CREATE TABLE dbo.FactSales
+WITH (DISTRIBUTION = HASH(ProductKey), CLUSTERED COLUMNSTORE INDEX)
+AS SELECT * FROM dbo.FactInternetSales;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (select
+      (all_columns)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)
+            (identifier)))))))
+
+================================================================================
+CREATE EXTERNAL TABLE
+================================================================================
+
+CREATE EXTERNAL TABLE dbo.Logs (
+    ts datetime2 NOT NULL,
+    msg varchar(4000)
+)
+WITH (LOCATION = '/logs/', DATA_SOURCE = MyDataSource, FILE_FORMAT = MyFileFormat, REJECT_TYPE = VALUE, REJECT_VALUE = 0);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (null))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (number)))))
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (number)))
+
+================================================================================
+CREATE TABLE in a batch
+================================================================================
+
+CREATE TABLE a (x int)
+CREATE TABLE b (y int)
+SELECT 1
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))))
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))))
+  (select_statement
+    (select
+      (number))))
+
+================================================================================
+ALTER TABLE ADD of columns
+================================================================================
+
+ALTER TABLE dbo.doc_exa ADD column_b varchar(20) NULL, column_c int CONSTRAINT df_c DEFAULT 0 WITH VALUES;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (add_clause
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (number)))
+        (null))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (identifier)
+        (number)))))
+
+================================================================================
+ALTER TABLE ADD of a computed column
+================================================================================
+
+ALTER TABLE dbo.mytable ADD total AS low + high PERSISTED;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (add_clause
+      (column_definition
+        (identifier)
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)))))))
+
+================================================================================
+ALTER TABLE ADD of constraints
+================================================================================
+
+ALTER TABLE dbo.Orders WITH CHECK ADD CONSTRAINT FK_Customer FOREIGN KEY (CustomerID) REFERENCES dbo.Customers (CustomerID);
+ALTER TABLE dbo.Orders WITH NOCHECK ADD CONSTRAINT CK_Amount CHECK (Amount > 0);
+ALTER TABLE dbo.Orders ADD CONSTRAINT DF_Date DEFAULT (getdate()) FOR OrderDate;
+ALTER TABLE dbo.Orders ADD CONSTRAINT PK_Orders PRIMARY KEY CLUSTERED (OrderID) WITH (ONLINE = ON) ON [PRIMARY];
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (add_clause
+      (table_constraint
+        (identifier)
+        (column_list
+          (identifier))
+        (object_reference
+          (identifier)
+          (identifier))
+        (column_list
+          (identifier)))))
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (add_clause
+      (table_constraint
+        (identifier)
+        (parenthesized_expression
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number))))))
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (add_clause
+      (table_constraint
+        (identifier)
+        (parenthesized_expression
+          (function_call
+            (identifier)
+            (arguments)))
+        (identifier))))
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (add_clause
+      (table_constraint
+        (identifier)
+        (index_columns
+          (order_by_item
+            (column_reference
+              (identifier))))
+        (keyword)
+        (identifier)))))
+
+================================================================================
+ALTER TABLE ADD of an index and a period
+================================================================================
+
+ALTER TABLE dbo.Meter ADD INDEX ix NONCLUSTERED HASH (MeterID) WITH (BUCKET_COUNT = 1024);
+ALTER TABLE dbo.Department ADD
+    ValidFrom datetime2 GENERATED ALWAYS AS ROW START HIDDEN NOT NULL CONSTRAINT df_from DEFAULT sysutcdatetime(),
+    ValidTo datetime2 GENERATED ALWAYS AS ROW END HIDDEN NOT NULL CONSTRAINT df_to DEFAULT CONVERT(datetime2, '9999-12-31 23:59:59.9999999'),
+    PERIOD FOR SYSTEM_TIME (ValidFrom, ValidTo);
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (add_clause
+      (table_index
+        (identifier)
+        (index_columns
+          (order_by_item
+            (column_reference
+              (identifier))))
+        (keyword)
+        (number))))
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (add_clause
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (null)
+        (identifier)
+        (function_call
+          (identifier)
+          (arguments)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))
+        (null)
+        (identifier)
+        (convert_expression
+          (type
+            (identifier))
+          (string)))
+      (period_definition
+        (identifier)
+        (identifier)))))
+
+================================================================================
+ALTER TABLE ALTER COLUMN
+================================================================================
+
+ALTER TABLE dbo.doc_exy ALTER COLUMN column_a decimal(5, 2) NOT NULL;
+ALTER TABLE dbo.T3 ALTER COLUMN c2 varchar(50) COLLATE Latin1_General_BIN NULL WITH (ONLINE = ON);
+ALTER TABLE dbo.Patients ALTER COLUMN Email ADD MASKED WITH (FUNCTION = 'partial(2,"xxxx",0)');
+ALTER TABLE dbo.Patients ALTER COLUMN Notes DROP SPARSE;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (alter_column_clause
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (number)
+            (number)))
+        (null))))
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (alter_column_clause
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (number)))
+        (identifier)
+        (null)
+        (keyword))))
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (alter_column_clause
+      (identifier)
+      (keyword)
+      (keyword)
+      (string)))
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (alter_column_clause
+      (identifier)
+      (keyword))))
+
+================================================================================
+ALTER TABLE DROP
+================================================================================
+
+ALTER TABLE dbo.doc_exb DROP COLUMN IF EXISTS column_c, column_d;
+ALTER TABLE dbo.doc_exc DROP CONSTRAINT my_constraint, CONSTRAINT IF EXISTS my_pk_constraint WITH (ONLINE = ON), COLUMN column_b;
+ALTER TABLE dbo.Department DROP PERIOD FOR SYSTEM_TIME;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (drop_clause
+      (identifier)
+      (identifier)))
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (drop_clause
+      (identifier)
+      (identifier)
+      (keyword)
+      (identifier)))
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (drop_clause)))
+
+================================================================================
+ALTER TABLE CHECK CONSTRAINT and NOCHECK CONSTRAINT
+================================================================================
+
+ALTER TABLE dbo.cnst_example NOCHECK CONSTRAINT salary_cap;
+ALTER TABLE dbo.cnst_example WITH CHECK CHECK CONSTRAINT ALL;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (check_constraint_clause
+      (identifier)))
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (check_constraint_clause)))
+
+================================================================================
+ALTER TABLE with other clauses
+================================================================================
+
+ALTER TABLE dbo.Department SET (SYSTEM_VERSIONING = ON (HISTORY_TABLE = dbo.DepartmentHistory, DATA_CONSISTENCY_CHECK = ON));
+ALTER TABLE dbo.T1 SET (LOCK_ESCALATION = AUTO);
+ALTER TABLE dbo.PartitionTable SWITCH PARTITION 2 TO dbo.NonPartitionTable;
+ALTER TABLE dbo.T1 REBUILD PARTITION = ALL WITH (DATA_COMPRESSION = PAGE ON PARTITIONS (1 TO 4));
+ALTER TABLE dbo.T1 ENABLE TRIGGER ALL;
+ALTER TABLE dbo.T1 DISABLE CHANGE_TRACKING;
+ALTER TABLE dbo.T1 ENABLE CHANGE_TRACKING WITH (TRACK_COLUMNS_UPDATED = ON);
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)
+    (number))
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword)
+    (keyword))
+  (alter_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)))

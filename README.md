@@ -228,10 +228,15 @@ XML`, `FOR JSON` and `OPTION`. It also covers `INSERT`, `UPDATE`, `DELETE`
 and `MERGE` with `OUTPUT`, `BULK INSERT`, `TRUNCATE TABLE`, the statements
 of transactions, `SET`, `USE`, `EXECUTE`, `PRINT`, `RAISERROR`, `THROW`,
 the control-of-flow language, such as `IF`, `WHILE`, `BEGIN ... END` and
-`TRY ... CATCH`, `DECLARE` and the statements of cursors. It does not read
-the statements that define objects yet. A statement does not need a
-semicolon at its end. A line with only `GO` and an optional count ends a
-batch, as in sqlcmd. The package adds about 1.2 MB to a binary. The grammar of `Crary-Systems/tree-sitter-tsql` stays in the
+`TRY ... CATCH`, `DECLARE` and the statements of cursors. It covers the
+statements that define objects: `CREATE`, `ALTER` and `DROP` of tables,
+with temporal, ledger, graph and memory-optimized tables, of each kind of
+index, of views, schemas, synonyms, types, statistics, databases, logins,
+users, roles and the other objects of the reference, and `GRANT`, `DENY`,
+`REVOKE` and `UPDATE STATISTICS`. It does not read procedures, functions
+and triggers yet. A statement does not need a semicolon at its end. A line
+with only `GO` and an optional count ends a batch, as in sqlcmd. The
+package adds about 1.4 MB to a binary. The grammar of `Crary-Systems/tree-sitter-tsql` stays in the
 golden set, but it has no Go package.
 
 The package `github.com/xo/transit/grammars/postgres/postgres` holds the

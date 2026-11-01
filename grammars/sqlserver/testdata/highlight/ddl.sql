@@ -1,0 +1,81 @@
+CREATE TABLE dbo.Orders (id int IDENTITY(1, 1) CONSTRAINT pk PRIMARY KEY, c varchar(10) NOT NULL DEFAULT 'x') ON [PRIMARY];
+-- <- keyword
+--     ^ keyword
+--           ^ module
+--               ^ type
+--                       ^ variable.member
+--                          ^ type.builtin
+--                              ^ keyword
+--                                             ^ keyword
+--                                              ^ keyword
+--                                                        ^ label
+--                                                           ^ keyword
+--                                                                   ^ keyword
+--                                                                        ^ variable.member
+--                                                                                          ^ constant.builtin
+--                                                                                               ^ keyword
+--                                                                                                       ^ string
+--                                                                                                               ^ module
+ALTER TABLE t WITH CHECK ADD CONSTRAINT fk FOREIGN KEY (a) REFERENCES p (id) ON DELETE CASCADE;
+-- <- keyword
+--          ^ type
+--            ^ keyword
+--                 ^ keyword
+--                       ^ keyword
+--                                      ^ label
+--                                         ^ keyword
+--                                                     ^ punctuation.bracket
+--                                                      ^ variable.member
+--                                                         ^ keyword
+--                                                                    ^ type
+--                                                                       ^ variable.member
+--                                                                              ^ keyword
+--                                                                                     ^ keyword
+CREATE UNIQUE NONCLUSTERED INDEX ix ON dbo.t (a DESC) INCLUDE (b) WHERE a > 0 WITH (ONLINE = ON);
+--     ^ keyword
+--                         ^ keyword
+--                               ^ label
+--                                         ^ type
+--                                              ^ keyword
+--                                                    ^ keyword
+--                                                             ^ variable.member
+--                                                                ^ keyword
+--                                                                        ^ operator
+--                                                                                  ^ keyword
+CREATE OR ALTER VIEW dbo.v WITH SCHEMABINDING AS SELECT a FROM dbo.t;
+--     ^ keyword
+--              ^ keyword
+--                       ^ type
+--                              ^ keyword
+--                                               ^ keyword
+--                                                      ^ variable.member
+CREATE LOGIN app WITH PASSWORD = 'p', CHECK_POLICY = OFF;
+--     ^ keyword
+--           ^ type
+--                    ^ keyword
+--                               ^ string
+--                                    ^ keyword
+--                                                   ^ keyword
+GRANT SELECT, VIEW DEFINITION ON SCHEMA::Sales TO public WITH GRANT OPTION;
+-- <- keyword
+--    ^ keyword
+--            ^ keyword
+--                               ^ keyword
+--                                     ^ operator
+--                                       ^ type
+--                                             ^ keyword
+--                                                ^ variable
+--                                                                  ^ keyword
+DROP TABLE IF EXISTS #t, dbo.t2;
+-- <- keyword
+--         ^ keyword
+--            ^ keyword
+--                   ^ type
+--                       ^ module
+--                           ^ type
+UPDATE STATISTICS dbo.t ix WITH FULLSCAN;
+-- <- keyword
+--     ^ keyword
+--                    ^ type
+--                      ^ label
+--                              ^ keyword

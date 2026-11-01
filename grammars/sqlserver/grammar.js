@@ -39,6 +39,14 @@
 // statement after another statement, where the server reads it as an
 // alias.
 //
+// The statements that define objects, such as CREATE TABLE and CREATE
+// INDEX, read the names of the objects, the columns, the constraints and
+// the indexes. The statements of the other kinds of objects, such as CREATE
+// LOGIN and ALTER DATABASE, read the kind and the name of the object, and
+// the rest is a list of words, because the reference lists hundreds of
+// options. A word of such a list is an identifier that takes the reserved
+// set label, as in the Oracle grammar.
+//
 // The procedural statements are written inline, as in the Oracle grammar:
 // BEGIN ... END, IF, WHILE, TRY ... CATCH, DECLARE and the statements of
 // cursors. The words that only these statements use, such as TRY and
@@ -80,7 +88,8 @@ const PREC = {
 // of the reference. WITHIN GROUP is two words, and WITHIN is not reserved
 // alone. PRECISION is left out: the grammar reads it only after DOUBLE, and
 // scripts read the column precision of sys.columns with no brackets, which
-// the server accepts.
+// the server accepts. FOREIGN is left out too. When it is reserved, 22
+// more parse states take the large form.
 const RESERVED_WORDS = [
   'ADD', 'ALL', 'ALTER', 'AND', 'ANY', 'AS', 'ASC', 'AUTHORIZATION', 'BACKUP',
   'BEGIN', 'BETWEEN', 'BREAK', 'BROWSE', 'BULK', 'BY', 'CASCADE', 'CASE',
@@ -91,7 +100,7 @@ const RESERVED_WORDS = [
   'DEALLOCATE', 'DECLARE', 'DEFAULT', 'DELETE', 'DENY', 'DESC', 'DISK',
   'DISTINCT', 'DISTRIBUTED', 'DOUBLE', 'DROP', 'DUMP', 'ELSE', 'END', 'ERRLVL',
   'ESCAPE', 'EXCEPT', 'EXEC', 'EXECUTE', 'EXISTS', 'EXIT', 'EXTERNAL', 'FETCH',
-  'FILE', 'FILLFACTOR', 'FOR', 'FOREIGN', 'FREETEXT', 'FREETEXTTABLE', 'FROM',
+  'FILE', 'FILLFACTOR', 'FOR', 'FREETEXT', 'FREETEXTTABLE', 'FROM',
   'FULL', 'FUNCTION', 'GOTO', 'GRANT', 'GROUP', 'HAVING', 'HOLDLOCK', 'IDENTITY',
   'IDENTITY_INSERT', 'IDENTITYCOL', 'IF', 'IN', 'INDEX', 'INNER', 'INSERT',
   'INTERSECT', 'INTO', 'IS', 'JOIN', 'KEY', 'KILL', 'LEFT', 'LIKE', 'LINENO',
@@ -141,6 +150,54 @@ const ROWSET_FUNCTION_WORDS = [
   'OPENXML', 'SEMANTICKEYPHRASETABLE', 'SEMANTICSIMILARITYDETAILSTABLE',
   'SEMANTICSIMILARITYTABLE',
 ];
+
+// The kinds of objects that CREATE, ALTER and DROP name, each as the words
+// before the name of the object, for the objects that have no rule of their
+// own. Their options are a list of words. BROKER PRIORITY and PARTITION
+// FUNCTION are not here, because a word of a statement comes in their
+// options, as in FOR CONVERSATION SET and MERGE RANGE.
+const OBJECT_KINDS = [
+  'AGGREGATE', 'APPLICATION ROLE', 'ASSEMBLY', 'ASYMMETRIC KEY',
+  'AVAILABILITY GROUP', 'CERTIFICATE', 'COLUMN ENCRYPTION KEY',
+  'COLUMN MASTER KEY', 'CONTRACT', 'CREDENTIAL', 'CRYPTOGRAPHIC PROVIDER',
+  'DATABASE', 'DATABASE AUDIT SPECIFICATION', 'DATABASE SCOPED CREDENTIAL',
+  'DEFAULT', 'ENDPOINT', 'EVENT NOTIFICATION', 'EVENT SESSION',
+  'EXTERNAL DATA SOURCE', 'EXTERNAL FILE FORMAT', 'EXTERNAL LANGUAGE',
+  'EXTERNAL LIBRARY', 'EXTERNAL MODEL', 'EXTERNAL RESOURCE POOL',
+  'EXTERNAL STREAM', 'EXTERNAL STREAMING JOB', 'FULLTEXT CATALOG',
+  'FULLTEXT STOPLIST', 'LOGIN', 'MESSAGE TYPE', 'PARTITION SCHEME', 'QUEUE',
+  'REMOTE SERVICE BINDING', 'RESOURCE POOL', 'ROLE', 'ROUTE', 'RULE',
+  'SEARCH PROPERTY LIST', 'SECURITY POLICY', 'SEQUENCE', 'SERVER AUDIT',
+  'SERVER AUDIT SPECIFICATION', 'SERVER ROLE', 'SERVICE', 'SYMMETRIC KEY',
+  'USER', 'WORKLOAD CLASSIFIER', 'WORKLOAD GROUP', 'XML SCHEMA COLLECTION',
+];
+
+// The kinds of objects that DROP names as it names the kinds above, but that
+// CREATE or ALTER does not read with them: the kinds that have a rule of
+// their own for CREATE, PARTITION FUNCTION, which has a form of its own in
+// ALTER, and the units that a later part reads.
+const OWN_KINDS = [
+  'EXTERNAL TABLE', 'FUNCTION', 'INDEX', 'PARTITION FUNCTION', 'PROC',
+  'PROCEDURE', 'SCHEMA', 'STATISTICS', 'SYNONYM', 'TABLE', 'TRIGGER', 'TYPE',
+  'VIEW',
+];
+
+// The words between CREATE and INDEX.
+const INDEX_WORDS = [
+  'CLUSTERED', 'COLUMNSTORE', 'JSON', 'NONCLUSTERED', 'PRIMARY', 'SELECTIVE',
+  'SPATIAL', 'UNIQUE', 'VECTOR', 'XML',
+];
+
+/**
+ * Returns the keywords of a kind of object, such as 'MESSAGE TYPE'. USER is
+ * a niladic function, so it takes the token of the niladic functions.
+ *
+ * @param {GrammarSymbols<string>} $
+ * @param {string} kind
+ */
+function kind($, kind) {
+  return seq(...kind.split(' ').map(w => w === 'USER' ? $._user : kw(w)));
+}
 
 /**
  * Returns a keyword: a token that matches word in any case, as an
@@ -196,6 +253,35 @@ function parens(rule) {
   return seq('(', rule, ')');
 }
 
+/**
+ * Returns the rule of a name of an object, with its schema, its database and
+ * its server. A part can be empty, as in db..t.
+ *
+ * @param {GrammarSymbols<string>} $
+ */
+function objectReference($) {
+  return choice(
+    field('name', $._name),
+    seq(field('schema', $._name), '.', field('name', $._label)),
+    seq(
+      field('database', $._name),
+      '.',
+      optional(field('schema', $._label)),
+      '.',
+      field('name', $._label),
+    ),
+    seq(
+      field('server', $._name),
+      '.',
+      optional(field('database', $._label)),
+      '.',
+      optional(field('schema', $._label)),
+      '.',
+      field('name', $._label),
+    ),
+  );
+}
+
 module.exports = grammar({
   name: 'sqlserver',
 
@@ -229,7 +315,8 @@ module.exports = grammar({
   // state where an expression starts. Such a state with more than 64
   // columns takes the large form, so these rules are inlined. The rule
   // _operand is inlined so that the precedence of the operator before it
-  // decides where its expression ends, as in a = 1 AND b.
+  // decides where its expression ends, as in a = 1 AND b. The parts of a
+  // list of words are inlined, as the comment of _options says.
   inline: $ => [
     $._name,
     $._label,
@@ -237,6 +324,9 @@ module.exports = grammar({
     $._primary_expression,
     $._operand,
     $._alias,
+    $._option_atom,
+    $._word_atom,
+    $._option_must,
   ],
 
   conflicts: $ => [
@@ -247,6 +337,11 @@ module.exports = grammar({
     // table-valued function or the hints of the table in the old form, as
     // in t (NOLOCK).
     [$.function_call, $.object_reference],
+    // A view can end at _end, or go on with WITH CHECK OPTION after it.
+    // The scanner gives _end before WITH CHECK OPTION, so that the parse
+    // states after the query of a view are the states after the query of
+    // a statement.
+    [$._view],
   ],
 
   rules: {
@@ -338,6 +433,27 @@ module.exports = grammar({
       $.fetch_statement,
       $.close_statement,
       $.deallocate_statement,
+      $.create_table_statement,
+      $.create_index_statement,
+      $.create_fulltext_index_statement,
+      $.create_view_statement,
+      $.create_schema_statement,
+      $.create_synonym_statement,
+      $.create_type_statement,
+      $.create_statistics_statement,
+      $.create_statement,
+      $.alter_table_statement,
+      $.alter_index_statement,
+      $.alter_view_statement,
+      $.alter_statement,
+      $.drop_statement,
+      $.grant_statement,
+      $.deny_statement,
+      $.revoke_statement,
+      $.update_statistics_statement,
+      $.open_key_statement,
+      $.close_key_statement,
+      $.add_statement,
     ),
 
     // Changes of data
@@ -838,36 +954,87 @@ module.exports = grammar({
       ),
     ),
 
-    // The columns, the constraints and the indexes of a table variable.
-    table_definition: $ => parens(commaSep1(choice(
-      $.column_definition,
-      $.table_constraint,
-      $.table_index,
+    // The columns, the constraints, the indexes and the period of a table or
+    // a table variable.
+    // The server takes a comma after the last element.
+    table_definition: $ => parens(seq(
+      commaSep1(choice(
+        $.column_definition,
+        $.table_constraint,
+        $.table_index,
+        $.period_definition,
+      )),
+      optional(','),
+    )),
+
+    // A constraint of a table, as in CONSTRAINT pk PRIMARY KEY CLUSTERED (a,
+    // b DESC) WITH (FILLFACTOR = 80) ON [PRIMARY], FOREIGN KEY (a)
+    // REFERENCES t (b) ON DELETE CASCADE, or DEFAULT 0 FOR c in ALTER TABLE.
+    // The parts of a constraint are the parts of the constraints of a
+    // column, the columns of the key, FOR and CONNECTION, in any order.
+    table_constraint: $ => prec.right(repeat1(choice(
+      $._constraint_item,
+      seq(kw('FOR'), field('column', $._name)),
+      seq(
+        kw('CONNECTION'),
+        parens(commaSep1(seq(
+          field('from', $.object_reference),
+          kw('TO'),
+          field('to', $.object_reference),
+        ))),
+      ),
     ))),
 
-    // A constraint of a table, as in PRIMARY KEY (a, b DESC).
-    table_constraint: $ => seq(
-      optional(seq(kw('CONSTRAINT'), field('name', $._name))),
-      choice(
-        seq(
-          choice(kws('PRIMARY', 'KEY'), kw('UNIQUE')),
-          optional(choice(kw('CLUSTERED'), kw('NONCLUSTERED'))),
-          $.index_columns,
-          optional(seq(kw('WITH'), $._hint_list)),
-        ),
-        seq(kw('CHECK'), $.parenthesized_expression),
-      ),
-    ),
-
-    table_index: $ => seq(
+    // An index of a table, as in INDEX ix NONCLUSTERED (a) INCLUDE (b), INDEX
+    // cci CLUSTERED COLUMNSTORE or INDEX ix HASH (a) WITH (BUCKET_COUNT =
+    // 64).
+    table_index: $ => prec.right(seq(
       kw('INDEX'),
       field('name', $._name),
-      optional(kw('UNIQUE')),
-      optional(choice(kw('CLUSTERED'), kw('NONCLUSTERED'))),
-      $.index_columns,
-    ),
+      repeat(choice(...['UNIQUE', 'CLUSTERED', 'NONCLUSTERED', 'COLUMNSTORE', 'HASH'].map(kw))),
+      optional($.index_columns),
+      repeat($._index_option),
+    )),
 
     index_columns: $ => parens(commaSep1($.order_by_item)),
+
+    // The clauses of an index after its columns, in any order.
+    _index_option: $ => choice(
+      seq(choice(kw('INCLUDE'), kw('ORDER')), $.column_list),
+      $.where_clause,
+      seq(kw('WITH'), $._option_group),
+      $._on_clause,
+      seq(kw('FILESTREAM_ON'), field('filegroup', $._label)),
+    ),
+
+    // ON names the filegroup or the partition scheme of a table, an index
+    // or a constraint, as in ON [PRIMARY] or ON ps (d), or the action of a
+    // foreign key, as in ON DELETE CASCADE.
+    _on_clause: $ => prec.right(seq(
+      kw('ON'),
+      choice(
+        seq(
+          choice(kw('DELETE'), kw('UPDATE')),
+          choice(
+            kws('NO', 'ACTION'),
+            kw('CASCADE'),
+            seq(kw('SET'), choice(kw('NULL'), kw('DEFAULT'))),
+          ),
+        ),
+        seq(
+          field('filegroup', $._label),
+          optional(parens(field('column', $._name))),
+        ),
+      ),
+    )),
+
+    // PERIOD FOR SYSTEM_TIME names the columns of the period of a temporal
+    // table.
+    period_definition: $ => seq(
+      kw('PERIOD'),
+      alias($._for_system_time, 'FOR SYSTEM_TIME'),
+      parens(seq(field('start', $._name), ',', field('end', $._name))),
+    ),
 
     // DECLARE CURSOR, in the form of ISO, with INSENSITIVE and SCROLL
     // before CURSOR, or in the form of Transact-SQL, with the options
@@ -917,6 +1084,389 @@ module.exports = grammar({
     _cursor: $ => seq(
       optional(kw('GLOBAL')),
       field('cursor', choice($._name, $.variable)),
+    ),
+
+    // Definitions of objects
+
+    // CREATE, and OR ALTER, which the server takes for a view, a procedure,
+    // a function or a trigger. Each statement that creates an object starts
+    // with this rule, so that the statements share the parse states after
+    // CREATE.
+    _create: _ => seq(kw('CREATE'), optional(kws('OR', 'ALTER'))),
+
+    _if_exists: _ => kws('IF', 'EXISTS'),
+
+    // CREATE TABLE and CREATE EXTERNAL TABLE. A table can be a FileTable, a
+    // node or an edge of a graph, or the result of a query in Azure Synapse
+    // Analytics and Microsoft Fabric. The options of the table, such as
+    // MEMORY_OPTIMIZED and SYSTEM_VERSIONING, are a list of words.
+    create_table_statement: $ => seq(
+      $._create,
+      optional(kw('EXTERNAL')),
+      kw('TABLE'),
+      field('name', $.object_reference),
+      optional($.table_definition),
+      repeat(choice(
+        $._on_clause,
+        seq(choice(kw('TEXTIMAGE_ON'), kw('FILESTREAM_ON')), field('filegroup', $._label)),
+        seq(kw('WITH'), $._option_group),
+        seq(kw('AS'), choice(kw('FILETABLE'), kw('NODE'), kw('EDGE'))),
+      )),
+      optional(seq(kw('AS'), $._query)),
+    ),
+
+    // CREATE INDEX makes each kind of index: clustered, nonclustered,
+    // columnstore, XML, selective XML, spatial, vector and JSON. The clauses
+    // after the columns come in any order. USING names the grid of a
+    // spatial index or the primary XML index of a secondary XML index. FOR
+    // gives the paths of a selective XML index or a JSON index, or the kind
+    // of a secondary XML index.
+    create_index_statement: $ => prec.right(seq(
+      $._create,
+      repeat(choice(...INDEX_WORDS.map(kw))),
+      kw('INDEX'),
+      field('name', $._name),
+      kw('ON'),
+      field('table', $.object_reference),
+      optional($.index_columns),
+      repeat($._index_clause),
+      optional($._index_with),
+    )),
+
+    // The clauses of CREATE INDEX and CREATE STATISTICS after the columns.
+    // The two statements share the rule, so that they share the parse
+    // states after a filter, as in WHERE c > 0. The options of the old form
+    // have no parentheses, as in WITH FILLFACTOR = 80 ON [PRIMARY] or WITH
+    // FULLSCAN, NORECOMPUTE. They are a list of words at the end of the
+    // statement. A keyword after one list of words is a keyword after each
+    // list, because the parser merges the states at the end of the lists.
+    _index_clause: $ => choice(
+      $._index_option,
+      seq(kw('USING'), repeat1($._option_word)),
+      seq(kw('FOR'), choice($._option_group, $._option_word)),
+    ),
+
+    _index_with: $ => seq(kw('WITH'), $._word_list),
+
+    // CREATE FULLTEXT INDEX has no name. Each column can have words after
+    // it, as in c TYPE COLUMN t LANGUAGE 1033, and the clauses after the
+    // columns, such as KEY INDEX, are a list of words.
+    create_fulltext_index_statement: $ => seq(
+      $._create,
+      kws('FULLTEXT', 'INDEX', 'ON'),
+      field('table', $._object_name),
+      optional(parens(commaSep1(seq(field('column', $._name), repeat($._option_value))))),
+      optional($._word_list),
+    ),
+
+    // CREATE VIEW and ALTER VIEW. The options of the view, such as
+    // SCHEMABINDING, are words.
+    create_view_statement: $ => seq($._create, $._view),
+
+    alter_view_statement: $ => seq(kw('ALTER'), $._view),
+
+    _view: $ => seq(
+      kw('VIEW'),
+      field('name', $.object_reference),
+      optional($.column_list),
+      optional(seq(kw('WITH'), commaSep1($._option_word))),
+      kw('AS'),
+      $._query,
+      optional(seq($._end, kws('WITH', 'CHECK', 'OPTION'))),
+    ),
+
+    // CREATE SCHEMA. The statements that the reference puts in CREATE
+    // SCHEMA, such as CREATE TABLE and GRANT, are statements of their own
+    // after it.
+    create_schema_statement: $ => seq(
+      $._create,
+      kw('SCHEMA'),
+      choice(
+        seq(
+          field('name', $._name),
+          optional(seq(kw('AUTHORIZATION'), field('owner', $._name))),
+        ),
+        seq(kw('AUTHORIZATION'), field('owner', $._name)),
+      ),
+    ),
+
+    create_synonym_statement: $ => seq(
+      $._create,
+      kw('SYNONYM'),
+      field('name', $.object_reference),
+      kw('FOR'),
+      field('target', $.object_reference),
+    ),
+
+    // CREATE TYPE makes an alias of a type, a table type or a CLR type.
+    create_type_statement: $ => seq(
+      $._create,
+      kw('TYPE'),
+      field('name', $.object_reference),
+      choice(
+        prec.right(seq(
+          kw('FROM'),
+          field('type', $.type),
+          optional(choice($.null, seq(kw('NOT'), $.null))),
+        )),
+        prec.right(seq(
+          kws('AS', 'TABLE'),
+          $.table_definition,
+          optional(seq(kw('WITH'), $._option_group)),
+        )),
+        seq(kws('EXTERNAL', 'NAME'), field('assembly', $.object_reference)),
+      ),
+    ),
+
+    // CREATE STATISTICS, with a filter and the options of the sample.
+    create_statistics_statement: $ => prec.right(seq(
+      $._create,
+      kw('STATISTICS'),
+      field('name', $._name),
+      kw('ON'),
+      field('table', $.object_reference),
+      $.column_list,
+      repeat($._index_clause),
+      optional($._index_with),
+    )),
+
+    // CREATE of the other kinds of objects, such as LOGIN, USER, SEQUENCE,
+    // DATABASE and PARTITION SCHEME. The options are a list of words,
+    // because the reference lists hundreds of them, as in CREATE DATABASE d
+    // ON PRIMARY (NAME = d, FILENAME = 'd.mdf', SIZE = 8MB).
+    create_statement: $ => seq(
+      $._create,
+      choice(
+        seq($._create_kind, field('name', $._object_name)),
+        $._broker_priority,
+        kws('MASTER', 'KEY'),
+        kws('DATABASE', 'ENCRYPTION', 'KEY'),
+      ),
+      optional($._option_list),
+    ),
+
+    // FOR CONVERSATION SET of a broker priority holds SET, which starts a
+    // statement elsewhere.
+    _broker_priority: $ => seq(
+      kws('BROKER', 'PRIORITY'),
+      field('name', $.object_reference),
+      kws('FOR', 'CONVERSATION', 'SET'),
+    ),
+
+    // The kinds of objects are hidden rules, so that the parse states after
+    // the kind are shared.
+    _create_kind: $ => choice(
+      ...OBJECT_KINDS.map(k => kind($, k)),
+      kind($, 'PARTITION FUNCTION'),
+    ),
+
+    _alter_kind: $ => choice(
+      ...OBJECT_KINDS.map(k => kind($, k)),
+      kw('SCHEMA'),
+    ),
+
+    _drop_kind: $ => choice(
+      ...[...OBJECT_KINDS, ...OWN_KINDS, 'BROKER PRIORITY'].map(k => kind($, k)),
+    ),
+
+    // ALTER TABLE. The clauses that change, add or drop a column, a
+    // constraint or a period have rules. The other clauses are a list of
+    // words, as in SWITCH PARTITION 1 TO t2, SET (LOCK_ESCALATION = AUTO) or
+    // ENABLE TRIGGER ALL.
+    alter_table_statement: $ => seq(
+      kws('ALTER', 'TABLE'),
+      field('name', $._object_name),
+      choice(
+        $.alter_column_clause,
+        seq(
+          optional(seq(kw('WITH'), choice(kw('CHECK'), kw('NOCHECK')))),
+          choice($.add_clause, $.check_constraint_clause),
+        ),
+        $.drop_clause,
+        $._word_list,
+      ),
+    ),
+
+    // ALTER COLUMN changes the type of a column, or adds or drops a
+    // property, as in ALTER COLUMN c ADD MASKED WITH (FUNCTION =
+    // 'default()').
+    alter_column_clause: $ => seq(
+      kws('ALTER', 'COLUMN'),
+      choice(
+        $.column_definition,
+        seq(
+          field('name', $._name),
+          choice(kw('ADD'), kw('DROP')),
+          $._word_list,
+        ),
+      ),
+    ),
+
+    add_clause: $ => seq(
+      kw('ADD'),
+      commaSep1(choice(
+        $.column_definition,
+        $.table_constraint,
+        $.table_index,
+        $.period_definition,
+      )),
+    ),
+
+    // CHECK CONSTRAINT and NOCHECK CONSTRAINT turn constraints on and off.
+    check_constraint_clause: $ => seq(
+      choice(kw('CHECK'), kw('NOCHECK')),
+      kw('CONSTRAINT'),
+      commaSep1(choice(kw('ALL'), field('constraint', $._name))),
+    ),
+
+    // DROP drops constraints, columns and the period, as in DROP CONSTRAINT
+    // IF EXISTS pk, COLUMN a, b.
+    drop_clause: $ => seq(
+      kw('DROP'),
+      commaSep1(choice(
+        seq(
+          optional(choice(kw('CONSTRAINT'), kw('COLUMN'))),
+          optional($._if_exists),
+          field('name', $._name),
+          optional(seq(kw('WITH'), $._option_group)),
+        ),
+        seq(kw('PERIOD'), alias($._for_system_time, 'FOR SYSTEM_TIME')),
+      )),
+    ),
+
+    // ALTER INDEX rebuilds, reorganizes, disables or sets the options of an
+    // index or of each index of a table.
+    alter_index_statement: $ => seq(
+      kws('ALTER', 'INDEX'),
+      field('name', choice($._name, kw('ALL'))),
+      kw('ON'),
+      field('table', $.object_reference),
+      $._option_list,
+    ),
+
+    // ALTER of the other kinds of objects, such as ALTER DATABASE d SET
+    // RECOVERY SIMPLE or ALTER ROLE r ADD MEMBER u. The clauses are a list
+    // of words. The kinds with no name, such as SERVER CONFIGURATION and
+    // AUTHORIZATION, are the objects of the server or of the database.
+    alter_statement: $ => seq(
+      kw('ALTER'),
+      choice(
+        seq($._alter_kind, field('name', choice($._object_name, kw('CURRENT')))),
+        seq(kws('PARTITION', 'FUNCTION'), field('name', $.object_reference), '(', ')'),
+        seq(kws('FULLTEXT', 'INDEX', 'ON'), field('table', $._object_name)),
+        $._broker_priority,
+        kw('AUTHORIZATION'),
+        kws('DATABASE', 'ENCRYPTION', 'KEY'),
+        seq(kws('DATABASE', 'SCOPED', 'CONFIGURATION'), optional(kws('FOR', 'SECONDARY'))),
+        kws('MASTER', 'KEY'),
+        kws('RESOURCE', 'GOVERNOR'),
+        kws('SERVER', 'CONFIGURATION'),
+        kws('SERVICE', 'MASTER', 'KEY'),
+      ),
+      $._option_list,
+    ),
+
+    // DROP of each kind of object, with IF EXISTS and a list of names. ON
+    // names the table of an index, or the scope of a trigger, as in DROP
+    // TRIGGER tr ON ALL SERVER.
+    drop_statement: $ => seq(
+      kw('DROP'),
+      choice(
+        seq($._drop_kind, optional($._if_exists), commaSep1($._drop_item)),
+        seq(kws('FULLTEXT', 'INDEX', 'ON'), field('table', $.object_reference)),
+        kws('MASTER', 'KEY'),
+        kws('DATABASE', 'ENCRYPTION', 'KEY'),
+        seq(optional(kw('COUNTER')), kw('SIGNATURE')),
+        kws('SENSITIVITY', 'CLASSIFICATION'),
+      ),
+      optional($._word_list),
+    ),
+
+    _drop_item: $ => prec.right(seq(
+      field('name', $.object_reference),
+      optional(seq(
+        kw('ON'),
+        field('table', choice($.object_reference, kw('DATABASE'), kws('ALL', 'SERVER'))),
+      )),
+    )),
+
+    // GRANT, DENY and REVOKE. A permission is one or more words, such as
+    // SELECT, VIEW DEFINITION or ALTER ANY LOGIN, with columns. The class
+    // of the securable comes before ::, as in ON SCHEMA::dbo.
+    grant_statement: $ => seq(
+      kw('GRANT'),
+      $._permissions,
+      kw('TO'),
+      commaSep1($._principal),
+      repeat(choice(
+        kws('WITH', 'GRANT', 'OPTION'),
+        seq(kw('AS'), $._principal),
+      )),
+    ),
+
+    deny_statement: $ => seq(
+      kw('DENY'),
+      $._permissions,
+      kw('TO'),
+      commaSep1($._principal),
+      repeat(choice(kw('CASCADE'), seq(kw('AS'), $._principal))),
+    ),
+
+    revoke_statement: $ => seq(
+      kw('REVOKE'),
+      optional(kws('GRANT', 'OPTION', 'FOR')),
+      $._permissions,
+      choice(kw('TO'), kw('FROM')),
+      commaSep1($._principal),
+      repeat(choice(kw('CASCADE'), seq(kw('AS'), $._principal))),
+    ),
+
+    _permissions: $ => seq(
+      commaSep1($.permission),
+      optional(seq(
+        kw('ON'),
+        optional(seq(repeat1($._option_word), '::')),
+        field('securable', $.object_reference),
+        optional($.column_list),
+      )),
+    ),
+
+    permission: $ => prec.right(seq(repeat1($._option_word), optional($.column_list))),
+
+    // A principal can be a reserved word, as public is.
+    _principal: $ => field('principal', $._label),
+
+    // UPDATE STATISTICS updates the statistics of a table, or the named
+    // statistics, with the options of the sample.
+    update_statistics_statement: $ => prec.right(seq(
+      kws('UPDATE', 'STATISTICS'),
+      field('table', $.object_reference),
+      optional(choice(field('statistics', $._name), $.column_list)),
+      optional(seq(kw('WITH'), $._word_list)),
+    )),
+
+    // OPEN and CLOSE of the master key and of a symmetric key.
+    open_key_statement: $ => seq(kw('OPEN'), $._key, $._word_list),
+
+    close_key_statement: $ => seq(
+      kw('CLOSE'),
+      choice($._key, kws('ALL', 'SYMMETRIC', 'KEYS')),
+    ),
+
+    _key: $ => choice(
+      kws('MASTER', 'KEY'),
+      seq(kws('SYMMETRIC', 'KEY'), field('name', $._name)),
+    ),
+
+    // ADD SIGNATURE signs a module, and ADD SENSITIVITY CLASSIFICATION
+    // labels columns. The clauses are a list of words.
+    add_statement: $ => seq(
+      kw('ADD'),
+      choice(
+        seq(optional(kw('COUNTER')), kw('SIGNATURE')),
+        kws('SENSITIVITY', 'CLASSIFICATION'),
+      ),
+      $._word_list,
     ),
 
     // Queries
@@ -1226,44 +1776,66 @@ module.exports = grammar({
         seq(kw('COLLATE'), field('collation', $._name)),
         field('path', choice($.string, $.number)),
         kws('AS', 'JSON'),
-        $._column_constraint,
+        $._constraint_item,
+        seq(kw('INDEX'), field('index', $._name)),
       )),
     )),
 
-    // The constraints and the properties of a column. DEFAULT takes a
+    // The constraints and the properties of a column, which are also the
+    // parts of a constraint of a table. Each one is a part of its own, in
+    // any order, so that the parse states are few: PRIMARY KEY CLUSTERED
+    // WITH (FILLFACTOR = 80) ON [PRIMARY] is four parts. DEFAULT takes a
     // constant, a function or an expression in parentheses, so that NOT
-    // after it starts NOT NULL.
-    _column_constraint: $ => choice(
+    // after it starts NOT NULL. WITH VALUES comes after DEFAULT in ALTER
+    // TABLE ADD.
+    _constraint_item: $ => choice(
       $.null,
-      seq(kw('NOT'), $.null),
-      kw('PERSISTED'),
-      kw('ROWGUIDCOL'),
-      seq(
+      seq(kw('NOT'), choice($.null, kws('FOR', 'REPLICATION'))),
+      ...['PERSISTED', 'ROWGUIDCOL', 'SPARSE', 'FILESTREAM', 'HIDDEN', 'MASKED',
+        'ENCRYPTED', 'CLUSTERED', 'NONCLUSTERED', 'HASH'].map(kw),
+      prec.right(seq(
         alias($._function_word, $.keyword),
         optional(parens(seq(field('seed', $._signed_number), ',', field('increment', $._signed_number)))),
-      ),
+      )),
       seq(
-        optional(seq(kw('CONSTRAINT'), field('constraint', $._name))),
+        kws('GENERATED', 'ALWAYS', 'AS'),
+        choice(kw('ROW'), kw('TRANSACTION_ID'), kw('SEQUENCE_NUMBER')),
+        choice(kw('START'), kw('END')),
+      ),
+      seq(kw('CONSTRAINT'), field('constraint', $._name)),
+      kws('PRIMARY', 'KEY'),
+      kw('UNIQUE'),
+      $.index_columns,
+      prec.right(seq(kws('FOREIGN', 'KEY'), optional($.column_list))),
+      prec.right(seq(
+        kw('REFERENCES'),
+        field('references', $.object_reference),
+        optional($.column_list),
+      )),
+      seq(
+        kw('CHECK'),
+        optional(kws('NOT', 'FOR', 'REPLICATION')),
+        $.parenthesized_expression,
+      ),
+      seq(kw('DEFAULT'), field('default', choice(
+        $._literal,
+        $._negative_number,
+        $.niladic_function,
+        $.global_variable,
+        $.function_call,
+        $.convert_expression,
+        $.parenthesized_expression,
+      ))),
+      seq(
+        kw('WITH'),
         choice(
-          seq(
-            choice(kws('PRIMARY', 'KEY'), kw('UNIQUE')),
-            optional(choice(kw('CLUSTERED'), kw('NONCLUSTERED'))),
-          ),
-          seq(kw('CHECK'), $.parenthesized_expression),
-          seq(kw('DEFAULT'), field('default', choice(
-            $._literal,
-            $._negative_number,
-            $.niladic_function,
-            $.function_call,
-            $.parenthesized_expression,
-          ))),
+          $._option_group,
+          kw('VALUES'),
+          seq(kw('FILLFACTOR'), '=', $.number),
         ),
       ),
-      seq(
-        kw('INDEX'),
-        field('index', $._name),
-        optional(choice(kw('CLUSTERED'), kw('NONCLUSTERED'))),
-      ),
+      $._on_clause,
+      kws('COLUMN_SET', 'FOR', 'ALL_SPARSE_COLUMNS'),
     ),
 
     parenthesized_join: $ => prec.right(seq(
@@ -1453,14 +2025,64 @@ module.exports = grammar({
       $._option_group,
     ),
 
-    _option_group: $ => parens(repeat($._option)),
+    _option_group: $ => seq('(', optional($._options), ')'),
 
-    _option: $ => choice(
-      $._option_value,
+    // A list of words, as in the hints of a query and the options of an
+    // object, such as SIZE = 10MB, FILEGROWTH = 10%, HISTORY_TABLE = dbo.h,
+    // ON SCHEMA::s or WHERE ([duration] > 1000). The list is right
+    // recursive, and its parts are inlined, so that the parser reads each
+    // word in a state that expects a word of the list. In a state that
+    // reduces a part, the parser can read a reserved word as a keyword and
+    // fail. ON is a keyword in the list, so that the list takes it where ON
+    // can also end the list, as in WITH AUTO_DROP = ON. A word after WITH,
+    // AFTER or BEFORE is a part of the list, so that a statement does not
+    // end after it, as in WITH ROLLBACK IMMEDIATE or AFTER UPDATE, where
+    // ROLLBACK and UPDATE start a statement elsewhere.
+    _options: $ => prec.right(choice(
+      seq($._option_atom, optional($._options)),
+      seq($._option_must, $._options),
+    )),
+
+    _option_must: _ => choice(kw('WITH'), kw('AFTER'), kw('BEFORE')),
+
+    _option_atom: $ => choice(
+      $._word_atom,
       '=',
       ',',
-      $._option_group,
+      '.',
+      '::',
+      alias($._option_operator, $.operator),
+      seq('(', optional($._options), ')'),
     ),
+
+    _word_atom: $ => choice(
+      alias(reserved('label', $.identifier), $.keyword),
+      alias($._delimited_identifier, $.identifier),
+      kw('ON'),
+      $.string,
+      $.number,
+      seq(alias($._unary_operator, $.operator), $.number),
+      $.variable,
+      $.binary,
+    ),
+
+    // The operators of a list of words, but for + and -, which are the signs
+    // of a number in the list.
+    _option_operator: _ => token(choice('<', '>', '<=', '>=', '<>', '!=', '%', '*', '/')),
+
+    // A list of words that does not start with a comma or a punctuation
+    // mark, for the options of a statement that the grammar does not read
+    // word by word, as in ALTER INDEX ix ON t REBUILD WITH (ONLINE = ON).
+    _option_list: $ => prec.right(choice(
+      seq(choice($._word_atom, seq('(', optional($._options), ')')), optional($._options)),
+      seq($._option_must, $._options),
+    )),
+
+    // A list of words that does not start with parentheses either.
+    _word_list: $ => prec.right(choice(
+      seq($._word_atom, optional($._options)),
+      seq($._option_must, $._options),
+    )),
 
     subquery: $ => parens($._query),
 
@@ -1850,26 +2472,16 @@ module.exports = grammar({
 
     // A name of an object, with its schema, its database and its server. A
     // part can be empty, as in db..t.
-    object_reference: $ => choice(
-      field('name', $._name),
-      seq(field('schema', $._name), '.', field('name', $._label)),
-      seq(
-        field('database', $._name),
-        '.',
-        optional(field('schema', $._label)),
-        '.',
-        field('name', $._label),
-      ),
-      seq(
-        field('server', $._name),
-        '.',
-        optional(field('database', $._label)),
-        '.',
-        optional(field('schema', $._label)),
-        '.',
-        field('name', $._label),
-      ),
-    ),
+    object_reference: $ => objectReference($),
+
+    // The name of an object before a list of words, as in CREATE USER u
+    // FOR LOGIN l. It is a rule of its own, so that the parse states after
+    // it are not merged with the states after other names. A merged state
+    // reads FOR, a reserved word, as a keyword, but the list takes it as a
+    // word.
+    _object_name: $ => alias($._object_name_body, $.object_reference),
+
+    _object_name_body: $ => objectReference($),
 
     // A name is an identifier or a delimited identifier, and both are the
     // node identifier.

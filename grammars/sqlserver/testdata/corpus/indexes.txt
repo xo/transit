@@ -1,0 +1,524 @@
+================================================================================
+CREATE INDEX
+================================================================================
+
+CREATE INDEX IX_VendorID ON Purchasing.ProductVendor (BusinessEntityID);
+
+---
+
+(source_file
+  (create_index_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))
+    (index_columns
+      (order_by_item
+        (column_reference
+          (identifier))))))
+
+================================================================================
+CREATE UNIQUE CLUSTERED INDEX with options
+================================================================================
+
+CREATE UNIQUE CLUSTERED INDEX AK_UnitMeasure_Name
+ON Production.UnitMeasure (Name ASC, ModifiedDate DESC)
+WITH (PAD_INDEX = OFF, FILLFACTOR = 80, IGNORE_DUP_KEY = ON, DROP_EXISTING = ON, ONLINE = ON (WAIT_AT_LOW_PRIORITY (MAX_DURATION = 1 MINUTES, ABORT_AFTER_WAIT = SELF)))
+ON [PRIMARY];
+
+---
+
+(source_file
+  (create_index_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))
+    (index_columns
+      (order_by_item
+        (column_reference
+          (identifier)))
+      (order_by_item
+        (column_reference
+          (identifier))))
+    (keyword)
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)
+    (keyword)
+    (identifier)))
+
+================================================================================
+CREATE NONCLUSTERED INDEX with INCLUDE and a filter
+================================================================================
+
+CREATE NONCLUSTERED INDEX FIBillOfMaterialsWithEndDate
+ON Production.BillOfMaterials (ComponentID, StartDate)
+INCLUDE (ProductAssemblyID, PerAssemblyQty)
+WHERE EndDate IS NOT NULL AND ComponentID > 5
+WITH (DATA_COMPRESSION = ROW ON PARTITIONS (2, 4 TO 6))
+ON ps_dates (StartDate);
+
+---
+
+(source_file
+  (create_index_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))
+    (index_columns
+      (order_by_item
+        (column_reference
+          (identifier)))
+      (order_by_item
+        (column_reference
+          (identifier))))
+    (column_list
+      (identifier)
+      (identifier))
+    (where_clause
+      (binary_expression
+        (is_expression
+          (column_reference
+            (identifier))
+          (null))
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))))
+    (keyword)
+    (keyword)
+    (keyword)
+    (number)
+    (number)
+    (keyword)
+    (number)
+    (identifier)
+    (identifier)))
+
+================================================================================
+CREATE INDEX with options of the old form
+================================================================================
+
+CREATE INDEX ix_old ON dbo.t (a) WITH FILLFACTOR = 80, DROP_EXISTING ON [PRIMARY];
+
+---
+
+(source_file
+  (create_index_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))
+    (index_columns
+      (order_by_item
+        (column_reference
+          (identifier))))
+    (keyword)
+    (number)
+    (keyword)
+    (identifier)))
+
+================================================================================
+CREATE COLUMNSTORE INDEX
+================================================================================
+
+CREATE CLUSTERED COLUMNSTORE INDEX cci_Simple ON dbo.SimpleTable ORDER (ProductKey) WITH (DROP_EXISTING = ON, MAXDOP = 2);
+CREATE NONCLUSTERED COLUMNSTORE INDEX csi ON dbo.SimpleTable (OrderDateKey, DueDateKey) WHERE OrderDateKey < 20030101;
+
+---
+
+(source_file
+  (create_index_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))
+    (column_list
+      (identifier))
+    (keyword)
+    (keyword)
+    (number))
+  (create_index_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))
+    (index_columns
+      (order_by_item
+        (column_reference
+          (identifier)))
+      (order_by_item
+        (column_reference
+          (identifier))))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))))
+
+================================================================================
+CREATE XML INDEX
+================================================================================
+
+CREATE PRIMARY XML INDEX PXML_ProductModel_CatalogDescription ON Production.ProductModel (CatalogDescription);
+CREATE XML INDEX IXML_ProductModel_Path ON Production.ProductModel (CatalogDescription)
+USING XML INDEX PXML_ProductModel_CatalogDescription FOR PATH;
+
+---
+
+(source_file
+  (create_index_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))
+    (index_columns
+      (order_by_item
+        (column_reference
+          (identifier)))))
+  (create_index_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))
+    (index_columns
+      (order_by_item
+        (column_reference
+          (identifier))))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)))
+
+================================================================================
+CREATE SELECTIVE XML INDEX
+================================================================================
+
+CREATE SELECTIVE XML INDEX sxi_index ON Tbl (xmlcol)
+FOR (pathab = '/a/b' AS XQUERY 'node()', pathabc = '/a/b/c' AS SQL nvarchar(20));
+
+---
+
+(source_file
+  (create_index_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (index_columns
+      (order_by_item
+        (column_reference
+          (identifier))))
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)
+    (keyword)
+    (number)))
+
+================================================================================
+CREATE SPATIAL INDEX
+================================================================================
+
+CREATE SPATIAL INDEX SIndx_SpatialTable_geometry_col2 ON SpatialTable (geometry_col)
+USING GEOMETRY_GRID
+WITH (BOUNDING_BOX = (xmin = 0, ymin = 0, xmax = 500, ymax = 200), GRIDS = (LOW, LOW, MEDIUM, HIGH), CELLS_PER_OBJECT = 64);
+
+---
+
+(source_file
+  (create_index_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (index_columns
+      (order_by_item
+        (column_reference
+          (identifier))))
+    (keyword)
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)
+    (number)
+    (keyword)
+    (number)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (number)))
+
+================================================================================
+CREATE VECTOR INDEX and CREATE JSON INDEX
+================================================================================
+
+CREATE VECTOR INDEX vec_idx ON dbo.Articles (embedding) WITH (METRIC = 'cosine', TYPE = 'diskann', MAXDOP = 8);
+CREATE JSON INDEX json_idx ON dbo.Customers (profile) FOR ('$.name', '$.address.city') WITH (FILLFACTOR = 80);
+
+---
+
+(source_file
+  (create_index_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))
+    (index_columns
+      (order_by_item
+        (column_reference
+          (identifier))))
+    (keyword)
+    (string)
+    (keyword)
+    (string)
+    (keyword)
+    (number))
+  (create_index_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))
+    (index_columns
+      (order_by_item
+        (column_reference
+          (identifier))))
+    (string)
+    (string)
+    (keyword)
+    (number)))
+
+================================================================================
+CREATE FULLTEXT INDEX
+================================================================================
+
+CREATE FULLTEXT INDEX ON HumanResources.JobCandidate (Resume LANGUAGE 1033 STATISTICAL_SEMANTICS, Doc TYPE COLUMN DocType)
+KEY INDEX PK_JobCandidate_JobCandidateID ON (ft_catalog, FILEGROUP ft_group)
+WITH (CHANGE_TRACKING = AUTO, STOPLIST = SYSTEM);
+
+---
+
+(source_file
+  (create_fulltext_index_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier)
+    (keyword)
+    (number)
+    (keyword)
+    (identifier)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)))
+
+================================================================================
+ALTER INDEX
+================================================================================
+
+ALTER INDEX PK_Employee_EmployeeID ON HumanResources.Employee REBUILD;
+ALTER INDEX ALL ON Production.Product REBUILD WITH (FILLFACTOR = 80, SORT_IN_TEMPDB = ON, STATISTICS_NORECOMPUTE = ON);
+ALTER INDEX IX_Employee_ManagerID ON HumanResources.Employee DISABLE;
+ALTER INDEX IX_x ON dbo.t REORGANIZE PARTITION = 3 WITH (LOB_COMPACTION = ON);
+ALTER INDEX IX_x ON dbo.t SET (ALLOW_PAGE_LOCKS = ON);
+
+---
+
+(source_file
+  (alter_index_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword))
+  (alter_index_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword))
+  (alter_index_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword))
+  (alter_index_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword)
+    (keyword)
+    (number)
+    (keyword))
+  (alter_index_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword)
+    (keyword)))
+
+================================================================================
+DROP INDEX
+================================================================================
+
+DROP INDEX IF EXISTS IX_ProductVendor_BusinessEntityID ON Purchasing.ProductVendor, IX_x ON dbo.t WITH (ONLINE = ON);
+DROP INDEX dbo.t.ix_old;
+
+---
+
+(source_file
+  (drop_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword))
+  (drop_statement
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier))))
+
+================================================================================
+CREATE STATISTICS
+================================================================================
+
+CREATE STATISTICS ContactMail1 ON Person.Person (BusinessEntityID, EmailPromotion) WITH SAMPLE 5 PERCENT;
+CREATE STATISTICS NamePurchase ON AdventureWorks2022.Person.Person (BusinessEntityID, EmailPromotion) WHERE EmailPromotion = 2 WITH FULLSCAN, NORECOMPUTE, AUTO_DROP = ON;
+
+---
+
+(source_file
+  (create_statistics_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier))
+    (keyword)
+    (number)
+    (keyword))
+  (create_statistics_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))
+    (keyword)
+    (keyword)
+    (keyword)))
+
+================================================================================
+UPDATE STATISTICS
+================================================================================
+
+UPDATE STATISTICS Sales.SalesOrderDetail;
+UPDATE STATISTICS Sales.SalesOrderDetail AK_SalesOrderDetail_rowguid WITH SAMPLE 50 PERCENT;
+UPDATE STATISTICS Production.Product (Products) WITH FULLSCAN, NORECOMPUTE;
+UPDATE STATISTICS dbo.t WITH RESAMPLE ON PARTITIONS (1, 3 TO 4);
+
+---
+
+(source_file
+  (update_statistics_statement
+    (object_reference
+      (identifier)
+      (identifier)))
+  (update_statistics_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier)
+    (keyword)
+    (number)
+    (keyword))
+  (update_statistics_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (column_list
+      (identifier))
+    (keyword)
+    (keyword))
+  (update_statistics_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword)
+    (keyword)
+    (number)
+    (number)
+    (keyword)
+    (number)))
+
+================================================================================
+DROP STATISTICS
+================================================================================
+
+DROP STATISTICS Purchasing.Vendor.VendorCredit, Sales.SalesOrderHeader.CustomerTotal;
+
+---
+
+(source_file
+  (drop_statement
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier))))

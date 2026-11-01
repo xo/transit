@@ -18,7 +18,9 @@
 // scanner reads the words after them. FETCH starts a statement unless FIRST
 // or NEXT comes after it with no FROM, as in OFFSET 5 ROWS FETCH NEXT 5
 // ROWS ONLY. WITH starts a statement when a common table expression comes
-// after it, as in WITH c (a) AS, or XMLNAMESPACES.
+// after it, as in WITH c (a) AS, or XMLNAMESPACES. The scanner also gives
+// END before WITH CHECK OPTION, which ends the query of a view, so that the
+// parse states after the query of a view are the states after a query.
 //
 // ERROR_SENTINEL is a token that the grammar never uses. When it is valid,
 // the parser recovers from an error, and the scanner gives no END.
@@ -198,6 +200,7 @@ static void read_word(TSLexer *lexer, char *word) {
 
 // is_cte reports whether a common table expression comes after WITH: a
 // name, the names of its columns in parentheses, and AS, or XMLNAMESPACES.
+// It also reports whether CHECK OPTION comes after WITH.
 static bool is_cte(TSLexer *lexer) {
   char word[WORD_SIZE];
   skip_blank(lexer);
@@ -213,6 +216,10 @@ static bool is_cte(TSLexer *lexer) {
     read_name(lexer, word);
     if (strcmp(word, "XMLNAMESPACES") == 0) {
       return true;
+    }
+    if (strcmp(word, "CHECK") == 0) {
+      read_word(lexer, word);
+      return strcmp(word, "OPTION") == 0;
     }
   } else {
     return false;

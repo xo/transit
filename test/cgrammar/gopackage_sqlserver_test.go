@@ -17,7 +17,7 @@ func init() {
 // is not alone. The inputs also reach each branch of the end of a statement
 // with no semicolon: a word that starts a statement, a word that does not, a
 // label, GO, FETCH of a query and of a cursor, and WITH before a common
-// table expression and before table hints.
+// table expression, before CHECK OPTION and before table hints.
 var sqlServerScannerInputs = []string{
 	// comments
 	"SELECT 1 -- a\r\n;",
@@ -70,6 +70,10 @@ var sqlServerScannerInputs = []string{
 	"SELECT 1 WITH [c",
 	"SELECT 1 WITH c (a",
 	"SELECT 1 WITH 5",
+	"CREATE VIEW v AS SELECT a FROM t WITH CHECK OPTION",
+	"CREATE VIEW v AS SELECT a FROM t\nWITH CHECK\nOPTION;",
+	"SELECT 1 WITH CHECK",
+	"SELECT 1 WITH CHECK x",
 	"IF @a = 1 SELECT 1 ELSE SELECT 2",
 	"SELECT 1 ) SELECT 2",
 	// white space and other characters

@@ -1,0 +1,1288 @@
+================================================================================
+CREATE VIEW
+================================================================================
+
+CREATE VIEW hiredate_view AS
+SELECT p.FirstName, e.HireDate
+FROM HumanResources.Employee AS e
+JOIN Person.Person AS p ON e.BusinessEntityID = p.BusinessEntityID;
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (select
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (from_clause
+        (join
+          (table_reference
+            (object_reference
+              (identifier)
+              (identifier))
+            (identifier))
+          (table_reference
+            (object_reference
+              (identifier)
+              (identifier))
+            (identifier))
+          (binary_expression
+            (column_reference
+              (identifier)
+              (identifier))
+            (operator)
+            (column_reference
+              (identifier)
+              (identifier))))))))
+
+================================================================================
+CREATE VIEW with columns and options
+================================================================================
+
+CREATE VIEW Sales.SalesPersonPerform (SalesPersonID, TotalSales)
+WITH SCHEMABINDING, VIEW_METADATA
+AS
+SELECT TOP (100) SalesPersonID, SUM(TotalDue)
+FROM Sales.SalesOrderHeader
+GROUP BY SalesPersonID;
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier))
+    (keyword)
+    (keyword)
+    (select
+      (top_clause
+        (parenthesized_expression
+          (number)))
+      (column_reference
+        (identifier))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)
+            (identifier))))
+      (group_by_clause
+        (column_reference
+          (identifier))))))
+
+================================================================================
+CREATE VIEW WITH CHECK OPTION
+================================================================================
+
+CREATE VIEW dbo.SeattleOnly
+AS
+SELECT p.LastName, a.City
+FROM Person.Person AS p
+JOIN Person.Address AS a ON a.AddressID = p.BusinessEntityID
+WHERE a.City = 'Seattle'
+WITH CHECK OPTION;
+GO
+CREATE VIEW dbo.v AS SELECT a FROM dbo.t WITH (NOLOCK) WITH CHECK OPTION
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (select
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier))
+      (from_clause
+        (join
+          (table_reference
+            (object_reference
+              (identifier)
+              (identifier))
+            (identifier))
+          (table_reference
+            (object_reference
+              (identifier)
+              (identifier))
+            (identifier))
+          (binary_expression
+            (column_reference
+              (identifier)
+              (identifier))
+            (operator)
+            (column_reference
+              (identifier)
+              (identifier)))))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (operator)
+          (string)))))
+  (go_statement)
+  (create_view_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)
+            (identifier))
+          (table_hints
+            (hint
+              (keyword))))))))
+
+================================================================================
+CREATE OR ALTER VIEW and ALTER VIEW
+================================================================================
+
+CREATE OR ALTER VIEW dbo.v AS WITH c AS (SELECT 1 AS n) SELECT n FROM c;
+GO
+ALTER VIEW dbo.v WITH ENCRYPTION AS SELECT 2 AS n;
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (with_clause
+      (cte
+        (identifier)
+        (subquery
+          (select
+            (aliased_expression
+              (number)
+              (identifier))))))
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (go_statement)
+  (alter_view_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword)
+    (select
+      (aliased_expression
+        (number)
+        (identifier)))))
+
+================================================================================
+CREATE SCHEMA
+================================================================================
+
+CREATE SCHEMA Sprockets AUTHORIZATION Annik
+CREATE TABLE NineProngs (source int, cost int, partnumber int)
+GRANT SELECT ON SCHEMA::Sprockets TO Mandar
+DENY SELECT ON SCHEMA::Sprockets TO Prasanna;
+CREATE SCHEMA AUTHORIZATION dbo;
+CREATE SCHEMA [Sales Data];
+
+---
+
+(source_file
+  (create_schema_statement
+    (identifier)
+    (identifier))
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))))
+  (grant_statement
+    (permission
+      (keyword))
+    (keyword)
+    (object_reference
+      (identifier))
+    (identifier))
+  (deny_statement
+    (permission
+      (keyword))
+    (keyword)
+    (object_reference
+      (identifier))
+    (identifier))
+  (create_schema_statement
+    (identifier))
+  (create_schema_statement
+    (identifier)))
+
+================================================================================
+ALTER SCHEMA
+================================================================================
+
+ALTER SCHEMA HumanResources TRANSFER Person.Address;
+ALTER SCHEMA Sales TRANSFER OBJECT::dbo.Region;
+
+---
+
+(source_file
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)))
+
+================================================================================
+CREATE SYNONYM
+================================================================================
+
+CREATE SYNONYM dbo.MyProduct FOR AdventureWorks2022.Production.Product;
+CREATE SYNONYM MyRemote FOR Server_Remote.Test.dbo.Customers;
+
+---
+
+(source_file
+  (create_synonym_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier)))
+  (create_synonym_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier)
+      (identifier))))
+
+================================================================================
+CREATE TYPE
+================================================================================
+
+CREATE TYPE SSN FROM varchar(11) NOT NULL;
+CREATE TYPE dbo.LocationTableType AS TABLE (LocationName varchar(50), CostRate int, PRIMARY KEY (LocationName)) WITH (MEMORY_OPTIMIZED = ON);
+CREATE TYPE Utf8String EXTERNAL NAME utf8string.[Microsoft.Samples.SqlServer.utf8string];
+
+---
+
+(source_file
+  (create_type_statement
+    (object_reference
+      (identifier))
+    (type
+      (identifier)
+      (type_modifiers
+        (number)))
+    (null))
+  (create_type_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (table_definition
+      (column_definition
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (number))))
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (table_constraint
+        (index_columns
+          (order_by_item
+            (column_reference
+              (identifier))))))
+    (keyword))
+  (create_type_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+CREATE SEQUENCE and ALTER SEQUENCE
+================================================================================
+
+CREATE SEQUENCE Test.CountBy1 AS int START WITH 1 INCREMENT BY 1 MINVALUE 1 NO MAXVALUE CYCLE CACHE 10;
+ALTER SEQUENCE Test.CountBy1 RESTART WITH 100 INCREMENT BY 50;
+
+---
+
+(source_file
+  (create_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (number))
+  (alter_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)
+    (number)))
+
+================================================================================
+CREATE DATABASE
+================================================================================
+
+CREATE DATABASE Sales
+ON PRIMARY (NAME = Sales_dat, FILENAME = 'C:\data\saledat.mdf', SIZE = 10MB, MAXSIZE = 50, FILEGROWTH = 15%),
+FILEGROUP SalesGroup1 (NAME = SGrp1Fi1_dat, FILENAME = 'C:\data\SG1Fi1dt.ndf', SIZE = 10, MAXSIZE = UNLIMITED)
+LOG ON (NAME = Sales_log, FILENAME = 'C:\data\salelog.ldf', SIZE = 5MB)
+COLLATE French_CI_AI
+WITH TRUSTWORTHY ON, DB_CHAINING ON;
+CREATE DATABASE sales_snapshot ON (NAME = SPri1_dat, FILENAME = 'C:\data\SPri1dat_0600.ss') AS SNAPSHOT OF Sales;
+
+---
+
+(source_file
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)
+    (number)
+    (operator)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)))
+
+================================================================================
+ALTER DATABASE
+================================================================================
+
+ALTER DATABASE AdventureWorks2022 SET RECOVERY FULL, PAGE_VERIFY CHECKSUM;
+ALTER DATABASE CURRENT SET COMPATIBILITY_LEVEL = 160;
+ALTER DATABASE AdventureWorks2022 SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+ALTER DATABASE AdventureWorks2022 SET READ_COMMITTED_SNAPSHOT ON WITH ROLLBACK AFTER 5 SECONDS;
+ALTER DATABASE AdventureWorks2022 SET QUERY_STORE = ON (OPERATION_MODE = READ_WRITE, MAX_STORAGE_SIZE_MB = 1024);
+ALTER DATABASE AdventureWorks2022 ADD FILE (NAME = Test1dat2, FILENAME = 'C:\data\t1dat2.ndf', SIZE = 5MB) TO FILEGROUP Test1FG1;
+ALTER DATABASE AdventureWorks2022 MODIFY NAME = Northwind;
+
+---
+
+(source_file
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_statement
+    (keyword)
+    (keyword)
+    (number))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (number)
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (number))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)))
+
+================================================================================
+ALTER DATABASE SCOPED CONFIGURATION
+================================================================================
+
+ALTER DATABASE SCOPED CONFIGURATION SET MAXDOP = 1;
+ALTER DATABASE SCOPED CONFIGURATION FOR SECONDARY SET MAXDOP = PRIMARY;
+ALTER DATABASE SCOPED CONFIGURATION CLEAR PROCEDURE_CACHE;
+
+---
+
+(source_file
+  (alter_statement
+    (keyword)
+    (keyword)
+    (number))
+  (alter_statement
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_statement
+    (keyword)
+    (keyword)))
+
+================================================================================
+CREATE LOGIN, CREATE USER and CREATE ROLE
+================================================================================
+
+CREATE LOGIN shcooper WITH PASSWORD = '3KHJ6dhx(0xVYsdf' MUST_CHANGE, CHECK_EXPIRATION = ON, DEFAULT_DATABASE = [master];
+CREATE LOGIN [Contoso\Mary] FROM WINDOWS WITH DEFAULT_LANGUAGE = us_english;
+CREATE LOGIN TestLogin WITH PASSWORD = 0x0100A2 HASHED, SID = 0x241C11948AEEB749B0D22646DB1A19F2;
+CREATE USER AbolrousHazem FOR LOGIN AbolrousHazem WITH DEFAULT_SCHEMA = Marketing;
+CREATE USER CustomApp WITHOUT LOGIN;
+CREATE USER [Contoso\Fritz] FROM EXTERNAL PROVIDER;
+CREATE ROLE buyers AUTHORIZATION BenMiller;
+
+---
+
+(source_file
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)
+    (keyword)
+    (identifier))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (binary)
+    (keyword)
+    (keyword)
+    (binary))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)))
+
+================================================================================
+ALTER LOGIN, ALTER USER and ALTER ROLE
+================================================================================
+
+ALTER LOGIN Mary5 ENABLE;
+ALTER LOGIN Mary5 WITH PASSWORD = '<enterStrongPasswordHere>' OLD_PASSWORD = 'old', CHECK_POLICY = OFF;
+ALTER USER Mary5 WITH NAME = Mary51, DEFAULT_SCHEMA = Purchasing;
+ALTER ROLE Sales ADD MEMBER Barry;
+ALTER ROLE Sales DROP MEMBER Barry;
+ALTER SERVER ROLE sysadmin ADD MEMBER [Contoso\Mary];
+
+---
+
+(source_file
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (string)
+    (keyword)
+    (string)
+    (keyword)
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (identifier)))
+
+================================================================================
+ALTER AUTHORIZATION
+================================================================================
+
+ALTER AUTHORIZATION ON OBJECT::Parts.Sprockets TO MichikoOsada;
+ALTER AUTHORIZATION ON DATABASE::Parts TO sa;
+ALTER AUTHORIZATION ON SCHEMA::Sales TO SCHEMA OWNER;
+
+---
+
+(source_file
+  (alter_statement
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_statement
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_statement
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)))
+
+================================================================================
+CREATE PARTITION FUNCTION and CREATE PARTITION SCHEME
+================================================================================
+
+CREATE PARTITION FUNCTION myRangePF1 (datetime2(0)) AS RANGE RIGHT FOR VALUES ('2022-04-01', '2022-05-01');
+CREATE PARTITION FUNCTION myRangePF2 (int) AS RANGE LEFT FOR VALUES (1, 100, 1000);
+CREATE PARTITION SCHEME myRangePS1 AS PARTITION myRangePF1 TO (test1fg, test2fg, [PRIMARY]);
+CREATE PARTITION SCHEME myRangePS2 AS PARTITION myRangePF2 ALL TO ([PRIMARY]);
+
+---
+
+(source_file
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string)
+    (string))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (number)
+    (number)
+    (number))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (identifier))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (identifier)))
+
+================================================================================
+ALTER PARTITION FUNCTION and ALTER PARTITION SCHEME
+================================================================================
+
+ALTER PARTITION FUNCTION myRangePF1 () SPLIT RANGE (500);
+ALTER PARTITION FUNCTION myRangePF1 () MERGE RANGE (100);
+ALTER PARTITION SCHEME MyRangePS1 NEXT USED test5fg;
+
+---
+
+(source_file
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (number))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (number))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)))
+
+================================================================================
+CREATE of keys and certificates
+================================================================================
+
+CREATE MASTER KEY ENCRYPTION BY PASSWORD = '23987hxJ#KL95234nl0zBe';
+CREATE CERTIFICATE Shipping04 ENCRYPTION BY PASSWORD = 'pGFD4bb925DGvbd2439587y' WITH SUBJECT = 'Sammamish Shipping Records', EXPIRY_DATE = '20401031';
+CREATE CERTIFICATE Shipping11 FROM FILE = 'c:\Shipping\Certs\Shipping11.cer' WITH PRIVATE KEY (FILE = 'c:\Shipping\Certs\Shipping11.pvk', DECRYPTION BY PASSWORD = 'sldkflk34et6gs%53#v00');
+CREATE SYMMETRIC KEY JanainaKey09 WITH ALGORITHM = AES_256 ENCRYPTION BY CERTIFICATE Shipping04;
+CREATE ASYMMETRIC KEY PacificSales09 WITH ALGORITHM = RSA_2048 ENCRYPTION BY PASSWORD = 'pass';
+CREATE DATABASE ENCRYPTION KEY WITH ALGORITHM = AES_256 ENCRYPTION BY SERVER CERTIFICATE MyServerCert;
+CREATE COLUMN MASTER KEY MyCMK WITH (KEY_STORE_PROVIDER_NAME = N'MSSQL_CERTIFICATE_STORE', KEY_PATH = N'CurrentUser/My/BBF037EC4A133ADCA89FFAEC16CA5BFA8878FB94');
+ALTER MASTER KEY REGENERATE WITH ENCRYPTION BY PASSWORD = 'dsjdkflJ435907NnmM#sX003';
+ALTER SERVICE MASTER KEY REGENERATE;
+
+---
+
+(source_file
+  (create_statement
+    (keyword)
+    (keyword)
+    (keyword)
+    (string))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (string)
+    (keyword)
+    (string))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string))
+  (create_statement
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (string)
+    (keyword)
+    (string))
+  (alter_statement
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string))
+  (alter_statement
+    (keyword)))
+
+================================================================================
+CREATE of the objects of CLR
+================================================================================
+
+CREATE ASSEMBLY HelloWorld FROM 'C:\Programs\HelloWorld.dll' WITH PERMISSION_SET = SAFE;
+CREATE ASSEMBLY Bin FROM 0x4D5A9000 WITH PERMISSION_SET = UNSAFE;
+CREATE AGGREGATE dbo.Concatenate (@input nvarchar(4000)) RETURNS nvarchar(max) EXTERNAL NAME StringUtilities.[Microsoft.Samples.SqlServer.Concatenate];
+
+---
+
+(source_file
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (string)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (binary)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (variable)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (identifier)))
+
+================================================================================
+CREATE DEFAULT and CREATE RULE
+================================================================================
+
+CREATE DEFAULT phonedflt AS 'unknown';
+CREATE RULE range_rule AS @range >= 1000 AND @range < 20000;
+CREATE RULE list_rule AS @list IN ('1389', '0736', '0877');
+
+---
+
+(source_file
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (string))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (variable)
+    (operator)
+    (number)
+    (keyword)
+    (variable)
+    (operator)
+    (number))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (variable)
+    (keyword)
+    (string)
+    (string)
+    (string)))
+
+================================================================================
+CREATE of the objects of Service Broker
+================================================================================
+
+CREATE MESSAGE TYPE [//Adventure-Works.com/Expenses/SubmitExpense] VALIDATION = WELL_FORMED_XML;
+CREATE CONTRACT [//Adventure-Works.com/Expenses/ExpenseSubmission] ([//Adventure-Works.com/Expenses/SubmitExpense] SENT BY INITIATOR);
+CREATE QUEUE ExpenseQueue WITH STATUS = ON, ACTIVATION (PROCEDURE_NAME = expense_procedure, MAX_QUEUE_READERS = 5, EXECUTE AS SELF);
+CREATE SERVICE [//Adventure-Works.com/Expenses] ON QUEUE [dbo].[ExpenseQueue] ([//Adventure-Works.com/Expenses/ExpenseSubmission]);
+CREATE ROUTE ExpenseRoute WITH SERVICE_NAME = '//Adventure-Works.com/Expenses', ADDRESS = 'TCP://SERVER02:1234';
+CREATE BROKER PRIORITY InitiatorAToTargetPriority FOR CONVERSATION SET (CONTRACT_NAME = SimpleContractA, PRIORITY_LEVEL = 3);
+ALTER QUEUE ExpenseQueue WITH ACTIVATION (STATUS = OFF);
+
+---
+
+(source_file
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (keyword)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (identifier)
+    (identifier)
+    (identifier))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (string)
+    (keyword)
+    (string))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (number))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)))
+
+================================================================================
+CREATE of the objects of audits and events
+================================================================================
+
+CREATE SERVER AUDIT HIPAA_Audit TO FILE (FILEPATH = '\\SQLPROD_1\Audit\') WITH (ON_FAILURE = SHUTDOWN);
+CREATE DATABASE AUDIT SPECIFICATION Audit_Pay_Tables FOR SERVER AUDIT Payrole_Security_Audit ADD (SELECT, INSERT ON HumanResources.EmployeePayHistory BY dbo) WITH (STATE = ON);
+CREATE EVENT SESSION test_session ON SERVER
+ADD EVENT sqlserver.rpc_completed (ACTION (sqlserver.sql_text) WHERE ([duration] > (1000000)))
+ADD TARGET package0.event_file (SET filename = N'test.xel')
+WITH (MAX_MEMORY = 4096 KB, STARTUP_STATE = OFF);
+ALTER EVENT SESSION test_session ON SERVER STATE = START;
+CREATE EVENT NOTIFICATION log_ddl1 ON SERVER FOR Object_Created TO SERVICE 'NotifyService', '8140a771-3c4b-4479-8ac0-81008ab17984';
+
+---
+
+(source_file
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (identifier)
+    (operator)
+    (number)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string)
+    (string)))
+
+================================================================================
+CREATE of external objects
+================================================================================
+
+CREATE EXTERNAL DATA SOURCE MyOracleServer WITH (LOCATION = 'oracle://145.145.145.145:1521', CREDENTIAL = OracleProxyAccount, PUSHDOWN = ON);
+CREATE EXTERNAL FILE FORMAT textdelimited1 WITH (FORMAT_TYPE = DELIMITEDTEXT, FORMAT_OPTIONS (FIELD_TERMINATOR = '|', DATE_FORMAT = 'MM/dd/yyyy'), DATA_COMPRESSION = 'org.apache.hadoop.io.compress.GzipCodec');
+CREATE EXTERNAL MODEL MyAzureOpenAIModel WITH (LOCATION = 'https://my-azure-openai-endpoint.openai.azure.com/', API_FORMAT = 'Azure OpenAI', MODEL_TYPE = EMBEDDINGS, MODEL = 'text-embedding-ada-002', CREDENTIAL = [https://my-azure-openai-endpoint.openai.azure.com/]);
+CREATE DATABASE SCOPED CREDENTIAL AppCred WITH IDENTITY = 'Mary5', SECRET = '<EnterStrongPasswordHere>';
+
+---
+
+(source_file
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (string)
+    (keyword)
+    (string))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (string)
+    (keyword)
+    (string)
+    (keyword)
+    (keyword)
+    (keyword)
+    (string)
+    (keyword)
+    (identifier))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (string)
+    (keyword)
+    (string)))
+
+================================================================================
+CREATE of the other objects
+================================================================================
+
+CREATE FULLTEXT CATALOG ftCatalog AS DEFAULT;
+CREATE FULLTEXT STOPLIST myStoplist FROM SYSTEM STOPLIST;
+CREATE SECURITY POLICY Security.customerPolicy
+ADD FILTER PREDICATE Security.fn_customerAccessPredicate(CustomerId) ON dbo.Customer,
+ADD BLOCK PREDICATE Security.fn_customerAccessPredicate(CustomerId) ON dbo.Customer AFTER INSERT
+WITH (STATE = ON);
+CREATE WORKLOAD GROUP groupAdhoc WITH (REQUEST_MAX_MEMORY_GRANT_PERCENT = 10, MAX_DOP = 4) USING poolAdhoc;
+CREATE RESOURCE POOL bigPool;
+CREATE XML SCHEMA COLLECTION ManuInstructionsSchemaCollection AS N'<?xml version="1.0" encoding="UTF-16"?><xsd:schema />';
+CREATE APPLICATION ROLE weekly_receipts WITH PASSWORD = '987G^bv876sPY)Y5m23', DEFAULT_SCHEMA = Sales;
+CREATE ENDPOINT endpoint_mirroring STATE = STARTED AS TCP (LISTENER_PORT = 7022) FOR DATABASE_MIRRORING (AUTHENTICATION = WINDOWS KERBEROS, ENCRYPTION = SUPPORTED, ROLE = ALL);
+
+---
+
+(source_file
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (number)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier)))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (string))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (string)
+    (keyword)
+    (keyword))
+  (create_statement
+    (object_reference
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)))
+
+================================================================================
+ALTER of the objects of the server
+================================================================================
+
+ALTER SERVER CONFIGURATION SET PROCESS AFFINITY CPU = 0 TO 3;
+ALTER RESOURCE GOVERNOR RECONFIGURE;
+ALTER RESOURCE GOVERNOR WITH (CLASSIFIER_FUNCTION = dbo.rgclassifier_v1);
+ALTER AVAILABILITY GROUP AccountsAG FAILOVER;
+ALTER FULLTEXT INDEX ON HumanResources.JobCandidate START FULL POPULATION;
+ALTER DATABASE ENCRYPTION KEY REGENERATE WITH ALGORITHM = AES_256;
+
+---
+
+(source_file
+  (alter_statement
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (number)
+    (keyword)
+    (number))
+  (alter_statement
+    (keyword))
+  (alter_statement
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier))
+    (keyword))
+  (alter_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (keyword)
+    (keyword)
+    (keyword))
+  (alter_statement
+    (keyword)
+    (keyword)
+    (keyword)))

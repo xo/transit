@@ -206,9 +206,7 @@ DECLARE @t AS TABLE (
             (order_by_item
               (column_reference
                 (identifier))))
-          (hint
-            (keyword)
-            (keyword)))
+          (keyword))
         (table_constraint
           (parenthesized_expression
             (binary_expression
