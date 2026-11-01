@@ -1,6 +1,6 @@
 # D128. The usql grammar can keep an anonymous block in one statement
 
-Status: Decided, amends D112.
+Status: Decided, amends D112, amended by D131.
 
 With the option `BeginEndBlocks` of D112, the usql grammar keeps a stored
 program in one statement when `CREATE ... PROCEDURE`, `FUNCTION`, `TRIGGER`

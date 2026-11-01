@@ -1,6 +1,6 @@
 # D127. xo writes the ClickHouse and Trino grammars
 
-Status: Decided, amends D106.
+Status: Decided, amends D106, amended by D131.
 
 usql gives the dialects `clickhouse`, `trino` and `presto` of dbmeta the generic SQL
 grammar, because transit has no grammar of their own, and the search of

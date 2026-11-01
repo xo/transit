@@ -145,7 +145,8 @@ An open question is not a decision. It goes at the end of
 | [D124](D124-xo-writes-the-oracle-and-sql-server-grammars.md) | xo writes the Oracle and SQL Server grammars | Decided, amends D106, amended by D125 |
 | [D125](D125-the-oracle-grammar-has-no-fixed-size-budget.md) | The Oracle grammar has no fixed size budget | Decided, amends D124 |
 | [D126](D126-xo-writes-the-sqlite-and-duckdb-grammars.md) | xo writes the SQLite and DuckDB grammars | Decided, amends D106 |
-| [D127](D127-xo-writes-the-clickhouse-and-trino-grammars.md) | xo writes the ClickHouse and Trino grammars | Decided, amends D106 |
-| [D128](D128-the-usql-grammar-can-keep-an-anonymous-block-in-one-statement.md) | The usql grammar can keep an anonymous block in one statement | Decided, amends D112 |
+| [D127](D127-xo-writes-the-clickhouse-and-trino-grammars.md) | xo writes the ClickHouse and Trino grammars | Decided, amends D106, amended by D131 |
+| [D128](D128-the-usql-grammar-can-keep-an-anonymous-block-in-one-statement.md) | The usql grammar can keep an anonymous block in one statement | Decided, amends D112, amended by D131 |
 | [D129](D129-the-size-choices-of-the-sqlite-and-duckdb-grammars.md) | The size choices of the SQLite and DuckDB grammars | Decided |
 | [D130](D130-begin-end-blocks-open-at-execute-block-and-do-begin.md) | BeginEndBlocks opens a block at EXECUTE BLOCK and DO BEGIN | Decided, amends D112 |
+| [D131](D131-the-choices-of-the-clickhouse-grammar-and-of-anonymous-blocks.md) | The choices of the ClickHouse grammar and of anonymous blocks | Decided, amends D127 and D128 |
