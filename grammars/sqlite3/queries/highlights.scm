@@ -20,40 +20,80 @@
 
 [
   "ABORT"
+  "ACTION"
+  "ADD"
+  "AFTER"
   "ALL"
+  "ALTER"
+  "ALWAYS"
+  "ANALYZE"
   "AND"
   "AS"
   "ASC"
+  "ATTACH"
+  "AUTOINCREMENT"
+  "BEFORE"
+  "BEGIN"
   "BETWEEN"
   "BY"
+  "CASCADE"
   "CASE"
   "CAST"
+  "CHECK"
   "COLLATE"
+  "COLUMN"
+  "COMMIT"
+  "CONFLICT"
+  "CONSTRAINT"
+  "CREATE"
   "CURRENT"
+  "DATABASE"
+  "DEFAULT"
+  "DEFERRABLE"
+  "DEFERRED"
+  "DELETE"
   "DESC"
+  "DETACH"
   "DISTINCT"
+  "DO"
+  "DROP"
+  "EACH"
   "ELSE"
   "END"
   "ESCAPE"
   "EXCEPT"
   "EXCLUDE"
+  "EXCLUSIVE"
   "EXISTS"
+  "EXPLAIN"
   "FAIL"
   "FILTER"
   "FIRST"
   "FOLLOWING"
+  "FOR"
+  "FOREIGN"
   "FROM"
+  "GENERATED"
   "GLOB"
   "GROUP"
   "GROUPS"
   "HAVING"
+  "IF"
   "IGNORE"
+  "IMMEDIATE"
   "IN"
+  "INDEX"
   "INDEXED"
+  "INITIALLY"
+  "INNER"
+  "INSERT"
+  "INSTEAD"
   "INTERSECT"
+  "INTO"
   "IS"
   "ISNULL"
   "JOIN"
+  "KEY"
   "LAST"
   "LIKE"
   "LIMIT"
@@ -61,9 +101,11 @@
   "MATERIALIZED"
   "NO"
   "NOT"
+  "NOTHING"
   "NOTNULL"
   "NULL"
   "NULLS"
+  "OF"
   "OFFSET"
   "ON"
   "OR"
@@ -71,25 +113,53 @@
   "OTHERS"
   "OVER"
   "PARTITION"
+  "PLAN"
+  "PRAGMA"
   "PRECEDING"
+  "PRIMARY"
+  "QUERY"
   "RAISE"
   "RANGE"
   "RECURSIVE"
+  "REFERENCES"
   "REGEXP"
+  "REINDEX"
+  "RELEASE"
+  "RENAME"
+  "REPLACE"
+  "RESTRICT"
+  "RETURNING"
   "ROLLBACK"
   "ROW"
+  "ROWID"
   "ROWS"
+  "SAVEPOINT"
   "SELECT"
+  "SET"
+  "STORED"
+  "STRICT"
+  "TABLE"
+  "TEMP"
+  "TEMPORARY"
   "THEN"
   "TIES"
+  "TO"
+  "TRANSACTION"
+  "TRIGGER"
   "UNBOUNDED"
   "UNION"
+  "UNIQUE"
+  "UPDATE"
   "USING"
+  "VACUUM"
   "VALUES"
+  "VIEW"
+  "VIRTUAL"
   "WHEN"
   "WHERE"
   "WINDOW"
   "WITH"
+  "WITHOUT"
 ] @keyword
 
 (null
@@ -165,6 +235,58 @@
 (column_list
   (identifier) @variable.member)
 
+(column_definition
+  name: (identifier) @variable.member)
+
+(assignment
+  left: (identifier) @variable.member)
+
+(create_index_statement
+  table: (identifier) @type)
+
+(column_constraint
+  name: (identifier) @label)
+
+(table_constraint
+  name: (identifier) @label)
+
+(alter_table_statement
+  column: (identifier) @variable.member)
+
+(alter_table_statement
+  new_name: (identifier) @variable.member)
+
+(alter_table_statement
+  constraint: (identifier) @label)
+
+(column_constraint
+  collation: (identifier) @variable.builtin)
+
+(create_virtual_table_statement
+  module: (identifier) @function)
+
+(pragma_statement
+  name: (object_reference
+    name: (identifier) @variable.builtin))
+
+(attach_statement
+  schema: (identifier) @module)
+
+(detach_statement
+  schema: (identifier) @module)
+
+(vacuum_statement
+  schema: (identifier) @module)
+
+(savepoint_statement
+  name: (identifier) @label)
+
+(release_statement
+  name: (identifier) @label)
+
+(rollback_statement
+  savepoint: (identifier) @label)
+
 (collate_expression
   collation: (identifier) @variable.builtin)
 
@@ -184,6 +306,8 @@
   ] @keyword.conditional)
 
 (operator) @operator
+
+"=" @operator
 
 [
   "("

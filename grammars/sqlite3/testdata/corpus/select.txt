@@ -513,8 +513,7 @@ SELECT * FROM a JOIN b ON a.id = b.id LEFT JOIN c USING (id) LEFT OUTER JOIN d O
                 (number))
               (table_reference
                 (object_reference
-                  (identifier))
-                (identifier)))
+                  (identifier))))
             (table_reference
               (object_reference
                 (identifier))))

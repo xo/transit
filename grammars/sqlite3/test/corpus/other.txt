@@ -1,0 +1,360 @@
+================================================================================
+Attach
+================================================================================
+
+ATTACH DATABASE 'file.db' AS aux;
+ATTACH ':memory:' AS mem;
+
+---
+
+(source_file
+  (attach_statement
+    (string)
+    (identifier))
+  (attach_statement
+    (string)
+    (identifier)))
+
+================================================================================
+Detach
+================================================================================
+
+DETACH DATABASE aux;
+DETACH aux;
+
+---
+
+(source_file
+  (detach_statement
+    (identifier))
+  (detach_statement
+    (identifier)))
+
+================================================================================
+Pragma
+================================================================================
+
+PRAGMA foreign_keys;
+PRAGMA main.journal_mode;
+
+---
+
+(source_file
+  (pragma_statement
+    (object_reference
+      (identifier)))
+  (pragma_statement
+    (object_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+Pragma with a value
+================================================================================
+
+PRAGMA foreign_keys = ON;
+PRAGMA journal_mode = WAL;
+PRAGMA journal_mode = DELETE;
+PRAGMA temp_store = DEFAULT;
+PRAGMA cache_size = -2000;
+PRAGMA encoding = 'UTF-8';
+PRAGMA synchronous = 0;
+PRAGMA legacy_alter_table = true;
+
+---
+
+(source_file
+  (pragma_statement
+    (object_reference
+      (identifier))
+    (pragma_value
+      (identifier)))
+  (pragma_statement
+    (object_reference
+      (identifier))
+    (pragma_value
+      (identifier)))
+  (pragma_statement
+    (object_reference
+      (identifier))
+    (pragma_value
+      (identifier)))
+  (pragma_statement
+    (object_reference
+      (identifier))
+    (pragma_value
+      (identifier)))
+  (pragma_statement
+    (object_reference
+      (identifier))
+    (pragma_value
+      (operator)
+      (number)))
+  (pragma_statement
+    (object_reference
+      (identifier))
+    (pragma_value
+      (string)))
+  (pragma_statement
+    (object_reference
+      (identifier))
+    (pragma_value
+      (number)))
+  (pragma_statement
+    (object_reference
+      (identifier))
+    (pragma_value
+      (identifier))))
+
+================================================================================
+Pragma with a value in parentheses
+================================================================================
+
+PRAGMA table_info(users);
+PRAGMA main.index_list('t');
+PRAGMA optimize(0x10002);
+
+---
+
+(source_file
+  (pragma_statement
+    (object_reference
+      (identifier))
+    (pragma_value
+      (identifier)))
+  (pragma_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (pragma_value
+      (string)))
+  (pragma_statement
+    (object_reference
+      (identifier))
+    (pragma_value
+      (number))))
+
+================================================================================
+Begin
+================================================================================
+
+BEGIN;
+BEGIN TRANSACTION;
+BEGIN DEFERRED;
+BEGIN IMMEDIATE TRANSACTION;
+BEGIN EXCLUSIVE TRANSACTION tx;
+
+---
+
+(source_file
+  (begin_statement)
+  (begin_statement)
+  (begin_statement)
+  (begin_statement)
+  (begin_statement
+    (identifier)))
+
+================================================================================
+Commit and end
+================================================================================
+
+COMMIT;
+COMMIT TRANSACTION;
+END;
+END TRANSACTION;
+
+---
+
+(source_file
+  (commit_statement)
+  (commit_statement)
+  (commit_statement)
+  (commit_statement))
+
+================================================================================
+Rollback
+================================================================================
+
+ROLLBACK;
+ROLLBACK TRANSACTION;
+ROLLBACK TO sp;
+ROLLBACK TRANSACTION TO SAVEPOINT sp;
+
+---
+
+(source_file
+  (rollback_statement)
+  (rollback_statement)
+  (rollback_statement
+    (identifier))
+  (rollback_statement
+    (identifier)))
+
+================================================================================
+Savepoint and release
+================================================================================
+
+SAVEPOINT sp;
+RELEASE sp;
+RELEASE SAVEPOINT sp;
+
+---
+
+(source_file
+  (savepoint_statement
+    (identifier))
+  (release_statement
+    (identifier))
+  (release_statement
+    (identifier)))
+
+================================================================================
+Analyze
+================================================================================
+
+ANALYZE;
+ANALYZE main;
+ANALYZE main.t;
+
+---
+
+(source_file
+  (analyze_statement)
+  (analyze_statement
+    (object_reference
+      (identifier)))
+  (analyze_statement
+    (object_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+Reindex
+================================================================================
+
+REINDEX;
+REINDEX nocase;
+REINDEX main.ix;
+
+---
+
+(source_file
+  (reindex_statement)
+  (reindex_statement
+    (object_reference
+      (identifier)))
+  (reindex_statement
+    (object_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+Vacuum
+================================================================================
+
+VACUUM;
+VACUUM main;
+VACUUM INTO 'backup.db';
+VACUUM aux INTO 'backup.db';
+
+---
+
+(source_file
+  (vacuum_statement)
+  (vacuum_statement
+    (identifier))
+  (vacuum_statement
+    (string))
+  (vacuum_statement
+    (identifier)
+    (string)))
+
+================================================================================
+Explain
+================================================================================
+
+EXPLAIN SELECT 1;
+
+---
+
+(source_file
+  (explain_statement
+    (select_statement
+      (select
+        (number)))))
+
+================================================================================
+Explain query plan
+================================================================================
+
+EXPLAIN QUERY PLAN SELECT a FROM t WHERE b = 1;
+EXPLAIN QUERY PLAN UPDATE t SET a = 1;
+
+---
+
+(source_file
+  (explain_statement
+    (select_statement
+      (select
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number))))))
+  (explain_statement
+    (update_statement
+      (table_reference
+        (object_reference
+          (identifier)))
+      (assignment
+        (identifier)
+        (number)))))
+
+================================================================================
+A command of the sqlite3 shell before a statement
+================================================================================
+
+.mode csv
+SELECT 1;
+
+---
+
+(source_file
+  (ERROR
+    (identifier)
+    (identifier))
+  (select_statement
+    (select
+      (number))))
+
+================================================================================
+A command of the sqlite3 shell alone
+================================================================================
+
+.tables
+
+---
+
+(source_file
+  (ERROR
+    (identifier)))
+
+================================================================================
+Attach with a string as the schema
+================================================================================
+
+ATTACH ':memory:' AS 'information_schema';
+
+---
+
+(source_file
+  (attach_statement
+    (string)
+    (string)))

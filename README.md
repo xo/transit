@@ -255,10 +255,16 @@ reference, with `->` and `->>`, `IS DISTINCT FROM`, `GLOB`, `REGEXP`,
 `MATCH`, `CAST` and `RAISE`, the function calls with `FILTER`, `OVER` and
 `ORDER BY` in their arguments, and the full `SELECT`, with `WITH`, the
 joins, the table-valued functions, `INDEXED BY`, `VALUES`, `WINDOW` and the
-compound operators. The other statements come later. SQLite reserves few
-of its keywords, so one identifier token covers each keyword that SQLite
-does not reserve. The grammar has no external scanner. The package adds
-about 0.5 MB to a binary.
+compound operators. It covers each other statement of the reference:
+`INSERT` and `REPLACE` with the upsert, `UPDATE` with `FROM`, `DELETE`,
+`RETURNING`, `CREATE TABLE` with each constraint, the generated columns,
+`WITHOUT ROWID` and `STRICT`, `CREATE VIRTUAL TABLE` with the arguments of
+a module, `ALTER TABLE`, `CREATE INDEX`, `CREATE VIEW`, `CREATE TRIGGER`,
+`DROP`, `ATTACH`, `DETACH`, `PRAGMA`, the statements of transactions and
+savepoints, `ANALYZE`, `REINDEX`, `VACUUM` and `EXPLAIN`. SQLite reserves
+few of its keywords, so one identifier token covers each keyword that
+SQLite does not reserve. The grammar has no external scanner. The package
+adds about 0.6 MB to a binary.
 
 The package `github.com/xo/transit/grammars/postgres/postgres` holds the
 grammar `postgres`, which xo writes from the reference manual of

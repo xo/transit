@@ -50,5 +50,5 @@ SELECT CURRENT_DATE, CURRENT_TIME, current_timestamp;
 	}
 	// Output:
 	// (source_file (select_statement (select (niladic_function) (niladic_function) (niladic_function))))
-	// patterns in queries/highlights.scm: 39
+	// patterns in queries/highlights.scm: 57
 }

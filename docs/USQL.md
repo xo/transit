@@ -170,9 +170,14 @@ of Ken for the usql grammar, and not for the SQL Server grammar.
 usql gives `sqlite3` the generic grammar today, which does not read the
 syntax of SQLite, such as `PRAGMA`, `ATTACH` and `WITHOUT ROWID`. So xo
 writes the SQLite grammar from the SQL reference of SQLite in
-`grammars/sqlite3` (D126). It reads the queries today, and the other
-statements come later. The commands of the sqlite3 shell, such as `.tables`,
-are not SQL, and the grammar does not read them. SQL++, InfluxQL, KSQL, PartiQL, ES|QL and
+`grammars/sqlite3` (D126). It reads each statement of the SQL reference.
+usql will give it to `sqlite3`, and to `libsql` and `rqlite` too, because
+they speak the SQL of SQLite. The commands of the sqlite3 shell, such as
+`.tables`, are not SQL, and the grammar does not read them. usql has no such
+commands and does not remove them, so a line such as `.mode csv` reaches
+the grammar as a part of the text of a statement. The grammar puts the line
+in an ERROR node, and the statement after the line parses with no error.
+SQL++, InfluxQL, KSQL, PartiQL, ES|QL and
 PPL have no grammar at all. transit writes the missing grammars, and the
 usql grammar, in `grammars/` (D42, D104). The other missing grammars come
 after phase 5, in the order of the dialects of dbmeta (D106). `bigquery` and
@@ -185,7 +190,7 @@ for the flag `-dialect`, with these options of `usql.Options`:
 | --- | --- | --- |
 | `postgres` | `github.com/xo/transit/grammars/postgres/postgres` | `DollarQuotes`, `BlockComments` |
 | `mysql` | `github.com/xo/transit/grammars/mysql` | `BlockComments`, `HashComments`, `Backticks`, `BeginEndBlocks` |
-| `sqlite3` | `github.com/xo/transit/grammars/sqlite3` | `BlockComments` |
+| `sqlite3` | `github.com/xo/transit/grammars/sqlite3` | `BlockComments`, `Backticks` |
 | `sqlserver` | `github.com/xo/transit/grammars/sqlserver` | `BlockComments`, `BeginEndBlocks` |
 | `oracle` | `github.com/xo/transit/grammars/oracle` | `BlockComments`, `BeginEndBlocks` |
 | `cql` | `github.com/xo/transit/grammars/cql` | `DollarQuotes`, `BlockComments`, `SlashComments`, `Batches` |

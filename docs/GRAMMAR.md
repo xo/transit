@@ -362,6 +362,17 @@ Each one follows these rules, in addition to the rest of this document:
    one more production of the rule. Without the hidden rules, the parse
    states that start the body were copied for each production, and more
    than 200 states took the large form.
+   The upstream tool also does not merge two states when one of them takes
+   a keyword that starts with another keyword of the other state, such as
+   `ORDER` and `OR`, `INTERSECT` and `IN`, or `ASC` and `AS`. The two
+   keywords are both read by the word rule, but the tool counts them as a
+   conflict. So the states after an expression are copied for each place
+   that takes a different set of such keywords after the expression. A
+   word that a token with spaces starts, such as `INNER` in a token for
+   `INNER JOIN`, is not a keyword of the word rule at all. Then the states
+   split more often. The SQLite grammar reads `INNER JOIN` as two keywords
+   for this reason, so that `IN` stays a keyword, and it has 73 fewer
+   states.
 
 A change to such a grammar is a change to transit. It follows "Before you
 stage" in `AGENTS.md`, and its golden files are made again.

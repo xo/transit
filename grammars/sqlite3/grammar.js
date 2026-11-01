@@ -24,14 +24,18 @@
 // columns of a state few. The operators of one level of precedence are one
 // token, the three keywords CURRENT_DATE, CURRENT_TIME and CURRENT_TIMESTAMP
 // are one token, and so are TRUE and FALSE. The words of a join before JOIN,
-// such as LEFT OUTER, are one token with JOIN. The clauses of a query after
-// FROM, and the clauses after its body, come in any order, because a
-// sequence of optional clauses costs parse states for each set of the
-// clauses.
+// such as LEFT OUTER, are one token with JOIN, but INNER JOIN is two
+// keywords. The clauses of a query after FROM, the clauses after its body,
+// and the clauses at the end of UPDATE and DELETE come in any order,
+// because a sequence of optional clauses costs parse states for each set
+// of the clauses.
 //
 // A statement ends at a semicolon or at the end of the input. The commands
 // of the sqlite3 shell, such as .tables and .mode, are not SQL, so the
-// grammar does not read them. The variables of usql belong to the usql
+// grammar does not read them. usql does not remove them, so such a line can
+// come before a statement. The error recovery of tree-sitter puts the line
+// in an ERROR node, and the statement after it parses with no error. The
+// variables of usql belong to the usql
 // grammar, which hands this grammar a placeholder of the same length in
 // place of each variable (D101). The grammar has no external scanner.
 
@@ -144,9 +148,11 @@ module.exports = grammar({
   word: $ => $.identifier,
 
   // The reserved set global holds the reserved words of SQLite that the
-  // grammar uses as keywords.
+  // grammar uses as keywords. The set label is empty, for a word of a
+  // PRAGMA value or of an argument of a module, where any word can come.
   reserved: {
     global: _ => RESERVED_WORDS.filter(w => KEYWORDS.has(w)).map(keyword),
+    label: _ => [],
   },
 
   // Each hidden rule that an expression can start with is a column of each
@@ -168,11 +174,474 @@ module.exports = grammar({
 
     _statement: $ => choice(
       $.select_statement,
+      $.insert_statement,
+      $.update_statement,
+      $.delete_statement,
+      $.create_table_statement,
+      $.create_virtual_table_statement,
+      $.alter_table_statement,
+      $.create_index_statement,
+      $.create_view_statement,
+      $.create_trigger_statement,
+      $.drop_statement,
+      $.attach_statement,
+      $.detach_statement,
+      $.pragma_statement,
+      $.begin_statement,
+      $.commit_statement,
+      $.rollback_statement,
+      $.savepoint_statement,
+      $.release_statement,
+      $.analyze_statement,
+      $.reindex_statement,
+      $.vacuum_statement,
+      $.explain_statement,
     ),
 
     // Queries
 
     select_statement: $ => $._query,
+
+    // Changes of data
+
+    // INSERT, INSERT OR and its action, or REPLACE, which is INSERT OR
+    // REPLACE. The rows come from VALUES, from a query, or from the
+    // defaults of the columns. An upsert can follow each form but the last.
+    insert_statement: $ => seq(
+      optional($.with_clause),
+      choice(
+        seq(kw('INSERT'), optional(seq(kw('OR'), $._conflict_action))),
+        kw('REPLACE'),
+      ),
+      kw('INTO'),
+      field('table', $.object_reference),
+      optional(seq(kw('AS'), field('alias', $._name))),
+      optional($.column_list),
+      choice(
+        seq($.select_statement, repeat($.upsert_clause)),
+        kws('DEFAULT', 'VALUES'),
+      ),
+      optional($.returning_clause),
+    ),
+
+    _conflict_action: _ => choice(
+      kw('ROLLBACK'),
+      kw('ABORT'),
+      kw('FAIL'),
+      kw('IGNORE'),
+      kw('REPLACE'),
+    ),
+
+    // ON CONFLICT names the columns of a unique index and the action. The
+    // last upsert of a statement can leave out the columns.
+    upsert_clause: $ => seq(
+      kws('ON', 'CONFLICT'),
+      optional(seq(
+        parens(commaSep1($.indexed_column)),
+        optional($.where_clause),
+      )),
+      kw('DO'),
+      choice(
+        kw('NOTHING'),
+        seq(kw('UPDATE'), $._set_clause, optional($.where_clause)),
+      ),
+    ),
+
+    _set_clause: $ => seq(kw('SET'), commaSep1($.assignment)),
+
+    // A column, or a list of columns and a row value, as in (a, b) = (1, 2).
+    assignment: $ => seq(
+      field('left', choice($._name, $.column_list)),
+      '=',
+      field('right', $._expression),
+    ),
+
+    // RETURNING gives the rows that a statement changed.
+    returning_clause: $ => seq(kw('RETURNING'), commaSep1($._select_item)),
+
+    // The clauses after SET come in any order, for the same reason as the
+    // clauses of a query.
+    update_statement: $ => prec.right(seq(
+      optional($.with_clause),
+      kw('UPDATE'),
+      optional(seq(kw('OR'), $._conflict_action)),
+      field('table', $.table_reference),
+      $._set_clause,
+      optional($.from_clause),
+      repeat($._change_clause),
+    )),
+
+    delete_statement: $ => prec.right(seq(
+      optional($.with_clause),
+      kws('DELETE', 'FROM'),
+      field('table', $.table_reference),
+      repeat($._change_clause),
+    )),
+
+    // The clauses at the end of UPDATE and DELETE. ORDER BY and LIMIT need
+    // a build option of SQLite.
+    _change_clause: $ => choice(
+      $.where_clause,
+      $.returning_clause,
+      $.order_by_clause,
+      $.limit_clause,
+    ),
+
+    // Changes of the schema
+
+    // CREATE TABLE gives the columns and the constraints of a table, or it
+    // takes them from a query.
+    create_table_statement: $ => seq(
+      kw('CREATE'),
+      optional($._temporary),
+      kw('TABLE'),
+      optional($._if_not_exists),
+      field('name', $.object_reference),
+      choice(
+        seq(kw('AS'), $.select_statement),
+        seq(
+          parens(commaSep1(choice($.column_definition, $.table_constraint))),
+          optional(commaSep1($.table_option)),
+        ),
+      ),
+    ),
+
+    _temporary: _ => choice(kw('TEMP'), kw('TEMPORARY')),
+
+    _if_not_exists: _ => kws('IF', 'NOT', 'EXISTS'),
+
+    _if_exists: _ => kws('IF', 'EXISTS'),
+
+    table_option: _ => choice(kws('WITHOUT', 'ROWID'), kw('STRICT')),
+
+    column_definition: $ => seq(
+      field('name', $._name),
+      optional(field('type', $.type)),
+      repeat($.column_constraint),
+    ),
+
+    // A constraint of a column. DEFERRABLE is a constraint of its own, as
+    // in the parser of SQLite, so that NOT after a foreign key starts NOT
+    // DEFERRABLE or NOT NULL with no conflict. SQLite takes NULL as a
+    // constraint too, and a name as a default value, which is a string.
+    column_constraint: $ => choice(
+      seq(kw('CONSTRAINT'), field('name', $._name)),
+      seq(
+        kws('PRIMARY', 'KEY'),
+        optional(choice(kw('ASC'), kw('DESC'))),
+        optional($.conflict_clause),
+        optional(kw('AUTOINCREMENT')),
+      ),
+      seq(optional(kw('NOT')), kw('NULL'), optional($.conflict_clause)),
+      seq(kw('UNIQUE'), optional($.conflict_clause)),
+      $.check_constraint,
+      seq(kw('DEFAULT'), field('default', choice(
+        $._literal,
+        alias($._signed_default, $.unary_expression),
+        $.parenthesized_expression,
+        $._name,
+      ))),
+      seq(kw('COLLATE'), field('collation', $._name)),
+      $.references_clause,
+      $.deferrable_clause,
+      seq(
+        optional(kws('GENERATED', 'ALWAYS')),
+        kw('AS'),
+        parens(field('generated', $._expression)),
+        optional(choice(kw('STORED'), kw('VIRTUAL'))),
+      ),
+    ),
+
+    _signed_default: $ => seq(
+      field('operator', alias($._unary_operator, $.operator)),
+      field('operand', $.number),
+    ),
+
+    // ON CONFLICT of a constraint names what SQLite does when a change
+    // breaks the constraint.
+    conflict_clause: $ => seq(kws('ON', 'CONFLICT'), $._conflict_action),
+
+    check_constraint: $ => seq(kw('CHECK'), parens(field('condition', $._expression))),
+
+    // A constraint of the table, with its name. The parts of the key are
+    // indexed columns.
+    table_constraint: $ => seq(
+      optional(seq(kw('CONSTRAINT'), field('name', $._name))),
+      choice(
+        seq(
+          choice(kws('PRIMARY', 'KEY'), kw('UNIQUE')),
+          parens(commaSep1($.indexed_column)),
+          optional($.conflict_clause),
+        ),
+        $.check_constraint,
+        seq(
+          kws('FOREIGN', 'KEY'),
+          $.column_list,
+          $.references_clause,
+          optional($.deferrable_clause),
+        ),
+      ),
+    ),
+
+    // A foreign key: the table and the columns that it refers to, with the
+    // actions on DELETE and UPDATE and the MATCH of the key.
+    references_clause: $ => prec.right(seq(
+      kw('REFERENCES'),
+      field('table', $.object_reference),
+      optional($.column_list),
+      repeat(choice(
+        seq(
+          kw('ON'),
+          choice(kw('DELETE'), kw('UPDATE')),
+          choice(
+            kws('SET', 'NULL'),
+            kws('SET', 'DEFAULT'),
+            kw('CASCADE'),
+            kw('RESTRICT'),
+            kws('NO', 'ACTION'),
+          ),
+        ),
+        seq(kw('MATCH'), $._name),
+      )),
+    )),
+
+    deferrable_clause: _ => prec.right(seq(
+      optional(kw('NOT')),
+      kw('DEFERRABLE'),
+      optional(seq(kw('INITIALLY'), choice(kw('DEFERRED'), kw('IMMEDIATE')))),
+    )),
+
+    // A column of an index or of a key: a column or an expression, with its
+    // collation and its order. The COLLATE is a part of the expression.
+    indexed_column: $ => seq(
+      field('value', $._expression),
+      optional(choice(kw('ASC'), kw('DESC'))),
+    ),
+
+    // CREATE VIRTUAL TABLE names the module of the table, such as fts5 or
+    // rtree, and its arguments.
+    create_virtual_table_statement: $ => seq(
+      kws('CREATE', 'VIRTUAL', 'TABLE'),
+      optional($._if_not_exists),
+      field('name', $.object_reference),
+      kw('USING'),
+      field('module', $._name),
+      optional(parens(optional(commaSep1($.module_argument)))),
+    ),
+
+    // SQLite gives the text of an argument of a module to the module, which
+    // reads it, so an argument can hold any tokens, with the parentheses in
+    // pairs. A word of an argument takes the reserved set label, so a
+    // reserved word is a word of the argument too.
+    module_argument: $ => repeat1($._module_token),
+
+    _module_token: $ => choice(
+      reserved('label', $.identifier),
+      alias($._quoted_identifier, $.identifier),
+      $.string,
+      $.number,
+      $.blob,
+      $.parameter,
+      alias($._unary_operator, $.operator),
+      alias($._equal_operator, $.operator),
+      alias($._compare_operator, $.operator),
+      alias($._bit_operator, $.operator),
+      alias($._multiply_operator, $.operator),
+      alias($._concat_operator, $.operator),
+      '.',
+      parens(repeat(choice($._module_token, ','))),
+    ),
+
+    // ALTER TABLE renames a table or a column, adds a column or a CHECK
+    // constraint, drops a column or a constraint, or sets or drops NOT NULL
+    // on a column.
+    alter_table_statement: $ => seq(
+      kws('ALTER', 'TABLE'),
+      field('name', $.object_reference),
+      choice(
+        seq(kws('RENAME', 'TO'), field('new_name', $._name)),
+        seq(
+          kw('RENAME'),
+          optional(kw('COLUMN')),
+          field('column', $._name),
+          kw('TO'),
+          field('new_name', $._name),
+        ),
+        seq(kw('ADD'), optional(kw('COLUMN')), $.column_definition),
+        seq(
+          kw('ADD'),
+          optional(seq(kw('CONSTRAINT'), field('constraint', $._name))),
+          $.check_constraint,
+          optional($.conflict_clause),
+        ),
+        seq(kw('DROP'), optional(kw('COLUMN')), field('column', $._name)),
+        seq(kws('DROP', 'CONSTRAINT'), field('constraint', $._name)),
+        seq(
+          kw('ALTER'),
+          optional(kw('COLUMN')),
+          field('column', $._name),
+          choice(
+            seq(kws('SET', 'NOT', 'NULL'), optional($.conflict_clause)),
+            kws('DROP', 'NOT', 'NULL'),
+          ),
+        ),
+      ),
+    ),
+
+    // CREATE INDEX, with a WHERE for a partial index.
+    create_index_statement: $ => seq(
+      kw('CREATE'),
+      optional(kw('UNIQUE')),
+      kw('INDEX'),
+      optional($._if_not_exists),
+      field('name', $.object_reference),
+      kw('ON'),
+      field('table', $._name),
+      parens(commaSep1($.indexed_column)),
+      optional($.where_clause),
+    ),
+
+    create_view_statement: $ => seq(
+      kw('CREATE'),
+      optional($._temporary),
+      kw('VIEW'),
+      optional($._if_not_exists),
+      field('name', $.object_reference),
+      optional($.column_list),
+      kw('AS'),
+      $.select_statement,
+    ),
+
+    // CREATE TRIGGER names when the trigger runs, the change that starts
+    // it and its table. Its body holds INSERT, UPDATE, DELETE and SELECT
+    // statements, each with a semicolon.
+    create_trigger_statement: $ => seq(
+      kw('CREATE'),
+      optional($._temporary),
+      kw('TRIGGER'),
+      optional($._if_not_exists),
+      field('name', $.object_reference),
+      optional(choice(kw('BEFORE'), kw('AFTER'), kws('INSTEAD', 'OF'))),
+      choice(
+        kw('DELETE'),
+        kw('INSERT'),
+        seq(kw('UPDATE'), optional(seq(kw('OF'), commaSep1($._name)))),
+      ),
+      kw('ON'),
+      field('table', $.object_reference),
+      optional(kws('FOR', 'EACH', 'ROW')),
+      optional(seq(kw('WHEN'), field('condition', $._expression))),
+      kw('BEGIN'),
+      repeat1(seq(
+        choice(
+          $.select_statement,
+          $.insert_statement,
+          $.update_statement,
+          $.delete_statement,
+        ),
+        ';',
+      )),
+      kw('END'),
+    ),
+
+    // DROP TABLE, DROP INDEX, DROP VIEW and DROP TRIGGER.
+    drop_statement: $ => seq(
+      kw('DROP'),
+      choice(kw('TABLE'), kw('INDEX'), kw('VIEW'), kw('TRIGGER')),
+      optional($._if_exists),
+      field('name', $.object_reference),
+    ),
+
+    // Databases
+
+    // ATTACH opens a database file, which the expression names, as a
+    // schema. The name of the schema can be a string.
+    attach_statement: $ => seq(
+      kw('ATTACH'),
+      optional(kw('DATABASE')),
+      field('file', $._expression),
+      kw('AS'),
+      field('schema', choice($._name, $.string)),
+    ),
+
+    detach_statement: $ => seq(
+      kw('DETACH'),
+      optional(kw('DATABASE')),
+      field('schema', $._name),
+    ),
+
+    // PRAGMA reads or sets a setting, or runs a command. Its value is a
+    // number, a string or a word. A word of the value takes the reserved
+    // set label, so ON, DELETE and DEFAULT are values too.
+    pragma_statement: $ => seq(
+      kw('PRAGMA'),
+      field('name', $.object_reference),
+      optional(choice(
+        seq('=', field('value', $.pragma_value)),
+        parens(field('value', $.pragma_value)),
+      )),
+    ),
+
+    pragma_value: $ => choice(
+      $._signed_number,
+      $.string,
+      reserved('label', $.identifier),
+      alias($._quoted_identifier, $.identifier),
+    ),
+
+    // Transactions
+
+    // BEGIN, COMMIT, END and ROLLBACK can name the transaction after
+    // TRANSACTION. SQLite does not use the name.
+    begin_statement: $ => seq(
+      kw('BEGIN'),
+      optional(choice(kw('DEFERRED'), kw('IMMEDIATE'), kw('EXCLUSIVE'))),
+      optional($._transaction),
+    ),
+
+    _transaction: $ => seq(kw('TRANSACTION'), optional(field('name', $._name))),
+
+    commit_statement: $ => seq(
+      choice(kw('COMMIT'), kw('END')),
+      optional($._transaction),
+    ),
+
+    rollback_statement: $ => seq(
+      kw('ROLLBACK'),
+      optional($._transaction),
+      optional(seq(kw('TO'), optional(kw('SAVEPOINT')), field('savepoint', $._name))),
+    ),
+
+    savepoint_statement: $ => seq(kw('SAVEPOINT'), field('name', $._name)),
+
+    release_statement: $ => seq(
+      kw('RELEASE'),
+      optional(kw('SAVEPOINT')),
+      field('name', $._name),
+    ),
+
+    // Maintenance
+
+    // ANALYZE takes a schema, a table or an index, and REINDEX takes a
+    // collation too. The grammar cannot tell them apart.
+    analyze_statement: $ => seq(kw('ANALYZE'), optional(field('name', $.object_reference))),
+
+    reindex_statement: $ => seq(kw('REINDEX'), optional(field('name', $.object_reference))),
+
+    // VACUUM rebuilds a schema, or it writes the schema to a new file.
+    vacuum_statement: $ => seq(
+      kw('VACUUM'),
+      optional(field('schema', $._name)),
+      optional(seq(kw('INTO'), field('file', $._expression))),
+    ),
+
+    // EXPLAIN gives the program of a statement, and EXPLAIN QUERY PLAN
+    // gives its plan.
+    explain_statement: $ => seq(
+      kw('EXPLAIN'),
+      optional(kws('QUERY', 'PLAN')),
+      $._statement,
+    ),
 
     // ORDER BY and LIMIT come after the body of a query, in any order.
     _query: $ => prec.right(seq(
@@ -313,10 +782,13 @@ module.exports = grammar({
     // one token with JOIN, so that they take one column of a parse state.
     // It is the keyword JOIN in the tree. SQLite does not reserve these
     // words, and the token takes them only before JOIN, so they can name a
-    // column too.
+    // column too. INNER JOIN is two keywords. If the token started with
+    // INNER, it would start with IN, and then IN could not be a keyword of
+    // the word rule. The states after an expression would then split, and
+    // the grammar would have about 70 more states.
     join: $ => prec.left(seq(
       field('left', $._table_reference),
-      choice(kw('JOIN'), alias($._join, 'JOIN')),
+      choice(kw('JOIN'), kws('INNER', 'JOIN'), alias($._join, 'JOIN')),
       field('right', $._table_factor),
       optional(choice(
         seq(kw('ON'), field('condition', $._expression)),
@@ -325,9 +797,17 @@ module.exports = grammar({
     )),
 
     _join: _ => token(seq(
-      optional(seq(keyword('NATURAL'), /\s+/)),
       choice(
-        keyword('INNER'),
+        seq(
+          keyword('NATURAL'),
+          optional(seq(/\s+/, choice(
+            keyword('INNER'),
+            seq(
+              choice(keyword('LEFT'), keyword('RIGHT'), keyword('FULL')),
+              optional(seq(/\s+/, keyword('OUTER'))),
+            ),
+          ))),
+        ),
         keyword('CROSS'),
         seq(
           choice(keyword('LEFT'), keyword('RIGHT'), keyword('FULL')),

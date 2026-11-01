@@ -329,18 +329,24 @@ These faults remain:
   tree, as the options of the other statements that end in a list of words
   are.
 
-### Finish the SQLite grammar
+### Forms that the SQLite grammar leaves out
 
-The SQLite grammar that xo writes (D126) reads the queries of SQLite. The
-other statements of the SQL reference, such as `INSERT`, `CREATE TABLE`
-and `PRAGMA`, come in the next part of the work. The grammar leaves out
-these forms:
+The SQLite grammar that xo writes (D126) reads each statement of the SQL
+reference of SQLite. It leaves out these forms:
 
 - A block comment with no `*/`, which SQLite reads to the end of the input.
   A regular expression of tree-sitter cannot find the end of the input, so
   the grammar needs an external scanner for it.
 - A name in single quotes where SQLite takes a name, as in
-  `SELECT * FROM 'a'`. A string is a name only as an alias.
+  `SELECT * FROM 'a'`. A string is a name only as an alias and as the
+  schema of `ATTACH`.
+- Two constraints of a table with no comma between them, as in
+  `PRIMARY KEY (a) UNIQUE (b)`. SQLite takes them. After a column, the
+  grammar cannot tell a constraint of the table from a constraint of the
+  column with one token of lookahead.
+- A semicolon in an argument of a module, as in
+  `USING define((SELECT 1; SELECT 2))`. SQLite gives the text of the
+  argument to the module.
 
 ## The setup of the repository
 
