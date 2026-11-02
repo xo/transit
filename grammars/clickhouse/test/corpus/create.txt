@@ -1804,3 +1804,61 @@ CREATE LIVE VIEW live_plain WITH REFRESH AS SELECT 2;
     (as_clause
       (select
         (number)))))
+
+================================================================================
+An alias that is comment before COMMENT
+================================================================================
+
+CREATE TABLE notes ENGINE = Memory AS SELECT body comment FROM drafts COMMENT 'copied notes';
+CREATE VIEW v AS SELECT x FROM numbers(5) n COMMENT 'five rows';
+CREATE VIEW w AS SELECT * FROM inbox comment COMMENT 'the inbox';
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (engine_clause
+      (identifier))
+    (as_clause
+      (select
+        (aliased_expression
+          (column_reference
+            (identifier))
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))
+    (comment_clause
+      (string)))
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (as_clause
+      (select
+        (column_reference
+          (identifier))
+        (from_clause
+          (function_table
+            (function_call
+              (identifier)
+              (arguments
+                (number)))
+            (identifier)))))
+    (comment_clause
+      (string)))
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (as_clause
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))
+            (identifier)))))
+    (comment_clause
+      (string))))

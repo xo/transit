@@ -40,6 +40,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -171,6 +175,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -325,6 +333,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -496,6 +508,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -637,6 +653,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -1148,6 +1168,10 @@
           "named": true
         },
         {
+          "type": "at_time_zone_expression",
+          "named": true
+        },
+        {
           "type": "between_expression",
           "named": true
         },
@@ -1300,6 +1324,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -1470,6 +1498,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -1667,6 +1699,292 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
+            "type": "between_expression",
+            "named": true
+          },
+          {
+            "type": "binary_expression",
+            "named": true
+          },
+          {
+            "type": "bit_string",
+            "named": true
+          },
+          {
+            "type": "boolean",
+            "named": true
+          },
+          {
+            "type": "case_expression",
+            "named": true
+          },
+          {
+            "type": "cast_expression",
+            "named": true
+          },
+          {
+            "type": "column_reference",
+            "named": true
+          },
+          {
+            "type": "columns_expression",
+            "named": true
+          },
+          {
+            "type": "exists_expression",
+            "named": true
+          },
+          {
+            "type": "field_selection",
+            "named": true
+          },
+          {
+            "type": "function_call",
+            "named": true
+          },
+          {
+            "type": "heredoc_string",
+            "named": true
+          },
+          {
+            "type": "hex_string",
+            "named": true
+          },
+          {
+            "type": "in_expression",
+            "named": true
+          },
+          {
+            "type": "interval_expression",
+            "named": true
+          },
+          {
+            "type": "is_expression",
+            "named": true
+          },
+          {
+            "type": "lambda_expression",
+            "named": true
+          },
+          {
+            "type": "like_expression",
+            "named": true
+          },
+          {
+            "type": "map",
+            "named": true
+          },
+          {
+            "type": "null",
+            "named": true
+          },
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "parenthesized_expression",
+            "named": true
+          },
+          {
+            "type": "query_parameter",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "subquery",
+            "named": true
+          },
+          {
+            "type": "subscript_expression",
+            "named": true
+          },
+          {
+            "type": "ternary_expression",
+            "named": true
+          },
+          {
+            "type": "tuple",
+            "named": true
+          },
+          {
+            "type": "typed_literal",
+            "named": true
+          },
+          {
+            "type": "unary_expression",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "at_time_zone_expression",
+    "named": true,
+    "fields": {
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "aliased_expression",
+            "named": true
+          },
+          {
+            "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
+            "type": "between_expression",
+            "named": true
+          },
+          {
+            "type": "binary_expression",
+            "named": true
+          },
+          {
+            "type": "bit_string",
+            "named": true
+          },
+          {
+            "type": "boolean",
+            "named": true
+          },
+          {
+            "type": "case_expression",
+            "named": true
+          },
+          {
+            "type": "cast_expression",
+            "named": true
+          },
+          {
+            "type": "column_reference",
+            "named": true
+          },
+          {
+            "type": "columns_expression",
+            "named": true
+          },
+          {
+            "type": "exists_expression",
+            "named": true
+          },
+          {
+            "type": "field_selection",
+            "named": true
+          },
+          {
+            "type": "function_call",
+            "named": true
+          },
+          {
+            "type": "heredoc_string",
+            "named": true
+          },
+          {
+            "type": "hex_string",
+            "named": true
+          },
+          {
+            "type": "in_expression",
+            "named": true
+          },
+          {
+            "type": "interval_expression",
+            "named": true
+          },
+          {
+            "type": "is_expression",
+            "named": true
+          },
+          {
+            "type": "lambda_expression",
+            "named": true
+          },
+          {
+            "type": "like_expression",
+            "named": true
+          },
+          {
+            "type": "map",
+            "named": true
+          },
+          {
+            "type": "null",
+            "named": true
+          },
+          {
+            "type": "number",
+            "named": true
+          },
+          {
+            "type": "parenthesized_expression",
+            "named": true
+          },
+          {
+            "type": "query_parameter",
+            "named": true
+          },
+          {
+            "type": "string",
+            "named": true
+          },
+          {
+            "type": "subquery",
+            "named": true
+          },
+          {
+            "type": "subscript_expression",
+            "named": true
+          },
+          {
+            "type": "ternary_expression",
+            "named": true
+          },
+          {
+            "type": "tuple",
+            "named": true
+          },
+          {
+            "type": "typed_literal",
+            "named": true
+          },
+          {
+            "type": "unary_expression",
+            "named": true
+          }
+        ]
+      },
+      "zone": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "aliased_expression",
+            "named": true
+          },
+          {
+            "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -1881,6 +2199,10 @@
           "named": true
         },
         {
+          "type": "at_time_zone_expression",
+          "named": true
+        },
+        {
           "type": "between_expression",
           "named": true
         },
@@ -2045,6 +2367,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -2229,6 +2555,10 @@
           "named": true
         },
         {
+          "type": "at_time_zone_expression",
+          "named": true
+        },
+        {
           "type": "backup_item",
           "named": true
         },
@@ -2404,6 +2734,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -2538,6 +2872,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -2669,6 +3007,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -2809,6 +3151,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -2972,6 +3318,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -3116,6 +3466,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -3247,6 +3601,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -3400,6 +3758,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -3535,6 +3897,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -3685,6 +4051,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -3890,6 +4260,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -4147,6 +4521,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -4292,6 +4670,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -4644,6 +5026,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -4791,6 +5177,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -5207,6 +5597,10 @@
           "named": true
         },
         {
+          "type": "at_time_zone_expression",
+          "named": true
+        },
+        {
           "type": "between_expression",
           "named": true
         },
@@ -5471,6 +5865,10 @@
           "named": true
         },
         {
+          "type": "at_time_zone_expression",
+          "named": true
+        },
+        {
           "type": "between_expression",
           "named": true
         },
@@ -5679,6 +6077,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -6136,6 +6538,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -6306,6 +6712,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -6457,6 +6867,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -6704,6 +7118,10 @@
         },
         {
           "type": "as_clause",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -7005,6 +7423,10 @@
           "named": true
         },
         {
+          "type": "at_time_zone_expression",
+          "named": true
+        },
+        {
           "type": "between_expression",
           "named": true
         },
@@ -7226,6 +7648,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -7414,6 +7840,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -7611,6 +8041,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -7850,6 +8284,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -7981,9 +8419,19 @@
           }
         ]
       },
+      "query": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "select_statement",
+            "named": true
+          }
+        ]
+      },
       "table": {
         "multiple": true,
-        "required": true,
+        "required": false,
         "types": [
           {
             "type": "function_call",
@@ -8032,6 +8480,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -8213,6 +8665,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -8412,6 +8868,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -8667,6 +9127,10 @@
           "named": true
         },
         {
+          "type": "at_time_zone_expression",
+          "named": true
+        },
+        {
           "type": "between_expression",
           "named": true
         },
@@ -8803,6 +9267,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -8982,6 +9450,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -9181,6 +9653,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -9421,6 +9897,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -9609,6 +10089,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -10026,6 +10510,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -10214,6 +10702,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -10579,6 +11071,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -10815,6 +11311,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -10968,6 +11468,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -11300,6 +11804,10 @@
           "named": true
         },
         {
+          "type": "at_time_zone_expression",
+          "named": true
+        },
+        {
           "type": "between_expression",
           "named": true
         },
@@ -11456,6 +11964,10 @@
           "named": true
         },
         {
+          "type": "at_time_zone_expression",
+          "named": true
+        },
+        {
           "type": "between_expression",
           "named": true
         },
@@ -11592,6 +12104,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -11780,6 +12296,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -11911,6 +12431,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -12069,6 +12593,10 @@
           "named": true
         },
         {
+          "type": "at_time_zone_expression",
+          "named": true
+        },
+        {
           "type": "between_expression",
           "named": true
         },
@@ -12205,6 +12733,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -12359,6 +12891,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -12644,6 +13180,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -12870,6 +13410,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -13029,6 +13573,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -13248,6 +13796,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -13429,6 +13981,10 @@
           "named": true
         },
         {
+          "type": "at_time_zone_expression",
+          "named": true
+        },
+        {
           "type": "between_expression",
           "named": true
         },
@@ -13600,6 +14156,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -13731,6 +14291,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -13936,6 +14500,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -14096,6 +14664,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -14236,6 +14808,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -14368,6 +14944,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -14539,6 +15119,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -14700,6 +15284,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -14871,6 +15459,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -15003,6 +15595,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -15249,6 +15845,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -15416,6 +16016,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -15597,6 +16201,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -15796,6 +16404,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -15956,6 +16568,197 @@
     }
   },
   {
+    "type": "parallel_statement",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "alter_access_statement",
+          "named": true
+        },
+        {
+          "type": "alter_named_collection_statement",
+          "named": true
+        },
+        {
+          "type": "alter_table_statement",
+          "named": true
+        },
+        {
+          "type": "backup_statement",
+          "named": true
+        },
+        {
+          "type": "check_statement",
+          "named": true
+        },
+        {
+          "type": "create_access_statement",
+          "named": true
+        },
+        {
+          "type": "create_database_statement",
+          "named": true
+        },
+        {
+          "type": "create_dictionary_statement",
+          "named": true
+        },
+        {
+          "type": "create_function_statement",
+          "named": true
+        },
+        {
+          "type": "create_handler_statement",
+          "named": true
+        },
+        {
+          "type": "create_index_statement",
+          "named": true
+        },
+        {
+          "type": "create_named_collection_statement",
+          "named": true
+        },
+        {
+          "type": "create_projection_statement",
+          "named": true
+        },
+        {
+          "type": "create_resource_statement",
+          "named": true
+        },
+        {
+          "type": "create_table_statement",
+          "named": true
+        },
+        {
+          "type": "create_token_statement",
+          "named": true
+        },
+        {
+          "type": "create_view_statement",
+          "named": true
+        },
+        {
+          "type": "create_workload_statement",
+          "named": true
+        },
+        {
+          "type": "delete_statement",
+          "named": true
+        },
+        {
+          "type": "describe_statement",
+          "named": true
+        },
+        {
+          "type": "detach_statement",
+          "named": true
+        },
+        {
+          "type": "drop_statement",
+          "named": true
+        },
+        {
+          "type": "exchange_statement",
+          "named": true
+        },
+        {
+          "type": "execute_as_statement",
+          "named": true
+        },
+        {
+          "type": "exists_statement",
+          "named": true
+        },
+        {
+          "type": "explain_statement",
+          "named": true
+        },
+        {
+          "type": "grant_statement",
+          "named": true
+        },
+        {
+          "type": "insert_statement",
+          "named": true
+        },
+        {
+          "type": "kill_statement",
+          "named": true
+        },
+        {
+          "type": "move_statement",
+          "named": true
+        },
+        {
+          "type": "optimize_statement",
+          "named": true
+        },
+        {
+          "type": "rename_statement",
+          "named": true
+        },
+        {
+          "type": "restore_statement",
+          "named": true
+        },
+        {
+          "type": "revoke_statement",
+          "named": true
+        },
+        {
+          "type": "select_statement",
+          "named": true
+        },
+        {
+          "type": "set_role_statement",
+          "named": true
+        },
+        {
+          "type": "set_statement",
+          "named": true
+        },
+        {
+          "type": "show_statement",
+          "named": true
+        },
+        {
+          "type": "system_statement",
+          "named": true
+        },
+        {
+          "type": "transaction_statement",
+          "named": true
+        },
+        {
+          "type": "truncate_statement",
+          "named": true
+        },
+        {
+          "type": "undrop_statement",
+          "named": true
+        },
+        {
+          "type": "update_statement",
+          "named": true
+        },
+        {
+          "type": "use_statement",
+          "named": true
+        },
+        {
+          "type": "watch_statement",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "parenthesized_expression",
     "named": true,
     "fields": {},
@@ -15969,6 +16772,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -16198,6 +17005,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -16396,6 +17207,10 @@
           "named": true
         },
         {
+          "type": "at_time_zone_expression",
+          "named": true
+        },
+        {
           "type": "between_expression",
           "named": true
         },
@@ -16551,6 +17366,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -16688,6 +17507,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -16953,6 +17776,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -17094,6 +17921,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -17248,6 +18079,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -17629,6 +18464,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -17807,6 +18646,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -18025,6 +18868,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -18217,6 +19064,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -18451,6 +19302,10 @@
           "named": true
         },
         {
+          "type": "at_time_zone_expression",
+          "named": true
+        },
+        {
           "type": "between_expression",
           "named": true
         },
@@ -18587,6 +19442,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -18729,6 +19588,10 @@
           "named": true
         },
         {
+          "type": "at_time_zone_expression",
+          "named": true
+        },
+        {
           "type": "between_expression",
           "named": true
         },
@@ -18868,6 +19731,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -18999,6 +19866,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -19139,6 +20010,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -19550,6 +20425,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -19736,6 +20615,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -19935,6 +20818,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -20282,6 +21169,10 @@
           "named": true
         },
         {
+          "type": "parallel_statement",
+          "named": true
+        },
+        {
           "type": "rename_statement",
           "named": true
         },
@@ -20396,6 +21287,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -20790,6 +21685,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -21137,6 +22036,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -21271,6 +22174,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -21402,6 +22309,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -21650,6 +22561,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -21781,6 +22696,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -21920,6 +22839,10 @@
         },
         {
           "type": "assignment",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -22063,6 +22986,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -22334,6 +23261,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -22495,6 +23426,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -22694,6 +23629,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -23020,6 +23959,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -23211,6 +24154,10 @@
           "named": true
         },
         {
+          "type": "at_time_zone_expression",
+          "named": true
+        },
+        {
           "type": "between_expression",
           "named": true
         },
@@ -23382,6 +24329,10 @@
             "named": true
           },
           {
+            "type": "at_time_zone_expression",
+            "named": true
+          },
+          {
             "type": "between_expression",
             "named": true
           },
@@ -23513,6 +24464,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -23653,6 +24608,10 @@
           },
           {
             "type": "array",
+            "named": true
+          },
+          {
+            "type": "at_time_zone_expression",
             "named": true
           },
           {
@@ -23848,6 +24807,10 @@
           "named": true
         },
         {
+          "type": "at_time_zone_expression",
+          "named": true
+        },
+        {
           "type": "between_expression",
           "named": true
         },
@@ -23995,6 +24958,10 @@
           "named": true
         },
         {
+          "type": "at_time_zone_expression",
+          "named": true
+        },
+        {
           "type": "between_expression",
           "named": true
         },
@@ -24135,6 +25102,10 @@
         },
         {
           "type": "array",
+          "named": true
+        },
+        {
+          "type": "at_time_zone_expression",
           "named": true
         },
         {
@@ -24390,6 +25361,10 @@
   },
   {
     "type": "ASYNC",
+    "named": false
+  },
+  {
+    "type": "AT",
     "named": false
   },
   {
@@ -25086,6 +26061,10 @@
   },
   {
     "type": "OVERRIDE",
+    "named": false
+  },
+  {
+    "type": "PARALLEL",
     "named": false
   },
   {

@@ -193,7 +193,7 @@ syntax of ClickHouse, such as `PREWHERE`, `ARRAY JOIN`, `FINAL`, `SAMPLE`,
 the lambdas and the query parameters `{name:Type}`. So xo writes the
 ClickHouse grammar from the SQL reference of ClickHouse in
 `grammars/clickhouse` (D127). It reads each statement of the
-reference, but `PARALLEL WITH`. usql will give it to `clickhouse`.
+reference. usql will give it to `clickhouse`.
 ClickHouse quotes a name with backquotes. A comment starts with `--`,
 `//`, `#` and a space, or `#!`, or it is `/* */`, and the grammar reads
 each of them.

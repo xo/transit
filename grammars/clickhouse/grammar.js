@@ -267,6 +267,15 @@ module.exports = grammar({
     // A comma after the limits of a quota can start the next limit or the
     // next interval.
     [$.quota_interval],
+    // COMMENT after an expression of the query of CREATE can be an alias
+    // with no AS or start the comment of the table (D133).
+    [$._implicit_alias, $._select_item],
+    [$._implicit_alias, $.array_join],
+    [$.table_reference],
+    [$.function_table],
+    [$.derived_table],
+    [$.parenthesized_join],
+    [$.array_join],
   ],
 
   rules: {
@@ -274,11 +283,21 @@ module.exports = grammar({
     // needs no semicolon after it.
     source_file: $ => seq(
       repeat(choice(
-        seq($._statement, ';'),
+        seq(choice($._statement, $.parallel_statement), ';'),
         ';',
         alias($._insert_with_data, $.insert_statement),
       )),
-      optional($._statement),
+      optional(choice($._statement, $.parallel_statement)),
+    ),
+
+    // PARALLEL WITH runs two or more statements at the same time, as in
+    // DROP TABLE a PARALLEL WITH DROP TABLE b (D133). The keywords after
+    // each statement put 46 more parse states in the large form. One token
+    // for the two words cost 734 more states, because the token and an
+    // identifier can match the same text.
+    parallel_statement: $ => seq(
+      $._statement,
+      repeat1(seq(kws('PARALLEL', 'WITH'), $._statement)),
     ),
 
     _statement: $ => choice(
@@ -501,10 +520,15 @@ module.exports = grammar({
     _implicit_alias: $ => seq(field('value', $._expression), field('alias', $._implicit_alias_name)),
 
     // An alias with no AS cannot be a word of the reserved set
-    // implicit_alias, but it can be such a word in quotes.
+    // implicit_alias, but it can be such a word in quotes. The alias can be
+    // comment, although COMMENT can come after the query of CREATE (D133).
+    // Where both can come, the parser tries both, and the string after
+    // COMMENT tells them apart. This costs 70 parse states. A token for
+    // COMMENT and its string cost about 900.
     _implicit_alias_name: $ => choice(
       reserved('implicit_alias', $.identifier),
       alias($._quoted_identifier, $.identifier),
+      alias(keyword('COMMENT'), $.identifier),
     ),
 
     // * or t.* gives all the columns of a table, and COLUMNS gives the
@@ -569,12 +593,12 @@ module.exports = grammar({
     // A table, with an alias. FINAL merges the rows of a table of the
     // MergeTree family before the query reads them, and SAMPLE reads a
     // sample of the rows.
-    table_reference: $ => prec.right(seq(
+    table_reference: $ => seq(
       field('table', $.object_reference),
       optional($._alias),
       optional(kw('FINAL')),
       optional($.sample_clause),
-    )),
+    ),
 
     // An alias of a table, with the names of its columns.
     _alias: $ => seq(
@@ -594,12 +618,12 @@ module.exports = grammar({
     )),
 
     // A table function, such as numbers(10) or remote('host', db, t).
-    function_table: $ => prec.right(seq(
+    function_table: $ => seq(
       field('function', alias($._table_function, $.function_call)),
       optional($._alias),
       optional(kw('FINAL')),
       optional($.sample_clause),
-    )),
+    ),
 
     _table_function: $ => seq(
       field('name', $._function_name),
@@ -610,16 +634,16 @@ module.exports = grammar({
     // gives the lines of the plan as rows. The grammar takes it only in
     // FROM, because EXPLAIN after each ( where an expression starts puts
     // 12 more parse states in the large form.
-    derived_table: $ => prec.right(seq(
+    derived_table: $ => seq(
       choice($.subquery, alias(parens($.explain_statement), $.subquery)),
       optional($._alias),
-    )),
+    ),
 
     // A list of tables and joins in parentheses.
-    parenthesized_join: $ => prec.right(seq(
+    parenthesized_join: $ => seq(
       parens(commaSep1($._table_reference)),
       optional($._alias),
-    )),
+    ),
 
     // A join. The words before JOIN give its kind, such as GLOBAL ANY LEFT
     // OUTER JOIN. GLOBAL sends the right side to each server of a
@@ -646,12 +670,12 @@ module.exports = grammar({
 
     // ARRAY JOIN gives a row for each element of an array, and LEFT ARRAY
     // JOIN keeps a row with an empty array too.
-    array_join: $ => prec.right(seq(
+    array_join: $ => seq(
       field('left', $._table_reference),
       optional(choice(kw('LEFT'), kw('INNER'))),
       kws('ARRAY', 'JOIN'),
       commaSep1(choice($._expression, alias($._implicit_alias, $.aliased_expression))),
-    )),
+    ),
 
     // PREWHERE filters the rows before the query reads the other columns.
     prewhere_clause: $ => seq(kw('PREWHERE'), field('condition', $._expression)),
@@ -1225,11 +1249,9 @@ module.exports = grammar({
     // of the query then took each word that starts a clause. COMMENT can
     // come after the query (D132). It costs 8 parse states, because the
     // states after the query merge with the states of a query alone. So
-    // COMMENT after an expression of any query is the keyword, and an alias
-    // with no AS cannot be comment, as in SELECT a comment. ClickHouse takes
-    // such an alias when no string comes after it. A token for COMMENT and
-    // the string cost about 910 states. EMPTY AS creates the table from a
-    // query with no rows.
+    // COMMENT after an expression of any query is the keyword, and
+    // _implicit_alias_name takes the keyword as an alias too (D133). EMPTY
+    // AS creates the table from a query with no rows.
     _as_query: $ => alias(seq(kw('AS'), $._query), $.as_clause),
 
     // WITH REFRESH and WITH TIMEOUT of a live view, with a number of
@@ -1739,17 +1761,28 @@ module.exports = grammar({
     ].map(kw), $._command_word),
 
     // DESCRIBE shows the columns of a table, of a table function or of a
-    // query.
+    // query. The clauses of the statement, such as FORMAT, come after a
+    // table, a table function or a query in parentheses. A query with no
+    // parentheses, or a set operation, takes no clauses of the statement,
+    // and a clause after it belongs to the query (D133). This costs 6 parse
+    // states. The clauses of the statement after any query cost more than
+    // 400 large states. A query in parentheses with nothing after it is a
+    // subquery.
     describe_statement: $ => prec.right(seq(
       choice(kw('DESCRIBE'), kw('DESC')),
       optional(kw('TEMPORARY')),
       optional(kw('TABLE')),
-      field('table', choice(
-        $.object_reference,
-        alias($._table_function, $.function_call),
-        $.subquery,
-      )),
-      repeat($._tail),
+      choice(
+        prec.dynamic(1, seq(
+          field('table', choice(
+            $.object_reference,
+            alias($._table_function, $.function_call),
+            $.subquery,
+          )),
+          repeat($._tail),
+        )),
+        field('query', $.select_statement),
+      ),
     )),
 
     // EXISTS tells whether a table, a dictionary or a database exists.
@@ -2177,6 +2210,7 @@ module.exports = grammar({
       $.ternary_expression,
       $.lambda_expression,
       $.aliased_expression,
+      $.at_time_zone_expression,
     ),
 
     _primary_expression: $ => choice(
@@ -2477,6 +2511,18 @@ module.exports = grammar({
       field('consequence', $._expression),
       ':',
       field('alternative', $._expression),
+    )),
+
+    // AT TIME ZONE gives a time in another time zone, and AT LOCAL gives it
+    // in the time zone of the session (D133). The operator binds more
+    // tightly than * and /, so a * t AT TIME ZONE 'UTC' converts t. It costs
+    // about 140 parse states, 50 of them large, because AT can come after
+    // each expression. Tokens for AT TIME ZONE and AT LOCAL cost 100 large
+    // states, and a value or a zone that is not an operator cost more.
+    at_time_zone_expression: $ => prec.left(PREC.unary, seq(
+      field('value', $._expression),
+      kw('AT'),
+      choice(seq(kws('TIME', 'ZONE'), field('zone', $._expression)), kw('LOCAL')),
     )),
 
     // A choice of operators flattens into one production for each

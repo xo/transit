@@ -50,3 +50,10 @@ SELECT CAST(e AS Enum8('a' = 1)), CAST(j AS JSON(max_dynamic_paths = 10, a.b UIn
 --                                               ^ variable.parameter
 --                                                                       ^ property
 --                                                                                    ^ comment
+SELECT ts AT TIME ZONE 'UTC', ts AT LOCAL FROM t;
+--        ^ keyword
+--           ^ keyword
+--                ^ keyword
+--                     ^ string
+--                               ^ keyword
+--                                  ^ keyword

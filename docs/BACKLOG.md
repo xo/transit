@@ -420,8 +420,8 @@ The grammar leaves out these forms of the other statements:
 ### Forms that the ClickHouse grammar leaves out
 
 The ClickHouse grammar that xo writes (D127) reads each statement of the
-SQL reference of ClickHouse, but `PARALLEL WITH`. The grammar leaves out
-these forms of a query:
+SQL reference of ClickHouse. The grammar leaves out these forms of a
+query:
 
 - The names of the columns of a common table expression, as in `WITH t(a,
   b) AS (SELECT 1, 2)`. After `WITH t(`, the grammar cannot tell the
@@ -443,16 +443,11 @@ these forms of a query:
   the word is the keyword. For the same reason, `SELECT a, from FROM t`
   reads `from` as the start of the clause `FROM`.
 - The pipe operator `|>`, the composition of functions with `|`, `LIMIT
-  AFTER`, `LIMIT UNTIL`, `AT TIME ZONE`, `STREAM`, the operators `~` and
-  `!~` of PostgreSQL, `* ILIKE 'pattern'`, `VALUES` and `ARRAY[...]` of
-  the dialect of Trino, the variables `@@name` of MySQL, and a star as a
+  AFTER`, `LIMIT UNTIL`, `STREAM`, the operators `~` and `!~` of
+  PostgreSQL, `* ILIKE 'pattern'`, `VALUES` and `ARRAY[...]` of the
+  dialect of Trino, the variables `@@name` of MySQL, and a star as a
   value, as in `[*, 1]` and `(*,).1`. The stateless tests of ClickHouse
-  use them in a few files. `AT TIME ZONE` cost 112 parse states, 40 of
-  them large.
-- An alias with no `AS` that is `comment`, as in `SELECT a comment FROM
-  t`. `COMMENT` after an expression is the keyword that starts the comment
-  after the query of `CREATE` (D132). A token for `COMMENT` and its string
-  cost about 910 parse states.
+  use them in a few files.
 - A lambda after `APPLY` with no parentheses, as in `* APPLY x ->
   toString(x)`. After `APPLY x`, the upstream tool cannot tell the name of
   a function from the parameter of a lambda. `APPLY (x -> toString(x))`
@@ -497,16 +492,14 @@ The grammar leaves out these forms of the changes of data and schema:
 
 The grammar leaves out these forms of the other statements:
 
-- `PARALLEL WITH`, which runs two statements at once, as in `INSERT INTO a
-  SELECT 1 PARALLEL WITH INSERT INTO b SELECT 2`. With the keyword after
-  each statement, 37 more parse states took the large form, and the tables
-  grew by about 60 KB.
 - A table or a column that has the name of a word of a command of
   `SYSTEM` or of a form of `SHOW`, as in `SYSTEM FLUSH LOGS logs`. The word
   is a keyword there.
-- `DESCRIBE` of a set operation, as in `DESCRIBE (SELECT 1) UNION ALL
-  (SELECT 2)`. A query after `DESCRIBE` put more than 400 more parse states
-  in the large form. `DESCRIBE` takes a query in parentheses.
+- A clause of `DESCRIBE`, such as `FORMAT`, after a set operation, as in
+  `DESCRIBE (SELECT 1) UNION ALL (SELECT 2) FORMAT TSV`, and an alias after
+  a query in parentheses, as in `DESCRIBE (SELECT 1) AS s`. The clauses of
+  `DESCRIBE` after any query put more than 400 more parse states in the
+  large form (D133).
 - The form of the limits of a quota that puts `MAX` after the name, as in
   `FOR 1 YEAR ERRORS MAX 1`, and `RESULT ROWS MAX`.
 - `FOR` and a resource after a setting of a workload, as in `SETTINGS

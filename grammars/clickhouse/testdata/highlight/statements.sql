@@ -1,3 +1,10 @@
+DROP TABLE a PARALLEL WITH DROP TABLE b; DESCRIBE SELECT 1;
+-- <- keyword
+--           ^ keyword
+--                    ^ keyword
+--                         ^ keyword
+--                                       ^ keyword
+--                                                ^ keyword
 DROP TABLE IF EXISTS shop.orders ON CLUSTER main SYNC; OPTIMIZE TABLE orders FINAL DEDUPLICATE;
 -- <- keyword
 --            ^ keyword

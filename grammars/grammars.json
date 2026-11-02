@@ -10860,8 +10860,8 @@
       "status": "available",
       "golden": {
         "abi14": {
-          "parser_c": "7434ce04cc5a9627aef0a753d4dea032f9245d23452d2cf9e9c46c39b6a90fc0",
-          "node_types": "05e746e1cb249b2c1bd972209be536f3c7fddf4dec70daf273f3596ca1763fe8",
+          "parser_c": "00ef7b1cb396ce84977fbd9e0995d0fc4458a1cf03f9a51a9eff6bc2099e9e8c",
+          "node_types": "098ad68b665bd9c685afeb86b9fafb34d8cc423400af12e6171a95bf3bdbef23",
           "paths": [
             "field map",
             "inherited field",
@@ -10878,12 +10878,13 @@
             "SHIFT_REPEAT",
             "SHIFT_EXTRA",
             "RECOVER",
+            "dynamic precedence",
             "ABI 14 lex modes"
           ]
         },
         "abi15": {
-          "parser_c": "ba29da571a3ce703751f08f180f6c57764379b5820c2d6b9bd8ea1c1fe1423c1",
-          "node_types": "05e746e1cb249b2c1bd972209be536f3c7fddf4dec70daf273f3596ca1763fe8",
+          "parser_c": "a9110e34514dcec45229dd1b15f1130cf193848674c17b9c8308e9ed2b97b588",
+          "node_types": "098ad68b665bd9c685afeb86b9fafb34d8cc423400af12e6171a95bf3bdbef23",
           "paths": [
             "field map",
             "inherited field",
@@ -10902,13 +10903,14 @@
             "SHIFT_REPEAT",
             "SHIFT_EXTRA",
             "RECOVER",
+            "dynamic precedence",
             "ABI 15 lex modes",
             "grammar version"
           ]
         }
       },
       "corpus": {
-        "tests": 240,
+        "tests": 246,
         "failures": 0,
         "transit": "same"
       }

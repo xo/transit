@@ -1827,3 +1827,69 @@ SELECT count() OVER (ORDER BY a GROUPS BETWEEN 1 PRECEDING AND 1 FOLLOWING);
                 (number))
               (frame_bound
                 (number)))))))))
+
+================================================================================
+AT TIME ZONE and AT LOCAL
+================================================================================
+
+SELECT created AT TIME ZONE 'Asia/Tokyo', created AT LOCAL;
+SELECT price * ts AT TIME ZONE 'UTC' = other;
+SELECT ts AT TIME ZONE 'Europe/Paris' AT TIME ZONE concat('America/', city) FROM visits;
+SELECT (ts + INTERVAL 2 DAY) AT TIME ZONE zone;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (at_time_zone_expression
+        (column_reference
+          (identifier))
+        (string))
+      (at_time_zone_expression
+        (column_reference
+          (identifier)))))
+  (select_statement
+    (select
+      (binary_expression
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (at_time_zone_expression
+            (column_reference
+              (identifier))
+            (string)))
+        (operator)
+        (column_reference
+          (identifier)))))
+  (select_statement
+    (select
+      (at_time_zone_expression
+        (at_time_zone_expression
+          (column_reference
+            (identifier))
+          (string))
+        (function_call
+          (identifier)
+          (arguments
+            (string)
+            (column_reference
+              (identifier)))))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (select_statement
+    (select
+      (at_time_zone_expression
+        (parenthesized_expression
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (interval_expression
+              (number)
+              (interval_unit))))
+        (column_reference
+          (identifier))))))

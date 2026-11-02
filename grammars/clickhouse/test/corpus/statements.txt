@@ -1354,3 +1354,147 @@ SYSTEM INSTRUMENT REMOVE (SELECT id FROM system.instrumentation);
             (object_reference
               (identifier)
               (identifier))))))))
+
+================================================================================
+PARALLEL WITH
+================================================================================
+
+DROP TABLE IF EXISTS old_events PARALLEL WITH DROP TABLE IF EXISTS old_users;
+CREATE TABLE a (x UInt8) ENGINE = Memory PARALLEL WITH CREATE TABLE b (y String) ENGINE = Memory PARALLEL WITH CREATE TABLE c (z Date) ENGINE = Log
+
+---
+
+(source_file
+  (parallel_statement
+    (drop_statement
+      (object_reference
+        (identifier)))
+    (drop_statement
+      (object_reference
+        (identifier))))
+  (parallel_statement
+    (create_table_statement
+      (object_reference
+        (identifier))
+      (table_elements
+        (column_definition
+          (identifier)
+          (type
+            (identifier))))
+      (engine_clause
+        (identifier)))
+    (create_table_statement
+      (object_reference
+        (identifier))
+      (table_elements
+        (column_definition
+          (identifier)
+          (type
+            (identifier))))
+      (engine_clause
+        (identifier)))
+    (create_table_statement
+      (object_reference
+        (identifier))
+      (table_elements
+        (column_definition
+          (identifier)
+          (type
+            (identifier))))
+      (engine_clause
+        (identifier)))))
+
+================================================================================
+PARALLEL WITH and INSERT
+================================================================================
+
+INSERT INTO daily SELECT * FROM raw WHERE d = today() PARALLEL WITH INSERT INTO weekly SELECT * FROM raw;
+
+---
+
+(source_file
+  (parallel_statement
+    (insert_statement
+      (object_reference
+        (identifier))
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (function_call
+              (identifier)
+              (arguments))))))
+    (insert_statement
+      (object_reference
+        (identifier))
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))))
+
+================================================================================
+DESCRIBE of a query
+================================================================================
+
+DESCRIBE SELECT 1 AS n, 'a' AS s;
+DESC TABLE (SELECT id FROM orders);
+DESCRIBE (SELECT 1 AS a) UNION ALL (SELECT 2 AS a);
+DESCRIBE WITH 5 AS k SELECT k * 2 FORMAT TSV;
+
+---
+
+(source_file
+  (describe_statement
+    (select_statement
+      (select
+        (aliased_expression
+          (number)
+          (identifier))
+        (aliased_expression
+          (string)
+          (identifier)))))
+  (describe_statement
+    (subquery
+      (select
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (describe_statement
+    (select_statement
+      (set_operation
+        (parenthesized_query
+          (select
+            (aliased_expression
+              (number)
+              (identifier))))
+        (parenthesized_query
+          (select
+            (aliased_expression
+              (number)
+              (identifier)))))))
+  (describe_statement
+    (select_statement
+      (select
+        (with_clause
+          (aliased_expression
+            (number)
+            (identifier)))
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))
+        (format_clause
+          (identifier))))))

@@ -1929,3 +1929,44 @@ SELECT from, where, limit FROM t AS where WHERE group = 1 ORDER BY order;
         (order_by_item
           (column_reference
             (identifier)))))))
+
+================================================================================
+An alias that is comment
+================================================================================
+
+SELECT note comment, id FROM tickets comment WHERE comment.id > 10;
+SELECT description AS comment FROM items;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (aliased_expression
+        (column_reference
+          (identifier))
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))
+          (identifier)))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (operator)
+          (number)))))
+  (select_statement
+    (select
+      (aliased_expression
+        (column_reference
+          (identifier))
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))

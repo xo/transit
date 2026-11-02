@@ -312,8 +312,9 @@ such as `$doc$text$doc$`, the numbers in each form with `0x`, `0b`, `inf`
 and `nan`, the query parameters such as `{id:UInt32}`, and the comments
 with `--`, `//`, `#` and `/* */`, which nest. It covers the expressions
 with the precedence of ClickHouse, with the ternary operator `?:`, the
-lambdas, `::` and `CAST`, the arrays, the tuples and the maps, the
-elements of a tuple such as `t.1`, the paths of a JSON column, an alias
+lambdas, `::` and `CAST`, `AT TIME ZONE` and `AT LOCAL`, the arrays, the
+tuples and the maps, the elements of a tuple such as `t.1`, the paths of a
+JSON column, an alias
 with `AS` in any expression, `GLOBAL IN`, the parametric aggregate
 functions such as `quantile(0.9)(x)`, `FILTER`, the window functions,
 `COLUMNS` and the star with `EXCEPT`, `REPLACE` and `APPLY`. It covers the
@@ -340,10 +341,10 @@ command of `SYSTEM`, `SET`, `SET ROLE` and `USE`. It covers `GRANT`,
 `REVOKE`, and `CREATE` and `ALTER` of the users, the roles, the policies,
 the quotas and the settings profiles. It covers `MOVE`, `WATCH`, `BACKUP`,
 `RESTORE`, `EXECUTE AS`, the statements of transactions, the workloads,
-the resources, the handlers, the tokens, and `EXPLAIN` of each statement.
-It does not read `PARALLEL WITH`. The external scanner reads the comments,
-the heredoc strings and the data of `INSERT` after `FORMAT`. The package
-adds about 1.7 MB to a binary.
+the resources, the handlers, the tokens, `EXPLAIN` of each statement, and
+`PARALLEL WITH`. The external scanner reads the comments, the heredoc
+strings and the data of `INSERT` after `FORMAT`. The package adds about
+1.9 MB to a binary.
 
 The package `github.com/xo/transit/grammars/postgres/postgres` holds the
 grammar `postgres`, which xo writes from the reference manual of

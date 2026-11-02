@@ -445,8 +445,7 @@ Each one follows these rules, in addition to the rest of this document:
    form that the measurements found. `COMMENT` after the query of `CREATE`
    costs 8 states, because the states after the query merge with the
    states of a query alone. So `COMMENT` after an expression of any query
-   is the keyword, and an alias with no `AS` cannot be `comment`. A token
-   for `COMMENT` and its string cost about 910 states. The settings before
+   is the keyword. The settings before
    the query of `INSERT` take a literal or a name as their values, as the
    settings of `EXPLAIN` do. They cost 13 states. With any expression as a
    value, they cost about 1,050 states. `ASC` and `DESC` in the
@@ -480,10 +479,26 @@ Each one follows these rules, in addition to the rest of this document:
    `keyword`. One token in place of 90 keywords saves 88 symbols and about
    60 KB of the tables. `EXPLAIN` takes each statement but `OPTIMIZE`,
    because `optimize` names a setting of `EXPLAIN`.
-   The grammar does not read `PARALLEL WITH` between two statements. With
-   the keyword after each statement, 37 more states took the large form,
-   and the tables grew by about 60 KB. It does not read
-   `AT TIME ZONE` either, which cost 112 states, 40 of them large.
+   The ClickHouse grammar reads the forms of D133, each in the cheapest
+   form that the measurements found. `PARALLEL WITH` between two
+   statements costs 8 states, but 46 more states take the large form, and
+   the tables grow by about 65 KB. One token for `PARALLEL WITH` cost 734
+   more states, because the token and an identifier can match the same
+   text. `AT TIME ZONE` and `AT LOCAL` cost 140 states, 49 of them large,
+   and about 87 KB, because `AT` can come after each expression. Tokens
+   for them cost 100 more large states. An alias with no `AS` can be
+   `comment`, because the alias takes the keyword `COMMENT` too. After the
+   query of `CREATE`, the parser tries the alias and the comment of the
+   table at run time, and the string after `COMMENT` tells them apart. So
+   a table, a table function, a subquery in `FROM` and `ARRAY JOIN` do
+   not take their alias by precedence, but by a conflict that the parser
+   solves at run time. This costs 70 states, 3 of them large. A token for
+   `COMMENT` and its string cost about 900 states. `DESCRIBE` takes a
+   query with no parentheses, and a set operation, with no clauses of
+   `DESCRIBE` after it. A clause after the query, such as `FORMAT`,
+   belongs to the query. This costs 6 states. With the clauses of
+   `DESCRIBE` after any query, more than 400 more states took the large
+   form.
 
 A change to such a grammar is a change to transit. It follows "Before you
 stage" in `AGENTS.md`, and its golden files are made again.
