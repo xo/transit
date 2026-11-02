@@ -149,4 +149,5 @@ An open question is not a decision. It goes at the end of
 | [D128](D128-the-usql-grammar-can-keep-an-anonymous-block-in-one-statement.md) | The usql grammar can keep an anonymous block in one statement | Decided, amends D112, amended by D131 |
 | [D129](D129-the-size-choices-of-the-sqlite-and-duckdb-grammars.md) | The size choices of the SQLite and DuckDB grammars | Decided |
 | [D130](D130-begin-end-blocks-open-at-execute-block-and-do-begin.md) | BeginEndBlocks opens a block at EXECUTE BLOCK and DO BEGIN | Decided, amends D112 |
-| [D131](D131-the-choices-of-the-clickhouse-grammar-and-of-anonymous-blocks.md) | The choices of the ClickHouse grammar and of anonymous blocks | Decided, amends D127 and D128 |
+| [D131](D131-the-choices-of-the-clickhouse-grammar-and-of-anonymous-blocks.md) | The choices of the ClickHouse grammar and of anonymous blocks | Decided, amends D127 and D128, amended by D132 |
+| [D132](D132-the-clickhouse-grammar-reads-the-costly-forms-of-part-2.md) | The ClickHouse grammar reads the costly forms of part 2 | Decided, amends D131 |

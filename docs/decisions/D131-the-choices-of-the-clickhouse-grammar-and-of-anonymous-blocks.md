@@ -1,6 +1,6 @@
 # D131. The choices of the ClickHouse grammar and of anonymous blocks
 
-Status: Decided, amends D127 and D128.
+Status: Decided, amends D127 and D128, amended by D132.
 
 The first part of the ClickHouse grammar of D127 left three choices open.
 The documentation of ClickHouse, in the repository `clickhouse-docs`, has
