@@ -1,7 +1,7 @@
 package usql
 
 // This file is a port of src/scanner.c of the usql grammar of transit, in
-// grammars/usql (D101, D102, D108, D112, D128, D130, D131).
+// grammars/usql (D101, D102, D108, D112, D128, D130, D131, D134).
 //
 // The scanner reads every token of the grammar. It finds the end of a
 // statement, the strings, the dollar quotes, the comments and the depth of
@@ -27,10 +27,13 @@ package usql
 // not end the statement. EXECUTE BLOCK of Firebird and DO BEGIN of SAP HANA
 // at the start of a statement open a block too (D130). A ; in the
 // declarations of EXECUTE BLOCK before its BEGIN does not end the
-// statement. With the option Batches, it keeps a batch of CQL in one
-// statement. After BEGIN [UNLOGGED | COUNTER] BATCH at the start of a
-// statement, a ; does not end the statement until APPLY BATCH. The words
-// that it reads are in keywords below.
+// statement. WITH FUNCTION of Trino at the start of a statement opens a
+// block for the body of each routine that it defines (D134). The statement
+// ends at the ; after the query that follows the routines. With the option
+// Batches, it keeps a batch of CQL in one statement. After BEGIN [UNLOGGED
+// | COUNTER] BATCH at the start of a statement, a ; does not end the
+// statement until APPLY BATCH. The words that it reads are in keywords
+// below.
 //
 // With the option AnonymousBlocks, the scanner keeps an anonymous block of
 // PL/SQL in one statement (D128). A statement that starts with BEGIN or
@@ -120,7 +123,7 @@ const maxWordLength = 16
 
 // serializedSize is SERIALIZED_SIZE, the number of bytes that Serialize
 // writes.
-const serializedSize = 11
+const serializedSize = 12
 
 // block is the C enum Block, the part of a statement that the scanner is
 // in, with the option BeginEndBlocks, AnonymousBlocks or Batches.
@@ -154,6 +157,10 @@ const (
 	// blockBatch is inside a batch, from BEGIN ... BATCH to APPLY BATCH. A ;
 	// does not end the statement.
 	blockBatch
+	// blockWith is in a statement that starts with WITH FUNCTION, outside
+	// the body of a routine and before the query. BEGIN opens the body of a
+	// routine, and a ; ends the statement.
+	blockWith
 )
 
 // pending is the C enum Pending, a word whose meaning depends on the next
@@ -183,6 +190,10 @@ const (
 	// pendingDo is after DO at the start of a statement, with the option
 	// BeginEndBlocks, which opens a block when BEGIN comes next.
 	pendingDo
+	// pendingWith is after WITH at the start of a statement, with the option
+	// BeginEndBlocks, which starts the routines of a query when FUNCTION
+	// comes next.
+	pendingWith
 )
 
 // variable is the C enum Variable, what the scanner found after a colon and
@@ -308,12 +319,14 @@ type scanner struct {
 	// block is the block of the statement, pending its pending word, and
 	// level the number of blocks of the body that are open. anonymous is 1
 	// in a statement that starts with BEGIN or DECLARE, with the option
-	// AnonymousBlocks. They stay 0 without the options BeginEndBlocks,
-	// AnonymousBlocks and Batches.
+	// AnonymousBlocks. routines is 1 in a statement that starts with WITH
+	// FUNCTION, with the option BeginEndBlocks. They stay 0 without the
+	// options BeginEndBlocks, AnonymousBlocks and Batches.
 	block     block
 	pending   pending
 	level     uint8
 	anonymous uint8
+	routines  uint8
 	// variable is what variableCheck found for the next token.
 	variable variable
 }
@@ -642,6 +655,7 @@ func (s *scanner) resetBlocks() {
 	s.pending = pendingNone
 	s.level = 0
 	s.anonymous = 0
+	s.routines = 0
 }
 
 // openBlock is open_block. It opens a block of the body: the first BEGIN of
@@ -656,7 +670,8 @@ func (s *scanner) openBlock() {
 }
 
 // closeBlock is close_block. It closes a block of the body. After the last
-// one, the body ends.
+// one, the body ends. After the body of a routine of WITH FUNCTION, another
+// routine or the query comes next.
 func (s *scanner) closeBlock() {
 	if s.block != blockBody {
 		return
@@ -665,14 +680,19 @@ func (s *scanner) closeBlock() {
 		s.level--
 	}
 	if s.level == 0 {
-		s.block = blockNone
+		if s.routines != 0 {
+			s.block = blockWith
+		} else {
+			s.block = blockNone
+		}
 	}
 }
 
 // resolvePending is resolve_pending. It gives the pending word its meaning
 // when the character c, which is not in a word, comes after it: BEGIN does
 // not start a block, but in an anonymous block it does unless c is a ;, END
-// ends one, and AS, EXECUTE and DO do not start a block or declarations.
+// ends one, and AS, EXECUTE, DO and WITH do not start a block or
+// declarations.
 func (s *scanner) resolvePending(c int32) {
 	p := s.pending
 	s.pending = pendingNone
@@ -698,7 +718,8 @@ func (s *scanner) endsStatement(opts Options) bool {
 
 // scanString is scan_string. It notes a string in SQL text. After IS or AS,
 // a string is the body of the stored program, so no declarations follow.
-// After EXECUTE or DO, a string is not BLOCK or BEGIN, so no block follows.
+// After EXECUTE, DO or WITH, a string is not BLOCK, BEGIN or FUNCTION, so
+// no block follows.
 func (s *scanner) scanString(opts Options) {
 	if !opts.BeginEndBlocks {
 		return
@@ -707,7 +728,7 @@ func (s *scanner) scanString(opts Options) {
 	case pendingAs:
 		s.pending = pendingNone
 		s.block = blockRoutine
-	case pendingExecute, pendingDo:
+	case pendingExecute, pendingDo, pendingWith:
 		s.pending = pendingNone
 	}
 }
@@ -783,6 +804,12 @@ func (s *scanner) scanKeyword(kw keyword, opts Options) {
 			s.openBlock()
 			return
 		}
+	case pendingWith:
+		if kw == kwFunction {
+			s.block = blockWith
+			s.routines = 1
+			return
+		}
 	}
 	switch s.block {
 	case blockStart:
@@ -803,6 +830,9 @@ func (s *scanner) scanKeyword(kw keyword, opts Options) {
 		case kw == kwDo && opts.BeginEndBlocks:
 			s.block = blockNone
 			s.pending = pendingDo
+		case kw == kwWith && opts.BeginEndBlocks:
+			s.block = blockNone
+			s.pending = pendingWith
 		default:
 			s.block = blockNone
 		}
@@ -865,6 +895,13 @@ func (s *scanner) scanKeyword(kw keyword, opts Options) {
 	case blockBatch:
 		if kw == kwApply {
 			s.pending = pendingApply
+		}
+	case blockWith:
+		if kw == kwBegin {
+			s.pending = pendingBegin
+		} else if (kw == kwSelect || kw == kwValues) && s.depth == 0 {
+			// the query after the routines, where BEGIN can name a column
+			s.block = blockNone
 		}
 	}
 }
@@ -1380,7 +1417,8 @@ func (s *scanner) scanSQL(lexer *abi.Lexer, validSymbols []bool, opts Options) b
 func newScanner() *scanner { return &scanner{options: defaultOptions} }
 
 // Serialize writes the depth in its first 4 bytes, in little-endian order,
-// then base, command, block, pending, level, variable and anonymous.
+// then base, command, block, pending, level, variable, anonymous and
+// routines.
 //
 // Serialize is tree_sitter_usql_external_scanner_serialize.
 func (s *scanner) Serialize(buffer []byte) int {
@@ -1392,6 +1430,7 @@ func (s *scanner) Serialize(buffer []byte) int {
 	buffer[8] = s.level
 	buffer[9] = byte(s.variable)
 	buffer[10] = s.anonymous
+	buffer[11] = s.routines
 	return serializedSize
 }
 
@@ -1414,6 +1453,7 @@ func (s *scanner) Deserialize(buffer []byte) {
 		s.level = buffer[8]
 		s.variable = variable(buffer[9])
 		s.anonymous = buffer[10]
+		s.routines = buffer[11]
 	}
 }
 

@@ -35,7 +35,11 @@ type Options struct {
 	// DO BEGIN of SAP HANA at the start of a statement open a block too
 	// (D130). A ; in the declarations of EXECUTE BLOCK before its BEGIN
 	// does not end the statement. The statement ends at the ; after the
-	// END of the block. It is not a flag of dbmeta.
+	// END of the block. WITH FUNCTION of Trino at the start of a statement
+	// opens a block for the body of each routine that it defines (D134).
+	// A ; in such a body does not end the statement, and the statement
+	// ends at the ; after the query that follows the routines. It is not a
+	// flag of dbmeta.
 	BeginEndBlocks bool
 	// AnonymousBlocks keeps an anonymous block of PL/SQL in one statement
 	// (D128). A statement that starts with BEGIN or DECLARE is a block. The

@@ -33,3 +33,14 @@ end;
   (statement)
   (statement))
 
+================================================================================
+Standard: WITH FUNCTION without BeginEndBlocks
+================================================================================
+
+with function f() returns int begin return 1; end select f();
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement))

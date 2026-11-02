@@ -850,7 +850,10 @@ on, a statement that starts with `CREATE ... PROCEDURE`, `FUNCTION`,
 body does not end the statement. `EXECUTE BLOCK` of Firebird and
 `DO BEGIN` of SAP HANA at the start of a statement open a block too (D130).
 A `;` in the declarations of `EXECUTE BLOCK` before its `BEGIN` does not
-end the statement. `docs/USQL.md` says which words the scanner reads.
+end the statement. `WITH FUNCTION` of Trino at the start of a statement
+opens a block for the body of each routine that it defines (D134). The
+statement ends at the `;` after the query that follows the routines.
+`docs/USQL.md` says which words the scanner reads.
 
 `AnonymousBlocks` is the option of D128, and it is off by default. With it
 on, a statement that starts with `BEGIN` or `DECLARE` is an anonymous block

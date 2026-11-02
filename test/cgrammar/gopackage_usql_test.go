@@ -18,12 +18,12 @@ func init() {
 }
 
 // usqlOptionSets are the options of the families of dialects of D101, which
-// had a grammar each before D108, sets with BeginEndBlocks (D112), sets
-// with AnonymousBlocks (D128), and sets with Batches. The test builds the C
+// had a grammar each before D108, sets with BeginEndBlocks (D112), sets with
+// AnonymousBlocks (D128), and sets with Batches. The test builds the C
 // scanner once for each of them (D108). The options of SQL Server, Oracle,
-// Firebird and SAP HANA with BeginEndBlocks are those of standard_blocks, and
-// postgres with BeginEndBlocks reaches the branches of dollar quotes. The
-// options of Oracle are those of standard_anonymous, and
+// Firebird, SAP HANA and Trino with BeginEndBlocks are those of
+// standard_blocks, and postgres with BeginEndBlocks reaches the branches of
+// dollar quotes. The options of Oracle are those of standard_anonymous, and
 // mysql_anonymous_batches reaches the options together.
 var usqlOptionSets = []struct {
 	name string
@@ -319,6 +319,21 @@ var usqlScannerInputs = []string{
 	"DO BEGIN x; \\g\nselect 1; y",
 	"EXECUTE BLOCK AS BEGIN x; END\n/\ny;",
 	"DO BEGIN " + "BEGIN WORK; x; END; y",
+	// WITH FUNCTION (D134)
+	"WITH FUNCTION f() RETURNS int BEGIN DECLARE a int; RETURN a; END SELECT f(); y",
+	"with function f() returns int return 1 select f(); y",
+	"WITH /* a */ Function f() BEGIN x; END, FUNCTION g() BEGIN IF x THEN y; END IF; END SELECT 1; z",
+	"WITH FUNCTION f() BEGIN x; END SELECT begin FROM t; y",
+	"WITH FUNCTION f() RETURNS int RETURN (SELECT 1) , FUNCTION g() BEGIN x; END SELECT 1; y",
+	"WITH FUNCTION f() BEGIN CASE x WHEN 1 THEN y; END CASE; END VALUES 1; z",
+	"WITH q AS (SELECT 1) SELECT begin FROM q; y",
+	"WITH 'FUNCTION' BEGIN x; END; y",
+	"WITH (FUNCTION) BEGIN x; END; y",
+	"WITH FUNCTION f() BEGIN WORK; x; y",
+	"WITH FUNCTION f() BEGIN x; \\g\nselect 1; y",
+	"x; WITH FUNCTION f() BEGIN y; END SELECT 1; z",
+	"SELECT 1 WITH FUNCTION f() BEGIN x; END; y",
+	"WITH FUNCTION f() BEGIN x; END\n/\ny;",
 }
 
 // TestUsqlScannersMatchC compares the Go scanner of the usql grammar with

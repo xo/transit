@@ -539,10 +539,6 @@ documentation of Trino. The grammar leaves out these forms of a query:
 - The types `ARRAY<T>` and `MAP<K, V>` of earlier releases. The page of
   the types does not show them. One example of the SQL routines shows
   `map<varchar, bigint>`.
-- A body of `BEGIN ... END` in `WITH FUNCTION` in the text of usql. The
-  option `BeginEndBlocks` of the usql grammar opens a block only at
-  `CREATE`, `EXECUTE BLOCK` and `DO BEGIN` (D112, D130), so usql splits
-  such a query at each semicolon of the body.
 
 The grammar leaves out these forms of the other statements:
 

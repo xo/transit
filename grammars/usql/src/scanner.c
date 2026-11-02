@@ -1,5 +1,5 @@
 // The external scanner of the usql grammar (D101, D102, D108, D112, D128,
-// D130, D131).
+// D130, D131, D134).
 //
 // The scanner reads every token of the grammar. It finds the end of a
 // statement, the strings, the dollar quotes, the comments and the depth of
@@ -24,11 +24,13 @@
 // TRIGGER or EVENT, it counts BEGIN and END, and a ; inside the body does
 // not end the statement. EXECUTE BLOCK of Firebird and DO BEGIN of SAP HANA
 // at the start of a statement open a block too (D130). A ; in the
-// declarations of EXECUTE BLOCK before its BEGIN does not end the
-// statement. With USQL_BATCHES, it keeps a batch of CQL in one statement.
-// After BEGIN [UNLOGGED | COUNTER] BATCH at the start of a statement, a ;
-// does not end the statement until APPLY BATCH. The words that it reads are
-// in keywords below.
+// declarations of EXECUTE BLOCK before its BEGIN does not end the statement.
+// WITH FUNCTION of Trino at the start of a statement opens a block for the
+// body of each routine that it defines (D134). The statement ends at the ;
+// after the query that follows the routines. With USQL_BATCHES, it keeps a
+// batch of CQL in one statement. After BEGIN [UNLOGGED | COUNTER] BATCH at
+// the start of a statement, a ; does not end the statement until APPLY
+// BATCH. The words that it reads are in keywords below.
 //
 // With USQL_ANONYMOUS_BLOCKS, the scanner keeps an anonymous block of
 // PL/SQL in one statement (D128). A statement that starts with BEGIN or
@@ -126,7 +128,7 @@ enum Context {
 
 // The number of bytes that tree_sitter_usql_external_scanner_serialize
 // writes.
-#define SERIALIZED_SIZE 11
+#define SERIALIZED_SIZE 12
 
 // Block is the part of a statement that the scanner is in, with the option
 // USQL_BEGIN_END_BLOCKS, USQL_ANONYMOUS_BLOCKS or USQL_BATCHES.
@@ -158,6 +160,10 @@ enum Block {
   // BLOCK_BATCH is inside a batch, from BEGIN ... BATCH to APPLY BATCH. A ;
   // does not end the statement.
   BLOCK_BATCH,
+  // BLOCK_WITH is in a statement that starts with WITH FUNCTION, outside
+  // the body of a routine and before the query. BEGIN opens the body of a
+  // routine, and a ; ends the statement.
+  BLOCK_WITH,
 };
 
 // Pending is a word whose meaning depends on the next word.
@@ -184,6 +190,10 @@ enum Pending {
   // PENDING_DO is after DO at the start of a statement, with
   // USQL_BEGIN_END_BLOCKS, which opens a block when BEGIN comes next.
   PENDING_DO,
+  // PENDING_WITH is after WITH at the start of a statement, with
+  // USQL_BEGIN_END_BLOCKS, which starts the routines of a query when
+  // FUNCTION comes next.
+  PENDING_WITH,
 };
 
 // Variable is what the scanner found after a colon and a quote, which
@@ -298,12 +308,14 @@ typedef struct {
   // block is the enum Block of the statement, pending its enum Pending, and
   // level the number of blocks of the body that are open. anonymous is 1 in
   // a statement that starts with BEGIN or DECLARE, with
-  // USQL_ANONYMOUS_BLOCKS. They stay 0 without USQL_BEGIN_END_BLOCKS,
-  // USQL_ANONYMOUS_BLOCKS and USQL_BATCHES.
+  // USQL_ANONYMOUS_BLOCKS. routines is 1 in a statement that starts with
+  // WITH FUNCTION, with USQL_BEGIN_END_BLOCKS. They stay 0 without
+  // USQL_BEGIN_END_BLOCKS, USQL_ANONYMOUS_BLOCKS and USQL_BATCHES.
   uint8_t block;
   uint8_t pending;
   uint8_t level;
   uint8_t anonymous;
+  uint8_t routines;
   // variable is the enum Variable that VARIABLE_CHECK found for the next
   // token.
   uint8_t variable;
@@ -630,6 +642,7 @@ static void reset_blocks(Scanner *s) {
   s->pending = PENDING_NONE;
   s->level = 0;
   s->anonymous = 0;
+  s->routines = 0;
 }
 
 // open_block opens a block of the body: the first BEGIN of the body, a
@@ -644,7 +657,8 @@ static void open_block(Scanner *s) {
 }
 
 // close_block closes a block of the body. After the last one, the body
-// ends.
+// ends. After the body of a routine of WITH FUNCTION, another routine or
+// the query comes next.
 static void close_block(Scanner *s) {
   if (s->block != BLOCK_BODY) {
     return;
@@ -653,14 +667,14 @@ static void close_block(Scanner *s) {
     s->level--;
   }
   if (s->level == 0) {
-    s->block = BLOCK_NONE;
+    s->block = s->routines ? BLOCK_WITH : BLOCK_NONE;
   }
 }
 
 // resolve_pending gives the pending word its meaning when the character c,
 // which is not in a word, comes after it: BEGIN does not start a block, but
 // in an anonymous block it does unless c is a ;, END ends one, and AS,
-// EXECUTE and DO do not start a block or declarations.
+// EXECUTE, DO and WITH do not start a block or declarations.
 static void resolve_pending(Scanner *s, int32_t c) {
   enum Pending pending = (enum Pending)s->pending;
   s->pending = PENDING_NONE;
@@ -683,8 +697,8 @@ static bool ends_statement(Scanner *s, int options) {
 }
 
 // scan_string notes a string in SQL text. After IS or AS, a string is the
-// body of the stored program, so no declarations follow. After EXECUTE or
-// DO, a string is not BLOCK or BEGIN, so no block follows.
+// body of the stored program, so no declarations follow. After EXECUTE, DO
+// or WITH, a string is not BLOCK, BEGIN or FUNCTION, so no block follows.
 static void scan_string(Scanner *s, int options) {
   if (!(options & USQL_BEGIN_END_BLOCKS)) {
     return;
@@ -692,7 +706,8 @@ static void scan_string(Scanner *s, int options) {
   if (s->pending == PENDING_AS) {
     s->pending = PENDING_NONE;
     s->block = BLOCK_ROUTINE;
-  } else if (s->pending == PENDING_EXECUTE || s->pending == PENDING_DO) {
+  } else if (s->pending == PENDING_EXECUTE || s->pending == PENDING_DO ||
+             s->pending == PENDING_WITH) {
     s->pending = PENDING_NONE;
   }
 }
@@ -786,6 +801,13 @@ static void scan_keyword(Scanner *s, enum Keyword kw, int options) {
       return;
     }
     break;
+  case PENDING_WITH:
+    if (kw == KW_FUNCTION) {
+      s->block = BLOCK_WITH;
+      s->routines = 1;
+      return;
+    }
+    break;
   }
   switch ((enum Block)s->block) {
   case BLOCK_START:
@@ -805,6 +827,9 @@ static void scan_keyword(Scanner *s, enum Keyword kw, int options) {
     } else if (kw == KW_DO && (options & USQL_BEGIN_END_BLOCKS)) {
       s->block = BLOCK_NONE;
       s->pending = PENDING_DO;
+    } else if (kw == KW_WITH && (options & USQL_BEGIN_END_BLOCKS)) {
+      s->block = BLOCK_NONE;
+      s->pending = PENDING_WITH;
     } else {
       s->block = BLOCK_NONE;
     }
@@ -888,6 +913,14 @@ static void scan_keyword(Scanner *s, enum Keyword kw, int options) {
   case BLOCK_BATCH:
     if (kw == KW_APPLY) {
       s->pending = PENDING_APPLY;
+    }
+    break;
+  case BLOCK_WITH:
+    if (kw == KW_BEGIN) {
+      s->pending = PENDING_BEGIN;
+    } else if ((kw == KW_SELECT || kw == KW_VALUES) && s->depth == 0) {
+      // the query after the routines, where BEGIN can name a column
+      s->block = BLOCK_NONE;
     }
     break;
   }
@@ -1386,8 +1419,8 @@ void *tree_sitter_usql_external_scanner_create(void) { return ts_calloc(1, sizeo
 void tree_sitter_usql_external_scanner_destroy(void *payload) { ts_free(payload); }
 
 // tree_sitter_usql_external_scanner_serialize writes the depth in its first
-// 4 bytes, then base, command, block, pending, level, variable and
-// anonymous.
+// 4 bytes, then base, command, block, pending, level, variable, anonymous
+// and routines.
 unsigned tree_sitter_usql_external_scanner_serialize(void *payload, char *buffer) {
   Scanner *s = (Scanner *)payload;
   memcpy(buffer, &s->depth, sizeof(s->depth));
@@ -1398,6 +1431,7 @@ unsigned tree_sitter_usql_external_scanner_serialize(void *payload, char *buffer
   buffer[8] = (char)s->level;
   buffer[9] = (char)s->variable;
   buffer[10] = (char)s->anonymous;
+  buffer[11] = (char)s->routines;
   return SERIALIZED_SIZE;
 }
 
@@ -1420,6 +1454,7 @@ void tree_sitter_usql_external_scanner_deserialize(void *payload, const char *bu
     s->level = (uint8_t)buffer[8];
     s->variable = (uint8_t)buffer[9];
     s->anonymous = (uint8_t)buffer[10];
+    s->routines = (uint8_t)buffer[11];
   }
 }
 

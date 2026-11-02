@@ -8,12 +8,12 @@ import (
 	"github.com/xo/transit/internal/grammartest"
 )
 
-// optionSets are the options of the families of dialects of D101, which
-// had a grammar each before D108, the options of MySQL, SQL Server, Oracle,
-// Firebird and SAP HANA with BeginEndBlocks (D112, D130), the options of
-// Oracle with AnonymousBlocks (D128), and the options of CQL with Batches.
-// The test module compares the Go scanner with the C scanner on each of
-// them.
+// optionSets are the options of the families of dialects of D101, which had
+// a grammar each before D108, the options of MySQL, SQL Server, Oracle,
+// Firebird, SAP HANA and Trino with BeginEndBlocks (D112, D130, D134), the
+// options of Oracle with AnonymousBlocks (D128), and the options of CQL with
+// Batches. The test module compares the Go scanner with the C scanner on
+// each of them.
 var optionSets = map[string]Options{
 	"postgres":         {DollarQuotes: true, BlockComments: true},
 	"mysql":            {BlockComments: true, HashComments: true, Backticks: true},
@@ -27,6 +27,7 @@ var optionSets = map[string]Options{
 	"oracle_anonymous": {BlockComments: true, BeginEndBlocks: true, AnonymousBlocks: true},
 	"firebird_blocks":  {BlockComments: true, BeginEndBlocks: true},
 	"hana_blocks":      {BlockComments: true, BeginEndBlocks: true},
+	"trino_blocks":     {BlockComments: true, BeginEndBlocks: true},
 	"cql_batches":      {DollarQuotes: true, BlockComments: true, SlashComments: true, Batches: true},
 }
 

@@ -53,8 +53,8 @@ change transit from usql.
    the options of PostgreSQL. A comment that starts with `--` is a comment
    with every set of options.
 10. `usql.Options` has three more options. `BeginEndBlocks` keeps the
-    `BEGIN ... END` body of a stored program, of `EXECUTE BLOCK` and of
-    `DO BEGIN` in one statement (D112, D130).
+    `BEGIN ... END` body of a stored program, of `EXECUTE BLOCK`, of
+    `DO BEGIN` and of `WITH FUNCTION` in one statement (D112, D130, D134).
     `AnonymousBlocks` keeps an anonymous block of PL/SQL, which starts with
     `BEGIN` or `DECLARE`, in one statement (D128). `Batches` keeps a batch
     of CQL, from `BEGIN BATCH` to `APPLY BATCH`, in one statement. They are
@@ -208,8 +208,10 @@ does not read HiveQL, which Athena uses for its DDL, or the syntax that
 only Presto has. A SQL routine of Trino has a body of `BEGIN ... END`, so
 usql turns on `BeginEndBlocks` for `trino`. Presto and Athena refuse
 `BEGIN ... END`, so usql does not turn it on for them. With the option,
-the usql grammar opens a block at `CREATE`, so a `CREATE FUNCTION` with
-a body of `BEGIN ... END` stays one statement. A statement of HiveQL, such
+the usql grammar opens a block at `CREATE` and at `WITH FUNCTION`, so a
+`CREATE FUNCTION` with a body of `BEGIN ... END`, and a query that
+defines such a routine with `WITH FUNCTION`, stay one statement (D134). A
+statement of HiveQL, such
 as `CREATE EXTERNAL TABLE` of Athena, gets an ERROR node.
 SQL++, InfluxQL, KSQL, PartiQL, ES|QL and
 PPL have no grammar at all. transit writes the missing grammars, and the
@@ -253,33 +255,41 @@ need it, and it is off by default. The scanner reads the words of the SQL
 text, outside strings, quoted identifiers and comments, in any case. These
 rules hold:
 
-1. The statement must start with `CREATE`, `EXECUTE BLOCK` or `DO BEGIN`.
-   White space and comments can come before it. After `CREATE`, the words
-   `OR`, `REPLACE`, `ALTER`, `DEFINER = <user>`, `EDITIONABLE`,
-   `NONEDITIONABLE`, `AGGREGATE`, `CONSTRAINT`, `TEMP` or `TEMPORARY` can
-   come before `PROCEDURE`, `PROC`, `FUNCTION`, `TRIGGER` or `EVENT`.
+1. The statement must start with `CREATE`, `EXECUTE BLOCK`, `DO BEGIN` or
+   `WITH FUNCTION`. White space and comments can come before it. After
+   `CREATE`, the words `OR`, `REPLACE`, `ALTER`, `DEFINER = <user>`,
+   `EDITIONABLE`, `NONEDITIONABLE`, `AGGREGATE`, `CONSTRAINT`, `TEMP` or
+   `TEMPORARY` can come before `PROCEDURE`, `PROC`, `FUNCTION`, `TRIGGER` or
+   `EVENT`.
 2. The first `BEGIN` after that starts the body. A `;` before it ends the
    statement, so a body that is one statement with no `BEGIN` ends at its
    `;`, as it did before. After `EXECUTE BLOCK`, a `;` before the `BEGIN`
    does not end the statement, so the `RETURNS (...)` list and the
    `DECLARE` lines of Firebird stay in it (D130). The `BEGIN` of
    `DO BEGIN` of SAP HANA is the start of the body.
-3. In the body, `BEGIN` and `CASE` open a block, and `END` closes one.
+3. After `WITH FUNCTION` of Trino, each `BEGIN` outside a body starts the
+   body of a routine, so each routine of the list keeps its body (D134).
+   A routine with `RETURN` and no `BEGIN` holds no `;`. A `SELECT` or
+   `VALUES` outside parentheses and outside a body starts the query, and
+   after it a `BEGIN` does not start a body, because it can name a
+   column. The statement ends at the first `;` outside a body. A `WITH`
+   that `FUNCTION` does not follow changes nothing.
+4. In the body, `BEGIN` and `CASE` open a block, and `END` closes one.
    `END IF`, `END LOOP`, `END WHILE` and `END REPEAT` do not close a block.
    `END CASE`, `END TRY`, `END CATCH` and `END <label>` close one. The
    statement ends at the first `;` after the `END` of the body.
-4. A `BEGIN` starts a transaction, and not a block, when `;`, `WORK`,
+5. A `BEGIN` starts a transaction, and not a block, when `;`, `WORK`,
    `TRANSACTION`, `TRAN` or `DISTRIBUTED` comes next.
-5. After `PROCEDURE` or `FUNCTION`, an `IS` or `AS` outside parentheses that
+6. After `PROCEDURE` or `FUNCTION`, an `IS` or `AS` outside parentheses that
    a declaration follows starts the declarations of PL/SQL, and a `;` does
    not end the statement until the body ends. A `DECLARE` before the body
    does the same, for an Oracle trigger. `IS` or `AS` does not start
    declarations when a string, `BEGIN`, `LANGUAGE`, `EXTERNAL`, or a word
    that starts a statement such as `SELECT`, `SET`, `RETURN` or `IF` comes
    next.
-6. A word right after `.`, `@`, `$`, `#` or `[` is a name, such as
+7. A word right after `.`, `@`, `$`, `#` or `[` is a name, such as
    `NEW.end`, `@end` or `[end]`, and not a keyword.
-7. A meta command ends the statement, as it ends any statement.
+8. A meta command ends the statement, as it ends any statement.
 
 The option does not cover these texts:
 
@@ -310,7 +320,7 @@ only. These rules hold:
 
 1. The statement must start with `BEGIN` or `DECLARE`, in any case. White
    space and comments can come before it.
-2. The scanner counts `BEGIN` and `END` with rules 3 and 6 of
+2. The scanner counts `BEGIN` and `END` with rules 4 and 7 of
    `BeginEndBlocks` above. In the block, a `BEGIN` opens a block, but not
    when `;`, `WORK` or `TRANSACTION` comes next (D131). A `BEGIN` that
    `TRAN` or `DISTRIBUTED` follows opens a block. After `DECLARE`, a `;`
