@@ -1,6 +1,6 @@
 # D132. The ClickHouse grammar reads the costly forms of part 2
 
-Status: Decided, amends D131.
+Status: Decided, amends D131, amended by D133.
 
 The second part of the ClickHouse grammar of D127 left out four forms
 because of their cost in parse states. With no reserved words (D131 point
