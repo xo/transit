@@ -430,23 +430,60 @@ Each one follows these rules, in addition to the rest of this document:
    The query of `CREATE TABLE ... AS SELECT` comes after the other
    clauses of `CREATE`. In the choice of the clauses, it cost about 940
    states, because each state of the query then took each word that
-   starts a clause. `COMMENT` after the query cost about 690 more states
-   for the same reason, so the grammar does not read it. A clause of
-   `CREATE` that ends with an expression, such as `ORDER BY`, has a
-   precedence above the alias with `AS`, so that `AS` after it starts the
-   query. In the same way, `SETTINGS` before a query in `INSERT` cost
-   about 1,050 states, and `ASC` and `DESC` in `CREATE INDEX` cost about
-   330 states, so the grammar does not read them. An interval of
-   `REFRESH` with more than one unit cost about 1,000 states, and `WITH
-   REFRESH` of a live view cost about 610 states. `SETTINGS` and the
-   opening parenthesis of the settings of a column as one token cost
-   about 620 states, because `SETTINGS` was then not a keyword of the word
-   rule. So `SETTINGS` after a column of `ALTER TABLE` is a conflict that
-   the parser solves at run time: the settings of the column, as in
-   `SETTINGS (max_compress_block_size = 1024)`, or the settings of the
-   statement. The data of `INSERT` after `FORMAT` is a token of the
-   external scanner that runs to the end of the line, as the client of
-   ClickHouse reads it, so such an `INSERT` needs no semicolon after it.
+   starts a clause. A clause of `CREATE` that ends with an expression,
+   such as `ORDER BY`, has a precedence above the alias with `AS`, so that
+   `AS` after it starts the query. `SETTINGS` and the opening parenthesis
+   of the settings of a column as one token cost about 620 states, because
+   `SETTINGS` was then not a keyword of the word rule. So `SETTINGS` after
+   a column of `ALTER TABLE` is a conflict that the parser solves at run
+   time: the settings of the column, as in `SETTINGS
+   (max_compress_block_size = 1024)`, or the settings of the statement.
+   The data of `INSERT` after `FORMAT` is a token of the external scanner
+   that runs to the end of the line, as the client of ClickHouse reads it,
+   so such an `INSERT` needs no semicolon after it.
+   The ClickHouse grammar reads the forms of D132, each in the cheapest
+   form that the measurements found. `COMMENT` after the query of `CREATE`
+   costs 8 states, because the states after the query merge with the
+   states of a query alone. So `COMMENT` after an expression of any query
+   is the keyword, and an alias with no `AS` cannot be `comment`. A token
+   for `COMMENT` and its string cost about 910 states. The settings before
+   the query of `INSERT` take a literal or a name as their values, as the
+   settings of `EXPLAIN` do. They cost 13 states. With any expression as a
+   value, they cost about 1,050 states. `ASC` and `DESC` in the
+   parentheses of `CREATE INDEX` cost about 310 states. The states after an
+   expression in the parentheses are copied for them.
+   An alias with no `AS` takes the reserved set `implicit_alias`, the
+   words that ClickHouse does not take as such an alias and `SELECT`
+   (D132). The set costs 116 states. `SELECT 1 SELECT 2` then gives two
+   statements, with a missing semicolon between them.
+   A number where an identifier cannot come costs states in all the
+   grammar. A number and an identifier can match the same text, such as
+   `1e5`. The upstream tool then does not merge states that it merges
+   otherwise. An interval of `REFRESH` can have more than one unit, as in
+   `EVERY 1 HOUR 30 MINUTE`. With a number as the value of the second
+   unit, it cost about 920 states. With a number or a name, it costs 4
+   states.
+   For the same reason, the seconds of `WITH REFRESH` of a live view take
+   a number or a name. The value of a setting of a profile does too, and
+   that saves about 570 states.
+   Many statements of the third part, such as `DROP`, `SHOW`, `KILL` and
+   `BACKUP`, end with the clauses of one hidden rule, `_tail`, in any
+   order. The states after an expression are copied for each set of
+   tokens that can come after it. One set for all these statements saves
+   about 350 states. The options of the
+   entities of access control, such as `CREATE USER`, are a choice of
+   their own. In `_tail`, each state after an expression had more than 64
+   columns, and 236 more states took the large form. The commands of
+   `SYSTEM` and the forms of `SHOW` are many, so each statement takes its
+   words in any order. The words that no other statement uses, such as
+   `FLUSH` and `PROCESSLIST`, are one token of the word rule, the node
+   `keyword`. One token in place of 90 keywords saves 88 symbols and about
+   60 KB of the tables. `EXPLAIN` takes each statement but `OPTIMIZE`,
+   because `optimize` names a setting of `EXPLAIN`.
+   The grammar does not read `PARALLEL WITH` between two statements. With
+   the keyword after each statement, 37 more states took the large form,
+   and the tables grew by about 60 KB. It does not read
+   `AT TIME ZONE` either, which cost 112 states, 40 of them large.
 
 A change to such a grammar is a change to transit. It follows "Before you
 stage" in `AGENTS.md`, and its golden files are made again.

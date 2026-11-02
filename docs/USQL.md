@@ -192,9 +192,8 @@ usql gives `clickhouse` the generic grammar today, which does not read the
 syntax of ClickHouse, such as `PREWHERE`, `ARRAY JOIN`, `FINAL`, `SAMPLE`,
 the lambdas and the query parameters `{name:Type}`. So xo writes the
 ClickHouse grammar from the SQL reference of ClickHouse in
-`grammars/clickhouse` (D127). It reads the queries, `EXPLAIN`, `INSERT`,
-`DELETE`, `UPDATE`, `TRUNCATE`, `CREATE` and `ALTER TABLE` today, and the
-other statements come later. usql will give it to `clickhouse`.
+`grammars/clickhouse` (D127). It reads each statement of the
+reference, but `PARALLEL WITH`. usql will give it to `clickhouse`.
 ClickHouse quotes a name with backquotes. A comment starts with `--`,
 `//`, `#` and a space, or `#!`, or it is `/* */`, and the grammar reads
 each of them.

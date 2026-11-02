@@ -1775,47 +1775,54 @@ EXPLAIN SELECT 1; EXPLAIN AST SELECT x FROM t; EXPLAIN SYNTAX oneline = 1 SELECT
 
 (source_file
   (explain_statement
-    (select
-      (number)))
+    (select_statement
+      (select
+        (number))))
   (explain_statement
-    (select
-      (column_reference
-        (identifier))
-      (from_clause
-        (table_reference
-          (object_reference
-            (identifier))))))
-  (explain_statement
-    (setting
-      (identifier)
-      (number))
-    (select
-      (number)))
+    (select_statement
+      (select
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
   (explain_statement
     (setting
       (identifier)
       (number))
-    (setting
-      (identifier)
-      (number))
-    (select
-      (star_expression)
-      (from_clause
-        (table_reference
-          (object_reference
-            (identifier))))))
-  (explain_statement
-    (select
-      (number)))
+    (select_statement
+      (select
+        (number))))
   (explain_statement
     (setting
       (identifier)
       (number))
-    (select
-      (number)))
+    (setting
+      (identifier)
+      (number))
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
   (explain_statement
-    (select
-      (number)))
+    (select_statement
+      (select
+        (number))))
+  (explain_statement
+    (setting
+      (identifier)
+      (number))
+    (select_statement
+      (select
+        (number))))
+  (explain_statement
+    (select_statement
+      (select
+        (number))))
   (explain_statement))
 
 ================================================================================
@@ -1838,20 +1845,21 @@ SELECT explain FROM (EXPLAIN indexes = 1 SELECT count() FROM t WHERE a = 1) WHER
             (setting
               (identifier)
               (number))
-            (select
-              (function_call
-                (identifier)
-                (arguments))
-              (from_clause
-                (table_reference
-                  (object_reference
-                    (identifier))))
-              (where_clause
-                (binary_expression
-                  (column_reference
-                    (identifier))
-                  (operator)
-                  (number)))))
+            (select_statement
+              (select
+                (function_call
+                  (identifier)
+                  (arguments))
+                (from_clause
+                  (table_reference
+                    (object_reference
+                      (identifier))))
+                (where_clause
+                  (binary_expression
+                    (column_reference
+                      (identifier))
+                    (operator)
+                    (number))))))
           (subquery)))
       (where_clause
         (like_expression

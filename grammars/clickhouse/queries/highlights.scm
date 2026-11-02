@@ -24,6 +24,7 @@
 
 [
   "ADD"
+  "ADMIN"
   "AFTER"
   "ALIAS"
   "ALL"
@@ -42,8 +43,12 @@
   "ASOF"
   "ASSUME"
   "AST"
+  "ASYNC"
   "ATTACH"
+  "AUTHENTICATION"
   "AUTO_INCREMENT"
+  "BACKUP"
+  "BEGIN"
   "BETWEEN"
   "BIDIRECTIONAL"
   "BINARY"
@@ -51,40 +56,51 @@
   "BY"
   "CASE"
   "CAST"
+  "CHANGEABLE_IN_READONLY"
   "CHAR"
   "CHARACTER"
   "CHECK"
+  "CLEANUP"
   "CLEAR"
   "CLONE"
   "CLUSTER"
+  "CN"
   "CODEC"
   "COLLATE"
   "COLLECTION"
   "COLUMN"
   "COLUMNS"
   "COMMENT"
+  "COMMIT"
   "COMPRESSION"
+  "CONST"
   "CONSTRAINT"
   "CREATE"
   "CROSS"
   "CUBE"
   "CURRENT"
   "DATABASE"
+  "DATABASES"
+  "DEDUPLICATE"
   "DEFAULT"
   "DEFINER"
+  "DELAY"
   "DELETE"
   "DELETED"
   "DEPENDS"
   "DESC"
   "DESCENDING"
+  "DESCRIBE"
   "DETACH"
   "DETACHED"
+  "DICTIONARIES"
   "DICTIONARY"
   "DISK"
   "DISTINCT"
   "DIV"
   "DOUBLE"
   "DROP"
+  "DRY"
   "ELSE"
   "EMPTY"
   "END"
@@ -92,8 +108,10 @@
   "EPHEMERAL"
   "ESCAPE"
   "ESTIMATE"
+  "EVENTS"
   "EVERY"
   "EXCEPT"
+  "EXCHANGE"
   "EXECUTE"
   "EXISTS"
   "EXPLAIN"
@@ -105,6 +123,7 @@
   "FIRST"
   "FOLLOWING"
   "FOR"
+  "FORCE"
   "FORGET"
   "FORMAT"
   "FREEZE"
@@ -112,20 +131,29 @@
   "FULL"
   "FUNCTION"
   "GLOBAL"
+  "GRANT"
+  "GRANTEES"
+  "GRANTS"
   "GRANULARITY"
   "GROUP"
   "GROUPING"
   "GROUPS"
+  "HANDLER"
   "HAVING"
   "HIERARCHICAL"
+  "HOST"
+  "HYPOTHETICAL"
   "ID"
+  "IDENTIFIED"
   "IF"
   "IGNORE"
   "ILIKE"
+  "IMPLICIT"
   "IN"
   "INCREMENTAL"
   "INDEX"
   "INFILE"
+  "INHERIT"
   "INJECTIVE"
   "INNER"
   "INSERT"
@@ -134,10 +162,15 @@
   "INTERVAL"
   "INTO"
   "INVOKER"
+  "IP"
+  "IPV4_PREFIX_BITS"
+  "IPV6_PREFIX_BITS"
   "IS"
   "IS_OBJECT_ID"
   "JOIN"
   "KEY"
+  "KEYED"
+  "KILL"
   "LARGE"
   "LAST"
   "LAYOUT"
@@ -147,22 +180,28 @@
   "LIFETIME"
   "LIKE"
   "LIMIT"
+  "LIMITS"
   "LIVE"
   "LOCAL"
   "MASK"
+  "MASKING"
   "MATERIALIZE"
   "MATERIALIZED"
   "MAX"
+  "METHODS"
   "MIN"
   "MOD"
   "MODIFY"
   "MOVE"
+  "MUTATION"
   "NAME"
   "NAMED"
   "NATIONAL"
   "NATURAL"
   "NCHAR"
+  "NEW"
   "NEXT"
+  "NO"
   "NONE"
   "NOT"
   "NULLS"
@@ -170,6 +209,8 @@
   "OFFSET"
   "ON"
   "ONLY"
+  "OPTIMIZE"
+  "OPTION"
   "OR"
   "ORDER"
   "OUTER"
@@ -179,22 +220,35 @@
   "OVERRIDE"
   "PART"
   "PARTITION"
+  "PARTITIONS"
   "PARTS"
   "PASTE"
   "PATCHES"
+  "PERMANENTLY"
+  "PERMISSIVE"
   "PIPELINE"
   "PLACING"
   "PLAN"
+  "POLICY"
   "POPULATE"
   "PRECEDING"
   "PRECISION"
+  "PREFIX"
   "PREWHERE"
   "PRIMARY"
+  "PRIORITY"
+  "PROFILE"
+  "PROFILES"
   "PROJECTION"
+  "PROTOCOL"
   "QUALIFY"
   "QUERY"
+  "QUOTA"
   "RANDOMIZE"
+  "RANDOMIZED"
   "RANGE"
+  "READONLY"
+  "REALM"
   "RECOMPRESS"
   "RECURSIVE"
   "REFRESH"
@@ -202,25 +256,39 @@
   "REMOVE"
   "RENAME"
   "REPLACE"
+  "REPLICATED"
   "RESET"
+  "RESOURCE"
   "RESPECT"
+  "RESTORE"
+  "RESTRICTIVE"
+  "REVOKE"
   "REWRITE"
   "RIGHT"
+  "ROLE"
+  "ROLLBACK"
   "ROLLUP"
   "ROW"
   "ROWS"
+  "RUN"
+  "SALT"
   "SAMPLE"
+  "SAN"
+  "SCHEME"
   "SECURITY"
   "SELECT"
   "SEMI"
+  "SERVER"
   "SET"
   "SETS"
   "SETTING"
   "SETTINGS"
   "SHARED"
+  "SHOW"
   "SIGNED"
   "SIMILAR"
   "SKIP"
+  "SNAPSHOT"
   "SOURCE"
   "SQL"
   "STALENESS"
@@ -230,14 +298,20 @@
   "STRICT"
   "SYNC"
   "SYNTAX"
+  "SYSTEM"
   "TABLE"
   "TABLES"
   "TEMPORARY"
+  "TEST"
   "THEN"
   "TIES"
+  "TIME"
+  "TIMEOUT"
   "TO"
+  "TOKEN"
   "TOP"
   "TOTALS"
+  "TRACKING"
   "TRAILING"
   "TRANSACTION"
   "TREE"
@@ -245,22 +319,32 @@
   "TTL"
   "TYPE"
   "UNBOUNDED"
+  "UNDROP"
   "UNFREEZE"
   "UNION"
   "UNKNOWN"
   "UNSIGNED"
+  "UNTIL"
   "UPDATE"
+  "URL"
+  "USE"
+  "USER"
   "USING"
   "UUID"
+  "VALID"
   "VALUES"
   "VARYING"
   "VIEW"
   "VOLUME"
+  "WATCH"
   "WATERMARK"
   "WHEN"
   "WHERE"
   "WINDOW"
   "WITH"
+  "WORKLOAD"
+  "WRITABLE"
+  "ZONE"
 ] @keyword
 
 (type
@@ -274,6 +358,8 @@
     name: (identifier) @type.builtin))
 
 (interval_unit) @keyword
+
+(keyword) @keyword
 
 (query_parameter
   name: (identifier) @variable.parameter)
@@ -487,6 +573,52 @@
 
 (create_view_statement
   "=" @operator)
+
+(profile_setting
+  "=" @operator)
+
+(quota_limit
+  "=" @operator)
+
+(set_statement
+  "=" @operator)
+
+(privilege
+  (identifier) @keyword)
+
+(resource_operation
+  (identifier) @keyword)
+
+(user_name
+  "@" @punctuation.special)
+
+(profile_setting
+  name: (identifier) @variable.builtin)
+
+(quota_limit
+  name: (identifier) @variable.builtin)
+
+(authentication
+  method: (identifier) @type.builtin)
+
+(use_statement
+  database: (identifier) @module)
+
+(create_workload_statement
+  name: (identifier) @type)
+
+(create_resource_statement
+  name: (identifier) @type)
+
+(create_handler_statement
+  name: (identifier) @type)
+
+(create_projection_statement
+  name: (identifier) @type)
+
+(backup_item
+  alias: (object_reference
+    name: (identifier) @type))
 
 (case_expression
   [

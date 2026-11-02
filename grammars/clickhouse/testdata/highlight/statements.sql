@@ -1,0 +1,64 @@
+DROP TABLE IF EXISTS shop.orders ON CLUSTER main SYNC; OPTIMIZE TABLE orders FINAL DEDUPLICATE;
+-- <- keyword
+--            ^ keyword
+--                   ^ module
+--                        ^ type
+--                                  ^ keyword
+--                                          ^ module
+--                                               ^ keyword
+--                                                     ^ keyword
+--                                                                    ^ type
+--                                                                           ^ keyword
+--                                                                                 ^ keyword
+SHOW TABLES FROM shop LIKE 'o%' LIMIT 5; SHOW CREATE TABLE t; DESCRIBE TABLE t FORMAT Vertical;
+-- <- keyword
+--   ^ keyword
+--               ^ type
+--                    ^ keyword
+--                         ^ string
+--                              ^ keyword
+--                                    ^ number
+--                                            ^ keyword
+--                                                            ^ keyword
+--                                                                                    ^ type.builtin
+SYSTEM STOP MERGES shop.orders; KILL QUERY WHERE query_id = 'q1' SYNC; SET max_threads = 8; USE shop;
+-- <- keyword
+--     ^ keyword
+--          ^ keyword
+--                      ^ type
+--                              ^ keyword
+--                                   ^ keyword
+--                                               ^ variable.member
+--                                                                     ^ keyword
+--                                                                         ^ variable.builtin
+--                                                                                          ^ keyword
+--                                                                                              ^ module
+GRANT SELECT(id), INSERT ON shop.* TO ann@'%' WITH GRANT OPTION; REVOKE ALL ON *.* FROM bob;
+-- <- keyword
+--    ^ keyword
+--           ^ variable.member
+--                ^ keyword
+--                       ^ keyword
+--                          ^ module
+--                                       ^ punctuation.special
+--                                                       ^ keyword
+--                                                               ^ keyword
+--                                                                      ^ keyword
+CREATE USER ann IDENTIFIED WITH sha256_password BY 'x' SETTINGS max_threads = 4 READONLY;
+--     ^ keyword
+--              ^ keyword
+--                              ^ type.builtin
+--                                              ^ keyword
+--                                                 ^ string
+--                                                     ^ keyword
+--                                                              ^ variable.builtin
+--                                                                              ^ keyword
+BACKUP TABLE orders TO Disk('backups', 'o.zip') ASYNC; CREATE QUOTA q FOR INTERVAL 1 HOUR MAX queries = 10;
+-- <- keyword
+--                     ^ function.call
+--                                              ^ keyword
+--                                                            ^ keyword
+--                                                                        ^ keyword
+--                                                                                   ^ keyword
+--                                                                                            ^ variable.builtin
+--                                                                                                    ^ operator

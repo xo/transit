@@ -614,3 +614,48 @@ TRUNCATE ALL TABLES FROM IF EXISTS staging NOT LIKE 'keep%' ON CLUSTER main; TRU
   (truncate_statement
     (identifier)
     (string)))
+
+================================================================================
+INSERT with SETTINGS before a query
+================================================================================
+
+INSERT INTO orders SETTINGS async_insert = 1, wait_for_async_insert SELECT * FROM staging;
+INSERT INTO orders (id) SETTINGS max_threads = -1 WITH 1 AS x SELECT x;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (settings_clause
+      (setting
+        (identifier)
+        (number))
+      (setting
+        (identifier)))
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))))
+  (insert_statement
+    (object_reference
+      (identifier))
+    (insert_columns
+      (column_reference
+        (identifier)))
+    (settings_clause
+      (setting
+        (identifier)
+        (unary_expression
+          (operator)
+          (number))))
+    (select
+      (with_clause
+        (aliased_expression
+          (number)
+          (identifier)))
+      (column_reference
+        (identifier)))))

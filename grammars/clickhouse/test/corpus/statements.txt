@@ -1,0 +1,1356 @@
+================================================================================
+DROP TABLE with more than one table
+================================================================================
+
+DROP TABLE IF EXISTS shop.orders, shop.items ON CLUSTER main SYNC;
+DROP TEMPORARY TABLE IF EMPTY scratch;
+
+---
+
+(source_file
+  (drop_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (on_cluster
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+DROP of other objects
+================================================================================
+
+DROP DICTIONARY rates;
+DROP VIEW IF EXISTS v;
+DROP DATABASE IF EXISTS archive ON CLUSTER main SYNC;
+DROP FUNCTION IF EXISTS plus_one ON CLUSTER main;
+DROP NAMED COLLECTION creds;
+DROP INDEX i ON orders;
+DROP HYPOTHETICAL PROJECTION hp ON orders;
+
+---
+
+(source_file
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (on_cluster
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (on_cluster
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))))
+
+================================================================================
+DROP of entities of access control
+================================================================================
+
+DROP USER IF EXISTS ann, bob@'%.example.com' ON CLUSTER main FROM local_directory;
+DROP ROW POLICY IF EXISTS only_mine ON shop.orders, shop.items;
+DROP MASKING POLICY hide_mail ON people;
+DROP SETTINGS PROFILE slow;
+DROP QUOTA heavy;
+DROP ROLE reader;
+
+---
+
+(source_file
+  (drop_statement
+    (object_reference
+      (identifier))
+    (user_name
+      (identifier)
+      (string))
+    (on_cluster
+      (identifier))
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+DETACH and UNDROP
+================================================================================
+
+DETACH TABLE orders PERMANENTLY SYNC;
+DETACH DICTIONARY IF EXISTS rates ON CLUSTER main;
+UNDROP TABLE shop.orders UUID '123e4567-e89b-12d3-a456-426614174000';
+
+---
+
+(source_file
+  (detach_statement
+    (object_reference
+      (identifier)))
+  (detach_statement
+    (object_reference
+      (identifier))
+    (on_cluster
+      (identifier)))
+  (undrop_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (uuid
+      (string))))
+
+================================================================================
+ATTACH
+================================================================================
+
+ATTACH TABLE orders;
+ATTACH TABLE IF NOT EXISTS logs FROM '/data/logs/' (d Date, msg String) ENGINE = MergeTree ORDER BY d;
+ATTACH TABLE events AS NOT REPLICATED;
+ATTACH DATABASE archive ENGINE = Atomic;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier)))
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (string)
+    (table_elements
+      (column_definition
+        (identifier)
+        (type
+          (identifier)))
+      (column_definition
+        (identifier)
+        (type
+          (identifier))))
+    (engine_clause
+      (identifier))
+    (order_by_clause
+      (order_by_item
+        (column_reference
+          (identifier)))))
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (as_clause))
+  (create_database_statement
+    (identifier)
+    (engine_clause
+      (identifier))))
+
+================================================================================
+RENAME and EXCHANGE
+================================================================================
+
+RENAME TABLE a TO b, shop.c TO shop.d ON CLUSTER main;
+RENAME DATABASE old TO new;
+EXCHANGE TABLES a AND b;
+EXCHANGE DICTIONARIES shop.x AND shop.y ON CLUSTER main;
+
+---
+
+(source_file
+  (rename_statement
+    (rename_item
+      (object_reference
+        (identifier))
+      (object_reference
+        (identifier)))
+    (rename_item
+      (object_reference
+        (identifier)
+        (identifier))
+      (object_reference
+        (identifier)
+        (identifier)))
+    (on_cluster
+      (identifier)))
+  (rename_statement
+    (rename_item
+      (object_reference
+        (identifier))
+      (object_reference
+        (identifier))))
+  (exchange_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)))
+  (exchange_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (on_cluster
+      (identifier))))
+
+================================================================================
+OPTIMIZE
+================================================================================
+
+OPTIMIZE TABLE orders FINAL;
+OPTIMIZE TABLE orders ON CLUSTER main PARTITION ID '2024' FINAL DEDUPLICATE BY * EXCEPT (updated);
+OPTIMIZE TABLE orders PARTITION tuple() DEDUPLICATE BY id, COLUMNS('^k') CLEANUP;
+OPTIMIZE TABLE orders DRY RUN PARTS 'all_1_1_0', 'all_2_2_0';
+
+---
+
+(source_file
+  (optimize_statement
+    (object_reference
+      (identifier)))
+  (optimize_statement
+    (object_reference
+      (identifier))
+    (on_cluster
+      (identifier))
+    (partition
+      (string))
+    (star_expression
+      (identifier)))
+  (optimize_statement
+    (object_reference
+      (identifier))
+    (partition
+      (function_call
+        (identifier)
+        (arguments)))
+    (column_reference
+      (identifier))
+    (columns_expression
+      (string)))
+  (optimize_statement
+    (object_reference
+      (identifier))
+    (string)
+    (string)))
+
+================================================================================
+SHOW CREATE
+================================================================================
+
+SHOW CREATE TABLE shop.orders;
+SHOW CREATE TEMPORARY TABLE scratch FORMAT TSVRaw;
+SHOW CREATE orders;
+SHOW CREATE USER ann@'10.0.0.%';
+SHOW CREATE ROW POLICY only_mine ON shop.orders;
+SHOW CREATE QUOTA CURRENT;
+SHOW CREATE SETTINGS PROFILE slow, fast;
+
+---
+
+(source_file
+  (show_statement
+    (object_reference
+      (identifier)
+      (identifier)))
+  (show_statement
+    (object_reference
+      (identifier))
+    (format_clause
+      (identifier)))
+  (show_statement
+    (object_reference
+      (identifier)))
+  (show_statement
+    (user_name
+      (identifier)
+      (string)))
+  (show_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier)))
+  (show_statement)
+  (show_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))))
+
+================================================================================
+SHOW lists
+================================================================================
+
+SHOW DATABASES NOT LIKE 'sys%' LIMIT 3;
+SHOW FULL TEMPORARY TABLES FROM shop ILIKE '%order%' LIMIT 10 INTO OUTFILE 'tables.txt' FORMAT CSV;
+SHOW EXTENDED FULL COLUMNS FROM orders FROM shop WHERE name LIKE 'a%';
+SHOW INDEXES IN orders;
+SHOW PROCESSLIST;
+SHOW CHANGED SETTINGS ILIKE '%memory%';
+SHOW SETTING max_threads;
+
+---
+
+(source_file
+  (show_statement
+    (string)
+    (number))
+  (show_statement
+    (object_reference
+      (identifier))
+    (string)
+    (number)
+    (into_outfile_clause
+      (string))
+    (format_clause
+      (identifier)))
+  (show_statement
+    (keyword)
+    (keyword)
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))
+    (where_clause
+      (like_expression
+        (column_reference
+          (identifier))
+        (string))))
+  (show_statement
+    (keyword)
+    (object_reference
+      (identifier)))
+  (show_statement
+    (keyword))
+  (show_statement
+    (keyword)
+    (string))
+  (show_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+SHOW of access control
+================================================================================
+
+SHOW GRANTS FOR ann, bob WITH IMPLICIT FINAL;
+SHOW CURRENT ROLES;
+SHOW ROW POLICIES ON shop.orders;
+SHOW CLUSTER 'main';
+SHOW ACCESS;
+
+---
+
+(source_file
+  (show_statement
+    (identifier)
+    (identifier))
+  (show_statement
+    (keyword))
+  (show_statement
+    (keyword)
+    (object_reference
+      (identifier)
+      (identifier)))
+  (show_statement
+    (string))
+  (show_statement
+    (keyword)))
+
+================================================================================
+DESCRIBE and EXISTS
+================================================================================
+
+DESCRIBE TABLE shop.orders;
+DESC format(TSV, '1\t2') SETTINGS input_format_try_infer_integers = 0;
+DESCRIBE (SELECT 1 AS x) FORMAT Vertical;
+EXISTS TEMPORARY TABLE scratch;
+EXISTS DICTIONARY shop.rates FORMAT TSV;
+
+---
+
+(source_file
+  (describe_statement
+    (object_reference
+      (identifier)
+      (identifier)))
+  (describe_statement
+    (function_call
+      (identifier)
+      (arguments
+        (column_reference
+          (identifier))
+        (string)))
+    (settings_clause
+      (setting
+        (identifier)
+        (number))))
+  (describe_statement
+    (subquery
+      (select
+        (aliased_expression
+          (number)
+          (identifier))))
+    (format_clause
+      (identifier)))
+  (exists_statement
+    (object_reference
+      (identifier)))
+  (exists_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (format_clause
+      (identifier))))
+
+================================================================================
+CHECK
+================================================================================
+
+CHECK TABLE orders PARTITION 202401 FORMAT PrettyCompact SETTINGS check_query_single_value_result = 0;
+CHECK TABLE orders PART 'all_1_1_0';
+CHECK DATABASE lake;
+CHECK GRANT SELECT(id, total) ON shop.orders;
+
+---
+
+(source_file
+  (check_statement
+    (object_reference
+      (identifier))
+    (partition
+      (number))
+    (format_clause
+      (identifier))
+    (settings_clause
+      (setting
+        (identifier)
+        (number))))
+  (check_statement
+    (object_reference
+      (identifier))
+    (partition
+      (string)))
+  (check_statement
+    (object_reference
+      (identifier)))
+  (check_statement
+    (privilege
+      (identifier)
+      (column_list
+        (identifier)
+        (identifier)))
+    (object_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+KILL
+================================================================================
+
+KILL QUERY WHERE query_id = 'abc' SYNC;
+KILL MUTATION ON CLUSTER main WHERE database = 'shop' AND table = 'orders' TEST FORMAT Vertical;
+
+---
+
+(source_file
+  (kill_statement
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (string))))
+  (kill_statement
+    (on_cluster
+      (identifier))
+    (where_clause
+      (binary_expression
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (string))
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (string))))
+    (format_clause
+      (identifier))))
+
+================================================================================
+SYSTEM
+================================================================================
+
+SYSTEM STOP MERGES shop.orders;
+SYSTEM DROP MARK CACHE;
+SYSTEM FLUSH LOGS query_log, part_log;
+SYSTEM SYNC REPLICA orders LIGHTWEIGHT FROM 'r1', 'r2';
+SYSTEM DROP REPLICA 'r1' FROM TABLE shop.orders;
+SYSTEM RELOAD DICTIONARY rates ON CLUSTER main;
+
+---
+
+(source_file
+  (system_statement
+    (keyword)
+    (keyword)
+    (object_reference
+      (identifier)
+      (identifier)))
+  (system_statement
+    (keyword)
+    (keyword))
+  (system_statement
+    (keyword)
+    (keyword)
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)))
+  (system_statement
+    (keyword)
+    (object_reference
+      (identifier))
+    (keyword)
+    (string)
+    (string))
+  (system_statement
+    (keyword)
+    (string)
+    (object_reference
+      (identifier)
+      (identifier)))
+  (system_statement
+    (keyword)
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))))
+
+================================================================================
+SET
+================================================================================
+
+SET max_threads = 8, log_queries;
+SET additional_table_filters = {'orders': 'total > 0'};
+SET TIME ZONE 'Europe/Berlin';
+SET TRANSACTION SNAPSHOT 100;
+
+---
+
+(source_file
+  (set_statement
+    (setting
+      (identifier)
+      (number))
+    (setting
+      (identifier)))
+  (set_statement
+    (setting
+      (identifier)
+      (map
+        (map_entry
+          (string)
+          (string)))))
+  (set_statement
+    (string))
+  (set_statement
+    (number)))
+
+================================================================================
+SET ROLE and USE
+================================================================================
+
+SET ROLE ALL EXCEPT admin;
+SET DEFAULT ROLE reader, writer TO ann, bob;
+SET ROLE NONE;
+USE shop;
+USE DATABASE {db:Identifier};
+
+---
+
+(source_file
+  (set_role_statement
+    (identifier))
+  (set_role_statement
+    (identifier)
+    (identifier)
+    (identifier)
+    (identifier))
+  (set_role_statement)
+  (use_statement
+    (identifier))
+  (use_statement
+    (query_parameter
+      (identifier)
+      (type
+        (identifier)))))
+
+================================================================================
+GRANT of privileges
+================================================================================
+
+GRANT SELECT(id, total), INSERT ON shop.orders TO ann WITH GRANT OPTION;
+GRANT ON CLUSTER main ALTER UPDATE, SYSTEM DROP CACHE ON *.* TO admin;
+GRANT SELECT ON shop.* TO reader, CURRENT_USER WITH REPLACE OPTION;
+GRANT SELECT ON shop.ord* TO reader;
+GRANT SELECT ON a.t, INSERT ON b.* TO writer;
+
+---
+
+(source_file
+  (grant_statement
+    (privilege
+      (identifier)
+      (column_list
+        (identifier)
+        (identifier)))
+    (privilege
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier))
+  (grant_statement
+    (on_cluster
+      (identifier))
+    (privilege
+      (identifier)
+      (identifier))
+    (privilege
+      (identifier)
+      (identifier)
+      (identifier))
+    (object_reference)
+    (identifier))
+  (grant_statement
+    (privilege
+      (identifier))
+    (object_reference
+      (identifier))
+    (identifier)
+    (identifier))
+  (grant_statement
+    (privilege
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier))
+  (grant_statement
+    (privilege
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))
+    (privilege
+      (identifier))
+    (object_reference
+      (identifier))
+    (identifier)))
+
+================================================================================
+GRANT of roles and current grants
+================================================================================
+
+GRANT reader, writer TO ann WITH ADMIN OPTION;
+GRANT CURRENT GRANTS ON *.* TO bob;
+GRANT CURRENT GRANTS(SELECT ON shop.*) TO bob;
+
+---
+
+(source_file
+  (grant_statement
+    (privilege
+      (identifier))
+    (privilege
+      (identifier))
+    (identifier))
+  (grant_statement
+    (object_reference)
+    (identifier))
+  (grant_statement
+    (privilege
+      (identifier))
+    (object_reference
+      (identifier))
+    (identifier)))
+
+================================================================================
+REVOKE
+================================================================================
+
+REVOKE SELECT(total) ON shop.orders FROM ann;
+REVOKE ON CLUSTER main ADMIN OPTION FOR reader FROM ALL EXCEPT ann;
+REVOKE ALL ON *.* FROM bob, carl EXCEPT dan;
+
+---
+
+(source_file
+  (revoke_statement
+    (privilege
+      (identifier)
+      (column_list
+        (identifier)))
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier))
+  (revoke_statement
+    (on_cluster
+      (identifier))
+    (privilege
+      (identifier))
+    (identifier))
+  (revoke_statement
+    (privilege
+      (identifier))
+    (object_reference)
+    (identifier)
+    (identifier)
+    (identifier)))
+
+================================================================================
+CREATE USER
+================================================================================
+
+CREATE USER IF NOT EXISTS ann IDENTIFIED WITH sha256_password BY 'secret' HOST IP '10.0.0.0/8', LOCAL DEFAULT ROLE reader DEFAULT DATABASE shop SETTINGS max_memory_usage = 10000000 MIN 1000 MAX 20000000 READONLY, PROFILE 'slow';
+CREATE USER bob IDENTIFIED WITH ldap SERVER 'main' VALID UNTIL '2030-01-01' GRANTEES ANY EXCEPT ann;
+CREATE USER carl NOT IDENTIFIED IN local_directory SETTINGS NONE;
+CREATE USER dan IDENTIFIED BY 'a' VALID FOR INTERVAL 30 DAY HOST LIKE '%.example.com', '%.example.org';
+
+---
+
+(source_file
+  (create_access_statement
+    (identifier)
+    (authentication
+      (identifier)
+      (string))
+    (host
+      (string))
+    (host)
+    (identifier)
+    (identifier)
+    (profile_setting
+      (identifier)
+      (number)
+      (number)
+      (number))
+    (settings_profile
+      (string)))
+  (create_access_statement
+    (identifier)
+    (authentication
+      (identifier)
+      (string)
+      (string))
+    (identifier))
+  (create_access_statement
+    (identifier)
+    (identifier))
+  (create_access_statement
+    (identifier)
+    (authentication
+      (string)
+      (interval_expression
+        (number)
+        (interval_unit)))
+    (host
+      (string))
+    (host
+      (string))))
+
+================================================================================
+CREATE ROLE and SETTINGS PROFILE
+================================================================================
+
+CREATE OR REPLACE ROLE reader, writer ON CLUSTER main SETTINGS max_threads = 4 CONST;
+CREATE SETTINGS PROFILE slow SETTINGS max_threads = 2, INHERIT 'default' TO reader;
+CREATE PROFILE fast SETTINGS PROFILE readonly, max_threads = 16;
+
+---
+
+(source_file
+  (create_access_statement
+    (identifier)
+    (identifier)
+    (on_cluster
+      (identifier))
+    (profile_setting
+      (identifier)
+      (number)))
+  (create_access_statement
+    (identifier)
+    (profile_setting
+      (identifier)
+      (number))
+    (settings_profile
+      (string))
+    (identifier))
+  (create_access_statement
+    (identifier)
+    (settings_profile
+      (identifier))
+    (profile_setting
+      (identifier)
+      (number))))
+
+================================================================================
+CREATE ROW POLICY and MASKING POLICY
+================================================================================
+
+CREATE ROW POLICY only_mine ON shop.orders FOR SELECT USING owner = currentUser() AS RESTRICTIVE TO ALL EXCEPT admin;
+CREATE ROW POLICY OR REPLACE all_rows ON shop.* USING 1 TO reader;
+CREATE MASKING POLICY hide_mail ON people UPDATE mail = '***' WHERE region = 'eu' TO reader PRIORITY 2;
+
+---
+
+(source_file
+  (create_access_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))
+    (aliased_expression
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (function_call
+          (identifier)
+          (arguments)))
+      (identifier))
+    (identifier))
+  (create_access_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (number)
+    (identifier))
+  (create_access_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (assignment
+      (identifier)
+      (string))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (string)))
+    (identifier)
+    (number)))
+
+================================================================================
+CREATE QUOTA
+================================================================================
+
+CREATE QUOTA heavy KEYED BY user_name FOR INTERVAL 1 HOUR MAX queries = 100, errors = 10, FOR RANDOMIZED INTERVAL 1 DAY NO LIMITS TO reader;
+CREATE QUOTA ipq KEYED BY ip_address IPV4_PREFIX_BITS 24 TO NONE;
+
+---
+
+(source_file
+  (create_access_statement
+    (identifier)
+    (identifier)
+    (quota_interval
+      (number)
+      (interval_unit)
+      (quota_limit
+        (identifier)
+        (number))
+      (quota_limit
+        (identifier)
+        (number)))
+    (quota_interval
+      (number)
+      (interval_unit))
+    (identifier))
+  (create_access_statement
+    (identifier)
+    (identifier)
+    (number)))
+
+================================================================================
+ALTER USER
+================================================================================
+
+ALTER USER ann RENAME TO anna DROP ALL PROFILES ADD PROFILES 'fast' ADD HOST NAME 'db.example.com';
+ALTER USER ann ADD IDENTIFIED WITH plaintext_password BY '1', bcrypt_password BY '2';
+ALTER USER bob RESET AUTHENTICATION METHODS TO NEW DROP SETTINGS max_threads MODIFY SETTINGS max_threads = 4 WRITABLE;
+
+---
+
+(source_file
+  (alter_access_statement
+    (identifier)
+    (identifier)
+    (string)
+    (host
+      (string)))
+  (alter_access_statement
+    (identifier)
+    (authentication
+      (identifier)
+      (string))
+    (authentication
+      (identifier)
+      (string)))
+  (alter_access_statement
+    (identifier)
+    (identifier)
+    (profile_setting
+      (identifier)
+      (number))))
+
+================================================================================
+ALTER of other entities
+================================================================================
+
+ALTER ROLE reader DROP ALL SETTINGS;
+ALTER ROW POLICY IF EXISTS only_mine ON shop.orders RENAME TO mine USING 1;
+ALTER QUOTA heavy FOR INTERVAL 30 MINUTE TRACKING ONLY;
+ALTER SETTINGS PROFILE slow TO NONE;
+
+---
+
+(source_file
+  (alter_access_statement
+    (identifier))
+  (alter_access_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier)
+    (number))
+  (alter_access_statement
+    (identifier)
+    (quota_interval
+      (number)
+      (interval_unit)))
+  (alter_access_statement
+    (identifier)))
+
+================================================================================
+MOVE and WATCH
+================================================================================
+
+MOVE USER ann, bob TO local_directory;
+WATCH lv EVENTS LIMIT 1 FORMAT JSONEachRow;
+
+---
+
+(source_file
+  (move_statement
+    (identifier)
+    (identifier)
+    (identifier))
+  (watch_statement
+    (object_reference
+      (identifier))
+    (number)
+    (format_clause
+      (identifier))))
+
+================================================================================
+BACKUP
+================================================================================
+
+BACKUP TABLE shop.orders, DICTIONARY shop.rates TO Disk('backups', 'shop.zip') SETTINGS compression_method = 'lzma' ASYNC;
+BACKUP DATABASE shop AS shop_copy EXCEPT TABLES shop.logs TO S3('https://b/key', 'id', 'secret');
+BACKUP TABLE orders PARTITIONS '2024', '2025', TABLE items TO File('x.zip');
+
+---
+
+(source_file
+  (backup_statement
+    (backup_item
+      (object_reference
+        (identifier)
+        (identifier)))
+    (backup_item
+      (object_reference
+        (identifier)
+        (identifier)))
+    (function_call
+      (identifier)
+      (arguments
+        (string)
+        (string)))
+    (settings_clause
+      (setting
+        (identifier)
+        (string))))
+  (backup_statement
+    (backup_item
+      (object_reference
+        (identifier))
+      (object_reference
+        (identifier))
+      (object_reference
+        (identifier)
+        (identifier)))
+    (function_call
+      (identifier)
+      (arguments
+        (string)
+        (string)
+        (string))))
+  (backup_statement
+    (backup_item
+      (object_reference
+        (identifier))
+      (string)
+      (string))
+    (backup_item
+      (object_reference
+        (identifier)))
+    (function_call
+      (identifier)
+      (arguments
+        (string)))))
+
+================================================================================
+RESTORE
+================================================================================
+
+RESTORE ALL EXCEPT DATABASES system FROM File('all.zip') SETTINGS allow_non_empty_tables = 1;
+RESTORE TEMPORARY TABLE scratch FROM Memory('b') FORMAT Null;
+
+---
+
+(source_file
+  (restore_statement
+    (backup_item
+      (object_reference
+        (identifier)))
+    (function_call
+      (identifier)
+      (arguments
+        (string)))
+    (settings_clause
+      (setting
+        (identifier)
+        (number))))
+  (restore_statement
+    (backup_item
+      (object_reference
+        (identifier)))
+    (function_call
+      (identifier)
+      (arguments
+        (string)))
+    (format_clause
+      (identifier))))
+
+================================================================================
+Transactions
+================================================================================
+
+BEGIN TRANSACTION;
+SELECT 1;
+COMMIT;
+BEGIN;
+ROLLBACK;
+
+---
+
+(source_file
+  (transaction_statement)
+  (select_statement
+    (select
+      (number)))
+  (transaction_statement)
+  (transaction_statement)
+  (transaction_statement))
+
+================================================================================
+EXECUTE AS
+================================================================================
+
+EXECUTE AS ann SELECT currentUser();
+EXECUTE AS ann;
+
+---
+
+(source_file
+  (execute_as_statement
+    (identifier)
+    (select_statement
+      (select
+        (function_call
+          (identifier)
+          (arguments)))))
+  (execute_as_statement
+    (identifier)))
+
+================================================================================
+CREATE WORKLOAD and RESOURCE
+================================================================================
+
+CREATE WORKLOAD all;
+CREATE OR REPLACE WORKLOAD production IN all SETTINGS priority = 1, weight = 9;
+CREATE RESOURCE disk_io (WRITE DISK s3, READ DISK s3);
+DROP WORKLOAD production;
+DROP RESOURCE disk_io;
+
+---
+
+(source_file
+  (create_workload_statement
+    (identifier))
+  (create_workload_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (settings_clause
+      (setting
+        (identifier)
+        (number))
+      (setting
+        (identifier)
+        (number))))
+  (create_resource_statement
+    (identifier)
+    (resource_operation
+      (identifier)
+      (identifier)
+      (identifier))
+    (resource_operation
+      (identifier)
+      (identifier)
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+CREATE HANDLER and TOKEN
+================================================================================
+
+CREATE HANDLER hello PROTOCOL http URL PREFIX '/hello' METHODS (GET, POST) TYPE query AS SELECT 'hi';
+ALTER HANDLER hello URL '/hi';
+DROP HANDLER IF EXISTS hello ON CLUSTER main;
+CREATE TOKEN VALID UNTIL '2030-01-01' GRANTS (SELECT ON shop.*, INSERT ON shop.orders);
+
+---
+
+(source_file
+  (create_handler_statement
+    (identifier)
+    (identifier)
+    (string)
+    (column_list
+      (identifier)
+      (identifier))
+    (identifier)
+    (select_statement
+      (select
+        (string))))
+  (create_handler_statement
+    (identifier)
+    (string))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (on_cluster
+      (identifier)))
+  (create_token_statement
+    (string)
+    (privilege
+      (identifier))
+    (object_reference
+      (identifier))
+    (privilege
+      (identifier))
+    (object_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+CREATE HYPOTHETICAL PROJECTION
+================================================================================
+
+CREATE HYPOTHETICAL PROJECTION by_total ON orders (SELECT id, total ORDER BY total) WITH SETTINGS (index_granularity = 1024);
+
+---
+
+(source_file
+  (create_projection_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (subquery)
+    (subquery
+      (select
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))
+        (order_by_clause
+          (order_by_item
+            (column_reference
+              (identifier))))))
+    (subquery)
+    (setting
+      (identifier)
+      (number))))
+
+================================================================================
+EXPLAIN of a statement that is not a query
+================================================================================
+
+EXPLAIN AST ALTER TABLE orders DROP COLUMN x;
+EXPLAIN SYNTAX SYSTEM STOP MERGES orders;
+EXPLAIN optimize = 0 SELECT 1;
+
+---
+
+(source_file
+  (explain_statement
+    (alter_table_statement
+      (object_reference
+        (identifier))
+      (drop_action
+        (identifier))))
+  (explain_statement
+    (system_statement
+      (keyword)
+      (keyword)
+      (object_reference
+        (identifier))))
+  (explain_statement
+    (setting
+      (identifier)
+      (number))
+    (select_statement
+      (select
+        (number)))))
+
+================================================================================
+Aliases with no AS
+================================================================================
+
+SELECT 1 x, 2 AS select, 3 `from` FROM t a JOIN u b USING (k) WHERE 1;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (aliased_expression
+        (number)
+        (identifier))
+      (aliased_expression
+        (number)
+        (identifier))
+      (aliased_expression
+        (number)
+        (identifier))
+      (from_clause
+        (join
+          (table_reference
+            (object_reference
+              (identifier))
+            (identifier))
+          (table_reference
+            (object_reference
+              (identifier))
+            (identifier))
+          (column_list
+            (identifier))))
+      (where_clause
+        (number)))))
+
+================================================================================
+More forms of DROP, CHECK, SET DEFAULT ROLE and GRANT
+================================================================================
+
+DROP TEMPORARY VIEW IF EXISTS tv;
+CHECK ALL TABLES FORMAT Vertical;
+SET DEFAULT ROLE ON CLUSTER main reader TO ann;
+GRANT READ ON S3('s3://bucket/data/.*') TO loader;
+SYSTEM INSTRUMENT REMOVE (SELECT id FROM system.instrumentation);
+
+---
+
+(source_file
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (check_statement
+    (format_clause
+      (identifier)))
+  (set_role_statement
+    (on_cluster
+      (identifier))
+    (identifier)
+    (identifier))
+  (grant_statement
+    (privilege
+      (identifier))
+    (function_call
+      (identifier)
+      (arguments
+        (string)))
+    (identifier))
+  (system_statement
+    (keyword)
+    (subquery
+      (select
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)
+              (identifier))))))))

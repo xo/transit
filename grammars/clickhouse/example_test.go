@@ -51,5 +51,5 @@ SELECT 'it''s', 'it\'s', 'a\nb\\', '';
 	}
 	// Output:
 	// (source_file (select_statement (select (string) (string) (string) (string))))
-	// patterns in queries/highlights.scm: 90
+	// patterns in queries/highlights.scm: 106
 }

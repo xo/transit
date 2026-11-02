@@ -417,13 +417,11 @@ The grammar leaves out these forms of the other statements:
 - `SET SCHEMA 'name'` and `LOAD ... AS alias`, which the tests of DuckDB
   use and the documentation does not show.
 
-### Finish the ClickHouse grammar
+### Forms that the ClickHouse grammar leaves out
 
-The ClickHouse grammar that xo writes (D127) reads the queries,
-`EXPLAIN`, `INSERT`, `DELETE`, `UPDATE`, `TRUNCATE`, `CREATE` and `ALTER
-TABLE` of ClickHouse. The other statements, such as `DROP`, `SYSTEM` and
-`SET`, come in the next part of the work. The grammar leaves out these
-forms of a query:
+The ClickHouse grammar that xo writes (D127) reads each statement of the
+SQL reference of ClickHouse, but `PARALLEL WITH`. The grammar leaves out
+these forms of a query:
 
 - The names of the columns of a common table expression, as in `WITH t(a,
   b) AS (SELECT 1, 2)`. After `WITH t(`, the grammar cannot tell the
@@ -444,20 +442,28 @@ forms of a query:
   grammar reserves no word (D131), and where the keyword `FROM` can come,
   the word is the keyword. For the same reason, `SELECT a, from FROM t`
   reads `from` as the start of the clause `FROM`.
-- A second statement with no semicolon before it, as in `SELECT 1 SELECT
-  2`. The grammar reads the second `SELECT` as an alias with no `AS`.
 - The pipe operator `|>`, the composition of functions with `|`, `LIMIT
   AFTER`, `LIMIT UNTIL`, `AT TIME ZONE`, `STREAM`, the operators `~` and
   `!~` of PostgreSQL, `* ILIKE 'pattern'`, `VALUES` and `ARRAY[...]` of
   the dialect of Trino, the variables `@@name` of MySQL, and a star as a
   value, as in `[*, 1]` and `(*,).1`. The stateless tests of ClickHouse
-  use them in a few files.
+  use them in a few files. `AT TIME ZONE` cost 112 parse states, 40 of
+  them large.
+- An alias with no `AS` that is `comment`, as in `SELECT a comment FROM
+  t`. `COMMENT` after an expression is the keyword that starts the comment
+  after the query of `CREATE` (D132). A token for `COMMENT` and its string
+  cost about 910 parse states.
+- A lambda after `APPLY` with no parentheses, as in `* APPLY x ->
+  toString(x)`. After `APPLY x`, the upstream tool cannot tell the name of
+  a function from the parameter of a lambda. `APPLY (x -> toString(x))`
+  works.
 
 The grammar leaves out these forms of the changes of data and schema:
 
-- `SETTINGS` before the query of `INSERT`, as in `INSERT INTO t SETTINGS
-  a = 1 SELECT 1`. It cost about 1,050 parse states. `SETTINGS` before
-  `VALUES` and `FORMAT` works.
+- An expression as the value of a setting of `INSERT`, as in `INSERT INTO
+  t SETTINGS a = 1 + 1 VALUES (1)`. A query can come after the settings,
+  so the value is a literal or a name. Any expression cost about 1,050
+  parse states.
 - `PARTITION BY` after the table function of `INSERT`, as in `INSERT INTO
   FUNCTION s3(...) PARTITION BY a VALUES (1)`. After the value of
   `PARTITION BY`, an opening parenthesis can start the arguments of a
@@ -468,21 +474,16 @@ The grammar leaves out these forms of the changes of data and schema:
   the value of an assignment starts the operator `IN`. `IN PARTITION`
   with more than one partition, as in `DELETE FROM t IN PARTITION 1, 2
   WHERE 1`.
-- `COMMENT` after the query of `CREATE VIEW` and of `CREATE TABLE ... AS
-  SELECT`. It cost about 690 parse states.
-- `ASC` and `DESC` in the columns of `CREATE INDEX`, as in `CREATE INDEX
-  i ON t (a DESC)`. They cost about 330 parse states. One file of the
-  stateless tests uses them in about 750 statements.
+- An expression with an operator and no parentheses in `CREATE INDEX`, as
+  in `CREATE INDEX i ON t a + b TYPE minmax`. With no parentheses, the
+  index takes a column or a function call.
 - A column named `index`, `projection`, `constraint` or `primary` in the
   columns of `CREATE TABLE`. The word is the keyword that starts an
   element.
 - `ON CLUSTER` after the columns of `CREATE VIEW`. It comes after the name
   of the view.
-- An interval of `REFRESH` with more than one unit, as in `REFRESH EVERY
-  1 HOUR 30 MINUTE`. It cost about 1,000 parse states. `WITH REFRESH` and
-  `WITH TIMEOUT` of a live view cost about 610 parse states. `INNER
-  ENGINE` of a window view starts with a word of a join, and the tool
-  reports a conflict with a join after the query.
+- `INNER ENGINE` of a window view. It starts with a word of a join, and
+  the tool reports a conflict with a join after the query.
 - `TO DISK` and `TO VOLUME` in a `TTL` after an interval with a string, as
   in `TTL d + INTERVAL '1' DAY TO DISK 'a'`, because `TO` after the unit
   starts a second unit, as in `INTERVAL '1:30' HOUR TO MINUTE`.
@@ -493,6 +494,31 @@ The grammar leaves out these forms of the changes of data and schema:
   options of MySQL in `CREATE TABLE`, such as `DEFAULT CHARSET`, `CREATE
   FUNCTION` with `LANGUAGE WASM`, and the casts in the arguments of a type,
   as in `AggregateFunction(quantile(0.5::Float64), Float64)`.
+
+The grammar leaves out these forms of the other statements:
+
+- `PARALLEL WITH`, which runs two statements at once, as in `INSERT INTO a
+  SELECT 1 PARALLEL WITH INSERT INTO b SELECT 2`. With the keyword after
+  each statement, 37 more parse states took the large form, and the tables
+  grew by about 60 KB.
+- A table or a column that has the name of a word of a command of
+  `SYSTEM` or of a form of `SHOW`, as in `SYSTEM FLUSH LOGS logs`. The word
+  is a keyword there.
+- `DESCRIBE` of a set operation, as in `DESCRIBE (SELECT 1) UNION ALL
+  (SELECT 2)`. A query after `DESCRIBE` put more than 400 more parse states
+  in the large form. `DESCRIBE` takes a query in parentheses.
+- The form of the limits of a quota that puts `MAX` after the name, as in
+  `FOR 1 YEAR ERRORS MAX 1`, and `RESULT ROWS MAX`.
+- `FOR` and a resource after a setting of a workload, as in `SETTINGS
+  max_io_requests = 10 FOR disk_write`.
+- An expression with an operator after `VALID FOR`, as in `VALID FOR
+  INTERVAL 1 DAY + INTERVAL 1 HOUR`. The value is one interval.
+- `EXPLAIN` of `OPTIMIZE`, because `optimize` names a setting of
+  `EXPLAIN`, and `EXPLAIN` in parentheses after `EXPLAIN`.
+- `REPLACE INTO` of MySQL. The SQL reference of ClickHouse does not show
+  it.
+- The statements of the other query languages of ClickHouse, such as KQL,
+  PRQL and LogsQL.
 
 ## The setup of the repository
 

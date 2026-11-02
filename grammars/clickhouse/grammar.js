@@ -19,7 +19,9 @@
 // from. Where a keyword and a name can both come, the keyword wins, so FROM
 // after a column of SELECT starts the clause FROM. A word after AS or after
 // a dot can be any keyword, and a function name can be a word such as and,
-// or, in or like, because ClickHouse has functions with these names.
+// or, in or like, because ClickHouse has functions with these names. Only an
+// alias with no AS takes a reserved set, the words that ClickHouse does not
+// take as such an alias, and SELECT (D132).
 //
 // The grammar keeps its parse tables small (D122, D127). A parse state with
 // more than 64 columns takes the large form, so the grammar keeps the
@@ -36,6 +38,13 @@
 // ClickHouse gives ORDER BY, LIMIT, SETTINGS and FORMAT to the SELECT
 // before them, and not to a whole set operation, so they are clauses of
 // select.
+//
+// The statements that are not queries and do not change data or schema,
+// such as DROP, SHOW, KILL and BACKUP, end with the clauses of _tail, in
+// any order. The parse states after an expression are copied for each set
+// of the tokens that can come after it, so one set for all these statements
+// keeps the copies few. The commands of SYSTEM and the forms of SHOW are
+// many, so each of the two statements takes its words in any order.
 //
 // The external scanner in src/scanner.c reads the comments and the heredoc
 // strings. A comment is -- or // to the end of the line, # followed by a
@@ -76,6 +85,49 @@ const PREC = {
   field: 15,
 };
 
+// The words that ClickHouse does not take as an alias with no AS, the list
+// restricted_keywords of ParserAlias in the parser of ClickHouse, and SELECT
+// (D132). So in SELECT x FROM t, FROM is not an alias of x, and in SELECT 1
+// SELECT 2, the second SELECT starts a statement. ClickHouse does not take
+// FROM after a column as such an alias either. A word is in the reserved set
+// only when the grammar uses it as a keyword, because a reserved word must
+// be a token of the grammar.
+const IMPLICIT_ALIAS_WORDS = [
+  'ALL', 'ANTI', 'ANY', 'ARRAY', 'ASOF', 'BETWEEN', 'CROSS', 'PASTE', 'FETCH',
+  'FINAL', 'FORMAT', 'FROM', 'FULL', 'GLOBAL', 'GROUP', 'HAVING', 'ILIKE',
+  'INNER', 'INTO', 'JOIN', 'LEFT', 'LIKE', 'LIMIT', 'NATURAL', 'NOT', 'OFFSET',
+  'ON', 'ONLY', 'ORDER', 'PARALLEL', 'PREWHERE', 'RIGHT', 'SAMPLE', 'SEMI',
+  'SETTINGS', 'SIMILAR', 'STREAM', 'UNION', 'USING', 'WHERE', 'WINDOW',
+  'QUALIFY', 'WITH', 'INTERSECT', 'EXCEPT', 'ELSE', 'SELECT',
+];
+
+// The words of the commands of SYSTEM and of the forms of SHOW that no
+// other statement uses, such as FLUSH, LOGS and PROCESSLIST. One token, the
+// node keyword, covers all of them, so that they take one column of each
+// large parse state and not one column each. This saves 88 symbols and
+// about 60 KB of the tables. A word that another rule uses as a keyword
+// must not be in the list, because two keywords cannot match one word.
+const COMMAND_WORDS = [
+  'ACCESS', 'ASYNCHRONOUS', 'AVRO', 'CACHE', 'CACHES', 'CANCEL', 'CHANGED',
+  'CLIENT', 'CLUSTERS', 'COLUMNS', 'COMPILED', 'CONDITION', 'CONFIG',
+  'CONNECTIONS', 'DISABLE', 'DISTRIBUTED', 'DNS', 'EMBEDDED', 'ENABLE',
+  'ENABLED', 'ENCRYPTION', 'ENGINES', 'ENTRY', 'EXTENDED', 'FAILPOINT',
+  'FETCHES', 'FIELDS', 'FILE', 'FILELOG', 'FILESYSTEM', 'FLUSH', 'FUNCTIONS',
+  'HEADERS', 'ICEBERG', 'INDEXES', 'INDICES', 'INSTRUMENT', 'KEYS',
+  'LIGHTWEIGHT', 'LISTEN', 'LOAD', 'LOADING', 'LOG', 'LOGS', 'MARK',
+  'MERGES', 'METADATA', 'METRICS', 'MMAP', 'MOVES', 'PAGE', 'PAIMON',
+  'PARQUET', 'PAUSE', 'POINT', 'POLICIES', 'POLYGON', 'PREWARM',
+  'PRIVILEGES', 'PROCESSLIST', 'PULL', 'PULLING', 'QUERIES', 'QUEUE',
+  'QUEUES', 'QUOTAS', 'RELOAD', 'REPLICA', 'REPLICAS', 'REPLICATION',
+  'RESTART', 'ROLES', 'SCHEMA', 'SENDS', 'SERIES', 'SHARD', 'SHUTDOWN',
+  'SIMILARITY', 'SLEEP', 'START', 'STOP', 'STORAGE', 'TEXT', 'UNCOMPRESSED',
+  'UNLOAD', 'USERS', 'VECTOR', 'VIEWS', 'WAIT', 'ZKPATH',
+];
+
+// The words that the rules use as keywords. The rules run before the
+// reserved sets, so kw fills it before the reserved sets read it.
+const KEYWORDS = new Set();
+
 /**
  * Returns a keyword: a token that matches word in any case, as an
  * anonymous node with the name word.
@@ -83,6 +135,7 @@ const PREC = {
  * @param {string} word
  */
 function kw(word) {
+  KEYWORDS.add(word);
   return alias(keyword(word), word);
 }
 
@@ -177,6 +230,14 @@ module.exports = grammar({
 
   word: $ => $.identifier,
 
+  // The reserved set global is empty, because the grammar reserves no word
+  // (D131). The set implicit_alias holds the words that an alias with no AS
+  // cannot be (D132).
+  reserved: {
+    global: _ => [],
+    implicit_alias: _ => IMPLICIT_ALIAS_WORDS.filter(w => KEYWORDS.has(w)).map(keyword),
+  },
+
   // Each hidden rule that an expression can start with is a column of each
   // state where an expression starts, so these rules are inlined. The rules
   // _name, _label and _table_factor are inlined for the same reason, for
@@ -200,6 +261,12 @@ module.exports = grammar({
     // column, as in SETTINGS (max_compress_block_size = 1024), or the
     // settings of the statement.
     [$.column_definition],
+    // A comma after the partitions of an item of BACKUP can start the next
+    // partition or the next item.
+    [$.backup_item],
+    // A comma after the limits of a quota can start the next limit or the
+    // next interval.
+    [$.quota_interval],
   ],
 
   rules: {
@@ -217,6 +284,14 @@ module.exports = grammar({
     _statement: $ => choice(
       $.select_statement,
       $.explain_statement,
+      $.optimize_statement,
+      $._explained_statement,
+    ),
+
+    // The statements that EXPLAIN takes. OPTIMIZE is not one of them,
+    // because optimize also names a setting of EXPLAIN, as in EXPLAIN
+    // optimize = 0 SELECT 1.
+    _explained_statement: $ => choice(
       $.insert_statement,
       $.delete_statement,
       $.update_statement,
@@ -228,8 +303,37 @@ module.exports = grammar({
       $.create_function_statement,
       $.create_named_collection_statement,
       $.create_index_statement,
+      $.create_projection_statement,
       $.alter_table_statement,
       $.alter_named_collection_statement,
+      $.drop_statement,
+      $.detach_statement,
+      $.undrop_statement,
+      $.rename_statement,
+      $.exchange_statement,
+      $.show_statement,
+      $.describe_statement,
+      $.exists_statement,
+      $.check_statement,
+      $.kill_statement,
+      $.system_statement,
+      $.set_statement,
+      $.set_role_statement,
+      $.use_statement,
+      $.grant_statement,
+      $.revoke_statement,
+      $.create_access_statement,
+      $.alter_access_statement,
+      $.move_statement,
+      $.watch_statement,
+      $.backup_statement,
+      $.restore_statement,
+      $.transaction_statement,
+      $.execute_as_statement,
+      $.create_workload_statement,
+      $.create_resource_statement,
+      $.create_handler_statement,
+      $.create_token_statement,
     ),
 
     // Queries
@@ -255,7 +359,7 @@ module.exports = grammar({
             kws('TABLE', 'OVERRIDE'),
           )),
           optional(commaSep1(alias($._explain_setting, $.setting))),
-          $._query,
+          choice($.select_statement, $.explain_statement, $._explained_statement),
         ),
         kws('CURRENT', 'TRANSACTION'),
       ),
@@ -266,7 +370,7 @@ module.exports = grammar({
     _explain_setting: $ => seq(
       field('name', $._label),
       '=',
-      field('value', choice($._literal, $._name)),
+      field('value', choice($._literal, $._name, alias($._negative_number, $.unary_expression))),
     ),
 
     // WITH belongs to the SELECT after it, so a SELECT after UNION can
@@ -394,7 +498,14 @@ module.exports = grammar({
       field('alias', $._label),
     )),
 
-    _implicit_alias: $ => seq(field('value', $._expression), field('alias', $._name)),
+    _implicit_alias: $ => seq(field('value', $._expression), field('alias', $._implicit_alias_name)),
+
+    // An alias with no AS cannot be a word of the reserved set
+    // implicit_alias, but it can be such a word in quotes.
+    _implicit_alias_name: $ => choice(
+      reserved('implicit_alias', $.identifier),
+      alias($._quoted_identifier, $.identifier),
+    ),
 
     // * or t.* gives all the columns of a table, and COLUMNS gives the
     // columns whose names match a regular expression or the columns of a
@@ -469,7 +580,7 @@ module.exports = grammar({
     _alias: $ => seq(
       choice(
         seq(kw('AS'), field('alias', $._label)),
-        field('alias', $._name),
+        field('alias', $._implicit_alias_name),
       ),
       optional($.column_list),
     ),
@@ -724,27 +835,37 @@ module.exports = grammar({
     // INFILE, or as data in a format after FORMAT, as in INSERT INTO t
     // FORMAT CSV 1,2. The client of ClickHouse reads the data of a format
     // to the end of the line, and the external scanner reads it as one
-    // token. SETTINGS can come before VALUES and FORMAT. The grammar does
-    // not take SETTINGS before a query, which cost about 1,050 parse
-    // states.
+    // token. SETTINGS can come before VALUES, FORMAT and the query.
     insert_statement: $ => seq(
       $._insert_target,
       optional($.insert_columns),
       choice(
         seq(
-          optional($.settings_clause),
-          choice($.values_clause, $.format_clause),
+          optional(alias($._insert_settings, $.settings_clause)),
+          choice($.values_clause, $.format_clause, $._query),
         ),
-        $._query,
         seq($.infile_clause, optional($.settings_clause), optional($.format_clause)),
       ),
+    ),
+
+    // The settings of INSERT. A query can come after them, so the value
+    // of a setting is a literal or a name, as in EXPLAIN. SETTINGS before
+    // the query costs 13 parse states (D132). With any expression as the
+    // value, it cost about 1,050 states, because the states after the
+    // expression were copied for the words that start a query.
+    _insert_settings: $ => seq(kw('SETTINGS'), commaSep1(alias($._insert_setting, $.setting))),
+
+    // A setting with no value is on.
+    _insert_setting: $ => seq(
+      field('name', $._label),
+      optional(seq('=', field('value', choice($._literal, $._name, alias($._negative_number, $.unary_expression))))),
     ),
 
     // An INSERT with data after FORMAT.
     _insert_with_data: $ => seq(
       $._insert_target,
       optional($.insert_columns),
-      optional($.settings_clause),
+      optional(alias($._insert_settings, $.settings_clause)),
       $.format_clause,
       $.insert_data,
     ),
@@ -868,10 +989,13 @@ module.exports = grammar({
 
     // Changes of schema
 
-    // CREATE, CREATE OR REPLACE or REPLACE.
+    // CREATE, CREATE OR REPLACE or REPLACE. ATTACH takes the forms of
+    // CREATE too, so it is here, as in ATTACH TABLE t, which attaches a
+    // table that DETACH detached, or ATTACH TABLE t FROM 'path' (a UInt8).
     _create: _ => choice(
       seq(kw('CREATE'), optional(kws('OR', 'REPLACE'))),
       kw('REPLACE'),
+      kw('ATTACH'),
     ),
 
     // CREATE DATABASE, with its engine, settings and comment.
@@ -897,7 +1021,7 @@ module.exports = grammar({
       $._create_table_head,
       optional($.table_elements),
       repeat($._create_option),
-      optional($._as_query),
+      optional(seq($._as_query, optional($.comment_clause))),
     ),
 
     _create_table_head: $ => seq(
@@ -908,6 +1032,7 @@ module.exports = grammar({
       field('name', $.object_reference),
       optional($.uuid),
       optional($.on_cluster),
+      optional(seq(kw('FROM'), field('path', $.string))),
     ),
 
     // UUID gives the UUID of a table, as ATTACH and a replica use it.
@@ -1033,6 +1158,7 @@ module.exports = grammar({
       $.format_clause,
       prec.right(seq(kw('APPEND'), optional(kw('INCREMENTAL')), optional($.table_elements))),
       kw('POPULATE'),
+      $._live_view_refresh,
       kw('EMPTY'),
       seq(kw('DEFINER'), '=', field('definer', $._label)),
       seq(kws('SQL', 'SECURITY'), choice(kw('DEFINER'), kw('INVOKER'), kw('NONE'))),
@@ -1090,15 +1216,36 @@ module.exports = grammar({
       choice(
         field('table', $.object_reference),
         field('function', alias($._table_function, $.function_call)),
+        seq(optional(kw('NOT')), kw('REPLICATED')),
       ),
     ),
 
     // AS with a query comes after the other clauses. The query in the
     // choice of the clauses cost about 940 parse states, because each state
-    // of the query then took each word that starts a clause. The grammar
-    // does not take COMMENT after the query, which cost about 690 states.
-    // EMPTY AS creates the table from a query with no rows.
+    // of the query then took each word that starts a clause. COMMENT can
+    // come after the query (D132). It costs 8 parse states, because the
+    // states after the query merge with the states of a query alone. So
+    // COMMENT after an expression of any query is the keyword, and an alias
+    // with no AS cannot be comment, as in SELECT a comment. ClickHouse takes
+    // such an alias when no string comes after it. A token for COMMENT and
+    // the string cost about 910 states. EMPTY AS creates the table from a
+    // query with no rows.
     _as_query: $ => alias(seq(kw('AS'), $._query), $.as_clause),
+
+    // WITH REFRESH and WITH TIMEOUT of a live view, with a number of
+    // seconds (D132). As in an interval of REFRESH, the value is a number
+    // or a name, so that it costs 10 parse states and not about 950.
+    _live_view_refresh: $ => prec.right(seq(
+      kw('WITH'),
+      choice(
+        seq(
+          kw('TIMEOUT'),
+          optional(field('timeout', choice($.number, $._name))),
+          optional(seq(kw('AND'), kw('REFRESH'), optional(field('refresh', choice($.number, $._name))))),
+        ),
+        seq(kw('REFRESH'), optional(field('refresh', choice($.number, $._name)))),
+      ),
+    )),
 
     // TO gives the table where a materialized view writes its rows.
     to_clause: $ => seq(kw('TO'), field('table', $.object_reference), optional($.table_elements)),
@@ -1106,9 +1253,7 @@ module.exports = grammar({
     // REFRESH runs the query of a refreshable materialized view again at a
     // time, as in REFRESH EVERY 1 DAY OFFSET 2 HOUR. The columns of the
     // view can come after it. SETTINGS and APPEND after it are clauses of
-    // CREATE, and the columns can come after APPEND. An interval takes one
-    // unit. More than one unit, as in EVERY 1 HOUR 30 MINUTE, cost about
-    // 1,000 parse states.
+    // CREATE, and the columns can come after APPEND.
     refresh_clause: $ => prec.right(seq(
       kw('REFRESH'),
       optional(seq(choice(kw('EVERY'), kw('AFTER')), $._refresh_interval)),
@@ -1120,14 +1265,24 @@ module.exports = grammar({
       optional($.table_elements),
     )),
 
-    _refresh_interval: $ => seq($.number, $.interval_unit),
+    // An interval of REFRESH can have more than one unit, as in EVERY 1 HOUR
+    // 30 MINUTE (D132). The value of a unit after the first one is a number
+    // or a name, which costs 4 parse states. A number alone cost about 920
+    // states. Then the tool found a state where a number can come and an
+    // identifier cannot, and the two tokens can match the same text, such
+    // as 1e5, so it did not merge states that it merges now.
+    _refresh_interval: $ => seq(
+      $.number,
+      $.interval_unit,
+      repeat(seq(choice($.number, $._name), $.interval_unit)),
+    ),
 
     // CREATE VIEW, MATERIALIZED VIEW, LIVE VIEW and WINDOW VIEW.
     create_view_statement: $ => seq(
       $._create_view_head,
       optional($.table_elements),
       repeat($._create_option),
-      optional($._as_query),
+      optional(seq($._as_query, optional($.comment_clause))),
     ),
 
     _create_view_head: $ => seq(
@@ -1224,20 +1379,41 @@ module.exports = grammar({
     ),
 
     // CREATE INDEX adds a skipping index to a table, as ALTER TABLE ADD
-    // INDEX does. ClickHouse also takes the columns with ASC or DESC, as
-    // in the CREATE INDEX of SQL, and ignores them. The grammar does not,
-    // because they cost about 330 parse states.
+    // INDEX does. As in ClickHouse, the columns in parentheses can take ASC
+    // or DESC, as in the CREATE INDEX of SQL, and ClickHouse ignores them.
+    // ASC and DESC cost about 310 parse states, because the states after an
+    // expression in the parentheses are copied for them (D132). With no
+    // parentheses, the index takes a column or a function call. A
+    // hypothetical index only tells EXPLAIN what the index would do.
     create_index_statement: $ => seq(
       kw('CREATE'),
+      optional(kw('HYPOTHETICAL')),
       kw('INDEX'),
       optional($._if_not_exists),
       field('name', $._name),
       kw('ON'),
       field('table', $.object_reference),
-      field('expression', $._expression),
+      field('expression', choice($.index_columns, $.column_reference, $.function_call)),
       optional(seq(kw('TYPE'), field('type', $._expression))),
       optional(seq(kw('GRANULARITY'), field('granularity', $.number))),
     ),
+
+    // CREATE HYPOTHETICAL PROJECTION tells EXPLAIN what a projection would
+    // do.
+    create_projection_statement: $ => seq(
+      kws('CREATE', 'HYPOTHETICAL', 'PROJECTION'),
+      optional($._if_not_exists),
+      field('name', $._name),
+      kw('ON'),
+      field('table', $.object_reference),
+      choice(
+        alias(parens($._query), $.subquery),
+        seq(kw('INDEX'), field('expression', $._expression), kw('TYPE'), field('type', $._expression)),
+      ),
+      optional(seq(kws('WITH', 'SETTINGS'), parens(commaSep1($.setting)))),
+    ),
+
+    index_columns: $ => parens(commaSep1(seq($._expression, optional($._direction)))),
 
     // ALTER TABLE and ALTER DATABASE take one or more actions, with a comma
     // between two of them, and SETTINGS and FORMAT after them. MODIFY QUERY
@@ -1437,6 +1613,556 @@ module.exports = grammar({
         seq(kw('DELETE'), commaSep1(field('key', $._label))),
       )),
     ),
+
+    // Other statements
+
+    // DROP removes a table, a view, a dictionary, a database, a function, a
+    // named collection, an entity of access control, an index or another
+    // object. DETACH makes the server forget a table, a view, a dictionary
+    // or a database until ATTACH, and UNDROP brings back a table that DROP
+    // removed. The three statements share one rule, so that their parse
+    // states are shared, and the rule takes the words of each of them. The
+    // names of a row policy or of an index come with ON and their tables,
+    // and an entity of access control can come FROM its storage.
+    drop_statement: $ => seq(kw('DROP'), $._drop_body),
+
+    // The clauses at the end of the statements of this part, such as ON
+    // CLUSTER, SETTINGS, FORMAT, SYNC or the WHERE of KILL. Each statement
+    // takes all of them, in any order. A parse state after an expression
+    // has a column for each token that can come next, and the states after
+    // an expression are copied for each set of such tokens. With one set
+    // for all the statements, the states after an expression are copied
+    // once.
+    _tail: $ => choice(
+      $.on_cluster,
+      seq(kw('ON'), commaSep1(field('table', $._grant_target))),
+      $.uuid,
+      $.partition,
+      $.settings_clause,
+      $.format_clause,
+      $.into_outfile_clause,
+      $.where_clause,
+      seq(choice(kw('FROM'), kw('IN')), field('from', $.object_reference)),
+      seq(optional(kw('NOT')), choice(kw('LIKE'), kw('ILIKE')), field('pattern', $.string)),
+      seq(kw('FOR'), commaSep1(field('user', $._user_name))),
+      seq(kw('LIMIT'), field('limit', $._expression)),
+      kws('WITH', 'IMPLICIT'),
+      kws('NO', 'DELAY'),
+      prec.right(seq(kw('DEDUPLICATE'), optional(seq(kw('BY'), commaSep1(choice($._expression, $.star_expression)))))),
+      seq(kws('DRY', 'RUN', 'PARTS'), commaSep1($.string)),
+      ...['SYNC', 'ASYNC', 'TEST', 'PERMANENTLY', 'FINAL', 'FORCE', 'CLEANUP', 'EVENTS'].map(kw),
+    ),
+
+    detach_statement: $ => seq(kw('DETACH'), $._drop_body),
+
+    undrop_statement: $ => seq(kw('UNDROP'), $._drop_body),
+
+    _drop_body: $ => prec.right(seq(
+      $._object_kind,
+      optional($._if_exists),
+      optional(kws('IF', 'EMPTY')),
+      commaSep1(field('name', choice($.object_reference, $.user_name, $.string))),
+      repeat($._tail),
+    )),
+
+    // The kind of an object of DROP, DETACH and UNDROP.
+    _object_kind: _ => choice(
+      seq(optional(kw('TEMPORARY')), kw('TABLE')),
+      seq(optional(choice(kw('TEMPORARY'), kw('MATERIALIZED'))), kw('VIEW')),
+      kw('DICTIONARY'),
+      kw('DATABASE'),
+      kw('FUNCTION'),
+      kws('NAMED', 'COLLECTION'),
+      kw('HANDLER'),
+      kw('WORKLOAD'),
+      kw('RESOURCE'),
+      kw('USER'),
+      kw('ROLE'),
+      kw('QUOTA'),
+      seq(optional(kw('SETTINGS')), kw('PROFILE')),
+      seq(optional(choice(kw('ROW'), kw('MASKING'))), kw('POLICY')),
+      seq(optional(kw('HYPOTHETICAL')), choice(kw('INDEX'), kw('PROJECTION'))),
+    ),
+
+    // RENAME gives new names to tables, databases or dictionaries, as in
+    // RENAME TABLE a TO b, c TO d.
+    rename_statement: $ => seq(
+      kw('RENAME'),
+      optional(choice(kw('TABLE'), kw('DATABASE'), kw('DICTIONARY'))),
+      optional($._if_exists),
+      commaSep1($.rename_item),
+      repeat($._tail),
+    ),
+
+    rename_item: $ => seq(
+      field('name', $.object_reference),
+      kw('TO'),
+      field('new_name', $.object_reference),
+    ),
+
+    // EXCHANGE swaps the names of two tables or of two dictionaries.
+    exchange_statement: $ => seq(
+      kw('EXCHANGE'),
+      choice(kw('TABLES'), kw('DICTIONARIES')),
+      field('name', $.object_reference),
+      kw('AND'),
+      field('name', $.object_reference),
+      repeat($._tail),
+    ),
+
+    // OPTIMIZE merges the parts of a table. DEDUPLICATE removes the rows
+    // that are the same in all the columns, or in the columns after BY.
+    optimize_statement: $ => prec.right(seq(
+      kws('OPTIMIZE', 'TABLE'),
+      field('table', $.object_reference),
+      repeat($._tail),
+    )),
+
+    // SHOW lists the objects of the server, or shows the statement that
+    // creates an object, as in SHOW CREATE TABLE t, SHOW TABLES FROM db
+    // LIKE 'a%' or SHOW GRANTS FOR u. Its forms are many, so the grammar
+    // takes the words of each form in one list, then the names, then the
+    // clauses in any order.
+    show_statement: $ => prec.right(seq(
+      kw('SHOW'),
+      repeat1($._show_word),
+      optional(commaSep1(field('name', choice($.object_reference, $.user_name, $.string)))),
+      repeat($._tail),
+    )),
+
+    // SETTINGS is a word, as in SHOW CHANGED SETTINGS, and it starts the
+    // clause SETTINGS after the names. Before a name, it starts the clause.
+    _show_word: $ => choice(prec(-1, kw('SETTINGS')), ...[
+      'CREATE', 'TEMPORARY', 'TABLE', 'VIEW', 'DICTIONARY', 'DATABASE', 'USER', 'ROLE',
+      'QUOTA', 'PROFILE', 'POLICY', 'ROW', 'MASKING', 'FULL', 'TABLES', 'DATABASES',
+      'DICTIONARIES', 'INDEX', 'GRANTS', 'CURRENT', 'PROFILES', 'CLUSTER', 'SETTING',
+    ].map(kw), $._command_word),
+
+    // DESCRIBE shows the columns of a table, of a table function or of a
+    // query.
+    describe_statement: $ => prec.right(seq(
+      choice(kw('DESCRIBE'), kw('DESC')),
+      optional(kw('TEMPORARY')),
+      optional(kw('TABLE')),
+      field('table', choice(
+        $.object_reference,
+        alias($._table_function, $.function_call),
+        $.subquery,
+      )),
+      repeat($._tail),
+    )),
+
+    // EXISTS tells whether a table, a dictionary or a database exists.
+    exists_statement: $ => prec.right(seq(
+      kw('EXISTS'),
+      optional(kw('TEMPORARY')),
+      optional(choice(kw('TABLE'), kw('VIEW'), kw('DICTIONARY'), kw('DATABASE'))),
+      field('name', $.object_reference),
+      repeat($._tail),
+    )),
+
+    // CHECK TABLE checks the data of a table, and CHECK ALL TABLES checks
+    // the data of each table. CHECK DATABASE checks that a database can
+    // reach its catalog, and CHECK GRANT tells whether the user has a
+    // privilege.
+    check_statement: $ => choice(
+      prec.right(seq(kws('CHECK', 'ALL', 'TABLES'), repeat($._tail))),
+      prec.right(seq(
+        kw('CHECK'),
+        choice(kw('TABLE'), kw('DATABASE')),
+        field('name', $.object_reference),
+        repeat($._tail),
+      )),
+      seq(kws('CHECK', 'GRANT'), $._privileges),
+    ),
+
+    // KILL stops the queries or the mutations that its condition selects.
+    kill_statement: $ => prec.right(seq(
+      kw('KILL'),
+      choice(kw('QUERY'), kw('MUTATION'), kw('TRANSACTION')),
+      repeat1($._tail),
+    )),
+
+    // SYSTEM runs a command on the server, such as SYSTEM STOP MERGES t or
+    // SYSTEM DROP MARK CACHE. Its commands are many, so the grammar takes
+    // the words, the names, the strings and the numbers of a command in
+    // any order. The words are keywords.
+    system_statement: $ => seq(
+      kw('SYSTEM'),
+      repeat1(choice(
+        $._system_word,
+        field('name', $.object_reference),
+        $.string,
+        $.number,
+        $.subquery,
+        ',',
+      )),
+    ),
+
+    _system_word: $ => choice(...[
+      'ADD', 'ALL', 'ASYNC', 'CLEAR', 'CLUSTER', 'DATABASE', 'DICTIONARIES', 'DICTIONARY',
+      'DISK', 'DROP', 'EXPRESSION', 'FOR', 'FORMAT', 'FROM', 'FUNCTION', 'IN', 'INDEX',
+      'INSERT', 'KEY', 'KILL', 'NAME', 'OBJECT', 'OFFSET', 'ON', 'PARTS', 'PRIMARY', 'QUERY',
+      'REFRESH', 'REMOVE', 'REPLICATED', 'RESET', 'RESTORE', 'STATISTICS', 'STRICT', 'SYNC',
+      'TABLE', 'TIME', 'TRANSACTION', 'TTL', 'UNFREEZE', 'VIEW', 'VOLUME', 'WITH',
+    ].map(kw), $._command_word),
+
+    // A word of a command of SYSTEM or of a form of SHOW, as one token of
+    // the word rule.
+    _command_word: $ => alias(token(choice(...COMMAND_WORDS.map(keyword))), $.keyword),
+
+    // SET changes settings for the session. A setting with no value is
+    // on. SET TIME ZONE sets the time zone of the session.
+    set_statement: $ => choice(
+      seq(kw('SET'), commaSep1($.setting)),
+      seq(kws('SET', 'TIME', 'ZONE'), optional('='), field('value', $.string)),
+      seq(kws('SET', 'TRANSACTION', 'SNAPSHOT'), field('snapshot', $.number)),
+    ),
+
+    // SET ROLE sets the roles of the current user, and SET DEFAULT ROLE
+    // sets the roles that a user has at login.
+    set_role_statement: $ => seq(
+      kw('SET'),
+      choice(
+        seq(kw('ROLE'), $._role_list),
+        seq(
+          kws('DEFAULT', 'ROLE'),
+          optional($.on_cluster),
+          $._role_list,
+          kw('TO'),
+          commaSep1(field('user', $._user_name)),
+          optional($.on_cluster),
+        ),
+      ),
+    ),
+
+    // A list of roles or users: names, ALL, NONE or DEFAULT, with EXCEPT
+    // and the names that it leaves out.
+    _role_list: $ => prec.right(seq(
+      choice(
+        commaSep1(field('role', $._user_name)),
+        kw('ALL'),
+        kw('NONE'),
+        kw('DEFAULT'),
+      ),
+      optional(seq(kw('EXCEPT'), commaSep1(field('role', $._user_name)))),
+    )),
+
+    // The name of a user or a role. The name of a user can have the host
+    // that the user logs in from, as in ann@'10.0.0.%', and it can be a
+    // string.
+    _user_name: $ => choice(
+      $._name,
+      $.query_parameter,
+      $.string,
+      $.user_name,
+    ),
+
+    user_name: $ => seq(
+      field('name', choice($._name, $.query_parameter)),
+      '@',
+      field('host', choice($.string, $._name)),
+    ),
+
+    // USE sets the database of the session.
+    use_statement: $ => seq(kw('USE'), optional(kw('DATABASE')), field('database', choice($._name, $.query_parameter))),
+
+    // GRANT gives privileges or roles to users and roles, and REVOKE takes
+    // them back. A privilege is one word or more, such as SELECT, ALTER
+    // UPDATE or SYSTEM DROP CACHE, with columns in parentheses. Roles have
+    // no ON.
+    grant_statement: $ => prec.right(seq(
+      kw('GRANT'),
+      optional($.on_cluster),
+      choice(
+        $._privileges,
+        seq(kws('CURRENT', 'GRANTS'), choice(parens($._privileges), seq(kw('ON'), field('target', $._grant_target)))),
+      ),
+      kw('TO'),
+      $._role_list,
+      repeat(seq(kw('WITH'), choice(kw('GRANT'), kw('ADMIN'), kw('REPLACE')), kw('OPTION'))),
+    )),
+
+    revoke_statement: $ => seq(
+      kw('REVOKE'),
+      optional($.on_cluster),
+      optional(seq(choice(kw('ADMIN'), kw('GRANT')), kws('OPTION', 'FOR'))),
+      $._privileges,
+      kw('FROM'),
+      $._role_list,
+    ),
+
+    // A list of privileges. ON and a target can come after each one, as in
+    // SELECT ON a.*, INSERT ON b.t.
+    _privileges: $ => commaSep1(seq(
+      $.privilege,
+      optional(seq(kw('ON'), field('target', $._grant_target))),
+    )),
+
+    privilege: $ => choice(seq(repeat1($.identifier), optional($.column_list)), $.query_parameter),
+
+    // The target of a privilege: a table, a database, or all of them, as
+    // in db.t, db.*, *.*, *, or db.t* for the tables whose names start
+    // with t. The target of READ and WRITE is a source, as in S3('s3://a/.*').
+    _grant_target: $ => choice(
+      $.object_reference,
+      alias($._grant_pattern, $.object_reference),
+      alias($._table_function, $.function_call),
+    ),
+
+    _grant_pattern: $ => choice(
+      seq(field('database', choice('*', seq($._name, '*'))), optional(seq('.', field('name', choice('*', seq($._label, optional('*'))))))),
+      seq(field('database', choice($._name, $.query_parameter)), '.', field('name', choice('*', seq($._label, '*')))),
+    ),
+
+    // CREATE USER, ROLE, ROW POLICY, MASKING POLICY, QUOTA and SETTINGS
+    // PROFILE create the entities of access control, and ALTER changes
+    // them. Their options come in any order, and the options of all the
+    // kinds are in one choice, so that their parse states are shared. The
+    // options are not clauses of _tail, because then each state after an
+    // expression of _tail had more than 64 columns.
+    create_access_statement: $ => seq(
+      $._create,
+      $._access_kind,
+      optional(choice($._if_not_exists, kws('OR', 'REPLACE'))),
+      $._access_names,
+      repeat($._access_option),
+    ),
+
+    alter_access_statement: $ => seq(
+      kw('ALTER'),
+      $._access_kind,
+      optional($._if_exists),
+      $._access_names,
+      repeat($._access_option),
+    ),
+
+    _access_kind: _ => choice(
+      kw('USER'),
+      kw('ROLE'),
+      kw('QUOTA'),
+      seq(optional(kw('SETTINGS')), kw('PROFILE')),
+      seq(optional(choice(kw('ROW'), kw('MASKING'))), kw('POLICY')),
+    ),
+
+    // The names of the entities. ON and the tables of a policy are an
+    // option, so that ON CLUSTER and ON with the tables can both come
+    // after the names.
+    _access_names: $ => commaSep1(field('name', $._user_name)),
+
+    _access_option: $ => choice(
+      $.on_cluster,
+      seq(kw('ON'), commaSep1(field('table', $._grant_target))),
+      seq(kw('IN'), field('storage', $._name)),
+      seq(optional(choice(kw('ADD'), kw('MODIFY'))), kw('SETTINGS'), choice(commaSep1(choice($.profile_setting, $.settings_profile)), kw('NONE'))),
+      $.where_clause,
+      seq(kws('RENAME', 'TO'), field('new_name', $._user_name)),
+      kws('NOT', 'IDENTIFIED'),
+      seq(optional(kw('ADD')), kw('IDENTIFIED'), optional(kw('WITH')), commaSep1($.authentication)),
+      kws('RESET', 'AUTHENTICATION', 'METHODS', 'TO', 'NEW'),
+      $._valid,
+      seq(optional(choice(kw('ADD'), kw('DROP'))), kw('HOST'), choice(commaSep1($.host), kw('ANY'), kw('NONE'))),
+      seq(optional(kw('DEFAULT')), kw('ROLE'), $._role_list),
+      seq(kws('DEFAULT', 'DATABASE'), choice(field('database', $._name), kw('NONE'))),
+      seq(kw('GRANTEES'), $._grantees),
+      seq(kw('DROP'), choice(kw('SETTINGS'), kw('PROFILES')), commaSep1(choice($._name, $.string))),
+      seq(kws('DROP', 'ALL'), choice(kw('SETTINGS'), kw('PROFILES'))),
+      seq(kws('ADD', 'PROFILES'), commaSep1($.string)),
+      seq(kw('TO'), $._role_list),
+      seq(kw('FOR'), kw('SELECT')),
+      seq(kw('USING'), field('condition', $._expression)),
+      seq(kw('AS'), choice(kw('PERMISSIVE'), kw('RESTRICTIVE'))),
+      seq(kw('UPDATE'), commaSep1($.assignment)),
+      seq(kw('PRIORITY'), field('priority', $.number)),
+      seq(choice(kw('KEYED'), kw('KEY')), kw('BY'), commaSep1(field('key', choice($._name, $.string)))),
+      kws('NOT', 'KEYED'),
+      seq(choice(kw('IPV4_PREFIX_BITS'), kw('IPV6_PREFIX_BITS')), $.number),
+      commaSep1($.quota_interval),
+    ),
+
+    // A method of authentication, as in sha256_password BY 'secret' or
+    // ldap SERVER 'main'.
+    authentication: $ => prec.right(choice(
+      seq(field('method', $._name), repeat($._authentication_part)),
+      repeat1($._authentication_part),
+    )),
+
+    _authentication_part: $ => choice(
+      seq(choice(kw('BY'), kw('SERVER'), kw('REALM'), kw('CN'), kw('SAN'), kw('SCHEME'), kw('SALT')), choice($.string, $.query_parameter)),
+      seq(kw('KEY'), $.string, kw('TYPE'), $.string),
+      $._valid,
+    ),
+
+    // The time until a user or a method of authentication is valid, as in
+    // VALID UNTIL '2030-01-01' or VALID FOR INTERVAL 1 DAY.
+    _valid: $ => seq(kw('VALID'), choice(
+      seq(kw('UNTIL'), field('until', $.string)),
+      seq(kw('FOR'), field('for', $.interval_expression)),
+    )),
+
+    // A host that a user can log in from.
+    host: $ => choice(
+      seq(choice(kw('LOCAL'), kw('NAME'), kw('REGEXP'), kw('IP'), kw('LIKE')), optional($.string)),
+      $.string,
+    ),
+
+    _grantees: $ => prec.right(seq(
+      choice(commaSep1(field('grantee', $._user_name)), kw('ANY'), kw('NONE')),
+      optional(seq(kw('EXCEPT'), commaSep1(field('grantee', $._user_name)))),
+    )),
+
+    // A setting of a profile, a role or a user, with its limits. Its
+    // value is a literal or a name. A value that was only a literal cost
+    // about 570 parse states, because a number could then come where an
+    // identifier cannot, as in an interval of REFRESH.
+    profile_setting: $ => prec.right(seq(
+      field('name', $._label),
+      optional(seq('=', field('value', $._setting_value))),
+      repeat(choice(
+        seq(choice(kw('MIN'), kw('MAX')), optional('='), $._setting_value),
+        kw('CONST'),
+        kw('READONLY'),
+        kw('WRITABLE'),
+        kw('CHANGEABLE_IN_READONLY'),
+      )),
+    )),
+
+    // A profile that gives its settings, as in SETTINGS PROFILE 'default'.
+    settings_profile: $ => seq(choice(kw('PROFILE'), kw('INHERIT')), field('profile', choice($.string, $._name))),
+
+    _setting_value: $ => choice($._literal, $._name, alias($._negative_number, $.unary_expression)),
+
+    // An interval of a quota and its limits, as in FOR INTERVAL 1 HOUR MAX
+    // queries = 100.
+    quota_interval: $ => seq(
+      kw('FOR'),
+      optional(kw('RANDOMIZED')),
+      optional(kw('INTERVAL')),
+      choice($.number, $._name),
+      $.interval_unit,
+      choice(
+        seq(kw('MAX'), commaSep1(seq(optional(kw('MAX')), $.quota_limit))),
+        kws('NO', 'LIMITS'),
+        kws('TRACKING', 'ONLY'),
+      ),
+    ),
+
+    quota_limit: $ => seq(field('name', $._label), '=', field('value', choice($.number, $.string))),
+
+    // MOVE moves entities of access control to another storage.
+    move_statement: $ => seq(
+      kw('MOVE'),
+      $._access_kind,
+      commaSep1(field('name', $._name)),
+      kw('TO'),
+      field('storage', $._name),
+    ),
+
+    // WATCH reads the changes of a live view.
+    watch_statement: $ => prec.right(seq(
+      kw('WATCH'),
+      field('view', $.object_reference),
+      repeat($._tail),
+    )),
+
+    // BACKUP writes tables, dictionaries and databases to a backup, and
+    // RESTORE reads them back, as in BACKUP TABLE t TO Disk('backups',
+    // '1.zip').
+    backup_statement: $ => seq(
+      kw('BACKUP'),
+      commaSep1($.backup_item),
+      optional($.on_cluster),
+      kw('TO'),
+      field('destination', choice(alias($._table_function, $.function_call), $._name)),
+      repeat($._tail),
+    ),
+
+    restore_statement: $ => seq(
+      kw('RESTORE'),
+      commaSep1($.backup_item),
+      optional($.on_cluster),
+      kw('FROM'),
+      field('source', choice(alias($._table_function, $.function_call), $._name)),
+      repeat($._tail),
+    ),
+
+    backup_item: $ => seq(
+      choice(
+        seq(optional(kw('TEMPORARY')), kw('TABLE')),
+        kw('DICTIONARY'),
+        kw('DATABASE'),
+        kw('VIEW'),
+        kw('ALL'),
+      ),
+      optional(field('name', $.object_reference)),
+      optional(seq(kw('AS'), field('alias', $.object_reference))),
+      optional(seq(kw('EXCEPT'), choice(kw('TABLES'), kw('DATABASES')), commaSep1($.object_reference))),
+      optional(seq(choice(kw('PARTITION'), kw('PARTITIONS')), commaSep1($._expression))),
+    ),
+
+    // BEGIN, COMMIT and ROLLBACK of a transaction.
+    transaction_statement: _ => choice(
+      seq(kw('BEGIN'), optional(kw('TRANSACTION'))),
+      kw('COMMIT'),
+      kw('ROLLBACK'),
+    ),
+
+    // EXECUTE AS runs the statement after it, or the next statements of the
+    // session, as another user.
+    execute_as_statement: $ => prec.right(seq(
+      kws('EXECUTE', 'AS'),
+      field('user', $._name),
+      optional($._statement),
+    )),
+
+    // CREATE WORKLOAD and CREATE RESOURCE set how the server schedules the
+    // queries. A resource takes the operations that it covers, as in
+    // (WRITE DISK s3, READ DISK s3).
+    create_workload_statement: $ => seq(
+      $._create,
+      kw('WORKLOAD'),
+      optional($._if_not_exists),
+      field('name', $._name),
+      repeat($._tail),
+    ),
+
+    create_resource_statement: $ => seq(
+      $._create,
+      kw('RESOURCE'),
+      optional($._if_not_exists),
+      field('name', $._name),
+      optional($.on_cluster),
+      parens(commaSep1($.resource_operation)),
+    ),
+
+    resource_operation: $ => repeat1($.identifier),
+
+    // CREATE HANDLER and ALTER HANDLER give a query to a path of the HTTP
+    // interface.
+    create_handler_statement: $ => seq(
+      choice($._create, kw('ALTER')),
+      kw('HANDLER'),
+      optional($._if_not_exists),
+      field('name', $._name),
+      optional($.on_cluster),
+      repeat(choice(
+        seq(kw('PROTOCOL'), field('protocol', $._name)),
+        seq(kw('URL'), optional(choice(kw('PREFIX'), kw('REGEXP'))), field('url', $.string)),
+        seq(kw('METHODS'), $.column_list),
+        seq(kw('TYPE'), field('type', $._name)),
+      )),
+      optional(seq(kw('AS'), field('statement', $._statement))),
+    ),
+
+    // CREATE TOKEN creates a token of authentication for the current user.
+    create_token_statement: $ => prec.right(seq(
+      $._create,
+      kw('TOKEN'),
+      repeat(choice(
+        seq(kws('VALID', 'UNTIL'), $.string),
+        seq(kw('GRANTS'), parens(commaSep1(seq($.privilege, optional(seq(kw('ON'), field('target', $._grant_target))))))),
+      )),
+    )),
 
     // Expressions
 

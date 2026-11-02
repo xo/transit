@@ -333,9 +333,17 @@ and the data of a format after `FORMAT`, and `DELETE`, `UPDATE` and
 indexes, projections, constraints, engine, keys, `TTL` and `AS`, `CREATE
 VIEW`, `MATERIALIZED VIEW` with `REFRESH`, `LIVE VIEW` and `WINDOW VIEW`,
 `CREATE DICTIONARY`, `CREATE FUNCTION`, `CREATE NAMED COLLECTION`, `CREATE
-INDEX`, and each action of `ALTER TABLE`. The other statements come later.
-The external scanner reads the comments, the heredoc strings and the data
-of `INSERT` after `FORMAT`. The package adds about 1.2 MB to a binary.
+INDEX` with `ASC` and `DESC`, and each action of `ALTER TABLE`. It covers
+`DROP`, `DETACH`, `ATTACH`, `UNDROP`, `RENAME`, `EXCHANGE` and `OPTIMIZE`.
+It covers each form of `SHOW`, `DESCRIBE`, `EXISTS`, `CHECK`, `KILL`, each
+command of `SYSTEM`, `SET`, `SET ROLE` and `USE`. It covers `GRANT`,
+`REVOKE`, and `CREATE` and `ALTER` of the users, the roles, the policies,
+the quotas and the settings profiles. It covers `MOVE`, `WATCH`, `BACKUP`,
+`RESTORE`, `EXECUTE AS`, the statements of transactions, the workloads,
+the resources, the handlers, the tokens, and `EXPLAIN` of each statement.
+It does not read `PARALLEL WITH`. The external scanner reads the comments,
+the heredoc strings and the data of `INSERT` after `FORMAT`. The package
+adds about 1.7 MB to a binary.
 
 The package `github.com/xo/transit/grammars/postgres/postgres` holds the
 grammar `postgres`, which xo writes from the reference manual of

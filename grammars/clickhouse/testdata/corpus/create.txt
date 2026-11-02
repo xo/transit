@@ -1625,7 +1625,7 @@ CREATE INDEX name_idx ON people (name) TYPE bloom_filter GRANULARITY 3; CREATE I
     (identifier)
     (object_reference
       (identifier))
-    (parenthesized_expression
+    (index_columns
       (column_reference
         (identifier)))
     (column_reference
@@ -1636,10 +1636,171 @@ CREATE INDEX name_idx ON people (name) TYPE bloom_filter GRANULARITY 3; CREATE I
     (object_reference
       (identifier)
       (identifier))
-    (tuple
+    (index_columns
       (column_reference
         (identifier))
       (column_reference
         (identifier)))
     (column_reference
       (identifier))))
+
+================================================================================
+CREATE INDEX with ASC and DESC
+================================================================================
+
+CREATE INDEX by_total ON orders (total DESC, id ASC) TYPE minmax GRANULARITY 2; CREATE INDEX by_day ON orders toDate(ts) TYPE set(100);
+CREATE HYPOTHETICAL INDEX maybe ON orders (total) TYPE bloom_filter;
+
+---
+
+(source_file
+  (create_index_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (index_columns
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier)))
+    (column_reference
+      (identifier))
+    (number))
+  (create_index_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (function_call
+      (identifier)
+      (arguments
+        (column_reference
+          (identifier))))
+    (function_call
+      (identifier)
+      (arguments
+        (number))))
+  (create_index_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (index_columns
+      (column_reference
+        (identifier)))
+    (column_reference
+      (identifier))))
+
+================================================================================
+COMMENT after the query of CREATE
+================================================================================
+
+CREATE VIEW recent AS SELECT id FROM orders WHERE ts > now() - 3600 COMMENT 'the last hour';
+CREATE TABLE copy ENGINE = Memory AS SELECT * FROM orders COMMENT 'a copy';
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (as_clause
+      (select
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (binary_expression
+              (function_call
+                (identifier)
+                (arguments))
+              (operator)
+              (number))))))
+    (comment_clause
+      (string)))
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (engine_clause
+      (identifier))
+    (as_clause
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))
+    (comment_clause
+      (string))))
+
+================================================================================
+REFRESH with more than one unit
+================================================================================
+
+CREATE MATERIALIZED VIEW hourly REFRESH EVERY 1 HOUR 30 MINUTE OFFSET 5 MINUTE 10 SECOND TO dest AS SELECT 1;
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (refresh_clause
+      (number)
+      (interval_unit)
+      (number)
+      (interval_unit)
+      (number)
+      (interval_unit)
+      (number)
+      (interval_unit))
+    (to_clause
+      (object_reference
+        (identifier)))
+    (as_clause
+      (select
+        (number)))))
+
+================================================================================
+LIVE VIEW with REFRESH and TIMEOUT
+================================================================================
+
+CREATE LIVE VIEW live_count WITH REFRESH 5 AS SELECT count() FROM orders;
+CREATE LIVE VIEW live_once WITH TIMEOUT 10 AND REFRESH 2 AS SELECT 1;
+CREATE LIVE VIEW live_plain WITH REFRESH AS SELECT 2;
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (number)
+    (as_clause
+      (select
+        (function_call
+          (identifier)
+          (arguments))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (number)
+    (number)
+    (as_clause
+      (select
+        (number))))
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (as_clause
+      (select
+        (number)))))
