@@ -136,7 +136,7 @@ func (c *completer) complete(ctx context.Context, w io.Writer, src []byte, layer
 	case ok && top.Kind() == "meta_command" && !strings.Contains(string(src[min(top.EndByte(), start):start]), "\n"):
 		c.metaCommand(w, src, top, start)
 		return nil
-	case ok && top.Kind() == "statement" && (start < top.EndByte() || src[top.EndByte()-1] != ';'):
+	case ok && top.Kind() == "statement" && (start < top.EndByte() || !terminated(top)):
 		if v, ok := enclosing(root, start, "variable"); ok {
 			variable(w, src, root, v, word)
 			return nil
@@ -291,6 +291,13 @@ func topLevel(root transit.Node, offset int) (transit.Node, bool) {
 		top, ok = n, true
 	}
 	return top, ok
+}
+
+// terminated reports whether the statement ends with its ;, or with a line
+// with only /, which the grammar reads as the node slash (D135).
+func terminated(statement transit.Node) bool {
+	last, ok := statement.Child(statement.ChildCount() - 1)
+	return ok && (last.Kind() == ";" || last.Kind() == "slash")
 }
 
 // enclosing returns the node of the kind that holds offset, and false when

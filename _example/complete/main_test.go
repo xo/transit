@@ -33,6 +33,8 @@ func TestRun(t *testing.T) {
 		{"postgres", meta + "select 1; sel", "", []string{"in a SQL statement of postgres", "keywords: SELECT\n"}},
 		{"postgres", meta + "select 1; ", "", []string{"at the start of a SQL statement of postgres", " SELECT "}},
 		{"mysql", meta + "select id from ", "", []string{"in a SQL statement of mysql", "nodes: ", " table_reference "}},
+		{"oracle", "select 1 from dual\n/\n", "", []string{"at the start of a SQL statement of oracle"}},
+		{"oracle", "begin null; end;\n/\n", "", []string{"at the start of a SQL statement of oracle"}},
 	} {
 		var out bytes.Buffer
 		text := test.before + test.after

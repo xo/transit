@@ -14,6 +14,10 @@
           {
             "type": "SYMBOL",
             "name": "meta_command"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "slash"
           }
         ]
       }
@@ -38,13 +42,22 @@
                 "type": "CHOICE",
                 "members": [
                   {
-                    "type": "ALIAS",
-                    "content": {
-                      "type": "SYMBOL",
-                      "name": "_semicolon"
-                    },
-                    "named": false,
-                    "value": ";"
+                    "type": "CHOICE",
+                    "members": [
+                      {
+                        "type": "ALIAS",
+                        "content": {
+                          "type": "SYMBOL",
+                          "name": "_semicolon"
+                        },
+                        "named": false,
+                        "value": ";"
+                      },
+                      {
+                        "type": "SYMBOL",
+                        "name": "slash"
+                      }
+                    ]
                   },
                   {
                     "type": "BLANK"
@@ -637,6 +650,10 @@
     {
       "type": "SYMBOL",
       "name": "_semicolon"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "slash"
     },
     {
       "type": "SYMBOL",

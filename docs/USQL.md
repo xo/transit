@@ -155,8 +155,9 @@ corpus, so xo writes the Oracle grammar from the references of Oracle
 Database 23ai in `grammars/oracle` (D124). One grammar reads SQL and
 PL/SQL, because PL/SQL is not in a quoted string in Oracle. A `/` alone on
 its line ends a statement or a PL/SQL unit, as in a script of SQL*Plus.
-usql gives such a line to the SQL grammar, and the Oracle grammar reads it
-as the end of a statement. The grammar reads a whole PL/SQL unit, such as
+With the option `AnonymousBlocks`, the usql grammar reads such a line as
+the node `slash` (D135), and usql does not send it to the server. The
+Oracle grammar reads it as the end of a statement. The grammar reads a whole PL/SQL unit, such as
 a package body, as one statement. `Crary-Systems/tree-sitter-tsql` covers
 little of Transact-SQL, so xo writes the SQL Server grammar from the
 Transact-SQL reference of SQL Server 2025 in `grammars/sqlserver` (D124).
@@ -327,14 +328,30 @@ only. These rules hold:
    does not end the statement until the body ends.
 3. The statement ends at the first `;` after the `END` of the outer
    `BEGIN`.
-4. A line with only `/` and white space also ends the statement, as in
-   SQL*Plus. The `/` is the end of the statement in the tree, where a `;`
-   can be, so the SQL layer holds it, and the Oracle grammar reads it as the
-   end of a statement. A `/` with other text on its line is text.
-5. A meta command ends the statement, as it ends any statement.
-6. The option does not change a statement that starts with another word. A
-   `/` alone on its line after such a statement stays a part of the text,
-   as it does without the option.
+4. A meta command ends the statement, as it ends any statement.
+5. The option does not change a statement that starts with another word.
+
+With the option on, a line with only `/` and white space is never the text
+of a statement (D135). In a script of SQL*Plus, such a line follows each
+PL/SQL unit. The grammar reads it as the named node `slash`, which holds
+only the `/` and not the white space or the end of the line. These rules
+hold for every statement, and not only for an anonymous block:
+
+1. After a statement with no `;`, such as `select 1 from dual`, the `slash`
+   ends the statement. It is the last child of the `statement`, in the
+   place of the `;`. It ends the statement inside a block or inside
+   parentheses too.
+2. After a statement that ended with `;`, such as a block, `CREATE
+   PROCEDURE ... END;` or `select 1 from dual;`, the `slash` is a child of
+   `source_file` between the statements.
+3. A `/` with other text on its line is text. A `/` in a string, a quoted
+   identifier or a comment is a part of that token.
+4. The injection query gives the whole `statement` to the SQL layer, with
+   its children, so the SQL layer holds the `slash` of rule 1. The Oracle
+   grammar reads it as the end of a statement. This needs no change of the
+   injection query.
+
+With the option off, a tree holds no `slash` node, and a `/` line is text.
 
 A batch of CQL holds semicolons too. usql collects a batch from
 `BEGIN BATCH` to `APPLY BATCH` today. With the option `Batches` on, the
@@ -350,6 +367,28 @@ usql turns it on for CQL. These rules hold:
 4. The scanner reads the words outside strings, quoted identifiers and
    comments, as it does for `BeginEndBlocks`. A meta command ends the
    statement, as it ends any statement.
+
+## How usql reads a statement
+
+The package `feed` of usql reads the statements from the tree, and
+`drivers.Process` of usql changes the text before it runs. usql relies on
+these facts of the tree of the usql grammar. The usql peer gave them on
+2026-11-02, from `feed/feed.go` and `drivers/drivers.go` of usql:
+
+1. `feed` walks the children of `source_file`. It reads a `statement` and a
+   `meta_command`, and it skips any other node with no error. So it skips
+   a `slash` between the statements, with no change in usql.
+2. `feed` sends the bytes of the whole `statement` node, with its `;`. It
+   marks the statement as terminated when the statement has an anonymous
+   child of kind `;`.
+3. `drivers.Process` removes the `;` at the end of the text later, with the
+   regular expression `;?\s*$`. It does this only for a dialect whose rule
+   `Terminator` of dbmeta says so. Nothing in usql removes a `/`. So the
+   anonymous `;` must stay in the text of the statement.
+4. When the last child of a `statement` is a `slash`, `feed` will mark the
+   statement as terminated. It will cut the text at the start of the
+   `slash`, and it will remove the white space at the end of the text. So
+   the `/` is not in the text that usql sends.
 
 ## What usql must not do
 

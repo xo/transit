@@ -159,6 +159,10 @@
           "named": true
         },
         {
+          "type": "slash",
+          "named": true
+        },
+        {
           "type": "statement",
           "named": true
         }
@@ -179,6 +183,10 @@
         },
         {
           "type": "quoted_identifier",
+          "named": true
+        },
+        {
+          "type": "slash",
           "named": true
         },
         {
@@ -271,6 +279,10 @@
   },
   {
     "type": "shell_command",
+    "named": true
+  },
+  {
+    "type": "slash",
     "named": true
   },
   {

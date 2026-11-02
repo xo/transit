@@ -1,7 +1,7 @@
 package usql
 
 // This file is a port of src/scanner.c of the usql grammar of transit, in
-// grammars/usql (D101, D102, D108, D112, D128, D130, D131, D134).
+// grammars/usql (D101, D102, D108, D112, D128, D130, D131, D134, D135).
 //
 // The scanner reads every token of the grammar. It finds the end of a
 // statement, the strings, the dollar quotes, the comments and the depth of
@@ -40,8 +40,10 @@ package usql
 // DECLARE is a block. The scanner counts BEGIN and END as it does for a
 // stored program. Every BEGIN in the block starts a block, but a BEGIN that
 // a ;, WORK or TRANSACTION follows does not (D131). The statement ends at
-// the ; after the END of the outer BEGIN, or at a / alone on its line, as
-// in SQL*Plus.
+// the ; after the END of the outer BEGIN. With the option AnonymousBlocks, a
+// / alone on its line is the token slash, as in SQL*Plus, and it is never
+// the text of a statement (D135). After a statement with no ;, it ends the
+// statement in the place of the ;. After a ;, it is a node of its own.
 //
 // After a colon and a quote, the scanner must read the name and the closing
 // quote before it knows whether the colon starts a variable, as :'name', or
@@ -69,6 +71,7 @@ const (
 	dollarString
 	comment
 	semicolon
+	slash
 	backslash
 	backslashOptions
 	commandBase
@@ -1107,19 +1110,19 @@ func (s *scanner) scanText(lexer *abi.Lexer, validSymbols []bool, opts Options, 
 					}
 					return scanBlockComment(lexer)
 				}
-				if c == '/' && alone && s.anonymous != 0 && (lexer.EOF() || isSpace(d)) {
+				if c == '/' && alone && opts.AnonymousBlocks && (lexer.EOF() || isSpace(d)) {
 					if content {
 						// the next token starts at the /, at the start of its
 						// line
 						break
 					}
 					lexer.MarkEnd()
-					if scanSlashLine(lexer) {
-						// a / alone on its line ends an anonymous block, as in
+					if scanSlashLine(lexer) && validSymbols[slash] {
+						// a / alone on its line ends the statement, as in
 						// SQL*Plus
 						s.depth = 0
 						s.resetBlocks()
-						lexer.ResultSymbol = semicolon
+						lexer.ResultSymbol = slash
 						return true
 					}
 					content = true
@@ -1371,18 +1374,27 @@ func (s *scanner) scanArguments(lexer *abi.Lexer, validSymbols []bool, opts Opti
 // scanSQL is scan_sql. It scans a token of SQL, or the name of a meta
 // command.
 func (s *scanner) scanSQL(lexer *abi.Lexer, validSymbols []bool, opts Options) bool {
-	// prev is a new line when the white space ends a line
+	// prev is a new line when the white space ends a line, and skipped
+	// counts the characters of the white space
 	var prev int32
+	var skipped uint32
 	for !lexer.EOF() && isSpace(lexer.Lookahead) {
 		if isNewline(lexer.Lookahead) {
 			prev = '\n'
 		}
 		skip(lexer)
+		skipped++
 	}
 	if lexer.EOF() {
 		return false
 	}
 	c := lexer.Lookahead
+	if c == '/' && prev == 0 && opts.AnonymousBlocks && validSymbols[slash] &&
+		lexer.GetColumn() == skipped {
+		// the scan starts at the start of a line, such as the start of the
+		// input, so the / is the first character of its line
+		prev = '\n'
+	}
 	if c == '\\' {
 		advance(lexer)
 		if lexer.Lookahead == ';' || lexer.Lookahead == ':' {

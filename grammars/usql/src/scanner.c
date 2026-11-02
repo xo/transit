@@ -1,5 +1,5 @@
 // The external scanner of the usql grammar (D101, D102, D108, D112, D128,
-// D130, D131, D134).
+// D130, D131, D134, D135).
 //
 // The scanner reads every token of the grammar. It finds the end of a
 // statement, the strings, the dollar quotes, the comments and the depth of
@@ -37,8 +37,10 @@
 // DECLARE is a block. The scanner counts BEGIN and END as it does for a
 // stored program. Every BEGIN in the block starts a block, but a BEGIN that
 // a ;, WORK or TRANSACTION follows does not (D131). The statement ends at
-// the ; after the END of the outer BEGIN, or at a / alone on its line, as
-// in SQL*Plus.
+// the ; after the END of the outer BEGIN. With USQL_ANONYMOUS_BLOCKS, a /
+// alone on its line is the token SLASH, as in SQL*Plus, and it is never the
+// text of a statement (D135). After a statement with no ;, it ends the
+// statement in the place of the ;. After a ;, it is a node of its own.
 //
 // After a colon and a quote, the scanner must read the name and the closing
 // quote before it knows whether the colon starts a variable, as :'name', or
@@ -79,6 +81,7 @@ enum TokenType {
   DOLLAR_STRING,
   COMMENT,
   SEMICOLON,
+  SLASH,
   BACKSLASH,
   BACKSLASH_OPTIONS,
   COMMAND_BASE,
@@ -1124,17 +1127,18 @@ static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int
           advance(lexer);
           return line ? scan_line_comment(lexer) : scan_block_comment(lexer);
         }
-        if (c == '/' && alone && s->anonymous && (lexer->eof(lexer) || is_space(d))) {
+        if (c == '/' && alone && (options & USQL_ANONYMOUS_BLOCKS) &&
+            (lexer->eof(lexer) || is_space(d))) {
           if (content) {
             // the next token starts at the /, at the start of its line
             break;
           }
           lexer->mark_end(lexer);
-          if (scan_slash_line(lexer)) {
-            // a / alone on its line ends an anonymous block, as in SQL*Plus
+          if (scan_slash_line(lexer) && valid_symbols[SLASH]) {
+            // a / alone on its line ends the statement, as in SQL*Plus
             s->depth = 0;
             reset_blocks(s);
-            lexer->result_symbol = SEMICOLON;
+            lexer->result_symbol = SLASH;
             return true;
           }
           content = true;
@@ -1374,18 +1378,27 @@ static bool scan_arguments(Scanner *s, TSLexer *lexer, const bool *valid_symbols
 
 // scan_sql scans a token of SQL, or the name of a meta command.
 static bool scan_sql(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int options) {
-  // prev is a new line when the white space ends a line
+  // prev is a new line when the white space ends a line, and skipped
+  // counts the characters of the white space
   int32_t prev = 0;
+  uint32_t skipped = 0;
   while (!lexer->eof(lexer) && is_space(lexer->lookahead)) {
     if (is_newline(lexer->lookahead)) {
       prev = '\n';
     }
     skip(lexer);
+    skipped++;
   }
   if (lexer->eof(lexer)) {
     return false;
   }
   int32_t c = lexer->lookahead;
+  if (c == '/' && prev == 0 && (options & USQL_ANONYMOUS_BLOCKS) && valid_symbols[SLASH] &&
+      lexer->get_column(lexer) == skipped) {
+    // the scan starts at the start of a line, such as the start of the
+    // input, so the / is the first character of its line
+    prev = '\n';
+  }
   if (c == '\\') {
     advance(lexer);
     if (lexer->lookahead == ';' || lexer->lookahead == ':') {

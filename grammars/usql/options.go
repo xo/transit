@@ -44,10 +44,17 @@ type Options struct {
 	// AnonymousBlocks keeps an anonymous block of PL/SQL in one statement
 	// (D128). A statement that starts with BEGIN or DECLARE is a block. The
 	// scanner counts BEGIN and END, and the statement ends at the ; after
-	// the END of the outer BEGIN, or at a line with only /, as in SQL*Plus.
-	// In the block, a BEGIN that a ;, WORK or TRANSACTION follows starts a
-	// transaction and not a block (D131). A statement that starts with
-	// another word does not change. It is not a flag of dbmeta.
+	// the END of the outer BEGIN. In the block, a BEGIN that a ;, WORK or
+	// TRANSACTION follows starts a transaction and not a block (D131). A
+	// statement that starts with another word does not change.
+	//
+	// With AnonymousBlocks, a line with only / and white space is the node
+	// slash, as in SQL*Plus, and it is never the text of a statement
+	// (D135). The node holds only the /. After a statement with no ;, such
+	// as select 1 from dual, the slash is the last child of the statement,
+	// in the place of the ;, so it ends any statement. After a statement
+	// that ended with ;, the slash is a child of source_file between the
+	// statements. It is not a flag of dbmeta.
 	AnonymousBlocks bool
 	// Batches keeps a batch of CQL in one statement. After BEGIN BATCH,
 	// BEGIN UNLOGGED BATCH or BEGIN COUNTER BATCH at the start of a

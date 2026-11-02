@@ -11443,8 +11443,8 @@
       "status": "available",
       "golden": {
         "abi14": {
-          "parser_c": "c27b72c88213072f07129125e0f0e72e9a153491b495fa2dd7c0c0046d65a057",
-          "node_types": "8890a72b97de981c9b0825e37d992a79b6e6024916d36976b6369a242f38e570",
+          "parser_c": "f1acdf577a12dce755305a026f5dbf619956030725643b1c7fd4bd2d40b9ad93",
+          "node_types": "96d05c7bb03712c159e12185c790ab7612ef98e10a4e4a46beaa1e44b39d5b39",
           "paths": [
             "field map",
             "alias sequences",
@@ -11460,8 +11460,8 @@
           ]
         },
         "abi15": {
-          "parser_c": "b3ef6b8dc266dd02d440acb364a3c3ca1f61a9d22ae146cddd4dad66118781c2",
-          "node_types": "8890a72b97de981c9b0825e37d992a79b6e6024916d36976b6369a242f38e570",
+          "parser_c": "3bf93b54b3428581ea3023cc7a0dc77a4f6147910e5bdaf092a69263dc786e8d",
+          "node_types": "96d05c7bb03712c159e12185c790ab7612ef98e10a4e4a46beaa1e44b39d5b39",
           "paths": [
             "field map",
             "alias sequences",

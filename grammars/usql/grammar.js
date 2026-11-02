@@ -12,7 +12,10 @@
 // meta command, so the rules here stay small (D102).
 //
 // Each SQL statement is one node, and queries/injections.scm injects it
-// with the language sql. A meta command is one node, meta_command, with the
+// with the language sql. With the option AnonymousBlocks, a line with only /
+// is the node slash (D135). After a statement with no ;, the slash ends the
+// statement, in the place of the ;. After a statement that ended with ;, the
+// slash is a node of its own between the statements. A meta command is one node, meta_command, with the
 // field name. Its arguments are its children. The commands \if, \elif,
 // \else and \endif are meta commands like the others, and the tree does not
 // nest the text between them.
@@ -36,6 +39,7 @@ module.exports = grammar({
     $.dollar_string,
     $.comment,
     $._semicolon,
+    $.slash,
     $._backslash,
     $._backslash_options,
     $._command_base,
@@ -66,12 +70,12 @@ module.exports = grammar({
   ],
 
   rules: {
-    source_file: $ => repeat(choice($.statement, $.meta_command)),
+    source_file: $ => repeat(choice($.statement, $.meta_command, $.slash)),
 
-    // A statement ends at a semicolon outside parentheses, at a meta
-    // command or at the end of the input.
+    // A statement ends at a semicolon outside parentheses, at a slash, at a
+    // meta command or at the end of the input.
     statement: $ => choice(
-      prec.right(seq(repeat1($._piece), optional(alias($._semicolon, ';')))),
+      prec.right(seq(repeat1($._piece), optional(choice(alias($._semicolon, ';'), $.slash)))),
       alias($._semicolon, ';'),
     ),
 

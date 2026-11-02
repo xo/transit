@@ -56,4 +56,7 @@
 
 "=" @operator
 
-";" @punctuation.delimiter
+[
+  ";"
+  (slash)
+] @punctuation.delimiter
