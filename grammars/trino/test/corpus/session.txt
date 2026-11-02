@@ -585,3 +585,40 @@ ROLLBACK;
   (start_transaction_statement)
   (commit_statement)
   (rollback_statement))
+
+================================================================================
+GRANT, REVOKE and DENY on a kind of object of a connector
+================================================================================
+
+grant select on catalog_view sales.v to role readers; revoke all privileges on catalog_view sales.v from alice; deny delete on function_kind f to bob; show grants on catalog_view sales.v;
+
+---
+
+(source_file
+  (grant_statement
+    (privilege)
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))
+    (principal
+      (identifier)))
+  (revoke_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))
+    (principal
+      (identifier)))
+  (deny_statement
+    (privilege)
+    (identifier)
+    (object_reference
+      (identifier))
+    (principal
+      (identifier)))
+  (show_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))))

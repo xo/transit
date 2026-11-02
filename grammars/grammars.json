@@ -11382,8 +11382,8 @@
       "status": "available",
       "golden": {
         "abi14": {
-          "parser_c": "4be9504b092c34145d5b240b16574dd7e4fbaede0890954ed4d4ed95100ad1ed",
-          "node_types": "aa80cda5d7bd6e1dab215c13cb5139e8b87820a25947984103ed2327b01cf8f2",
+          "parser_c": "802e47d78b3b1dcfcdee81d60bb174ef5d54ea921e359a7732747cc04e415ad6",
+          "node_types": "c59f74bf62585374b4b800280838bd3ae74f57f272b9f4287739303cc1da6086",
           "paths": [
             "field map",
             "inherited field",
@@ -11402,8 +11402,8 @@
           ]
         },
         "abi15": {
-          "parser_c": "27f712b6dda45c324380566305261b9ea0e4fbd948429d3e9d3c6f10453d3f15",
-          "node_types": "aa80cda5d7bd6e1dab215c13cb5139e8b87820a25947984103ed2327b01cf8f2",
+          "parser_c": "120625dec97ebc2aa64e84db3416846292bf135e052d5cdd0261be4fc5152cf4",
+          "node_types": "c59f74bf62585374b4b800280838bd3ae74f57f272b9f4287739303cc1da6086",
           "paths": [
             "field map",
             "inherited field",
@@ -11426,7 +11426,7 @@
         }
       },
       "corpus": {
-        "tests": 172,
+        "tests": 177,
         "failures": 0,
         "transit": "same"
       }

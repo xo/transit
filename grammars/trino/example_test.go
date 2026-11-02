@@ -51,5 +51,5 @@ line';
 	}
 	// Output:
 	// (source_file (select_statement (select (string) (string) (string))))
-	// patterns in queries/highlights.scm: 114
+	// patterns in queries/highlights.scm: 115
 }

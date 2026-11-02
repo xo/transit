@@ -403,6 +403,11 @@
 (principal
   name: (identifier) @variable)
 
+; The name of a kind of object that a connector defines, as in GRANT
+; SELECT ON kind t, which takes the place of TABLE or SCHEMA.
+(_
+  kind: (identifier) @keyword)
+
 (set_statement
   name: (object_reference
     name: (identifier) @variable.builtin))

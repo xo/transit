@@ -518,16 +518,6 @@ The grammar leaves out these forms of the other statements:
 The Trino grammar that xo writes (D127) reads each statement of the SQL
 documentation of Trino. The grammar leaves out these forms of a query:
 
-- An expression with an operator as the value of a property of `WITH
-  SESSION`, as in `WITH SESSION a = 1 + 1 SELECT 1`. The value is a
-  literal, a typed literal, a `CAST`, a name or a signed number. Any
-  expression cost about 180 parse states, because the body of the query
-  can start with `(` after the value.
-- An expression with an operator after `FOR TIMESTAMP AS OF` and `FOR
-  VERSION AS OF`. The version is a literal, a typed literal, a `CAST`, a
-  value such as `CURRENT_TIMESTAMP`, a parameter or an expression in
-  parentheses. Any expression cost about 260 parse states, because an
-  alias can come after it.
 - `RUNNING` and `FINAL` before a function call inside another expression,
   as in `MEASURES concat_ws('', RUNNING array_agg(x)) AS m`. The grammar
   takes them at the start of a measure and of a condition of `DEFINE`. A
@@ -556,11 +546,6 @@ documentation of Trino. The grammar leaves out these forms of a query:
 
 The grammar leaves out these forms of the other statements:
 
-- An object of `GRANT`, `REVOKE` and `DENY` with a kind other than
-  `TABLE` and `SCHEMA`, as in `GRANT SELECT ON kind t TO u`, and `ALTER
-  kind t SET AUTHORIZATION u` for such a kind. The parser of Trino takes
-  the name of a kind that a connector defines, but the documentation does
-  not show it. The kind of `GRANT` costs about 4 parse states.
 - A value with an operator after `DEFAULT` in a column, as in `c integer
   DEFAULT 1 + 1`. The value ends before an operator, so that `NOT NULL`
   after it is a part of the column. `DEFAULT (1 + 1)` works.

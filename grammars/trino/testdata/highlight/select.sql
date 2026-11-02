@@ -47,3 +47,12 @@ WITH FUNCTION twice(x bigint) RETURNS bigint RETURN x * 2 SELECT twice(3);
 --                            ^ keyword
 --                                           ^ keyword.return
 --                                                               ^ function.call
+WITH SESSION max_hours = 2 * 24 SELECT 1;
+--           ^ variable.builtin
+--                     ^ operator
+--                       ^ number
+--                         ^ operator
+SELECT * FROM events FOR VERSION AS OF 100 + 5 e;
+--                   ^ keyword
+--                                     ^ number
+--                                         ^ operator

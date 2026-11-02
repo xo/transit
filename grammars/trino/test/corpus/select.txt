@@ -250,8 +250,9 @@ WITH SESSION query_max_execution_time = '2h', example.query_partition_filter_req
       (session_property
         (object_reference
           (identifier))
-        (operator)
-        (number)))
+        (unary_expression
+          (operator)
+          (number))))
     (select
       (star_expression)
       (from_clause
@@ -1690,3 +1691,79 @@ SELECT * FROM trades t, NEAREST (FROM quotes q WHERE q.sym = t.sym AND q.price I
             (column_reference
               (identifier)
               (identifier))))))))
+
+================================================================================
+WITH SESSION with an expression as a value
+================================================================================
+
+with session max_hours = 2 * 24, label = 'run' || '-' || 'a' select 1;
+
+---
+
+(source_file
+  (select_statement
+    (with_clause
+      (session_property
+        (object_reference
+          (identifier))
+        (binary_expression
+          (number)
+          (operator)
+          (number)))
+      (session_property
+        (object_reference
+          (identifier))
+        (binary_expression
+          (binary_expression
+            (string)
+            (operator)
+            (string))
+          (operator)
+          (string))))
+    (select
+      (number))))
+
+================================================================================
+FOR VERSION AS OF and FOR TIMESTAMP AS OF with an expression
+================================================================================
+
+select * from events for version as of 100 + 5 e where e.id = 1; select * from events for timestamp as of current_timestamp - interval '1' day as e;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))
+          (query_period
+            (binary_expression
+              (number)
+              (operator)
+              (number)))
+          (identifier)))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (operator)
+          (number)))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))
+          (query_period
+            (binary_expression
+              (current_value)
+              (operator)
+              (interval_literal
+                (string)
+                (interval_qualifier))))
+          (identifier))))))

@@ -240,6 +240,7 @@ module.exports = grammar({
       $.alter_materialized_view_statement,
       $.alter_schema_statement,
       $.alter_branch_statement,
+      $.alter_authorization_statement,
       $.drop_statement,
       $.comment_statement,
       $.refresh_statement,
@@ -375,7 +376,7 @@ module.exports = grammar({
         $.column_list,
       )),
       repeat(choice($._comment, $._with_properties)),
-      optional(seq(kw('AS'), $.select_statement)),
+      optional(seq(kw('AS'), alias($._create_query, $.select_statement))),
     ),
 
     // A column of CREATE TABLE and of ALTER TABLE ADD COLUMN. A column of
@@ -583,6 +584,17 @@ module.exports = grammar({
       field('target', $._name),
     ),
 
+    // ALTER with the name of a kind of object that a connector defines
+    // changes the owner of such an object, as in ALTER kind t SET
+    // AUTHORIZATION u (D134). ALTER TABLE, VIEW, MATERIALIZED VIEW and
+    // SCHEMA take SET AUTHORIZATION in their own rules.
+    alter_authorization_statement: $ => seq(
+      kw('ALTER'),
+      field('kind', $._name),
+      field('name', $.object_reference),
+      $._set_authorization,
+    ),
+
     // DROP deletes an object. CASCADE also deletes the objects of a schema
     // or a catalog. DROP FUNCTION names the types of the parameters, because
     // two functions can have the same name.
@@ -708,12 +720,14 @@ module.exports = grammar({
       alias(keyword('ADMIN'), $.identifier),
     ),
 
-    // The object of a privilege: a table, a schema, or a branch of a table.
+    // The object of a privilege: a table, a schema, a branch of a table, or
+    // an object of a kind that a connector defines, with the name of the
+    // kind before the name of the object (D134).
     _grant_object: $ => seq(
       kw('ON'),
       optional(seq(kw('BRANCH'), field('branch', $._name), kw('IN'))),
       choice(
-        seq(optional(kw('TABLE')), field('object', $.object_reference)),
+        seq(optional(choice(kw('TABLE'), field('kind', $._name))), field('object', $.object_reference)),
         seq(kw('SCHEMA'), field('object', $.schema_reference)),
       ),
     ),
@@ -923,15 +937,26 @@ module.exports = grammar({
         $.offset_clause,
         $.limit_clause,
         $.fetch_clause,
+      )),
+    )),
+
+    // The query of CREATE TABLE AS is a query that also takes WITH DATA and
+    // WITH NO DATA among the clauses after its body (D134). The rule costs
+    // about 820 parse states, because the states after an expression where
+    // WITH can come do not merge with the states where WITHIN can come. An
+    // optional WITH DATA after select_statement costs 12 states more.
+    _create_query: $ => prec.right(seq(
+      repeat($.with_clause),
+      $._query_body,
+      repeat(choice(
+        $.order_by_clause,
+        $.offset_clause,
+        $.limit_clause,
+        $.fetch_clause,
         $._with_data,
       )),
     )),
 
-    // WITH DATA and WITH NO DATA come after the query of CREATE TABLE AS.
-    // The grammar takes them after any query. After the query of CREATE
-    // TABLE only, they cost about 730 parse states, because the states after
-    // an expression where WITH can come do not merge with the states where
-    // WITHIN can come. After any query, they cost about 440 states.
     _with_data: _ => seq(kw('WITH'), optional(kw('NO')), kw('DATA')),
 
     // WITH names the queries that the query reads, after RECURSIVE when
@@ -946,13 +971,14 @@ module.exports = grammar({
       ),
     ),
 
-    // The value of a session property is a literal, a typed literal, a
-    // CAST, a name or a signed number. Any expression cost about 180 parse
-    // states, because the body of the query can start with ( after it.
+    // The value of a session property is any expression (D134). A name and
+    // ( after it start a function call, as in Trino, so the body of the
+    // query after a name as the value cannot start with (. Any expression
+    // costs no parse states.
     session_property: $ => seq(
       field('name', $.object_reference),
       '=',
-      field('value', choice($._literal, $.typed_literal, $.cast_expression, $._name, seq(alias($._sign, $.operator), $.number))),
+      field('value', $._expression),
     ),
 
     cte: $ => seq(
@@ -1080,10 +1106,9 @@ module.exports = grammar({
 
     // A table. FOR TIMESTAMP AS OF and FOR VERSION AS OF read an earlier
     // version of the table, as the connectors of Iceberg and Delta Lake do.
-    // The version is a literal, a CAST, a value such as CURRENT_TIMESTAMP,
-    // a parameter or an expression in parentheses. Any
-    // expression cost about 260 parse states, because an alias can come
-    // after it.
+    // The version is any expression (D134). It costs about 400 parse
+    // states, because an alias and the clauses of FROM can come after the
+    // expression, and the states after an expression are copied for them.
     table_reference: $ => prec.right(seq(
       field('table', $.object_reference),
       optional($.query_period),
@@ -1094,7 +1119,7 @@ module.exports = grammar({
       kw('FOR'),
       choice(kw('TIMESTAMP'), kw('VERSION')),
       kws('AS', 'OF'),
-      field('value', choice($._literal, $.typed_literal, $.cast_expression, $.current_value, $.parameter, $.parenthesized_expression)),
+      field('value', $._expression),
     ),
 
     // An alias of a table, with the names of its columns.

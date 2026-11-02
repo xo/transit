@@ -56,3 +56,20 @@ GRANT SELECT ON TABLE orders TO USER alice WITH GRANT OPTION;
 --                              ^ keyword
 --                                   ^ variable
 --                                                    ^ keyword
+GRANT SELECT ON catalog_view sales.v TO ROLE readers;
+-- <- keyword
+--              ^ keyword
+--                           ^ module
+--                                 ^ type
+--                                   ^ keyword
+--                                             ^ variable
+ALTER catalog_view sales.v SET AUTHORIZATION owners;
+-- <- keyword
+--    ^ keyword
+--                       ^ type
+--                         ^ keyword
+--                                           ^ variable
+CREATE TABLE copy AS SELECT * FROM orders WITH NO DATA;
+--                                        ^ keyword
+--                                             ^ keyword
+--                                                ^ keyword

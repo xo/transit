@@ -888,3 +888,46 @@ CREATE FUNCTION now_utc() RETURNS timestamp(3) WITH (owner = 'ops') RETURN curre
           (string)))
       (return_statement
         (current_value)))))
+
+================================================================================
+ALTER of a kind of object of a connector
+================================================================================
+
+alter catalog_view sales.v set authorization role owners;
+
+---
+
+(source_file
+  (alter_authorization_statement
+    (identifier)
+    (object_reference
+      (identifier)
+      (identifier))
+    (principal
+      (identifier))))
+
+================================================================================
+CREATE TABLE AS with WITH DATA after LIMIT
+================================================================================
+
+create table top10 as select * from orders order by total desc limit 10 with data;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))
+      (order_by_clause
+        (order_by_item
+          (column_reference
+            (identifier))))
+      (limit_clause
+        (number)))))

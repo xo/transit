@@ -511,29 +511,37 @@ Each one follows these rules, in addition to the rest of this document:
    keyword for each name, 39 more states took the large form. Only `ROW`
    takes an argument with `AS`, as in `ROW(1 AS a)`. `AS` after any
    argument of any function cost about 370 states. The value of a session
-   property of `WITH SESSION` is a literal, a typed literal, a `CAST`, a
-   name or a signed number, because the body of the query can start with
-   `(` after it. Any expression cost about 180 states. The version after
-   `FOR TIMESTAMP AS OF` is a literal or an expression in parentheses,
-   because an alias can come after it. Any expression cost about 260
-   states. The predicate `MATCH`, as in `r MATCH (SELECT a, b FROM t)`,
-   costs about 320 states, 4 of them large. `MATCH` can come after each
-   expression, and the upstream tool does not merge the states where
-   `MATCH` can come with the states where `MATCH_RECOGNIZE` can come, so
-   about 150 of the states come from `MATCH_RECOGNIZE`. `MATCH` binds more
-   loosely than `OR` in the grammar, so that `MATCH` after the condition of
-   `WHERE` in `NEAREST` starts the clause `MATCH` of `NEAREST`.
-   The Trino grammar reads `WITH DATA` and `WITH NO DATA` after any query,
-   and not only after the query of `CREATE TABLE AS`. They cost about 440
-   states after any query, and about 730 states after the query of
-   `CREATE TABLE` only. The states after an expression where `WITH` can
-   come do not merge with the states where `WITHIN` can come, as in the
-   DuckDB grammar. The other statements of the documentation cost about
-   440 states together. `CREATE TABLE`, `ALTER TABLE` and `SHOW` cost
-   about 50 states each, and no other statement costs more than 40. The
-   options of `EXPLAIN` are a hidden rule of their own, so that the
-   statement after the options starts in one set of states. Each state
-   where a statement starts takes the large form, and the hidden rule
+   property of `WITH SESSION` is any expression, and it costs no states
+   (D134). A name and `(` after it start a function call, as in Trino, so
+   the body of the query after a name as the value cannot start with `(`.
+   The version after `FOR TIMESTAMP AS OF` and `FOR VERSION AS OF` is any
+   expression too (D134). It costs about 400 states and 52 KB of the tables,
+   because an alias and the clauses of `FROM` can come after it, and the
+   states after an expression are copied for them. The predicate `MATCH`, as
+   in `r MATCH (SELECT a, b FROM t)`, costs about 320 states, 4 of them
+   large. `MATCH` can come after each expression, and the upstream tool does
+   not merge the states where `MATCH` can come with the states where
+   `MATCH_RECOGNIZE` can come, so about 150 of the states come from
+   `MATCH_RECOGNIZE`. `MATCH` binds more loosely than `OR` in the grammar,
+   so that `MATCH` after the condition of `WHERE` in `NEAREST` starts the
+   clause `MATCH` of `NEAREST`. The Trino grammar reads `WITH DATA` and
+   `WITH NO DATA` only after the query of `CREATE TABLE AS` (D134). That
+   query is a rule of its own, `_create_query`, which takes them among the
+   clauses after the body of the query. They cost about 820 states and about
+   100 KB of the tables. After any query, they cost about 580 states. The
+   states after an expression where `WITH` can come do not merge with the
+   states where `WITHIN` can come, as in the DuckDB grammar. An optional
+   `WITH DATA` after the query costs 12 states more than the rule of its
+   own, and one token for `WITH DATA` costs 36 states more. `GRANT`,
+   `REVOKE`, `DENY` and `SHOW GRANTS` take the name of a kind of object that
+   a connector defines before the name of the object, as in `GRANT SELECT ON
+   kind t TO u`, and `ALTER kind t SET AUTHORIZATION u` is a statement of
+   its own (D134). They cost 7 states. The other statements of the
+   documentation cost about 440 states together. `CREATE TABLE`, `ALTER
+   TABLE` and `SHOW` cost about 50 states each, and no other statement costs
+   more than 40. The options of `EXPLAIN` are a hidden rule of their own, so
+   that the statement after the options starts in one set of states. Each
+   state where a statement starts takes the large form, and the hidden rule
    keeps 3 of them out. The values of `INSERT` in a clause of `MERGE` are
    one expression, a row value in parentheses. A list of expressions of
    its own cost about 40 states. `WITH` after a type can start `WITH TIME
