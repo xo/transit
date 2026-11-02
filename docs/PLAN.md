@@ -5,7 +5,7 @@ This document holds the plan for `github.com/xo/transit`. The decisions are in
 
 This plan was written on 2026-09-29, before any code existed (D3). Ken
 answered its open questions on that date, and later ones as they came. The
-decisions D1 to D134 record the answers and the other choices of Ken. A part
+decisions D1 to D135 record the answers and the other choices of Ken. A part
 of this plan that names a decision follows it. A new question
 goes at the end of this document until Ken answers it.
 
@@ -976,7 +976,8 @@ questions 99 to 101, and D125 records the answers. Question 102 asked for
 the SQLite and DuckDB grammars, and D126 records the answer. The usql
 peer raised questions 103 and 104 on 2026-11-01, and D128 and D130 record
 the answers. The Trino grammar raised question 105, and D134 records the
-answer. The next question is question 106.
+answer. The usql peer raised question 106 on 2026-11-02, and D135 records
+the answer. The next question is question 107.
 
 No question is open.
 
