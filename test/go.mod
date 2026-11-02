@@ -31,6 +31,7 @@ require (
 	github.com/xo/transit/grammars/sqlite3 v0.6.0
 	github.com/xo/transit/grammars/sqlserver v0.6.0
 	github.com/xo/transit/grammars/surrealdb v0.6.0
+	github.com/xo/transit/grammars/trino v0.6.0
 	github.com/xo/transit/grammars/typescript v0.6.0
 	github.com/xo/transit/grammars/usql v0.6.0
 	github.com/xo/transit/grammars/ydb v0.6.0
@@ -92,6 +93,8 @@ replace github.com/xo/transit/grammars/sqlite3 => ../grammars/sqlite3
 replace github.com/xo/transit/grammars/sqlserver => ../grammars/sqlserver
 
 replace github.com/xo/transit/grammars/surrealdb => ../grammars/surrealdb
+
+replace github.com/xo/transit/grammars/trino => ../grammars/trino
 
 replace github.com/xo/transit/grammars/typescript => ../grammars/typescript
 

@@ -197,6 +197,17 @@ reference. usql will give it to `clickhouse`.
 ClickHouse quotes a name with backquotes. A comment starts with `--`,
 `//`, `#` and a space, or `#!`, or it is `/* */`, and the grammar reads
 each of them.
+usql gives `trino` and `presto` the generic grammar today, which does not
+read the syntax of Trino, such as `MATCH_RECOGNIZE`, the table functions,
+`JSON_TABLE` and the lambdas. So xo writes the Trino grammar from the SQL
+documentation of Trino in `grammars/trino` (D127). It reads the queries
+today, and the other statements come later. usql will give it to `trino`,
+and to `presto` and `athena` too, because the SQL of Presto is the SQL
+that Trino grew from, and Athena runs Trino for its queries. The grammar
+does not read HiveQL, which Athena uses for its DDL, or the syntax that
+only Presto has. A SQL routine of Trino has a body of `BEGIN ... END`, so
+usql turns on `BeginEndBlocks` for `trino`. Presto and Athena refuse
+`BEGIN ... END`, so usql does not turn it on for them.
 SQL++, InfluxQL, KSQL, PartiQL, ES|QL and
 PPL have no grammar at all. transit writes the missing grammars, and the
 usql grammar, in `grammars/` (D42, D104). The other missing grammars come
@@ -213,6 +224,9 @@ for the flag `-dialect`, with these options of `usql.Options`:
 | `sqlite3` | `github.com/xo/transit/grammars/sqlite3` | `BlockComments`, `Backticks` |
 | `duckdb` | `github.com/xo/transit/grammars/duckdb` | `DollarQuotes`, `BlockComments` |
 | `clickhouse` | `github.com/xo/transit/grammars/clickhouse` | `BlockComments`, `SlashComments`, `HashComments`, `Backticks` |
+| `trino` | `github.com/xo/transit/grammars/trino` | `BlockComments`, `BeginEndBlocks` |
+| `presto` | `github.com/xo/transit/grammars/trino` | `BlockComments` |
+| `athena` | `github.com/xo/transit/grammars/trino` | `BlockComments` |
 | `sqlserver` | `github.com/xo/transit/grammars/sqlserver` | `BlockComments`, `BeginEndBlocks` |
 | `oracle` | `github.com/xo/transit/grammars/oracle` | `BlockComments`, `BeginEndBlocks`, `AnonymousBlocks` |
 | `cql` | `github.com/xo/transit/grammars/cql` | `DollarQuotes`, `BlockComments`, `SlashComments`, `Batches` |
@@ -220,8 +234,8 @@ for the flag `-dialect`, with these options of `usql.Options`:
 
 usql keeps this match itself. The repository of `cql` has no highlight
 query, so xo wrote the highlight query of its package (D113). xo writes the
-highlight queries of `oracle`, `sqlite3`, `duckdb`, `clickhouse` and
-`sqlserver` with their grammars.
+highlight queries of `oracle`, `sqlite3`, `duckdb`, `clickhouse`, `trino`
+and `sqlserver` with their grammars.
 
 The usql grammar ends a statement at each semicolon outside parentheses.
 The body of a stored program of MySQL, SQL Server or Oracle that is a

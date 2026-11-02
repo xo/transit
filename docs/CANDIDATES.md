@@ -264,7 +264,9 @@ because the one SQLite grammar that the search found,
 `dhcmrlchtdj/tree-sitter-sqlite`, is archived (D126). xo writes the DuckDB
 grammar too, because the search found no DuckDB grammar (D126). xo writes
 the ClickHouse grammar, because the search found no ClickHouse grammar
-(D127). It reads each statement of the SQL reference of ClickHouse.
+(D127). It reads each statement of the SQL reference of ClickHouse. xo
+writes the Trino grammar too, because the search found no Trino grammar
+(D127). It also serves the dialects `presto` and `athena`.
 
 ## The dialects of dbmeta
 

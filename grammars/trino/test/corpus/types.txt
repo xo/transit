@@ -1,0 +1,308 @@
+================================================================================
+Simple types
+================================================================================
+
+SELECT CAST(a AS boolean), CAST(b AS tinyint), CAST(c AS smallint), CAST(d AS int), CAST(e AS bigint), CAST(f AS real), CAST(g AS double), CAST(h AS varbinary), CAST(i AS json), CAST(j AS uuid), CAST(k AS ipaddress);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier))))))
+
+================================================================================
+Types with parameters
+================================================================================
+
+SELECT CAST(a AS decimal(12, 4)), CAST(b AS varchar(255)), CAST(c AS char(3)), CAST(d AS varchar), CAST(e AS number);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)
+          (type_modifiers
+            (number)
+            (number))))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)
+          (type_modifiers
+            (number))))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)
+          (type_modifiers
+            (number))))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier))))))
+
+================================================================================
+Times with their precision and time zone
+================================================================================
+
+SELECT CAST(a AS date), CAST(b AS time(3)), CAST(c AS time with time zone), CAST(d AS timestamp(6) with time zone), CAST(e AS timestamp without time zone), CAST(f AS time(9) WITH TIME ZONE);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)
+          (type_modifiers
+            (number))))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)
+          (type_modifiers
+            (number))))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)
+          (type_modifiers
+            (number)))))))
+
+================================================================================
+Interval types
+================================================================================
+
+SELECT CAST(a AS interval year to month), CAST(b AS interval day to second), CAST(c AS INTERVAL DAY(9) TO SECOND(3)), CAST(d AS interval month);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (interval_qualifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (interval_qualifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (interval_qualifier
+            (type_modifiers
+              (number))
+            (type_modifiers
+              (number)))))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (interval_qualifier))))))
+
+================================================================================
+Arrays, maps and rows
+================================================================================
+
+SELECT CAST(a AS array(integer)), CAST(b AS map(varchar, array(double))), CAST(c AS row(x bigint, y varchar)), CAST(d AS row(integer, "quoted name" double)), CAST(e AS ROW(inner ROW(v int)));
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)
+          (type_modifiers
+            (type
+              (identifier)))))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)
+          (type_modifiers
+            (type
+              (identifier))
+            (type
+              (identifier)
+              (type_modifiers
+                (type
+                  (identifier)))))))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)
+          (type_modifiers
+            (field_definition
+              (identifier)
+              (type
+                (identifier)))
+            (field_definition
+              (identifier)
+              (type
+                (identifier))))))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)
+          (type_modifiers
+            (type
+              (identifier))
+            (field_definition
+              (identifier)
+              (type
+                (identifier))))))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)
+          (type_modifiers
+            (field_definition
+              (identifier)
+              (type
+                (identifier)
+                (type_modifiers
+                  (field_definition
+                    (identifier)
+                    (type
+                      (identifier))))))))))))
+
+================================================================================
+Types of extensions
+================================================================================
+
+SELECT CAST(a AS HyperLogLog), CAST(b AS qdigest(bigint)), CAST(c AS tdigest), CAST(d AS SetDigest), CAST(e AS variant);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)
+          (type_modifiers
+            (type
+              (identifier)))))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier)))
+      (cast_expression
+        (column_reference
+          (identifier))
+        (type
+          (identifier))))))

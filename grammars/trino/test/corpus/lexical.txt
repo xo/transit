@@ -1,0 +1,271 @@
+================================================================================
+Names and quoted names
+================================================================================
+
+SELECT price, "Order Date", "say ""hi""" FROM sales.public."line items";
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)
+            (identifier)
+            (identifier)))))))
+
+================================================================================
+Names in any case
+================================================================================
+
+select Total, TOTAL from Orders;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+A reserved word in double quotes
+================================================================================
+
+SELECT "select", "from" FROM "table";
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+A keyword that Trino does not reserve as a name
+================================================================================
+
+SELECT year, month, data, comment, position, row_count FROM events;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Strings with doubled quotes
+================================================================================
+
+SELECT 'it''s', '', 'multi
+line';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string)
+      (string)
+      (string))))
+
+================================================================================
+Unicode strings
+================================================================================
+
+SELECT U&'caf\00E9', u&'snow #2603' UESCAPE '#';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (unicode_string)
+      (unicode_string))))
+
+================================================================================
+Binary strings
+================================================================================
+
+SELECT X'CAFE01', x'';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_string)
+      (binary_string))))
+
+================================================================================
+Integers and decimals
+================================================================================
+
+SELECT 42, 3.14, .5, 7., 1e10, 2.5E-3, 1_000_000, 3.141_59;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number))))
+
+================================================================================
+Hexadecimal, octal and binary integers
+================================================================================
+
+SELECT 0x1F, 0XdeadBEEF, 0o17, 0b1010, 0x_ff_ff, 0b1_0;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number))))
+
+================================================================================
+A parameter
+================================================================================
+
+SELECT name FROM people WHERE id = ? AND age > ?;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (parameter))
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (parameter)))))))
+
+================================================================================
+Line comments
+================================================================================
+
+-- a comment before the query
+SELECT 1 -- a comment after a value
+, 2;
+
+---
+
+(source_file
+  (comment)
+  (select_statement
+    (select
+      (number)
+      (comment)
+      (number))))
+
+================================================================================
+Block comments
+================================================================================
+
+/* a comment
+   on two lines */ SELECT /* inline */ 1 /**/;
+
+---
+
+(source_file
+  (comment)
+  (select_statement
+    (select
+      (comment)
+      (number)))
+  (comment))
+
+================================================================================
+Statements and semicolons
+================================================================================
+
+SELECT 1;; SELECT 2;
+SELECT 3
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)))
+  (select_statement
+    (select
+      (number)))
+  (select_statement
+    (select
+      (number))))
+
+================================================================================
+A statement with no semicolon
+================================================================================
+
+VALUES 1
+
+---
+
+(source_file
+  (select_statement
+    (values
+      (number))))

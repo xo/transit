@@ -513,6 +513,45 @@ The grammar leaves out these forms of the other statements:
 - The statements of the other query languages of ClickHouse, such as KQL,
   PRQL and LogsQL.
 
+### Forms that the Trino grammar leaves out
+
+The Trino grammar that xo writes (D127) reads the queries of the SQL
+documentation of Trino. The other statements come in the next part of the
+unit. The grammar leaves out these forms of a query:
+
+- An expression with an operator as the value of a property of `WITH
+  SESSION`, as in `WITH SESSION a = 1 + 1 SELECT 1`. The value is a
+  literal, a typed literal, a `CAST`, a name or a signed number. Any
+  expression cost about 180 parse states, because the body of the query
+  can start with `(` after the value.
+- An expression with an operator after `FOR TIMESTAMP AS OF` and `FOR
+  VERSION AS OF`. The version is a literal, a typed literal, a `CAST`, a
+  value such as `CURRENT_TIMESTAMP`, a parameter or an expression in
+  parentheses. Any expression cost about 260 parse states, because an
+  alias can come after it.
+- `RUNNING` and `FINAL` before a function call inside another expression,
+  as in `MEASURES concat_ws('', RUNNING array_agg(x)) AS m`. The grammar
+  takes them at the start of a measure and of a condition of `DEFINE`. A
+  column named `final` or `running` breaks where they can start any
+  function call.
+- The JSON simplified accessor with a string after the dot, as in
+  `j.'foo'`, and an item method after a path of three or more members, as
+  in `j.o.qty.integer()`. `j.name.bigint()` works.
+- A column named `interval`, `row` or `array` where an expression starts,
+  because the word starts a literal or a constructor there.
+- The precedence of the predicate `MATCH`. The grammar binds it more
+  loosely than `AND` and `OR`, so `a AND r MATCH (q)` reads as `(a AND r)
+  MATCH (q)`. Then `MATCH` after the condition of `WHERE` in `NEAREST`
+  starts the clause `MATCH`.
+- `COPARTITION` among the arguments of a table function, `OVERLAY` with
+  `PLACING`, the types `ARRAY<T>` and `MAP<K, V>` of earlier releases,
+  `DOUBLE PRECISION`, and names in backquotes. The documentation of Trino
+  does not show them, and Trino refuses names in backquotes.
+- A body of `BEGIN ... END` in `WITH FUNCTION` in the text of usql. The
+  option `BeginEndBlocks` of the usql grammar opens a block only at
+  `CREATE`, `EXECUTE BLOCK` and `DO BEGIN` (D112, D130), so usql splits
+  such a query at each semicolon of the body.
+
 ## The setup of the repository
 
 These items come in phase 1 and later, as the plan says.

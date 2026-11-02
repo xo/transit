@@ -1,0 +1,341 @@
+================================================================================
+A function with characteristics
+================================================================================
+
+WITH FUNCTION meaning() RETURNS bigint LANGUAGE SQL DETERMINISTIC RETURNS NULL ON NULL INPUT SECURITY INVOKER COMMENT 'the answer' RETURN 42
+SELECT meaning();
+
+---
+
+(source_file
+  (select_statement
+    (with_clause
+      (function_definition
+        (object_reference
+          (identifier))
+        (parameter_list)
+        (type
+          (identifier))
+        (identifier)
+        (null)
+        (null)
+        (string)
+        (return_statement
+          (number))))
+    (select
+      (function_call
+        (identifier)
+        (arguments)))))
+
+================================================================================
+A function with CALLED ON NULL INPUT and properties
+================================================================================
+
+WITH FUNCTION f(bigint) RETURNS bigint NOT DETERMINISTIC CALLED ON NULL INPUT SECURITY DEFINER WITH (x = 1) RETURN 1
+SELECT f(2);
+
+---
+
+(source_file
+  (select_statement
+    (with_clause
+      (function_definition
+        (object_reference
+          (identifier))
+        (parameter_list
+          (parameter_declaration
+            (type
+              (identifier))))
+        (type
+          (identifier))
+        (null)
+        (property_list
+          (property
+            (identifier)
+            (number)))
+        (return_statement
+          (number))))
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (number))))))
+
+================================================================================
+A function in another language
+================================================================================
+
+WITH FUNCTION py_add(a bigint, b bigint) RETURNS bigint LANGUAGE PYTHON WITH (handler = 'add') AS $$
+def add(a, b):
+    return a + b
+$$
+SELECT py_add(1, 2);
+
+---
+
+(source_file
+  (select_statement
+    (with_clause
+      (function_definition
+        (object_reference
+          (identifier))
+        (parameter_list
+          (parameter_declaration
+            (identifier)
+            (type
+              (identifier)))
+          (parameter_declaration
+            (identifier)
+            (type
+              (identifier))))
+        (type
+          (identifier))
+        (identifier)
+        (property_list
+          (property
+            (identifier)
+            (string)))
+        (dollar_string)))
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (number)
+          (number))))))
+
+================================================================================
+A body with BEGIN, DECLARE, SET and IF
+================================================================================
+
+WITH FUNCTION fib(n bigint) RETURNS bigint
+BEGIN
+  DECLARE a, b bigint DEFAULT 1;
+  DECLARE c bigint;
+  IF n <= 2 THEN
+    RETURN 1;
+  ELSEIF n = 3 THEN
+    RETURN 2;
+  ELSE
+    SET c = 0;
+  END IF;
+  RETURN a + b;
+END
+SELECT fib(10);
+
+---
+
+(source_file
+  (select_statement
+    (with_clause
+      (function_definition
+        (object_reference
+          (identifier))
+        (parameter_list
+          (parameter_declaration
+            (identifier)
+            (type
+              (identifier))))
+        (type
+          (identifier))
+        (compound_statement
+          (declare_statement
+            (identifier)
+            (identifier)
+            (type
+              (identifier))
+            (number))
+          (declare_statement
+            (identifier)
+            (type
+              (identifier)))
+          (if_statement
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (number))
+            (return_statement
+              (number))
+            (elseif_clause
+              (binary_expression
+                (column_reference
+                  (identifier))
+                (operator)
+                (number))
+              (return_statement
+                (number)))
+            (else_clause
+              (assignment_statement
+                (identifier)
+                (number))))
+          (return_statement
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (column_reference
+                (identifier)))))))
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (number))))))
+
+================================================================================
+Loops with labels
+================================================================================
+
+WITH FUNCTION count_to(n bigint) RETURNS bigint
+BEGIN
+  DECLARE i bigint DEFAULT 0;
+  top: LOOP
+    SET i = i + 1;
+    IF i >= n THEN
+      LEAVE top;
+    END IF;
+    ITERATE top;
+  END LOOP;
+  w: WHILE i > 0 DO
+    SET i = i - 1;
+  END WHILE;
+  REPEAT
+    SET i = i + 2;
+  UNTIL i > 10 END REPEAT;
+  RETURN i;
+END
+SELECT count_to(5);
+
+---
+
+(source_file
+  (select_statement
+    (with_clause
+      (function_definition
+        (object_reference
+          (identifier))
+        (parameter_list
+          (parameter_declaration
+            (identifier)
+            (type
+              (identifier))))
+        (type
+          (identifier))
+        (compound_statement
+          (declare_statement
+            (identifier)
+            (type
+              (identifier))
+            (number))
+          (loop_statement
+            (identifier)
+            (assignment_statement
+              (identifier)
+              (binary_expression
+                (column_reference
+                  (identifier))
+                (operator)
+                (number)))
+            (if_statement
+              (binary_expression
+                (column_reference
+                  (identifier))
+                (operator)
+                (column_reference
+                  (identifier)))
+              (leave_statement
+                (identifier)))
+            (iterate_statement
+              (identifier)))
+          (while_statement
+            (identifier)
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (number))
+            (assignment_statement
+              (identifier)
+              (binary_expression
+                (column_reference
+                  (identifier))
+                (operator)
+                (number))))
+          (repeat_statement
+            (assignment_statement
+              (identifier)
+              (binary_expression
+                (column_reference
+                  (identifier))
+                (operator)
+                (number)))
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (number)))
+          (return_statement
+            (column_reference
+              (identifier))))))
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (number))))))
+
+================================================================================
+CASE statements
+================================================================================
+
+WITH FUNCTION grade(s bigint) RETURNS varchar
+BEGIN
+  CASE s
+    WHEN 1 THEN RETURN 'one';
+    ELSE RETURN 'many';
+  END CASE;
+  CASE WHEN s > 10 THEN RETURN 'big'; END CASE;
+  RETURN NULL;
+END
+SELECT grade(3);
+
+---
+
+(source_file
+  (select_statement
+    (with_clause
+      (function_definition
+        (object_reference
+          (identifier))
+        (parameter_list
+          (parameter_declaration
+            (identifier)
+            (type
+              (identifier))))
+        (type
+          (identifier))
+        (compound_statement
+          (case_statement
+            (column_reference
+              (identifier))
+            (case_statement_when
+              (number)
+              (return_statement
+                (string)))
+            (else_clause
+              (return_statement
+                (string))))
+          (case_statement
+            (case_statement_when
+              (binary_expression
+                (column_reference
+                  (identifier))
+                (operator)
+                (number))
+              (return_statement
+                (string))))
+          (return_statement
+            (null)))))
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (number))))))

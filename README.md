@@ -87,8 +87,9 @@ transit as rline and usql will (D53). Run them in the folder `_example`:
 | `go run ./highlight -dialect mysql -style monokai -colors 256` | It types a text of usql one key at a time, parses again with the old tree after each key, and finds the layer of each SQL statement with `inject`. It prints the text in the colors of a style of the module `styles`, and the time of each edit |
 | `go run ./complete -dialect postgres -text 'select * from '` | It completes at each cursor that it gets as a byte offset. It says whether the cursor is in a meta command, in a variable or in a SQL statement, and in a statement it lists the keywords and the kinds of node that can come next, from `Layer.StatesAt` |
 
-The flag `-dialect` takes `clickhouse`, `cql`, `duckdb`, `generic`,
-`mysql`, `oracle`, `postgres`, `sqlite3` or `sqlserver`.
+The flag `-dialect` takes `athena`, `clickhouse`, `cql`, `duckdb`,
+`generic`, `mysql`, `oracle`, `postgres`, `presto`, `sqlite3`,
+`sqlserver` or `trino`.
 
 ## Documents
 
@@ -345,6 +346,33 @@ the resources, the handlers, the tokens, `EXPLAIN` of each statement, and
 `PARALLEL WITH`. The external scanner reads the comments, the heredoc
 strings and the data of `INSERT` after `FORMAT`. The package adds about
 1.9 MB to a binary.
+
+The package `github.com/xo/transit/grammars/trino` holds the grammar
+`trino`, which xo writes from the SQL documentation of Trino (D127). It
+also serves the SQL of Presto and of Athena. It covers the lexical
+structure, with the names in double quotes, the strings with doubled
+quotes, the Unicode strings such as `U&'caf\00E9'`, the binary strings
+such as `X'CAFE'`, the numbers with `_` and in hexadecimal, octal and
+binary form, the parameter `?`, and the comments with `--` and `/* */`. It
+covers the expressions with the precedence of Trino, with `CAST` and
+`TRY_CAST`, `AT TIME ZONE` and `AT LOCAL`, `||`, `LIKE` with `ESCAPE`, `IS
+DISTINCT FROM`, the quantified comparisons, `EXISTS`, `UNIQUE` and
+`MATCH`, `CASE` with the predicates of its simple form, the lambdas, the
+arrays, `ROW`, the subscripts, the fields of a row, the methods of a value
+such as `'abc'.length()`, the functions of a type such as
+`varchar::chr(65)`, the typed literals, the intervals, the values such as
+`CURRENT_DATE`, the functions of JSON, `LISTAGG`, `FILTER`, the window
+functions with their frames, and the special forms such as `EXTRACT`,
+`TRIM` and `SUBSTRING`. It covers the types, such as `DECIMAL(10, 2)`,
+`ROW` with names, `MAP`, `TIMESTAMP(6) WITH TIME ZONE` and `INTERVAL DAY
+TO SECOND`. It covers the full query: `WITH` with `RECURSIVE`, `WITH
+SESSION` and `WITH FUNCTION` with the body of a SQL routine, each kind of
+join, `LATERAL`, `UNNEST`, the table functions with `DESCRIPTOR`,
+`TABLESAMPLE`, `MATCH_RECOGNIZE`, `PIVOT`, `JSON_TABLE`, `NEAREST`, `GROUP
+BY` with `AUTO`, `ROLLUP`, `CUBE` and `GROUPING SETS`, `WINDOW`, the set
+operations with `CORRESPONDING`, `ORDER BY`, `OFFSET`, `LIMIT` and `FETCH`
+with `WITH TIES`. The other statements come later. The grammar needs no
+external scanner. The package adds about 0.8 MB to a binary.
 
 The package `github.com/xo/transit/grammars/postgres/postgres` holds the
 grammar `postgres`, which xo writes from the reference manual of

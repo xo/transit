@@ -19,8 +19,8 @@
 //
 //	go run ./highlight -dialect mysql -style monokai -colors 16
 //
-// The dialects are clickhouse, cql, duckdb, generic, mysql, oracle,
-// postgres, sqlite3 and sqlserver.
+// The dialects are athena, clickhouse, cql, duckdb, generic, mysql,
+// oracle, postgres, presto, sqlite3, sqlserver and trino.
 package main
 
 import (

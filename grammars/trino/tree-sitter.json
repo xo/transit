@@ -1,0 +1,23 @@
+{
+  "grammars": [
+    {
+      "name": "trino",
+      "camelcase": "Trino",
+      "scope": "source.trino",
+      "path": ".",
+      "file-types": [
+        "trino"
+      ],
+      "highlights": "queries/highlights.scm",
+      "injection-regex": "^(trino|presto|athena)$"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "A grammar of the SQL of Trino",
+    "links": {
+      "repository": "https://github.com/xo/transit"
+    }
+  }
+}

@@ -7,8 +7,8 @@ exports one function, `Language`, which returns a `*transit.Language`.
 
 The rules were written on 2026-09-29, before any code existed (D3). Today
 `transit generate` works with the C backend, and the golden harness runs it.
-`transit generate --backend go` writes a Go package. It wrote the 33 grammar
-packages in the 30 modules under `grammars/`. Each rule names the decision
+`transit generate --backend go` writes a Go package. It wrote the 34 grammar
+packages in the 31 modules under `grammars/`. Each rule names the decision
 that it comes from.
 
 ## Two stages
@@ -120,8 +120,9 @@ folder of its module has the name of the dialect. The table of D107 lists
 them. The SQL Server grammar that xo writes lives in `grammars/sqlserver`,
 the Oracle grammar that xo writes lives in `grammars/oracle`, the SQLite
 grammar that xo writes lives in `grammars/sqlite3`, the DuckDB grammar
-that xo writes lives in `grammars/duckdb`, and the ClickHouse grammar that
-xo writes lives in `grammars/clickhouse`. The folder of
+that xo writes lives in `grammars/duckdb`, the ClickHouse grammar that
+xo writes lives in `grammars/clickhouse`, and the Trino grammar that xo
+writes lives in `grammars/trino`. The folder of
 any other module has the name of the upstream repository without the `tree-sitter-` prefix and with each `-`
 removed. `tree-sitter-embedded-template` becomes `embeddedtemplate`. If two
 grammars or two repositories get the same name, ask Ken.
@@ -147,7 +148,8 @@ dialect, `sqlite3` (D126). The archived repository
 `dhcmrlchtdj/tree-sitter-sqlite` is not in the golden set. The DuckDB
 grammar that xo writes has the name of its dialect, `duckdb`, and the
 ClickHouse grammar that xo writes has the name of its dialect,
-`clickhouse` (D127).
+`clickhouse`, and the Trino grammar that xo writes has the name of its
+dialect, `trino` (D127).
 
 ## The layout of a grammar
 
@@ -499,6 +501,28 @@ Each one follows these rules, in addition to the rest of this document:
    belongs to the query. This costs 6 states. With the clauses of
    `DESCRIBE` after any query, more than 400 more states took the large
    form.
+   The Trino grammar reads `UESCAPE` and its string as a part of the token
+   of a Unicode string, as in `U&'x' UESCAPE '#'`. As a keyword after the
+   string, `UESCAPE` cost about 1,200 states, because the states after an
+   expression were copied for it. The names of the functions of JSON,
+   such as `JSON_VALUE`, are one token, and the type before `::` of a
+   function of a type, as in `varchar::chr(65)`, is an inlined rule. Then
+   each state where an expression starts has fewer than 64 columns. With a
+   keyword for each name, 39 more states took the large form. Only `ROW`
+   takes an argument with `AS`, as in `ROW(1 AS a)`. `AS` after any
+   argument of any function cost about 370 states. The value of a session
+   property of `WITH SESSION` is a literal, a typed literal, a `CAST`, a
+   name or a signed number, because the body of the query can start with
+   `(` after it. Any expression cost about 180 states. The version after
+   `FOR TIMESTAMP AS OF` is a literal or an expression in parentheses,
+   because an alias can come after it. Any expression cost about 260
+   states. The predicate `MATCH`, as in `r MATCH (SELECT a, b FROM t)`,
+   costs about 320 states, 4 of them large. `MATCH` can come after each
+   expression, and the upstream tool does not merge the states where
+   `MATCH` can come with the states where `MATCH_RECOGNIZE` can come, so
+   about 150 of the states come from `MATCH_RECOGNIZE`. `MATCH` binds more
+   loosely than `OR` in the grammar, so that `MATCH` after the condition of
+   `WHERE` in `NEAREST` starts the clause `MATCH` of `NEAREST`.
 
 A change to such a grammar is a change to transit. It follows "Before you
 stage" in `AGENTS.md`, and its golden files are made again.
@@ -509,7 +533,9 @@ out as the checkout of a grammar repository and as a grammar module at once.
 package is `usql`. `grammars/mysql`, `grammars/oracle` and
 `grammars/sqlserver` are laid out the same way. `grammars/sqlite3` is laid
 out the same way, but it has no `src/scanner.c` and no `scanner.go`,
-because the SQLite grammar needs no external scanner. `grammars/duckdb` and
+because the SQLite grammar needs no external scanner. `grammars/trino` is
+laid out as `grammars/sqlite3`, because the Trino grammar needs no external
+scanner either. `grammars/duckdb` and
 `grammars/clickhouse` are laid out as `grammars/mysql`. `grammars/postgres`
 holds the grammars `postgres` and `plpgsql` in the folders of their
 packages, `grammars/postgres/postgres` and `grammars/postgres/plpgsql`. Each folder holds the same files as

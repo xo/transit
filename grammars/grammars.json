@@ -11371,6 +11371,67 @@
       }
     },
     {
+      "name": "trino",
+      "package": "trino",
+      "repository": "https://github.com/xo/transit",
+      "commit": "",
+      "path": "grammars/trino",
+      "license": "MIT",
+      "scanner": false,
+      "set": "xo",
+      "status": "available",
+      "golden": {
+        "abi14": {
+          "parser_c": "eec169ae5c787c34fb879595d3802a11108679c16e8b5fbb186bef6a4c224283",
+          "node_types": "97f653ab606739dc508c5af38856e5bd7a5c780d2779df5035e4a30d35fdea1b",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "keyword lexer",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "ABI 14 lex modes"
+          ]
+        },
+        "abi15": {
+          "parser_c": "07aad7f32071a8bec0014370d87c46e144a31d5df94a7bddec101abc4c5916d9",
+          "node_types": "97f653ab606739dc508c5af38856e5bd7a5c780d2779df5035e4a30d35fdea1b",
+          "paths": [
+            "field map",
+            "inherited field",
+            "alias sequences",
+            "named unique alias",
+            "non-terminal alias map",
+            "keyword lexer",
+            "reserved words",
+            "reserved word set of a state",
+            "ADVANCE_MAP",
+            "SKIP",
+            "eof action",
+            "small parse table",
+            "SHIFT_REPEAT",
+            "SHIFT_EXTRA",
+            "RECOVER",
+            "ABI 15 lex modes",
+            "grammar version"
+          ]
+        }
+      },
+      "corpus": {
+        "tests": 103,
+        "failures": 0,
+        "transit": "same"
+      }
+    },
+    {
       "name": "usql",
       "package": "usql",
       "repository": "https://github.com/xo/transit",

@@ -62,11 +62,12 @@ func TestRunColors(t *testing.T) {
 }
 
 // TestRunDialectColors makes sure that the highlight query of the SQL
-// grammar of each of sqlserver, oracle, sqlite3, duckdb, clickhouse and cql
-// colors a keyword of a statement, which the usql layer does not color.
+// grammar of each of sqlserver, oracle, sqlite3, duckdb, clickhouse, trino
+// and cql colors a keyword of a statement, which the usql layer does not
+// color.
 func TestRunDialectColors(t *testing.T) {
 	t.Parallel()
-	for _, name := range []string{"sqlserver", "oracle", "sqlite3", "duckdb", "clickhouse", "cql"} {
+	for _, name := range []string{"sqlserver", "oracle", "sqlite3", "duckdb", "clickhouse", "trino", "cql"} {
 		var out bytes.Buffer
 		if err := run(context.Background(), []string{"-dialect", name, "-text", "select name from users;"}, &out); err != nil {
 			t.Fatalf("%s: %v", name, err)

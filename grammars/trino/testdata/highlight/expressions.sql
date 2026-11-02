@@ -1,0 +1,52 @@
+SELECT CAST(a AS decimal(10, 2)), TRY_CAST(b AS varchar), DATE '2024-01-01', INTERVAL '3' DAY, ?;
+--     ^ function.builtin
+--               ^ type.builtin
+--                       ^ number
+--                                ^ function.builtin
+--                                              ^ type.builtin
+--                                                        ^ type.builtin
+--                                                             ^ string
+--                                                                           ^ keyword
+--                                                                                    ^ string
+--                                                                                        ^ keyword
+--                                                                                             ^ variable.parameter
+SELECT ARRAY[1, 2], ROW(1 AS id), m['k'], r.f, U&'caf\00E9', X'CAFE', 0x1F, current_date; -- note
+--     ^ keyword
+--          ^ punctuation.bracket
+--                  ^ keyword
+--                           ^ property
+--                                  ^ string
+--                                        ^ type
+--                                          ^ variable.member
+--                                             ^ string
+--                                                           ^ string.special
+--                                                                    ^ number
+--                                                                          ^ function.builtin
+--                                                                                        ^ comment
+SELECT transform(arr, x -> x * 2), a || b, c IS NOT DISTINCT FROM d, e LIKE 'x%' ESCAPE '!' /* end */;
+--     ^ function.call
+--                      ^ operator
+--                                   ^ operator
+--                                           ^ keyword
+--                                                  ^ keyword
+--                                                                     ^ keyword
+--                                                                               ^ keyword
+--                                                                                          ^ comment
+SELECT count(*) FILTER (WHERE x > 0) OVER (PARTITION BY z ORDER BY w), CASE WHEN a THEN 1 ELSE 2 END;
+--     ^ function.call
+--              ^ keyword
+--                                   ^ keyword
+--                                         ^ keyword
+--                                                                     ^ keyword.conditional
+--                                                                          ^ keyword.conditional
+--                                                                                 ^ keyword.conditional
+--                                                                                        ^ keyword.conditional
+--                                                                                               ^ keyword.conditional
+SELECT json_value(doc, 'lax $.a' RETURNING bigint DEFAULT 0 ON EMPTY), listagg(v, ',') WITHIN GROUP (ORDER BY v);
+--     ^ function.builtin
+--                               ^ keyword
+--                                         ^ type.builtin
+--                                                ^ keyword
+--                                                             ^ keyword
+--                                                                     ^ function.call
+--                                                                                     ^ keyword
