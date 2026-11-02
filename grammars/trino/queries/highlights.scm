@@ -28,8 +28,12 @@
 
 [
   "ABSENT"
+  "ADD"
+  "ADMIN"
   "AFTER"
   "ALL"
+  "ALTER"
+  "ANALYZE"
   "AND"
   "ANY"
   "ARRAY"
@@ -37,33 +41,52 @@
   "ASC"
   "ASYMMETRIC"
   "AT"
+  "AUTHORIZATION"
   "AUTO"
   "BEGIN"
   "BERNOULLI"
   "BETWEEN"
   "BOTH"
+  "BRANCH"
+  "BRANCHES"
   "BY"
+  "CALL"
   "CALLED"
+  "CASCADE"
   "CASE"
   "CAST"
+  "CATALOG"
+  "CATALOGS"
+  "COLUMN"
   "COLUMNS"
   "COMMENT"
+  "COMMIT"
+  "COMMITTED"
   "CONDITIONAL"
   "CORRESPONDING"
   "COUNT"
+  "CREATE"
   "CROSS"
   "CUBE"
   "CURRENT"
+  "CURRENT_ROLE"
+  "DATA"
   "DAY"
+  "DEALLOCATE"
   "DECLARE"
   "DEFAULT"
   "DEFINE"
   "DEFINER"
+  "DELETE"
+  "DENY"
   "DESC"
+  "DESCRIBE"
   "DESCRIPTOR"
   "DETERMINISTIC"
   "DISTINCT"
+  "DISTRIBUTED"
   "DO"
+  "DROP"
   "ELSE"
   "ELSEIF"
   "EMPTY"
@@ -73,7 +96,12 @@
   "ESCAPE"
   "EXCEPT"
   "EXCLUDE"
+  "EXCLUDING"
+  "EXECUTE"
   "EXISTS"
+  "EXPLAIN"
+  "FAIL"
+  "FAST"
   "FETCH"
   "FILTER"
   "FINAL"
@@ -81,9 +109,16 @@
   "FOLLOWING"
   "FOR"
   "FORMAT"
+  "FORWARD"
   "FROM"
   "FULL"
   "FUNCTION"
+  "FUNCTIONS"
+  "GRACE"
+  "GRANT"
+  "GRANTED"
+  "GRANTS"
+  "GRAPHVIZ"
   "GROUP"
   "GROUPING"
   "GROUPS"
@@ -91,14 +126,21 @@
   "HOUR"
   "IF"
   "IGNORE"
+  "IMMEDIATE"
   "IN"
+  "INCLUDING"
   "INITIAL"
+  "INLINE"
   "INNER"
   "INPUT"
+  "INSERT"
   "INTERSECT"
   "INTERVAL"
+  "INTO"
   "INVOKER"
+  "IO"
   "IS"
+  "ISOLATION"
   "ITERATE"
   "JOIN"
   "JSON"
@@ -112,14 +154,19 @@
   "LEADING"
   "LEAVE"
   "LEFT"
+  "LEVEL"
   "LIKE"
   "LIMIT"
   "LOCAL"
+  "LOGICAL"
   "LOOP"
   "MATCH"
+  "MATCHED"
   "MATCHES"
   "MATCH_RECOGNIZE"
+  "MATERIALIZED"
   "MEASURES"
+  "MERGE"
   "MINUTE"
   "MONTH"
   "NATURAL"
@@ -127,6 +174,7 @@
   "NESTED"
   "NEXT"
   "NO"
+  "NONE"
   "NOT"
   "NULLS"
   "OBJECT"
@@ -136,11 +184,13 @@
   "ON"
   "ONE"
   "ONLY"
+  "OPTION"
   "OR"
   "ORDER"
   "ORDINALITY"
   "OTHERS"
   "OUTER"
+  "OUTPUT"
   "OVER"
   "OVERFLOW"
   "PARTIAL"
@@ -150,29 +200,47 @@
   "PATH"
   "PATTERN"
   "PER"
+  "PERIOD"
   "PERMUTE"
   "PIVOT"
   "PLAN"
   "PRECEDING"
+  "PREPARE"
+  "PRIVILEGES"
+  "PROPERTIES"
   "PRUNE"
   "QUOTES"
   "RANGE"
+  "READ"
   "RECURSIVE"
+  "REFRESH"
+  "RENAME"
   "REPEAT"
+  "REPEATABLE"
+  "REPLACE"
+  "RESET"
   "RESPECT"
+  "RESTRICT"
   "RETURN"
   "RETURNING"
   "RETURNS"
+  "REVOKE"
   "RIGHT"
+  "ROLE"
+  "ROLES"
+  "ROLLBACK"
   "ROLLUP"
   "ROW"
   "ROWS"
   "RUNNING"
   "SCALAR"
+  "SCHEMA"
+  "SCHEMAS"
   "SECOND"
   "SECURITY"
   "SEEK"
   "SELECT"
+  "SERIALIZABLE"
   "SESSION"
   "SET"
   "SETS"
@@ -180,21 +248,29 @@
   "SIMPLE"
   "SKIP"
   "SOME"
+  "STALE"
+  "START"
+  "STATS"
   "STRING"
   "SUBSET"
   "SYMMETRIC"
   "SYSTEM"
   "TABLE"
+  "TABLES"
   "TABLESAMPLE"
+  "TEXT"
   "THEN"
   "TIES"
   "TIME"
   "TIMESTAMP"
   "TO"
   "TRAILING"
+  "TRANSACTION"
   "TRUNCATE"
   "TRY_CAST"
+  "TYPE"
   "UNBOUNDED"
+  "UNCOMMITTED"
   "UNCONDITIONAL"
   "UNION"
   "UNIQUE"
@@ -202,10 +278,16 @@
   "UNMATCHED"
   "UNNEST"
   "UNTIL"
+  "UPDATE"
+  "USE"
+  "USER"
   "USING"
+  "VALIDATE"
   "VALUE"
   "VALUES"
+  "VERBOSE"
   "VERSION"
+  "VIEW"
   "WHEN"
   "WHERE"
   "WHILE"
@@ -213,7 +295,9 @@
   "WITH"
   "WITHIN"
   "WITHOUT"
+  "WORK"
   "WRAPPER"
+  "WRITE"
   "YEAR"
   "ZONE"
 ] @keyword
@@ -292,6 +376,40 @@
 
 (table_argument
   alias: (identifier) @variable)
+
+(schema_reference
+  [
+    catalog: (identifier)
+    schema: (identifier)
+  ] @module)
+
+(call_statement
+  procedure: (object_reference
+    name: (identifier) @function.call))
+
+(column_definition
+  [
+    parent: (identifier)
+    name: (identifier)
+  ] @variable.member)
+
+(assignment
+  column: (identifier) @variable.member)
+
+(like_clause
+  table: (object_reference
+    name: (identifier) @type))
+
+(principal
+  name: (identifier) @variable)
+
+(set_statement
+  name: (object_reference
+    name: (identifier) @variable.builtin))
+
+(reset_statement
+  name: (object_reference
+    name: (identifier) @variable.builtin))
 
 (cte
   name: (identifier) @type)
@@ -523,6 +641,14 @@
 
 (property
   "=" @operator)
+
+(assignment
+  "=" @operator)
+
+(set_statement
+  "=" @operator)
+
+"@" @punctuation.special
 
 (assignment_statement
   "=" @operator)

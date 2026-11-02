@@ -523,6 +523,23 @@ Each one follows these rules, in addition to the rest of this document:
    about 150 of the states come from `MATCH_RECOGNIZE`. `MATCH` binds more
    loosely than `OR` in the grammar, so that `MATCH` after the condition of
    `WHERE` in `NEAREST` starts the clause `MATCH` of `NEAREST`.
+   The Trino grammar reads `WITH DATA` and `WITH NO DATA` after any query,
+   and not only after the query of `CREATE TABLE AS`. They cost about 440
+   states after any query, and about 730 states after the query of
+   `CREATE TABLE` only. The states after an expression where `WITH` can
+   come do not merge with the states where `WITHIN` can come, as in the
+   DuckDB grammar. The other statements of the documentation cost about
+   440 states together. `CREATE TABLE`, `ALTER TABLE` and `SHOW` cost
+   about 50 states each, and no other statement costs more than 40. The
+   options of `EXPLAIN` are a hidden rule of their own, so that the
+   statement after the options starts in one set of states. Each state
+   where a statement starts takes the large form, and the hidden rule
+   keeps 3 of them out. The values of `INSERT` in a clause of `MERGE` are
+   one expression, a row value in parentheses. A list of expressions of
+   its own cost about 40 states. `WITH` after a type can start `WITH TIME
+   ZONE`, the properties of a column, a characteristic of a routine or the
+   wrapper of `JSON_QUERY`. So the rule `type` has no precedence, and the
+   parser tries both forms at run time.
 
 A change to such a grammar is a change to transit. It follows "Before you
 stage" in `AGENTS.md`, and its golden files are made again.

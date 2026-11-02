@@ -371,8 +371,18 @@ join, `LATERAL`, `UNNEST`, the table functions with `DESCRIPTOR`,
 `TABLESAMPLE`, `MATCH_RECOGNIZE`, `PIVOT`, `JSON_TABLE`, `NEAREST`, `GROUP
 BY` with `AUTO`, `ROLLUP`, `CUBE` and `GROUPING SETS`, `WINDOW`, the set
 operations with `CORRESPONDING`, `ORDER BY`, `OFFSET`, `LIMIT` and `FETCH`
-with `WITH TIES`. The other statements come later. The grammar needs no
-external scanner. The package adds about 0.8 MB to a binary.
+with `WITH TIES`. It covers `INSERT`, `UPDATE`, `DELETE` and `MERGE`, with
+the branches of a table after `@`, and `TRUNCATE`. It covers `CREATE`,
+`ALTER` and `DROP` of the tables, the views, the materialized views, the
+schemas, the catalogs, the roles, the branches and the functions, with
+the properties after `WITH`, `CREATE TABLE AS` with `WITH NO DATA`, and
+each action of `ALTER TABLE`, with `EXECUTE`. It covers `COMMENT ON`,
+`REFRESH MATERIALIZED VIEW`, `ANALYZE`, `GRANT`, `REVOKE` and `DENY`, each
+form of `SET` and `RESET`, `USE`, `PREPARE`, `EXECUTE` with `IMMEDIATE`,
+`DEALLOCATE PREPARE`, `DESCRIBE`, each form of `SHOW`, `EXPLAIN` and
+`EXPLAIN ANALYZE` with their options, `CALL`, and the statements of
+transactions. The grammar needs no external scanner. The package adds
+about 0.9 MB to a binary.
 
 The package `github.com/xo/transit/grammars/postgres/postgres` holds the
 grammar `postgres`, which xo writes from the reference manual of

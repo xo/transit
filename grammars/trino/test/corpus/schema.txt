@@ -1,0 +1,890 @@
+================================================================================
+CREATE TABLE with columns and properties
+================================================================================
+
+CREATE TABLE IF NOT EXISTS sales.orders (
+  id bigint NOT NULL COMMENT 'the key',
+  placed timestamp(3) with time zone,
+  status varchar DEFAULT 'new',
+  amount decimal(12, 2) WITH (encoding = 'plain')
+)
+COMMENT 'one row for each order'
+WITH (format = 'ORC', partitioned_by = ARRAY['status']);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (column_definition
+      (identifier)
+      (type
+        (identifier))
+      (null)
+      (string))
+    (column_definition
+      (identifier)
+      (type
+        (identifier)
+        (type_modifiers
+          (number))))
+    (column_definition
+      (identifier)
+      (type
+        (identifier))
+      (string))
+    (column_definition
+      (identifier)
+      (type
+        (identifier)
+        (type_modifiers
+          (number)
+          (number)))
+      (property_list
+        (property
+          (identifier)
+          (string))))
+    (string)
+    (property_list
+      (property
+        (identifier)
+        (string))
+      (property
+        (identifier)
+        (array
+          (string))))))
+
+================================================================================
+CREATE TABLE with LIKE
+================================================================================
+
+CREATE OR REPLACE TABLE copy (LIKE orders INCLUDING PROPERTIES, note varchar);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (like_clause
+      (object_reference
+        (identifier)))
+    (column_definition
+      (identifier)
+      (type
+        (identifier)))))
+
+================================================================================
+CREATE TABLE AS with the names of the columns
+================================================================================
+
+CREATE TABLE totals (who, total) WITH (format = 'PARQUET') AS SELECT name, sum(x) FROM t GROUP BY name;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier))
+    (property_list
+      (property
+        (identifier)
+        (string)))
+    (select_statement
+      (select
+        (column_reference
+          (identifier))
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier))))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))
+        (group_by_clause
+          (column_reference
+            (identifier)))))))
+
+================================================================================
+CREATE TABLE AS WITH NO DATA
+================================================================================
+
+CREATE TABLE empty_copy AS SELECT * FROM orders WITH NO DATA;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))))
+
+================================================================================
+CREATE TABLE AS with a query in parentheses and WITH DATA
+================================================================================
+
+create table t2 comment 'copy' as (select 1 as a) with data;
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (string)
+    (select_statement
+      (parenthesized_query
+        (select
+          (aliased_expression
+            (number)
+            (identifier)))))))
+
+================================================================================
+A column with a type of a row and a default of a typed literal
+================================================================================
+
+CREATE TABLE r (pos row(x double, y double), since date DEFAULT DATE '2020-01-01', n integer DEFAULT -1);
+
+---
+
+(source_file
+  (create_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (type
+        (identifier)
+        (type_modifiers
+          (field_definition
+            (identifier)
+            (type
+              (identifier)))
+          (field_definition
+            (identifier)
+            (type
+              (identifier))))))
+    (column_definition
+      (identifier)
+      (type
+        (identifier))
+      (typed_literal
+        (type)
+        (string)))
+    (column_definition
+      (identifier)
+      (type
+        (identifier))
+      (unary_expression
+        (operator)
+        (number)))))
+
+================================================================================
+CREATE VIEW with its security
+================================================================================
+
+CREATE OR REPLACE VIEW recent COMMENT 'last week' SECURITY INVOKER AS
+SELECT * FROM orders WHERE placed > current_date - INTERVAL '7' DAY;
+
+---
+
+(source_file
+  (create_view_statement
+    (object_reference
+      (identifier))
+    (string)
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (binary_expression
+              (current_value)
+              (operator)
+              (interval_literal
+                (string)
+                (interval_qualifier)))))))))
+
+================================================================================
+CREATE MATERIALIZED VIEW with a grace period
+================================================================================
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS daily
+GRACE PERIOD INTERVAL '2' HOUR
+WHEN STALE INLINE
+COMMENT 'sums of each day'
+WITH (format = 'ORC')
+AS SELECT day, count(*) AS n FROM visits GROUP BY day;
+
+---
+
+(source_file
+  (create_materialized_view_statement
+    (object_reference
+      (identifier))
+    (interval_literal
+      (string)
+      (interval_qualifier))
+    (string)
+    (property_list
+      (property
+        (identifier)
+        (string)))
+    (select_statement
+      (select
+        (column_reference
+          (identifier))
+        (aliased_expression
+          (function_call
+            (identifier)
+            (arguments
+              (star_expression)))
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))
+        (group_by_clause
+          (column_reference
+            (identifier)))))))
+
+================================================================================
+CREATE SCHEMA with an owner and properties
+================================================================================
+
+CREATE SCHEMA IF NOT EXISTS lake.web AUTHORIZATION ROLE admins WITH (location = 's3://bucket/web/');
+
+---
+
+(source_file
+  (create_schema_statement
+    (schema_reference
+      (identifier)
+      (identifier))
+    (principal
+      (identifier))
+    (property_list
+      (property
+        (identifier)
+        (string)))))
+
+================================================================================
+CREATE CATALOG
+================================================================================
+
+CREATE CATALOG pg USING postgresql COMMENT 'main' WITH ("connection-url" = 'jdbc:postgresql://db:5432/app', "connection-user" = 'trino');
+
+---
+
+(source_file
+  (create_catalog_statement
+    (identifier)
+    (identifier)
+    (string)
+    (property_list
+      (property
+        (identifier)
+        (string))
+      (property
+        (identifier)
+        (string)))))
+
+================================================================================
+CREATE ROLE
+================================================================================
+
+CREATE ROLE analyst WITH ADMIN USER alice IN hive;
+
+---
+
+(source_file
+  (create_role_statement
+    (identifier)
+    (principal
+      (identifier))
+    (identifier)))
+
+================================================================================
+CREATE BRANCH
+================================================================================
+
+CREATE OR REPLACE BRANCH IF NOT EXISTS dev WITH (retention = '7d') IN TABLE lake.web.logs FROM main;
+
+---
+
+(source_file
+  (create_branch_statement
+    (identifier)
+    (property_list
+      (property
+        (identifier)
+        (string)))
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier))
+    (identifier)))
+
+================================================================================
+CREATE FUNCTION with RETURN
+================================================================================
+
+CREATE FUNCTION example.default.answer() RETURNS bigint RETURN 42;
+
+---
+
+(source_file
+  (create_function_statement
+    (function_definition
+      (object_reference
+        (identifier)
+        (identifier)
+        (identifier))
+      (parameter_list)
+      (type
+        (identifier))
+      (return_statement
+        (number)))))
+
+================================================================================
+CREATE FUNCTION with a body of BEGIN and END
+================================================================================
+
+CREATE OR REPLACE FUNCTION fib(n bigint)
+RETURNS bigint
+DETERMINISTIC
+COMMENT 'the Fibonacci number of n'
+BEGIN
+  DECLARE a, b bigint DEFAULT 1;
+  DECLARE c bigint;
+  IF n <= 2 THEN
+    RETURN 1;
+  END IF;
+  WHILE n > 2 DO
+    SET n = n - 1;
+    SET c = a + b;
+    SET a = b;
+    SET b = c;
+  END WHILE;
+  RETURN c;
+END;
+
+---
+
+(source_file
+  (create_function_statement
+    (function_definition
+      (object_reference
+        (identifier))
+      (parameter_list
+        (parameter_declaration
+          (identifier)
+          (type
+            (identifier))))
+      (type
+        (identifier))
+      (string)
+      (compound_statement
+        (declare_statement
+          (identifier)
+          (identifier)
+          (type
+            (identifier))
+          (number))
+        (declare_statement
+          (identifier)
+          (type
+            (identifier)))
+        (if_statement
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number))
+          (return_statement
+            (number)))
+        (while_statement
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number))
+          (assignment_statement
+            (identifier)
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (number)))
+          (assignment_statement
+            (identifier)
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (column_reference
+                (identifier))))
+          (assignment_statement
+            (identifier)
+            (column_reference
+              (identifier)))
+          (assignment_statement
+            (identifier)
+            (column_reference
+              (identifier))))
+        (return_statement
+          (column_reference
+            (identifier)))))))
+
+================================================================================
+CREATE FUNCTION in another language
+================================================================================
+
+CREATE FUNCTION add_one(x integer) RETURNS integer LANGUAGE PYTHON WITH (handler = 'f') AS $$
+def f(x):
+    return x + 1
+$$;
+
+---
+
+(source_file
+  (create_function_statement
+    (function_definition
+      (object_reference
+        (identifier))
+      (parameter_list
+        (parameter_declaration
+          (identifier)
+          (type
+            (identifier))))
+      (type
+        (identifier))
+      (identifier)
+      (property_list
+        (property
+          (identifier)
+          (string)))
+      (dollar_string))))
+
+================================================================================
+ALTER TABLE RENAME
+================================================================================
+
+ALTER TABLE IF EXISTS users RENAME TO people;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier))))
+
+================================================================================
+ALTER TABLE ADD COLUMN
+================================================================================
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS zip varchar DEFAULT '00000' NOT NULL COMMENT 'post code' AFTER city;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (type
+        (identifier))
+      (string)
+      (null)
+      (string))
+    (identifier)))
+
+================================================================================
+ALTER TABLE ADD COLUMN of a field of a row
+================================================================================
+
+ALTER TABLE users ADD COLUMN address.line2 varchar FIRST;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (column_definition
+      (identifier)
+      (identifier)
+      (type
+        (identifier)))))
+
+================================================================================
+ALTER TABLE DROP COLUMN and RENAME COLUMN
+================================================================================
+
+ALTER TABLE users DROP COLUMN IF EXISTS zip;
+ALTER TABLE users RENAME COLUMN IF EXISTS name TO full_name;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (column_reference
+      (identifier)))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (column_reference
+      (identifier))
+    (identifier)))
+
+================================================================================
+ALTER TABLE ALTER COLUMN
+================================================================================
+
+ALTER TABLE users ALTER COLUMN age SET DATA TYPE bigint;
+ALTER TABLE users ALTER COLUMN age SET DEFAULT 0;
+ALTER TABLE users ALTER COLUMN age DROP DEFAULT;
+ALTER TABLE users ALTER COLUMN age DROP NOT NULL;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (column_reference
+      (identifier))
+    (type
+      (identifier)))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (column_reference
+      (identifier))
+    (number))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (column_reference
+      (identifier)))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (column_reference
+      (identifier))
+    (null)))
+
+================================================================================
+ALTER TABLE SET AUTHORIZATION and SET PROPERTIES
+================================================================================
+
+ALTER TABLE users SET AUTHORIZATION USER bob;
+ALTER TABLE users SET PROPERTIES format = 'PARQUET', sorted_by = DEFAULT;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (principal
+      (identifier)))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (property
+      (identifier)
+      (string))
+    (property
+      (identifier))))
+
+================================================================================
+ALTER TABLE EXECUTE
+================================================================================
+
+ALTER TABLE logs EXECUTE optimize(file_size_threshold => '128MB') WHERE day > DATE '2024-06-01';
+ALTER TABLE logs EXECUTE expire_snapshots;
+
+---
+
+(source_file
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (arguments
+      (named_argument
+        (identifier)
+        (string)))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (typed_literal
+          (type)
+          (string)))))
+  (alter_table_statement
+    (object_reference
+      (identifier))
+    (identifier)))
+
+================================================================================
+ALTER VIEW
+================================================================================
+
+ALTER VIEW recent RENAME TO last_week;
+ALTER VIEW recent REFRESH;
+ALTER VIEW recent SET AUTHORIZATION ROLE readers;
+
+---
+
+(source_file
+  (alter_view_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)))
+  (alter_view_statement
+    (object_reference
+      (identifier)))
+  (alter_view_statement
+    (object_reference
+      (identifier))
+    (principal
+      (identifier))))
+
+================================================================================
+ALTER MATERIALIZED VIEW
+================================================================================
+
+ALTER MATERIALIZED VIEW IF EXISTS daily RENAME TO per_day;
+ALTER MATERIALIZED VIEW daily SET PROPERTIES refresh_interval = '1h';
+
+---
+
+(source_file
+  (alter_materialized_view_statement
+    (object_reference
+      (identifier))
+    (object_reference
+      (identifier)))
+  (alter_materialized_view_statement
+    (object_reference
+      (identifier))
+    (property
+      (identifier)
+      (string))))
+
+================================================================================
+ALTER SCHEMA
+================================================================================
+
+ALTER SCHEMA lake.web RENAME TO site;
+ALTER SCHEMA web SET AUTHORIZATION carol;
+
+---
+
+(source_file
+  (alter_schema_statement
+    (schema_reference
+      (identifier)
+      (identifier))
+    (identifier))
+  (alter_schema_statement
+    (schema_reference
+      (identifier))
+    (principal
+      (identifier))))
+
+================================================================================
+ALTER BRANCH
+================================================================================
+
+ALTER BRANCH dev IN TABLE logs FAST FORWARD TO main;
+
+---
+
+(source_file
+  (alter_branch_statement
+    (identifier)
+    (object_reference
+      (identifier))
+    (identifier)))
+
+================================================================================
+DROP of each kind of object
+================================================================================
+
+DROP TABLE IF EXISTS a.b.c;
+DROP VIEW v;
+DROP MATERIALIZED VIEW IF EXISTS mv;
+DROP SCHEMA web CASCADE;
+DROP CATALOG IF EXISTS pg RESTRICT;
+DROP ROLE IF EXISTS analyst IN hive;
+DROP BRANCH IF EXISTS dev IN TABLE logs;
+DROP FUNCTION IF EXISTS fib(bigint);
+DROP FUNCTION meaning_of_life();
+
+---
+
+(source_file
+  (drop_statement
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (schema_reference
+      (identifier)))
+  (drop_statement
+    (identifier))
+  (drop_statement
+    (identifier)
+    (identifier))
+  (drop_statement
+    (identifier)
+    (object_reference
+      (identifier)))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (parameter_list
+      (parameter_declaration
+        (type
+          (identifier)))))
+  (drop_statement
+    (object_reference
+      (identifier))
+    (parameter_list)))
+
+================================================================================
+COMMENT ON
+================================================================================
+
+COMMENT ON TABLE users IS 'the people';
+COMMENT ON COLUMN users.name IS NULL;
+COMMENT ON MATERIALIZED VIEW daily IS 'sums';
+
+---
+
+(source_file
+  (comment_statement
+    (object_reference
+      (identifier))
+    (string))
+  (comment_statement
+    (column_reference
+      (identifier)
+      (identifier))
+    (null))
+  (comment_statement
+    (object_reference
+      (identifier))
+    (string)))
+
+================================================================================
+REFRESH MATERIALIZED VIEW and ANALYZE
+================================================================================
+
+REFRESH MATERIALIZED VIEW daily;
+ANALYZE hive.web.clicks WITH (partitions = ARRAY[ARRAY['2024']], columns = ARRAY['url']);
+
+---
+
+(source_file
+  (refresh_statement
+    (object_reference
+      (identifier)))
+  (analyze_statement
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier))
+    (property_list
+      (property
+        (identifier)
+        (array
+          (array
+            (string))))
+      (property
+        (identifier)
+        (array
+          (string))))))
+
+================================================================================
+CREATE FUNCTION with the characteristics before RETURNS
+================================================================================
+
+CREATE FUNCTION answer() LANGUAGE SQL NOT DETERMINISTIC RETURNS bigint COMMENT 'the answer' RETURN 42;
+
+---
+
+(source_file
+  (create_function_statement
+    (function_definition
+      (object_reference
+        (identifier))
+      (parameter_list)
+      (identifier)
+      (type
+        (identifier))
+      (string)
+      (return_statement
+        (number)))))
+
+================================================================================
+CREATE FUNCTION with properties after a type with WITH
+================================================================================
+
+CREATE FUNCTION now_utc() RETURNS timestamp(3) WITH (owner = 'ops') RETURN current_timestamp;
+
+---
+
+(source_file
+  (create_function_statement
+    (function_definition
+      (object_reference
+        (identifier))
+      (parameter_list)
+      (type
+        (identifier)
+        (type_modifiers
+          (number)))
+      (property_list
+        (property
+          (identifier)
+          (string)))
+      (return_statement
+        (current_value)))))

@@ -266,7 +266,8 @@ grammar too, because the search found no DuckDB grammar (D126). xo writes
 the ClickHouse grammar, because the search found no ClickHouse grammar
 (D127). It reads each statement of the SQL reference of ClickHouse. xo
 writes the Trino grammar too, because the search found no Trino grammar
-(D127). It also serves the dialects `presto` and `athena`.
+(D127). It reads each statement of the SQL documentation of Trino, and it
+also serves the dialects `presto` and `athena`.
 
 ## The dialects of dbmeta
 

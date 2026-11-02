@@ -1,0 +1,292 @@
+================================================================================
+INSERT with the rows of VALUES
+================================================================================
+
+INSERT INTO shop.orders VALUES (1, 'pen', 2.50), (2, 'ink', 7.25);
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (select_statement
+      (values
+        (row_constructor
+          (number)
+          (string)
+          (number))
+        (row_constructor
+          (number)
+          (string)
+          (number))))))
+
+================================================================================
+INSERT with columns and a query
+================================================================================
+
+INSERT INTO archive (id, total) SELECT id, sum(price) FROM sales GROUP BY id;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier))
+    (select_statement
+      (select
+        (column_reference
+          (identifier))
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier))))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))
+        (group_by_clause
+          (column_reference
+            (identifier)))))))
+
+================================================================================
+INSERT into a branch of a table
+================================================================================
+
+INSERT INTO lake.logs @ audit (msg) VALUES ('started');
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (identifier)
+    (column_list
+      (identifier))
+    (select_statement
+      (values
+        (parenthesized_expression
+          (string))))))
+
+================================================================================
+INSERT with a query in parentheses
+================================================================================
+
+insert into t (select * from u);
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (parenthesized_query
+        (select
+          (star_expression)
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier)))))))))
+
+================================================================================
+UPDATE with a condition
+================================================================================
+
+UPDATE stock SET qty = qty - 1, updated = current_timestamp WHERE item = 'pen';
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier))
+    (assignment
+      (identifier)
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number)))
+    (assignment
+      (identifier)
+      (current_value))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (string)))))
+
+================================================================================
+UPDATE of a branch with no condition
+================================================================================
+
+UPDATE inventory @ dev SET flag = NULL;
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (assignment
+      (identifier)
+      (null))))
+
+================================================================================
+DELETE with a condition
+================================================================================
+
+DELETE FROM visits WHERE day < DATE '2024-01-01';
+
+---
+
+(source_file
+  (delete_statement
+    (object_reference
+      (identifier))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (typed_literal
+          (type)
+          (string))))))
+
+================================================================================
+DELETE of each row of a branch
+================================================================================
+
+DELETE FROM events @ staging;
+
+---
+
+(source_file
+  (delete_statement
+    (object_reference
+      (identifier))
+    (identifier)))
+
+================================================================================
+MERGE with each kind of WHEN
+================================================================================
+
+MERGE INTO accounts AS a
+USING (SELECT * FROM deposits) AS d
+ON a.id = d.account
+WHEN MATCHED AND d.amount = 0 THEN DELETE
+WHEN MATCHED THEN UPDATE SET balance = a.balance + d.amount
+WHEN NOT MATCHED THEN INSERT (id, balance) VALUES (d.account, d.amount);
+
+---
+
+(source_file
+  (merge_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (derived_table
+      (subquery
+        (select
+          (star_expression)
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier))))))
+      (identifier))
+    (binary_expression
+      (column_reference
+        (identifier)
+        (identifier))
+      (operator)
+      (column_reference
+        (identifier)
+        (identifier)))
+    (merge_when_clause
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (number)))
+    (merge_when_clause
+      (assignment
+        (identifier)
+        (binary_expression
+          (column_reference
+            (identifier)
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)
+            (identifier)))))
+    (merge_when_clause
+      (column_list
+        (identifier)
+        (identifier))
+      (row_constructor
+        (column_reference
+          (identifier)
+          (identifier))
+        (column_reference
+          (identifier)
+          (identifier))))))
+
+================================================================================
+MERGE with a table as the source
+================================================================================
+
+merge into target t using source s on t.k = s.k when not matched then insert values (s.k, s.v);
+
+---
+
+(source_file
+  (merge_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (table_reference
+      (object_reference
+        (identifier))
+      (identifier))
+    (binary_expression
+      (column_reference
+        (identifier)
+        (identifier))
+      (operator)
+      (column_reference
+        (identifier)
+        (identifier)))
+    (merge_when_clause
+      (row_constructor
+        (column_reference
+          (identifier)
+          (identifier))
+        (column_reference
+          (identifier)
+          (identifier))))))
+
+================================================================================
+TRUNCATE
+================================================================================
+
+TRUNCATE TABLE hive.web.clicks;
+
+---
+
+(source_file
+  (truncate_statement
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier))))

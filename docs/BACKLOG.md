@@ -515,9 +515,8 @@ The grammar leaves out these forms of the other statements:
 
 ### Forms that the Trino grammar leaves out
 
-The Trino grammar that xo writes (D127) reads the queries of the SQL
-documentation of Trino. The other statements come in the next part of the
-unit. The grammar leaves out these forms of a query:
+The Trino grammar that xo writes (D127) reads each statement of the SQL
+documentation of Trino. The grammar leaves out these forms of a query:
 
 - An expression with an operator as the value of a property of `WITH
   SESSION`, as in `WITH SESSION a = 1 + 1 SELECT 1`. The value is a
@@ -544,13 +543,31 @@ unit. The grammar leaves out these forms of a query:
   MATCH (q)`. Then `MATCH` after the condition of `WHERE` in `NEAREST`
   starts the clause `MATCH`.
 - `COPARTITION` among the arguments of a table function, `OVERLAY` with
-  `PLACING`, the types `ARRAY<T>` and `MAP<K, V>` of earlier releases,
-  `DOUBLE PRECISION`, and names in backquotes. The documentation of Trino
-  does not show them, and Trino refuses names in backquotes.
+  `PLACING`, `DOUBLE PRECISION`, and names in backquotes. The
+  documentation of Trino does not show them, and Trino refuses names in
+  backquotes.
+- The types `ARRAY<T>` and `MAP<K, V>` of earlier releases. The page of
+  the types does not show them. One example of the SQL routines shows
+  `map<varchar, bigint>`.
 - A body of `BEGIN ... END` in `WITH FUNCTION` in the text of usql. The
   option `BeginEndBlocks` of the usql grammar opens a block only at
   `CREATE`, `EXECUTE BLOCK` and `DO BEGIN` (D112, D130), so usql splits
   such a query at each semicolon of the body.
+
+The grammar leaves out these forms of the other statements:
+
+- An object of `GRANT`, `REVOKE` and `DENY` with a kind other than
+  `TABLE` and `SCHEMA`, as in `GRANT SELECT ON kind t TO u`, and `ALTER
+  kind t SET AUTHORIZATION u` for such a kind. The parser of Trino takes
+  the name of a kind that a connector defines, but the documentation does
+  not show it. The kind of `GRANT` costs about 4 parse states.
+- A value with an operator after `DEFAULT` in a column, as in `c integer
+  DEFAULT 1 + 1`. The value ends before an operator, so that `NOT NULL`
+  after it is a part of the column. `DEFAULT (1 + 1)` works.
+- A definition of a function with no `CREATE` and no `WITH`, as in
+  `FUNCTION f() RETURNS integer RETURN 1`. The pages of the SQL routines
+  show such definitions, but Trino takes them only after `CREATE` or
+  `WITH`.
 
 ## The setup of the repository
 

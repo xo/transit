@@ -1571,3 +1571,33 @@ SELECT grouping(a, b), sum(c) FROM t GROUP BY GROUPING SETS ((a), (b));
           (parenthesized_expression
             (column_reference
               (identifier))))))))
+
+================================================================================
+A wrapper after the type of RETURNING
+================================================================================
+
+SELECT json_query(doc, 'lax $.items' RETURNING varchar WITH ARRAY WRAPPER), json_query(doc, '$.a' RETURNING varchar WITHOUT WRAPPER);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (json_function
+        (identifier)
+        (column_reference
+          (identifier))
+        (string)
+        (json_returning
+          (type
+            (identifier)))
+        (json_wrapper))
+      (json_function
+        (identifier)
+        (column_reference
+          (identifier))
+        (string)
+        (json_returning
+          (type
+            (identifier)))
+        (json_wrapper)))))

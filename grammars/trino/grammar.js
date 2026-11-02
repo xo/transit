@@ -198,6 +198,10 @@ module.exports = grammar({
   ],
 
   conflicts: $ => [
+    // WITH after the type of a column starts WITH TIME ZONE, or the
+    // properties of the column, as in a time WITH (k = 1). The parser tries
+    // both, and the word after WITH tells them apart.
+    [$.type],
     // A parenthesized query can be the left side of a set operation, or a
     // subquery in an expression or in FROM.
     [$.parenthesized_query, $.subquery],
@@ -218,7 +222,692 @@ module.exports = grammar({
 
     _statement: $ => choice(
       $.select_statement,
+      $.insert_statement,
+      $.update_statement,
+      $.delete_statement,
+      $.merge_statement,
+      $.truncate_statement,
+      $.create_table_statement,
+      $.create_view_statement,
+      $.create_materialized_view_statement,
+      $.create_schema_statement,
+      $.create_catalog_statement,
+      $.create_role_statement,
+      $.create_branch_statement,
+      $.create_function_statement,
+      $.alter_table_statement,
+      $.alter_view_statement,
+      $.alter_materialized_view_statement,
+      $.alter_schema_statement,
+      $.alter_branch_statement,
+      $.drop_statement,
+      $.comment_statement,
+      $.refresh_statement,
+      $.analyze_statement,
+      $.grant_statement,
+      $.revoke_statement,
+      $.deny_statement,
+      $.set_statement,
+      $.reset_statement,
+      $.use_statement,
+      $.prepare_statement,
+      $.execute_statement,
+      $.deallocate_statement,
+      $.describe_statement,
+      $.show_statement,
+      $.explain_statement,
+      $.call_statement,
+      $.start_transaction_statement,
+      $.commit_statement,
+      $.rollback_statement,
     ),
+
+    // Changes of data
+
+    // INSERT adds the rows of a query to a table.
+    insert_statement: $ => seq(
+      kws('INSERT', 'INTO'),
+      $._target_table,
+      optional($.column_list),
+      $.select_statement,
+    ),
+
+    // The table that a statement changes. @ names a branch of the table, as
+    // the connector of Iceberg has.
+    _target_table: $ => seq(
+      field('table', $.object_reference),
+      optional(seq('@', field('branch', $._name))),
+    ),
+
+    update_statement: $ => seq(
+      kw('UPDATE'),
+      $._target_table,
+      $._set_clause,
+      optional($.where_clause),
+    ),
+
+    _set_clause: $ => seq(kw('SET'), commaSep1($.assignment)),
+
+    assignment: $ => seq(
+      field('column', $._name),
+      '=',
+      field('value', $._expression),
+    ),
+
+    delete_statement: $ => seq(
+      kws('DELETE', 'FROM'),
+      $._target_table,
+      optional($.where_clause),
+    ),
+
+    // MERGE INTO joins a table with a source, and changes, inserts or
+    // deletes rows of the table for each row of the source, as each WHEN
+    // says.
+    merge_statement: $ => seq(
+      kws('MERGE', 'INTO'),
+      $._target_table,
+      optional($._alias),
+      kw('USING'),
+      field('source', $._table_factor),
+      kw('ON'),
+      field('condition', $._expression),
+      repeat1($.merge_when_clause),
+    ),
+
+    // WHEN MATCHED is for a row of the source that matches a row of the
+    // table, and WHEN NOT MATCHED for a row of the source with no match.
+    // The values of INSERT are a row value in parentheses, which is an
+    // expression, so that they take the parse states of an expression. A
+    // list of expressions of its own cost about 40 states.
+    merge_when_clause: $ => seq(
+      kw('WHEN'),
+      optional(kw('NOT')),
+      kw('MATCHED'),
+      optional(seq(kw('AND'), field('condition', $._expression))),
+      kw('THEN'),
+      choice(
+        seq(kw('UPDATE'), $._set_clause),
+        kw('DELETE'),
+        seq(
+          kw('INSERT'),
+          optional($.column_list),
+          kw('VALUES'),
+          field('values', $._expression),
+        ),
+      ),
+    ),
+
+    // TRUNCATE deletes each row of a table.
+    truncate_statement: $ => seq(
+      kws('TRUNCATE', 'TABLE'),
+      field('table', $.object_reference),
+    ),
+
+    // Changes of the schema
+
+    _create: _ => seq(kw('CREATE'), optional(kws('OR', 'REPLACE'))),
+
+    _if_not_exists: _ => kws('IF', 'NOT', 'EXISTS'),
+
+    _if_exists: _ => kws('IF', 'EXISTS'),
+
+    // The name of the object that CREATE makes, with IF NOT EXISTS. It is a
+    // hidden rule of its own, so that the parts after the name have one set
+    // of parse states.
+    _create_name: $ => seq(
+      optional($._if_not_exists),
+      field('name', $.object_reference),
+    ),
+
+    _comment: $ => seq(kw('COMMENT'), field('comment', $.string)),
+
+    _with_properties: $ => seq(kw('WITH'), $.property_list),
+
+    // CREATE TABLE gives the columns of a table and the tables whose columns
+    // it copies, or it takes the columns from a query, with the names of the
+    // columns before AS. The clauses after the columns come in any order.
+    create_table_statement: $ => seq(
+      $._create,
+      kw('TABLE'),
+      $._create_name,
+      optional(choice(
+        parens(commaSep1(choice($.column_definition, $.like_clause))),
+        $.column_list,
+      )),
+      repeat(choice($._comment, $._with_properties)),
+      optional(seq(kw('AS'), $.select_statement)),
+    ),
+
+    // A column of CREATE TABLE and of ALTER TABLE ADD COLUMN. A column of
+    // ALTER TABLE can be a field of a row column, with the names of the row
+    // columns before it, as in r.f INTEGER. DEFAULT ends its value before
+    // an operator, so that NOT NULL after the value is a part of the column.
+    // A value with an operator must be in parentheses.
+    column_definition: $ => seq(
+      repeat(seq(field('parent', $._name), '.')),
+      field('name', $._name),
+      field('type', $.type),
+      repeat(choice(
+        prec(PREC.field + 1, seq(kw('DEFAULT'), field('default', $._expression))),
+        seq(kw('NOT'), $.null),
+        $._comment,
+        $._with_properties,
+      )),
+    ),
+
+    // LIKE copies the columns of a table, and INCLUDING PROPERTIES its
+    // properties too.
+    like_clause: $ => seq(
+      kw('LIKE'),
+      field('table', $.object_reference),
+      optional(seq(choice(kw('INCLUDING'), kw('EXCLUDING')), kw('PROPERTIES'))),
+    ),
+
+    // CREATE VIEW. SECURITY DEFINER runs the query of the view as the owner
+    // of the view, and SECURITY INVOKER as the user who reads it.
+    create_view_statement: $ => seq(
+      $._create,
+      kw('VIEW'),
+      $._create_name,
+      repeat(choice(
+        $._comment,
+        seq(kw('SECURITY'), choice(kw('DEFINER'), kw('INVOKER'))),
+        $._with_properties,
+      )),
+      kw('AS'),
+      $.select_statement,
+    ),
+
+    // CREATE MATERIALIZED VIEW. GRACE PERIOD says how long the data can be
+    // stale, and WHEN STALE what a query does after that time.
+    create_materialized_view_statement: $ => seq(
+      $._create,
+      kws('MATERIALIZED', 'VIEW'),
+      $._create_name,
+      repeat(choice(
+        seq(kws('GRACE', 'PERIOD'), field('grace_period', $.interval_literal)),
+        seq(kws('WHEN', 'STALE'), choice(kw('INLINE'), kw('FAIL'))),
+        $._comment,
+        $._with_properties,
+      )),
+      kw('AS'),
+      $.select_statement,
+    ),
+
+    create_schema_statement: $ => seq(
+      $._create,
+      kw('SCHEMA'),
+      optional($._if_not_exists),
+      field('name', $.schema_reference),
+      repeat(choice($._authorization, $._with_properties)),
+    ),
+
+    _authorization: $ => seq(kw('AUTHORIZATION'), $.principal),
+
+    // CREATE CATALOG adds a catalog with the connector after USING.
+    create_catalog_statement: $ => seq(
+      $._create,
+      kw('CATALOG'),
+      optional($._if_not_exists),
+      field('name', $._name),
+      kw('USING'),
+      field('connector', $._name),
+      repeat(choice($._comment, $._authorization, $._with_properties)),
+    ),
+
+    create_role_statement: $ => seq(
+      $._create,
+      kw('ROLE'),
+      field('name', $._name),
+      repeat(choice(
+        seq(kws('WITH', 'ADMIN'), $._grantor),
+        $._in_catalog,
+      )),
+    ),
+
+    _in_catalog: $ => seq(kw('IN'), field('catalog', $._name)),
+
+    // CREATE BRANCH makes a branch of a table, from another branch or not.
+    create_branch_statement: $ => seq(
+      $._create,
+      kw('BRANCH'),
+      optional($._if_not_exists),
+      field('name', $._name),
+      optional($._with_properties),
+      $._in_table,
+      optional(seq(kw('FROM'), field('source', $._name))),
+    ),
+
+    _in_table: $ => seq(kws('IN', 'TABLE'), field('table', $.object_reference)),
+
+    // CREATE FUNCTION stores a SQL routine in a catalog.
+    create_function_statement: $ => seq(
+      $._create,
+      $.function_definition,
+    ),
+
+    // ALTER TABLE takes one change.
+    alter_table_statement: $ => seq(
+      kws('ALTER', 'TABLE'),
+      $._alter_name,
+      choice(
+        $._rename_to,
+        seq(
+          kws('ADD', 'COLUMN'),
+          optional($._if_not_exists),
+          $.column_definition,
+          optional(choice(kw('FIRST'), kw('LAST'), seq(kw('AFTER'), field('after', $._name)))),
+        ),
+        seq(
+          kws('DROP', 'COLUMN'),
+          optional($._if_exists),
+          field('column', $.column_reference),
+        ),
+        seq(
+          kws('RENAME', 'COLUMN'),
+          optional($._if_exists),
+          field('column', $.column_reference),
+          kw('TO'),
+          field('new_name', $._name),
+        ),
+        seq(
+          kws('ALTER', 'COLUMN'),
+          field('column', $.column_reference),
+          choice(
+            seq(kws('SET', 'DEFAULT'), field('default', $._expression)),
+            kws('DROP', 'DEFAULT'),
+            seq(kws('SET', 'DATA', 'TYPE'), field('type', $.type)),
+            seq(kws('DROP', 'NOT'), $.null),
+          ),
+        ),
+        $._set_authorization,
+        $._set_properties,
+        $._execute_procedure,
+      ),
+    ),
+
+    _alter_name: $ => seq(
+      optional($._if_exists),
+      field('name', $.object_reference),
+    ),
+
+    _rename_to: $ => seq(kws('RENAME', 'TO'), field('new_name', $.object_reference)),
+
+    _set_authorization: $ => seq(kws('SET', 'AUTHORIZATION'), $.principal),
+
+    _set_properties: $ => seq(kws('SET', 'PROPERTIES'), commaSep1($.property)),
+
+    // EXECUTE runs a procedure of the connector on the table, such as
+    // optimize, with its arguments and a WHERE.
+    _execute_procedure: $ => seq(
+      kw('EXECUTE'),
+      field('procedure', $._name),
+      optional($.arguments),
+      optional($.where_clause),
+    ),
+
+    // ALTER VIEW REFRESH updates the columns of a view from its query.
+    alter_view_statement: $ => seq(
+      kws('ALTER', 'VIEW'),
+      field('name', $.object_reference),
+      choice($._rename_to, kw('REFRESH'), $._set_authorization),
+    ),
+
+    alter_materialized_view_statement: $ => seq(
+      kws('ALTER', 'MATERIALIZED', 'VIEW'),
+      $._alter_name,
+      choice(
+        $._rename_to,
+        $._set_properties,
+        $._set_authorization,
+        $._execute_procedure,
+      ),
+    ),
+
+    alter_schema_statement: $ => seq(
+      kws('ALTER', 'SCHEMA'),
+      field('name', $.schema_reference),
+      choice(
+        seq(kws('RENAME', 'TO'), field('new_name', $._name)),
+        $._set_authorization,
+      ),
+    ),
+
+    // ALTER BRANCH FAST FORWARD moves a branch to the head of another
+    // branch.
+    alter_branch_statement: $ => seq(
+      kws('ALTER', 'BRANCH'),
+      field('name', $._name),
+      $._in_table,
+      kws('FAST', 'FORWARD', 'TO'),
+      field('target', $._name),
+    ),
+
+    // DROP deletes an object. CASCADE also deletes the objects of a schema
+    // or a catalog. DROP FUNCTION names the types of the parameters, because
+    // two functions can have the same name.
+    drop_statement: $ => seq(
+      kw('DROP'),
+      choice(
+        seq(
+          choice(kw('TABLE'), kw('VIEW'), kws('MATERIALIZED', 'VIEW')),
+          $._alter_name,
+        ),
+        seq(
+          kw('SCHEMA'),
+          optional($._if_exists),
+          field('name', $.schema_reference),
+          optional($._drop_behavior),
+        ),
+        seq(
+          kw('CATALOG'),
+          optional($._if_exists),
+          field('name', $._name),
+          optional($._drop_behavior),
+        ),
+        seq(
+          kw('ROLE'),
+          optional($._if_exists),
+          field('name', $._name),
+          optional($._in_catalog),
+        ),
+        seq(
+          kw('BRANCH'),
+          optional($._if_exists),
+          field('name', $._name),
+          $._in_table,
+        ),
+        seq(
+          kw('FUNCTION'),
+          $._alter_name,
+          $.parameter_list,
+        ),
+      ),
+    ),
+
+    _drop_behavior: _ => choice(kw('CASCADE'), kw('RESTRICT')),
+
+    // COMMENT ON gives the comment of a table, a view or a column. NULL
+    // deletes the comment.
+    comment_statement: $ => seq(
+      kws('COMMENT', 'ON'),
+      choice(
+        seq(
+          choice(kw('TABLE'), kw('VIEW'), kws('MATERIALIZED', 'VIEW')),
+          field('name', $.object_reference),
+        ),
+        seq(kw('COLUMN'), field('name', $.column_reference)),
+      ),
+      kw('IS'),
+      field('comment', choice($.string, $.null)),
+    ),
+
+    // REFRESH MATERIALIZED VIEW runs the query of a materialized view again.
+    refresh_statement: $ => seq(
+      kws('REFRESH', 'MATERIALIZED', 'VIEW'),
+      field('name', $.object_reference),
+    ),
+
+    // ANALYZE collects the statistics of a table.
+    analyze_statement: $ => seq(
+      kw('ANALYZE'),
+      field('table', $.object_reference),
+      optional($._with_properties),
+    ),
+
+    // Access control
+
+    // GRANT gives privileges on an object, or roles, to users and roles.
+    // The grammar takes both forms with one rule, and the clauses after the
+    // users in any order.
+    grant_statement: $ => seq(
+      kw('GRANT'),
+      $._privileges,
+      optional($._grant_object),
+      kw('TO'),
+      commaSep1($.principal),
+      repeat(choice(
+        seq(kw('WITH'), choice(kw('GRANT'), kw('ADMIN')), kw('OPTION')),
+        $._granted_by,
+        $._in_catalog,
+      )),
+    ),
+
+    revoke_statement: $ => seq(
+      kw('REVOKE'),
+      optional(seq(choice(kw('GRANT'), kw('ADMIN')), kws('OPTION', 'FOR'))),
+      $._privileges,
+      optional($._grant_object),
+      kw('FROM'),
+      commaSep1($.principal),
+      repeat(choice($._granted_by, $._in_catalog)),
+    ),
+
+    deny_statement: $ => seq(
+      kw('DENY'),
+      $._privileges,
+      $._grant_object,
+      kw('TO'),
+      $.principal,
+    ),
+
+    _privileges: $ => choice(
+      commaSep1($.privilege),
+      kws('ALL', 'PRIVILEGES'),
+    ),
+
+    // A privilege, or a role. ADMIN is also the name of a role, as in
+    // REVOKE admin FROM u.
+    privilege: $ => choice(
+      kw('SELECT'),
+      kw('INSERT'),
+      kw('UPDATE'),
+      kw('DELETE'),
+      seq(kw('CREATE'), optional(kw('BRANCH'))),
+      $._name,
+      alias(keyword('ADMIN'), $.identifier),
+    ),
+
+    // The object of a privilege: a table, a schema, or a branch of a table.
+    _grant_object: $ => seq(
+      kw('ON'),
+      optional(seq(kw('BRANCH'), field('branch', $._name), kw('IN'))),
+      choice(
+        seq(optional(kw('TABLE')), field('object', $.object_reference)),
+        seq(kw('SCHEMA'), field('object', $.schema_reference)),
+      ),
+    ),
+
+    // A user or a role. A name with no USER or ROLE is either.
+    principal: $ => seq(
+      optional(choice(kw('USER'), kw('ROLE'))),
+      field('name', $._name),
+    ),
+
+    _granted_by: $ => seq(kws('GRANTED', 'BY'), $._grantor),
+
+    _grantor: $ => choice(
+      $.principal,
+      $.current_value,
+      kw('CURRENT_ROLE'),
+    ),
+
+    // The session
+
+    // SET changes the role, a session property, the authorization, the path
+    // of the functions or the time zone of the session.
+    set_statement: $ => seq(
+      kw('SET'),
+      choice(
+        seq(
+          kw('ROLE'),
+          choice(kw('ALL'), kw('NONE'), field('role', $._name)),
+          optional($._in_catalog),
+        ),
+        seq(kws('SESSION', 'AUTHORIZATION'), field('user', choice($._name, $.string))),
+        seq(
+          kw('SESSION'),
+          field('name', $.object_reference),
+          '=',
+          field('value', $._expression),
+        ),
+        seq(kw('PATH'), commaSep1(field('path', $.schema_reference))),
+        seq(kws('TIME', 'ZONE'), choice(kw('LOCAL'), field('value', $._expression))),
+      ),
+    ),
+
+    reset_statement: $ => seq(
+      kws('RESET', 'SESSION'),
+      choice(kw('AUTHORIZATION'), field('name', $.object_reference)),
+    ),
+
+    // USE sets the schema of the session, with its catalog.
+    use_statement: $ => seq(kw('USE'), field('schema', $.schema_reference)),
+
+    // A schema, with its catalog.
+    schema_reference: $ => choice(
+      field('schema', $._name),
+      seq(field('catalog', $._name), '.', field('schema', $._label)),
+    ),
+
+    // Prepared statements
+
+    // PREPARE names a statement with parameters, EXECUTE runs it with the
+    // values of the parameters after USING, and DEALLOCATE PREPARE deletes
+    // it. EXECUTE IMMEDIATE runs the statement in a string.
+    prepare_statement: $ => seq(
+      kw('PREPARE'),
+      field('name', $._name),
+      kw('FROM'),
+      $._statement,
+    ),
+
+    execute_statement: $ => seq(
+      kw('EXECUTE'),
+      choice(
+        field('name', $._name),
+        seq(kw('IMMEDIATE'), field('statement', $.string)),
+      ),
+      optional(seq(kw('USING'), commaSep1($._expression))),
+    ),
+
+    deallocate_statement: $ => seq(
+      kws('DEALLOCATE', 'PREPARE'),
+      field('name', $._name),
+    ),
+
+    // DESCRIBE gives the columns of a table, DESCRIBE INPUT the parameters
+    // of a prepared statement, and DESCRIBE OUTPUT the columns of a
+    // prepared statement or of a query.
+    describe_statement: $ => seq(
+      choice(kw('DESCRIBE'), kw('DESC')),
+      choice(
+        field('table', $.object_reference),
+        seq(kw('INPUT'), field('name', $._name)),
+        seq(kw('OUTPUT'), choice(field('name', $._name), parens($.select_statement))),
+      ),
+    ),
+
+    // SHOW gives the catalogs, the schemas, the tables and the other objects,
+    // with a pattern after LIKE, and the statement that creates an object.
+    show_statement: $ => seq(
+      kw('SHOW'),
+      choice(
+        seq(
+          choice(kw('CATALOGS'), kw('SESSION')),
+          optional($._like_pattern),
+        ),
+        seq(
+          choice(kw('SCHEMAS'), kw('TABLES'), kw('FUNCTIONS')),
+          optional(seq(choice(kw('FROM'), kw('IN')), field('schema', $.schema_reference))),
+          optional($._like_pattern),
+        ),
+        seq(
+          kw('COLUMNS'),
+          choice(kw('FROM'), kw('IN')),
+          field('table', $.object_reference),
+          optional($._like_pattern),
+        ),
+        seq(
+          kws('STATS', 'FOR'),
+          choice(field('table', $.object_reference), parens($.select_statement)),
+        ),
+        seq(kw('GRANTS'), optional($._grant_object)),
+        seq(
+          choice(seq(optional(kw('CURRENT')), kw('ROLES')), kws('ROLE', 'GRANTS')),
+          optional(seq(choice(kw('FROM'), kw('IN')), field('catalog', $._name))),
+        ),
+        seq(kw('BRANCHES'), choice(kw('FROM'), kw('IN')), kw('TABLE'), field('table', $.object_reference)),
+        seq(
+          kw('CREATE'),
+          choice(
+            seq(
+              choice(kw('TABLE'), kw('VIEW'), kws('MATERIALIZED', 'VIEW'), kw('FUNCTION')),
+              field('name', $.object_reference),
+            ),
+            seq(kw('SCHEMA'), field('name', $.schema_reference)),
+          ),
+        ),
+      ),
+    ),
+
+    _like_pattern: $ => seq(
+      kw('LIKE'),
+      field('pattern', $.string),
+      optional(seq(kw('ESCAPE'), field('escape', $.string))),
+    ),
+
+    // EXPLAIN gives the plan of a statement, with the options in
+    // parentheses, and EXPLAIN ANALYZE runs the statement and gives the plan
+    // with the costs of each step.
+    explain_statement: $ => seq(
+      kw('EXPLAIN'),
+      optional($._explain_options),
+      $._statement,
+    ),
+
+    // The options of EXPLAIN are a hidden rule of their own, so that the
+    // states where the statement after the options starts are one set.
+    _explain_options: $ => choice(
+      seq(kw('ANALYZE'), optional(kw('VERBOSE'))),
+      parens(commaSep1($.explain_option)),
+    ),
+
+    explain_option: _ => choice(
+      seq(kw('FORMAT'), choice(kw('TEXT'), kw('GRAPHVIZ'), kw('JSON'))),
+      seq(kw('TYPE'), choice(kw('LOGICAL'), kw('DISTRIBUTED'), kw('VALIDATE'), kw('IO'))),
+    ),
+
+    // CALL runs a procedure, with arguments by position or by name.
+    call_statement: $ => seq(
+      kw('CALL'),
+      field('procedure', $.object_reference),
+      $.arguments,
+    ),
+
+    // Transactions
+
+    start_transaction_statement: $ => seq(
+      kws('START', 'TRANSACTION'),
+      optional(commaSep1($.transaction_mode)),
+    ),
+
+    transaction_mode: _ => choice(
+      seq(
+        kws('ISOLATION', 'LEVEL'),
+        choice(
+          kws('READ', 'UNCOMMITTED'),
+          kws('READ', 'COMMITTED'),
+          kws('REPEATABLE', 'READ'),
+          kw('SERIALIZABLE'),
+        ),
+      ),
+      seq(kw('READ'), choice(kw('ONLY'), kw('WRITE'))),
+    ),
+
+    commit_statement: _ => seq(kw('COMMIT'), optional(kw('WORK'))),
+
+    rollback_statement: _ => seq(kw('ROLLBACK'), optional(kw('WORK'))),
 
     // Queries
 
@@ -234,8 +923,16 @@ module.exports = grammar({
         $.offset_clause,
         $.limit_clause,
         $.fetch_clause,
+        $._with_data,
       )),
     )),
+
+    // WITH DATA and WITH NO DATA come after the query of CREATE TABLE AS.
+    // The grammar takes them after any query. After the query of CREATE
+    // TABLE only, they cost about 730 parse states, because the states after
+    // an expression where WITH can come do not merge with the states where
+    // WITHIN can come. After any query, they cost about 440 states.
+    _with_data: _ => seq(kw('WITH'), optional(kw('NO')), kw('DATA')),
 
     // WITH names the queries that the query reads, after RECURSIVE when
     // such a query reads itself. WITH FUNCTION defines the functions that
@@ -848,15 +1545,19 @@ module.exports = grammar({
 
     // SQL routines
 
-    // A function of WITH FUNCTION. Its body is a statement of a SQL
-    // routine, or a string in $$ for another language.
+    // A function of WITH FUNCTION and of CREATE FUNCTION. Its body is a
+    // statement of a SQL routine, or a string in $$ for another language.
+    // The characteristics can come before RETURNS, as an example of the
+    // documentation shows, so the grammar takes RETURNS and the
+    // characteristics in any order.
     function_definition: $ => seq(
       kw('FUNCTION'),
       field('name', $.object_reference),
       $.parameter_list,
-      kw('RETURNS'),
-      field('return_type', $.type),
-      repeat($._routine_characteristic),
+      repeat1(choice(
+        seq(kw('RETURNS'), field('return_type', $.type)),
+        $._routine_characteristic,
+      )),
       choice(
         field('body', $._routine_statement),
         seq(kw('AS'), field('body', $.dollar_string)),
@@ -876,8 +1577,8 @@ module.exports = grammar({
       seq(kw('RETURNS'), $.null, kw('ON'), $.null, kw('INPUT')),
       seq(kws('CALLED', 'ON'), $.null, kw('INPUT')),
       seq(kw('SECURITY'), choice(kw('DEFINER'), kw('INVOKER'))),
-      seq(kw('COMMENT'), field('comment', $.string)),
-      seq(kw('WITH'), $.property_list),
+      $._comment,
+      $._with_properties,
     ),
 
     // The properties of an object, as in WITH (format = 'ORC').
@@ -1560,16 +2261,20 @@ module.exports = grammar({
     // A type: a name with its parameters in parentheses, as in
     // DECIMAL(10, 2), ARRAY(INTEGER), MAP(VARCHAR, BIGINT) or ROW(a INTEGER,
     // b VARCHAR), a time with WITH TIME ZONE, or an interval with its
-    // units.
-    type: $ => prec.right(choice(
+    // units. WITH and WITHOUT after a type can also start the properties of
+    // a column, a characteristic of a routine or the wrapper of JSON_QUERY,
+    // so the parser tries both at run time, as the conflicts say.
+    type: $ => choice(
       seq(
         optional($._qualifier),
         field('name', $._label),
         optional($.type_modifiers),
-        optional(seq(choice(kw('WITH'), kw('WITHOUT')), kws('TIME', 'ZONE'))),
+        optional($._time_zone),
       ),
       seq(kw('INTERVAL'), $.interval_qualifier),
-    )),
+    ),
+
+    _time_zone: _ => seq(choice(kw('WITH'), kw('WITHOUT')), kws('TIME', 'ZONE')),
 
     // The parameters of a type: numbers, types, and fields, which have a
     // name and a type.

@@ -1,0 +1,587 @@
+================================================================================
+GRANT of privileges
+================================================================================
+
+GRANT SELECT, INSERT ON TABLE orders TO USER alice WITH GRANT OPTION;
+
+---
+
+(source_file
+  (grant_statement
+    (privilege)
+    (privilege)
+    (object_reference
+      (identifier))
+    (principal
+      (identifier))))
+
+================================================================================
+GRANT of all privileges on a schema
+================================================================================
+
+GRANT ALL PRIVILEGES ON SCHEMA lake.web TO ROLE writers;
+
+---
+
+(source_file
+  (grant_statement
+    (schema_reference
+      (identifier)
+      (identifier))
+    (principal
+      (identifier))))
+
+================================================================================
+GRANT on a branch
+================================================================================
+
+GRANT INSERT ON BRANCH dev IN logs TO bob;
+
+---
+
+(source_file
+  (grant_statement
+    (privilege)
+    (identifier)
+    (object_reference
+      (identifier))
+    (principal
+      (identifier))))
+
+================================================================================
+GRANT of roles
+================================================================================
+
+GRANT analyst, admin TO USER alice, ROLE leads WITH ADMIN OPTION GRANTED BY CURRENT_USER IN hive;
+
+---
+
+(source_file
+  (grant_statement
+    (privilege
+      (identifier))
+    (privilege
+      (identifier))
+    (principal
+      (identifier))
+    (principal
+      (identifier))
+    (current_value)
+    (identifier)))
+
+================================================================================
+REVOKE of privileges
+================================================================================
+
+REVOKE GRANT OPTION FOR DELETE ON orders FROM ROLE writers;
+
+---
+
+(source_file
+  (revoke_statement
+    (privilege)
+    (object_reference
+      (identifier))
+    (principal
+      (identifier))))
+
+================================================================================
+REVOKE of roles
+================================================================================
+
+REVOKE ADMIN OPTION FOR analyst FROM alice GRANTED BY CURRENT_ROLE;
+REVOKE admin FROM USER bob IN hive;
+
+---
+
+(source_file
+  (revoke_statement
+    (privilege
+      (identifier))
+    (principal
+      (identifier)))
+  (revoke_statement
+    (privilege
+      (identifier))
+    (principal
+      (identifier))
+    (identifier)))
+
+================================================================================
+DENY
+================================================================================
+
+DENY UPDATE, DELETE ON TABLE orders TO USER mallory;
+
+---
+
+(source_file
+  (deny_statement
+    (privilege)
+    (privilege)
+    (object_reference
+      (identifier))
+    (principal
+      (identifier))))
+
+================================================================================
+SET ROLE
+================================================================================
+
+SET ROLE ALL;
+SET ROLE analyst IN hive;
+
+---
+
+(source_file
+  (set_statement)
+  (set_statement
+    (identifier)
+    (identifier)))
+
+================================================================================
+SET SESSION and RESET SESSION
+================================================================================
+
+SET SESSION query_max_run_time = '10m';
+SET SESSION hive.compression_codec = 'ZSTD';
+RESET SESSION hive.compression_codec;
+
+---
+
+(source_file
+  (set_statement
+    (object_reference
+      (identifier))
+    (string))
+  (set_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (string))
+  (reset_statement
+    (object_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+SET SESSION AUTHORIZATION and RESET SESSION AUTHORIZATION
+================================================================================
+
+SET SESSION AUTHORIZATION 'john';
+SET SESSION AUTHORIZATION jane;
+RESET SESSION AUTHORIZATION;
+
+---
+
+(source_file
+  (set_statement
+    (string))
+  (set_statement
+    (identifier))
+  (reset_statement))
+
+================================================================================
+SET PATH and SET TIME ZONE
+================================================================================
+
+SET PATH tpch.tiny, example.udf;
+SET TIME ZONE LOCAL;
+SET TIME ZONE 'America/Los_Angeles';
+SET TIME ZONE INTERVAL '-08:00' HOUR TO MINUTE;
+
+---
+
+(source_file
+  (set_statement
+    (schema_reference
+      (identifier)
+      (identifier))
+    (schema_reference
+      (identifier)
+      (identifier)))
+  (set_statement)
+  (set_statement
+    (string))
+  (set_statement
+    (interval_literal
+      (string)
+      (interval_qualifier))))
+
+================================================================================
+USE
+================================================================================
+
+USE hive.web;
+USE web;
+
+---
+
+(source_file
+  (use_statement
+    (schema_reference
+      (identifier)
+      (identifier)))
+  (use_statement
+    (schema_reference
+      (identifier))))
+
+================================================================================
+PREPARE, EXECUTE and DEALLOCATE PREPARE
+================================================================================
+
+PREPARE q FROM SELECT * FROM t WHERE a = ? AND b > ?;
+EXECUTE q USING 1, 'x';
+EXECUTE q;
+DEALLOCATE PREPARE q;
+
+---
+
+(source_file
+  (prepare_statement
+    (identifier)
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))
+        (where_clause
+          (binary_expression
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (parameter))
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (parameter)))))))
+  (execute_statement
+    (identifier)
+    (number)
+    (string))
+  (execute_statement
+    (identifier))
+  (deallocate_statement
+    (identifier)))
+
+================================================================================
+EXECUTE IMMEDIATE
+================================================================================
+
+EXECUTE IMMEDIATE 'SELECT * FROM t WHERE a = ?' USING 5;
+
+---
+
+(source_file
+  (execute_statement
+    (string)
+    (number)))
+
+================================================================================
+DESCRIBE
+================================================================================
+
+DESCRIBE orders;
+DESC hive.web.clicks;
+DESCRIBE INPUT q;
+DESCRIBE OUTPUT q;
+DESCRIBE OUTPUT (SELECT 1 AS one);
+
+---
+
+(source_file
+  (describe_statement
+    (object_reference
+      (identifier)))
+  (describe_statement
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier)))
+  (describe_statement
+    (identifier))
+  (describe_statement
+    (identifier))
+  (describe_statement
+    (select_statement
+      (select
+        (aliased_expression
+          (number)
+          (identifier))))))
+
+================================================================================
+SHOW of the catalogs, the schemas and the tables
+================================================================================
+
+SHOW CATALOGS LIKE 'h%';
+SHOW SCHEMAS FROM hive LIKE 'w\_%' ESCAPE '\';
+SHOW TABLES IN hive.web;
+SHOW COLUMNS FROM orders LIKE 'id%';
+
+---
+
+(source_file
+  (show_statement
+    (string))
+  (show_statement
+    (schema_reference
+      (identifier))
+    (string)
+    (string))
+  (show_statement
+    (schema_reference
+      (identifier)
+      (identifier)))
+  (show_statement
+    (object_reference
+      (identifier))
+    (string)))
+
+================================================================================
+SHOW of the functions and the session
+================================================================================
+
+SHOW FUNCTIONS FROM example.udf LIKE 'fib%';
+SHOW SESSION LIKE 'query%';
+
+---
+
+(source_file
+  (show_statement
+    (schema_reference
+      (identifier)
+      (identifier))
+    (string))
+  (show_statement
+    (string)))
+
+================================================================================
+SHOW STATS
+================================================================================
+
+SHOW STATS FOR orders;
+SHOW STATS FOR (SELECT * FROM orders WHERE id > 10);
+
+---
+
+(source_file
+  (show_statement
+    (object_reference
+      (identifier)))
+  (show_statement
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))
+        (where_clause
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number)))))))
+
+================================================================================
+SHOW of the grants and the roles
+================================================================================
+
+SHOW GRANTS ON TABLE orders;
+SHOW GRANTS;
+SHOW CURRENT ROLES FROM hive;
+SHOW ROLES;
+SHOW ROLE GRANTS IN hive;
+
+---
+
+(source_file
+  (show_statement
+    (object_reference
+      (identifier)))
+  (show_statement)
+  (show_statement
+    (identifier))
+  (show_statement)
+  (show_statement
+    (identifier)))
+
+================================================================================
+SHOW BRANCHES
+================================================================================
+
+SHOW BRANCHES FROM TABLE logs;
+
+---
+
+(source_file
+  (show_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+SHOW CREATE
+================================================================================
+
+SHOW CREATE TABLE orders;
+SHOW CREATE SCHEMA hive.web;
+SHOW CREATE VIEW recent;
+SHOW CREATE MATERIALIZED VIEW daily;
+SHOW CREATE FUNCTION fib;
+
+---
+
+(source_file
+  (show_statement
+    (object_reference
+      (identifier)))
+  (show_statement
+    (schema_reference
+      (identifier)
+      (identifier)))
+  (show_statement
+    (object_reference
+      (identifier)))
+  (show_statement
+    (object_reference
+      (identifier)))
+  (show_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+EXPLAIN with options
+================================================================================
+
+EXPLAIN (TYPE DISTRIBUTED, FORMAT JSON) SELECT * FROM orders;
+EXPLAIN SELECT 1;
+EXPLAIN (SELECT 1);
+
+---
+
+(source_file
+  (explain_statement
+    (explain_option)
+    (explain_option)
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (explain_statement
+    (select_statement
+      (select
+        (number))))
+  (explain_statement
+    (select_statement
+      (parenthesized_query
+        (select
+          (number))))))
+
+================================================================================
+EXPLAIN ANALYZE
+================================================================================
+
+EXPLAIN ANALYZE VERBOSE SELECT count(*) FROM orders;
+EXPLAIN ANALYZE INSERT INTO t VALUES (1);
+
+---
+
+(source_file
+  (explain_statement
+    (select_statement
+      (select
+        (function_call
+          (identifier)
+          (arguments
+            (star_expression)))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (explain_statement
+    (insert_statement
+      (object_reference
+        (identifier))
+      (select_statement
+        (values
+          (parenthesized_expression
+            (number)))))))
+
+================================================================================
+EXPLAIN of another statement
+================================================================================
+
+EXPLAIN CREATE TABLE t AS SELECT 1 AS a;
+
+---
+
+(source_file
+  (explain_statement
+    (create_table_statement
+      (object_reference
+        (identifier))
+      (select_statement
+        (select
+          (aliased_expression
+            (number)
+            (identifier)))))))
+
+================================================================================
+CALL
+================================================================================
+
+CALL system.sync_partition_metadata('web', 'clicks', 'FULL');
+CALL iceberg.system.rollback_to_snapshot(schema_name => 'web', table_name => 'logs', snapshot_id => 8954597067493422955);
+
+---
+
+(source_file
+  (call_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (arguments
+      (string)
+      (string)
+      (string)))
+  (call_statement
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier))
+    (arguments
+      (named_argument
+        (identifier)
+        (string))
+      (named_argument
+        (identifier)
+        (string))
+      (named_argument
+        (identifier)
+        (number)))))
+
+================================================================================
+START TRANSACTION, COMMIT and ROLLBACK
+================================================================================
+
+START TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ WRITE;
+START TRANSACTION;
+COMMIT WORK;
+ROLLBACK;
+
+---
+
+(source_file
+  (start_transaction_statement
+    (transaction_mode)
+    (transaction_mode))
+  (start_transaction_statement)
+  (commit_statement)
+  (rollback_statement))
