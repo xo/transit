@@ -1,6 +1,6 @@
 # D130. BeginEndBlocks opens a block at EXECUTE BLOCK and DO BEGIN
 
-Status: Decided, amends D112.
+Status: Decided, amends D112, amended by D134.
 
 The option `BeginEndBlocks` of D112 keeps a stored program in one statement
 when `CREATE ... PROCEDURE`, `FUNCTION`, `TRIGGER` or `EVENT` comes before
