@@ -153,4 +153,5 @@ An open question is not a decision. It goes at the end of
 | [D132](D132-the-clickhouse-grammar-reads-the-costly-forms-of-part-2.md) | The ClickHouse grammar reads the costly forms of part 2 | Decided, amends D131, amended by D133 |
 | [D133](D133-the-clickhouse-grammar-reads-the-costly-forms-of-part-3.md) | The ClickHouse grammar reads the costly forms of part 3 | Decided, amends D132 |
 | [D134](D134-the-choices-of-the-trino-grammar.md) | The choices of the Trino grammar | Decided, amends D127 and D130 |
-| [D135](D135-a-slash-line-is-a-node-of-its-own.md) | A line with only a slash is a node of its own | Decided, amends D128 |
+| [D135](D135-a-slash-line-is-a-node-of-its-own.md) | A line with only a slash is a node of its own | Decided, amends D128, amended by D136 |
+| [D136](D136-a-slash-line-inside-parentheses-is-text.md) | A line with only a slash inside parentheses is text | Decided, amends D135 |

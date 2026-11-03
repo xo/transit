@@ -1,6 +1,6 @@
 # D135. A line with only a slash is a node of its own
 
-Status: Decided, amends D128.
+Status: Decided, amends D128, amended by D136.
 
 In an Oracle script, a line with only `/` follows each PL/SQL unit, because
 SQL*Plus needs it to run the unit. With the option `AnonymousBlocks` of
