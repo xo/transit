@@ -1,5 +1,5 @@
 // The external scanner of the usql grammar (D101, D102, D108, D112, D128,
-// D130, D131, D134, D135).
+// D130, D131, D134, D135, D136).
 //
 // The scanner reads every token of the grammar. It finds the end of a
 // statement, the strings, the dollar quotes, the comments and the depth of
@@ -38,9 +38,11 @@
 // stored program. Every BEGIN in the block starts a block, but a BEGIN that
 // a ;, WORK or TRANSACTION follows does not (D131). The statement ends at
 // the ; after the END of the outer BEGIN. With USQL_ANONYMOUS_BLOCKS, a /
-// alone on its line is the token SLASH, as in SQL*Plus, and it is never the
-// text of a statement (D135). After a statement with no ;, it ends the
-// statement in the place of the ;. After a ;, it is a node of its own.
+// alone on its line outside parentheses is the token SLASH, as in SQL*Plus,
+// and it is never the text of a statement (D135). After a statement with no
+// ;, it ends the statement in the place of the ;. After a ;, it is a node of
+// its own. Inside parentheses, such a line is the text of the statement
+// (D136).
 //
 // After a colon and a quote, the scanner must read the name and the closing
 // quote before it knows whether the colon starts a variable, as :'name', or
@@ -1127,7 +1129,7 @@ static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int
           advance(lexer);
           return line ? scan_line_comment(lexer) : scan_block_comment(lexer);
         }
-        if (c == '/' && alone && (options & USQL_ANONYMOUS_BLOCKS) &&
+        if (c == '/' && alone && (options & USQL_ANONYMOUS_BLOCKS) && s->depth == 0 &&
             (lexer->eof(lexer) || is_space(d))) {
           if (content) {
             // the next token starts at the /, at the start of its line
@@ -1135,8 +1137,8 @@ static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int
           }
           lexer->mark_end(lexer);
           if (scan_slash_line(lexer) && valid_symbols[SLASH]) {
-            // a / alone on its line ends the statement, as in SQL*Plus
-            s->depth = 0;
+            // a / alone on its line outside parentheses ends the
+            // statement, as in SQL*Plus
             reset_blocks(s);
             lexer->result_symbol = SLASH;
             return true;

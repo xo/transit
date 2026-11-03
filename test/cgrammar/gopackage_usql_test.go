@@ -311,6 +311,16 @@ var usqlScannerInputs = []string{
 	"select :'a'\n/\nselect 2;",
 	"select 1\n/ 2;",
 	"select 1\n/2;",
+	// a line with only a slash inside parentheses (D136)
+	"select (a\n/\n) from dual;",
+	"select (a\n/\n) from dual\n/\nselect 2;",
+	"select ((a\n  /  \n)\n/\n)\n/\nselect 2;",
+	"begin\n  x := f(1\n  /\n  );\nend;\n/\nselect 3;",
+	"begin\n  null;\n/\nselect 4;",
+	"select (a /* b\n/\n*/\n/\n) from dual;",
+	"select ('a\n/\n'\n/\n);",
+	"select (a\n\\g\n/\nselect 1;",
+	"select (a\n/",
 	// a BEGIN that starts a transaction in an anonymous block (D131)
 	"BEGIN x; BEGIN WORK; y; END; z",
 	"BEGIN x; begin transaction; y; END; z",

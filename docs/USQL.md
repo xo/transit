@@ -331,22 +331,26 @@ only. These rules hold:
 4. A meta command ends the statement, as it ends any statement.
 5. The option does not change a statement that starts with another word.
 
-With the option on, a line with only `/` and white space is never the text
-of a statement (D135). In a script of SQL*Plus, such a line follows each
-PL/SQL unit. The grammar reads it as the named node `slash`, which holds
-only the `/` and not the white space or the end of the line. These rules
-hold for every statement, and not only for an anonymous block:
+With the option on, a line with only `/` and white space outside
+parentheses is never the text of a statement (D135, D136). In a script of
+SQL*Plus, such a line follows each PL/SQL unit. The grammar reads it as the
+named node `slash`, which holds only the `/` and not the white space or the
+end of the line. These rules hold for every statement, and not only for an
+anonymous block:
 
 1. After a statement with no `;`, such as `select 1 from dual`, the `slash`
    ends the statement. It is the last child of the `statement`, in the
-   place of the `;`. It ends the statement inside a block or inside
-   parentheses too.
+   place of the `;`. It ends the statement inside a block that did not end
+   too.
 2. After a statement that ended with `;`, such as a block, `CREATE
    PROCEDURE ... END;` or `select 1 from dual;`, the `slash` is a child of
    `source_file` between the statements.
 3. A `/` with other text on its line is text. A `/` in a string, a quoted
    identifier or a comment is a part of that token.
-4. The injection query gives the whole `statement` to the SQL layer, with
+4. Inside parentheses, a line with only `/` is the text of the statement
+   (D136). So `select (a`, then a `/` line, then `) from dual;` is one
+   statement. If a `(` does not close, each `/` line after it is text.
+5. The injection query gives the whole `statement` to the SQL layer, with
    its children, so the SQL layer holds the `slash` of rule 1. The Oracle
    grammar reads it as the end of a statement. This needs no change of the
    injection query.

@@ -284,11 +284,9 @@ select 1 from dual;
   (statement))
 
 ================================================================================
-Oracle anonymous blocks: a slash in parentheses and after a comment
+Oracle anonymous blocks: a slash after a comment
 ================================================================================
 
-select (1
-/
 select 2 from dual -- a comment
 /
 \g
@@ -297,9 +295,86 @@ select 2 from dual -- a comment
 
 (source_file
   (statement
-    (slash))
-  (statement
     (comment)
     (slash))
   (meta_command
     (command_name)))
+
+================================================================================
+Oracle anonymous blocks: a slash inside parentheses is text
+================================================================================
+
+select (a
+/
+) from dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement))
+
+================================================================================
+Oracle anonymous blocks: a slash after the parentheses close
+================================================================================
+
+select (a
+/
+) from dual
+/
+select 2 from dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (slash))
+  (statement))
+
+================================================================================
+Oracle anonymous blocks: a slash after a parenthesis that does not close
+================================================================================
+
+select (1
+/
+select 2 from dual;
+/
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement))
+
+================================================================================
+Oracle anonymous blocks: a slash inside parentheses in a block
+================================================================================
+
+begin
+  x := f(1
+  /
+  );
+end;
+/
+select 3 from dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (slash)
+  (statement))
+
+================================================================================
+Oracle anonymous blocks: a slash ends a block that did not end
+================================================================================
+
+begin
+  null;
+/
+select 4 from dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (slash))
+  (statement))

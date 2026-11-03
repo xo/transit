@@ -1,7 +1,8 @@
 package usql
 
 // This file is a port of src/scanner.c of the usql grammar of transit, in
-// grammars/usql (D101, D102, D108, D112, D128, D130, D131, D134, D135).
+// grammars/usql (D101, D102, D108, D112, D128, D130, D131, D134, D135,
+// D136).
 //
 // The scanner reads every token of the grammar. It finds the end of a
 // statement, the strings, the dollar quotes, the comments and the depth of
@@ -41,9 +42,11 @@ package usql
 // stored program. Every BEGIN in the block starts a block, but a BEGIN that
 // a ;, WORK or TRANSACTION follows does not (D131). The statement ends at
 // the ; after the END of the outer BEGIN. With the option AnonymousBlocks, a
-// / alone on its line is the token slash, as in SQL*Plus, and it is never
-// the text of a statement (D135). After a statement with no ;, it ends the
-// statement in the place of the ;. After a ;, it is a node of its own.
+// / alone on its line outside parentheses is the token slash, as in
+// SQL*Plus, and it is never the text of a statement (D135). After a
+// statement with no ;, it ends the statement in the place of the ;. After a
+// ;, it is a node of its own. Inside parentheses, such a line is the text of
+// the statement (D136).
 //
 // After a colon and a quote, the scanner must read the name and the closing
 // quote before it knows whether the colon starts a variable, as :'name', or
@@ -1110,7 +1113,8 @@ func (s *scanner) scanText(lexer *abi.Lexer, validSymbols []bool, opts Options, 
 					}
 					return scanBlockComment(lexer)
 				}
-				if c == '/' && alone && opts.AnonymousBlocks && (lexer.EOF() || isSpace(d)) {
+				if c == '/' && alone && opts.AnonymousBlocks && s.depth == 0 &&
+					(lexer.EOF() || isSpace(d)) {
 					if content {
 						// the next token starts at the /, at the start of its
 						// line
@@ -1118,9 +1122,8 @@ func (s *scanner) scanText(lexer *abi.Lexer, validSymbols []bool, opts Options, 
 					}
 					lexer.MarkEnd()
 					if scanSlashLine(lexer) && validSymbols[slash] {
-						// a / alone on its line ends the statement, as in
-						// SQL*Plus
-						s.depth = 0
+						// a / alone on its line outside parentheses ends the
+						// statement, as in SQL*Plus
 						s.resetBlocks()
 						lexer.ResultSymbol = slash
 						return true
