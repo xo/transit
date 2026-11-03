@@ -1,6 +1,6 @@
 # D136. A line with only a slash inside parentheses is text
 
-Status: Decided, amends D135.
+Status: Decided, amends D135, amended by D137.
 
 The node `slash` of D135 ended a statement at a line with only `/`, even
 inside parentheses or inside a block that had not ended. So `select a`, then
