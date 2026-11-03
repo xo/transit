@@ -2,6 +2,6 @@ module github.com/xo/transit/grammars/trino
 
 go 1.27.1
 
-require github.com/xo/transit v0.7.0
+require github.com/xo/transit v0.7.1
 
 replace github.com/xo/transit => ../..
