@@ -1,3 +1,4 @@
+-- options: oracle_anonymous
 begin
   null;
 end;

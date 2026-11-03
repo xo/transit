@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/xo/transit"
 	"github.com/xo/transit/internal/grammartest"
 )
 
@@ -57,31 +58,22 @@ func TestOptions(t *testing.T) {
 	}
 }
 
-// TestOptionsHighlight highlights each file of
-// testdata/options_highlight/<name> with the options <name> of optionSets,
-// and checks the assertions in its comments, as the highlight test does.
-// The files need options that are not the default options, such as the
-// node slash of AnonymousBlocks (D135).
+// TestOptionsHighlight highlights each file of testdata/highlight whose
+// first line names a set of options, such as -- options: oracle_anonymous,
+// with those options of optionSets. It checks the assertions in its
+// comments, as the highlight test does (D137). The files need options that
+// are not the default options, such as the node slash of AnonymousBlocks
+// (D135). The test of a file fails when optionSets has no options of its
+// name.
 func TestOptionsHighlight(t *testing.T) {
 	t.Parallel()
-	dirs, err := filepath.Glob(filepath.Join("testdata", "options_highlight", "*"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(dirs) == 0 {
-		t.Fatal("expected the folders of testdata/options_highlight, got none")
-	}
-	for _, dir := range dirs {
-		name := filepath.Base(dir)
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-			opts, ok := optionSets[name]
-			if !ok {
-				t.Fatalf("optionSets has no options %s", name)
-			}
-			grammartest.Highlight(t, LanguageFor(opts), Queries, dir)
-		})
-	}
+	grammartest.HighlightOptions(t, func(name string) (*transit.Language, bool) {
+		opts, ok := optionSets[name]
+		if !ok {
+			return nil, false
+		}
+		return LanguageFor(opts), true
+	}, Queries, "testdata/highlight")
 }
 
 // TestLanguageFor makes sure that LanguageFor gives Language for the default

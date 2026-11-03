@@ -644,7 +644,11 @@ Every grammar has the same tests, and `transit generate` writes them in
    Each capture name of the highlight queries is also in the list of
    captures of the package `styles`, and it reaches an entry of each bundled
    style (D65). The package `styles` exists, and that part of the test is
-   not written yet.
+   not written yet. If the first line of a file is `-- options: <name>`,
+   the file needs the options `<name>` of the grammar, and the test skips
+   it. The function `HighlightOptions` of `internal/grammartest` runs such
+   a file with the language that the caller gives for `<name>`. The test
+   `TestOptionsHighlight` of the usql grammar calls it (D137).
 4. The test of the node types and the test of the keywords. Each type of
    `node-types.json` and each keyword is a symbol of the language.
 5. The generator test, as below.

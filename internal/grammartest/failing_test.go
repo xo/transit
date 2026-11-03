@@ -65,9 +65,16 @@ func (b *languageBackend) Render(in *generate.RenderInput) (string, error) {
 // tinyLanguage runs the generator on tinyGrammar, and returns its language.
 func tinyLanguage(t *testing.T) *transit.Language {
 	t.Helper()
+	return grammarLanguage(t, tinyGrammar)
+}
+
+// grammarLanguage runs the generator on the grammar.json grammar, and
+// returns its language.
+func grammarLanguage(t *testing.T, grammar string) *transit.Language {
+	t.Helper()
 	var diagnostics []generate.Diagnostic
 	b := &languageBackend{}
-	if _, _, err := generate.ParserForGrammar([]byte(tinyGrammar), nil, generate.OptLevelMergeStates, b, &diagnostics); err != nil {
+	if _, _, err := generate.ParserForGrammar([]byte(grammar), nil, generate.OptLevelMergeStates, b, &diagnostics); err != nil {
 		t.Fatal(err)
 	}
 	return b.language

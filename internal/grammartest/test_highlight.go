@@ -47,7 +47,8 @@ type Grammar struct {
 // query files fsys, such as the Queries of a grammar package, on each file
 // of dir, such as testdata/highlight. It highlights each file as the
 // highlighter of upstream does, and checks the assertions in its comments
-// (D79, D80).
+// (D79, D80). It skips a file whose first line names a set of options,
+// which HighlightOptions runs (D137).
 //
 // The queries are the files that the nearest tree-sitter.json, in the
 // working folder or in a folder above it, lists for the grammar under
@@ -76,12 +77,92 @@ func Highlight(t *testing.T, language *transit.Language, fsys fs.FS, dir string,
 	case config == nil:
 		t.Fatalf("No highlighting config found for %s", language.Name())
 	}
-	testHighlights(t, l, config, dir)
+	testHighlights(t, dir, func(t *testing.T, src []byte) {
+		t.Helper()
+		if name, ok := fileOptions(src); ok {
+			t.Skipf("the file names the options %s, so HighlightOptions runs it", name)
+		}
+		checkHighlight(t, l, config, src)
+	})
 }
 
-// testHighlights runs the test of each file of dir as a subtest, and of
-// each folder that is not empty as a group.
-func testHighlights(t *testing.T, l *loader, config *highlightConfiguration, dir string) {
+// checkHighlight runs the test of the file with the text src, and fails t
+// when an assertion of the file fails.
+func checkHighlight(t *testing.T, l *loader, config *highlightConfiguration, src []byte) {
+	t.Helper()
+	if _, err := testHighlight(l, config, src); err != nil {
+		t.Error(err)
+	}
+}
+
+// optionsPrefix starts the first line of a highlight test that names a set
+// of options, such as "-- options: oracle_anonymous" (D137).
+const optionsPrefix = "-- options: "
+
+// fileOptions returns the name of the set of options that the first line of
+// src names, and false when the first line names none.
+func fileOptions(src []byte) (string, bool) {
+	line, _, _ := strings.Cut(string(src), "\n")
+	name, ok := strings.CutPrefix(strings.TrimSuffix(line, "\r"), optionsPrefix)
+	if !ok || name == "" {
+		return "", false
+	}
+	return name, true
+}
+
+// HighlightOptions runs the highlight test of the grammar on each file of
+// dir whose first line names a set of options, such as
+// "-- options: oracle_anonymous" (D137). Highlight skips such a file.
+// languageFor gives the language for the name of a set of options, and false
+// for a name that it does not know. The test of a file fails when
+// languageFor does not know its name. fsys and others are those of
+// Highlight. HighlightOptions skips each file that names no options, and it
+// fails when no file of dir names options.
+func HighlightOptions(t *testing.T, languageFor func(name string) (*transit.Language, bool), fsys fs.FS, dir string, others ...Grammar) {
+	t.Helper()
+	type run struct {
+		l      *loader
+		config *highlightConfiguration
+	}
+	runs := map[string]run{}
+	count := 0
+	testHighlights(t, dir, func(t *testing.T, src []byte) {
+		t.Helper()
+		name, ok := fileOptions(src)
+		if !ok {
+			t.Skip("the file names no options, so Highlight runs it")
+		}
+		count++
+		r, ok := runs[name]
+		if !ok {
+			language, ok := languageFor(name)
+			if !ok {
+				t.Fatalf("no language for the options %s", name)
+			}
+			l, err := newLoader(Grammar{Language: language, Queries: fsys}, others)
+			if err != nil {
+				t.Fatal(err)
+			}
+			config, err := l.own.highlightConfig(&l.highlightNames)
+			switch {
+			case err != nil:
+				t.Fatal(err)
+			case config == nil:
+				t.Fatalf("No highlighting config found for %s", language.Name())
+			}
+			r = run{l: l, config: config}
+			runs[name] = r
+		}
+		checkHighlight(t, r.l, r.config, src)
+	})
+	if count == 0 {
+		t.Errorf("no file of %s names options", dir)
+	}
+}
+
+// testHighlights calls test on the text of each file of dir in a subtest,
+// and runs each folder that is not empty as a group.
+func testHighlights(t *testing.T, dir string, test func(t *testing.T, src []byte)) {
 	t.Helper()
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -92,7 +173,7 @@ func testHighlights(t *testing.T, l *loader, config *highlightConfiguration, dir
 		if e.IsDir() {
 			if children, err := os.ReadDir(name); err == nil && len(children) > 0 {
 				t.Run(e.Name(), func(t *testing.T) {
-					testHighlights(t, l, config, name)
+					testHighlights(t, name, test)
 				})
 				continue
 			}
@@ -102,9 +183,7 @@ func testHighlights(t *testing.T, l *loader, config *highlightConfiguration, dir
 			if err != nil {
 				t.Fatal(err)
 			}
-			if _, err := testHighlight(l, config, src); err != nil {
-				t.Error(err)
-			}
+			test(t, src)
 		})
 	}
 }
