@@ -228,3 +228,18 @@ select 2;
 (source_file
   (statement
     (quoted_identifier)))
+
+================================================================================
+SQLite: a byte order mark in brackets and backticks
+================================================================================
+
+select [﻿], `﻿`;﻿[a];
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (quoted_identifier)
+    (quoted_identifier))
+  (statement
+    (quoted_identifier)))

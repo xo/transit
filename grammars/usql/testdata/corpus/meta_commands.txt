@@ -547,3 +547,21 @@ Commands that usql runs from testdata
     (command_name)
     (word)
     (word)))
+
+================================================================================
+A byte order mark between meta commands
+================================================================================
+
+\x﻿\d﻿t﻿
+﻿\p
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (meta_command
+    (command_name))
+  (meta_command
+    (command_name)
+    (word))
+  (meta_command
+    (command_name)))

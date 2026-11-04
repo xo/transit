@@ -584,9 +584,9 @@ only its scanner (D108):
 | `testdata/highlight/` | the highlight tests, with their assertions in `--` comments | a person |
 
 The upstream tool, the golden harness and the corpus test use the default
-options of `src/scanner.c`: dollar quotes and block comments. A new option
-is one new field of `Options` and one new flag of `src/scanner.c`, and the
-field and the flag are in the same order. The test module builds the C
+options of `src/scanner.c`: dollar quotes, block comments and dash comments
+(D139). A new option is one new field of `Options` and one new flag of
+`src/scanner.c`, and the field and the flag are in the same order. The test module builds the C
 scanner once for each set of options that it tests, with
 `-DUSQL_OPTIONS=<n>`, and compares it with the Go scanner of
 `LanguageFor` with the same options.

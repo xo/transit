@@ -97,3 +97,95 @@ func TestLanguageFor(t *testing.T) {
 		}
 	}
 }
+
+// bomInputs are texts with U+FEFF, the byte order mark, for
+// TestByteOrderMark. The test module gives them to the C scanner too.
+var bomInputs = []string{
+	"\ufeffselect 1;",
+	"select 1;\ufeffselect 2;",
+	" \ufeffselect 1;",
+	"00000000;\ufeff",
+	"select\ufeff1;",
+	"select 1\ufeff;\ufeff",
+	"select 'a\ufeffb",
+	"select 1\ufeff\\g\ufeff\n",
+	"\ufeff",
+	" \ufeff \ufeff",
+	"\\x\ufeff\\d\ufeffa\ufeff\n\ufeff\\p",
+	"\\g\ufeff(\ufeffformat\ufeff=\ufeffcsv\ufeff)\ufeff",
+	"\\echo\ufeff'\ufeff'\ufeff\"\ufeff\"\ufeff`\ufeff`",
+	"\\!\ufeffls\ufeff",
+	"select :\ufefffoo, :foo\ufeff, :'\ufeff', :'foo\ufeff', :{?\ufeff};",
+	"select '\ufeff', \"\ufeff\", `\ufeff`, [\ufeff];",
+	"select $$\ufeff$$, $\ufeff$, $a\ufeff$, x\ufeff$$a$$;",
+	"select 1 /*\ufeff*/ -- \ufeff\n# \ufeff\n// \ufeff\n;",
+	"begin\ufeff;",
+	"begin\ufeffselect 1; end;",
+	"create procedure p() begin\ufeffselect 1; end;\ufeffselect 2;",
+	"create function f return number as\ufeffx number; begin return x; end;",
+	"execute\ufeffblock as declare x int; begin x = 1; end;",
+	"do\ufeffbegin select 1; end;",
+	"with\ufefffunction f() returns int begin return 1; end select f();",
+	"begin\ufeffbatch insert into t (a) values (1); apply\ufeffbatch;",
+	"create procedure p() begin\ufeffcase\ufeffwhen 1 then select 1; end\ufeffcase; end\ufeff;",
+}
+
+// TestByteOrderMark parses each text of bomInputs with each set of options
+// of optionSets (D141). Its tree must be the tree of the same text with
+// three spaces in place of each U+FEFF, because U+FEFF is white space
+// outside a string, a quoted name, a dollar quote and a comment, and is
+// text inside them. No statement starts or ends with U+FEFF, and no meta
+// command starts with it.
+func TestByteOrderMark(t *testing.T) {
+	t.Parallel()
+	for name, opts := range optionSets {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			parser := transit.NewParser()
+			if err := parser.SetLanguage(LanguageFor(opts)); err != nil {
+				t.Fatal(err)
+			}
+			for _, input := range bomInputs {
+				tree := parseText(t, parser, input)
+				spaced := parseText(t, parser, strings.ReplaceAll(input, "\ufeff", "   "))
+				if got, want := tree.RootNode().String(), spaced.RootNode().String(); got != want {
+					t.Errorf("%q: expected the tree %s of the text with spaces, got %s", input, want, got)
+				}
+				checkBOMEnds(t, input, tree.RootNode())
+			}
+		})
+	}
+}
+
+// parseText parses the text src with the parser p.
+func parseText(t *testing.T, p *transit.Parser, src string) *transit.Tree {
+	t.Helper()
+	tree, err := p.Parse(t.Context(), []byte(src), nil)
+	if err != nil {
+		t.Fatalf("%q: %v", src, err)
+	}
+	return tree
+}
+
+// checkBOMEnds makes sure that no statement in the node n of the text src
+// starts or ends with U+FEFF, and that no meta command starts with it. A
+// meta command ends after the white space at the end of its line, as it
+// does with spaces.
+func checkBOMEnds(t *testing.T, src string, n transit.Node) {
+	t.Helper()
+	text := src[n.StartByte():n.EndByte()]
+	switch n.Kind() {
+	case "statement":
+		if strings.HasPrefix(text, "\ufeff") || strings.HasSuffix(text, "\ufeff") {
+			t.Errorf("%q: expected a statement with no U+FEFF at its ends, got %q", src, text)
+		}
+	case "meta_command":
+		if strings.HasPrefix(text, "\ufeff") {
+			t.Errorf("%q: expected a meta command with no U+FEFF at its start, got %q", src, text)
+		}
+	}
+	for i := range n.ChildCount() {
+		child, _ := n.Child(i)
+		checkBOMEnds(t, src, child)
+	}
+}

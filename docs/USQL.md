@@ -388,6 +388,15 @@ these facts of the tree of the usql grammar. The usql peer gave them on
    anonymous `;` must stay in the text of the statement.
 4. A line with only `/` is in the text of a statement (D138). So usql
    sends it to the server with the text of that statement.
+5. U+FEFF, the byte order mark, is white space outside a string, a quoted
+   name, a dollar quote and a comment, with any options (D141). So no
+   `statement` starts or ends with it, and usql does not send it to the
+   server at the start of a file that a script joins. In the middle of a
+   statement, it stays in the text, as a space does. Inside a string, a
+   quoted name, a dollar quote and a comment, it is text. No
+   `meta_command` starts with it. A `meta_command` holds the white space
+   after its last argument, so its text can end with U+FEFF, as it can end
+   with a space.
 
 ## What usql must not do
 

@@ -182,3 +182,15 @@ select 2;
     (quoted_identifier)
     (quoted_identifier))
   (statement))
+
+================================================================================
+SQL Server blocks: a byte order mark right after BEGIN and in brackets
+================================================================================
+
+create procedure p as begin﻿select [﻿]; end;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (quoted_identifier)))

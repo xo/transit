@@ -2,7 +2,7 @@ package usql
 
 // This file is a port of src/scanner.c of the usql grammar of transit, in
 // grammars/usql (D101, D102, D108, D112, D128, D130, D131, D134, D138,
-// D139, D140).
+// D139, D140, D141).
 //
 // The scanner reads every token of the grammar. It finds the end of a
 // statement, the strings, the dollar quotes, the comments and the depth of
@@ -10,7 +10,9 @@ package usql
 // and its modifiers, with the commands of usql. It ends the arguments of a
 // meta command at the end of the line or at the next backslash outside
 // quotes. The client lexer of PostgreSQL, src/bin/psql/psqlscan.l, is the
-// reference for the rules.
+// reference for the rules. U+FEFF, the byte order mark, is white space
+// outside a string, a quoted identifier, a dollar quote and a comment, so
+// no token starts or ends with it there (D141).
 //
 // The scanner tells the contexts apart by the valid tokens. commandEnd is
 // valid only inside the arguments of a meta command, the option tokens only
@@ -125,6 +127,10 @@ const maxTagLength = 128
 // maxWordLength is MAX_WORD_LENGTH, the longest keyword that the scanner
 // reads in SQL text.
 const maxWordLength = 16
+
+// byteOrderMark is BYTE_ORDER_MARK, U+FEFF. Outside a string, a quoted
+// identifier, a dollar quote and a comment, it is white space (D141).
+const byteOrderMark = 0xFEFF
 
 // serializedSize is SERIALIZED_SIZE, the number of bytes that Serialize
 // writes.
@@ -488,23 +494,28 @@ func skip(lexer *abi.Lexer) { lexer.Advance(true) }
 // isNewline is is_newline. It reports whether c ends a line.
 func isNewline(c int32) bool { return c == '\n' || c == '\r' }
 
-// isSpace is is_space. It reports whether c is white space.
+// isSpace is is_space. It reports whether c is white space. U+FEFF, the
+// byte order mark, is white space too (D141).
 func isSpace(c int32) bool {
-	return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v'
+	return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v' ||
+		c == byteOrderMark
 }
 
 // isVariableChar is is_variable_char. It reports whether c can be in the
 // name of a variable, as variable_char of psqlscan.l: a letter, a digit, an
-// underscore or any character that is not ASCII.
+// underscore or any character that is not ASCII, except the byte order mark,
+// which is white space (D141).
 func isVariableChar(c int32) bool {
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' ||
-		c >= 0x80
+		(c >= 0x80 && c != byteOrderMark)
 }
 
 // isTagStart is is_tag_start. It reports whether c can start the tag of a
-// dollar quote, as dolq_start of psqlscan.l.
+// dollar quote, as dolq_start of psqlscan.l, except the byte order mark
+// (D141).
 func isTagStart(c int32) bool {
-	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || c >= 0x80
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' ||
+		(c >= 0x80 && c != byteOrderMark)
 }
 
 // isIdentifierChar is is_identifier_char. It reports whether c can be in an

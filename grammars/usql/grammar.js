@@ -25,8 +25,9 @@ module.exports = grammar({
   name: 'usql',
 
   // The scanner skips the white space, because it decides what a new line
-  // ends. The comments come from the scanner too.
-  extras: $ => [/\s/, $.comment],
+  // ends. The comments come from the scanner too. U+FEFF, the byte order
+  // mark, is white space (D141).
+  extras: $ => [/[\s\uFEFF]/, $.comment],
 
   // The order of the external tokens is the order of enum TokenType in
   // src/scanner.c.

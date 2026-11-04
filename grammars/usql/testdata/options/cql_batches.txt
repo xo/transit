@@ -88,3 +88,14 @@ create function f() begin select 5; end;
   (statement)
   (statement)
   (statement))
+
+================================================================================
+CQL with Batches: a byte order mark between the words of a batch
+================================================================================
+
+begin﻿batch insert into t (a) values (1); apply﻿batch;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement))

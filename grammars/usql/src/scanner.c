@@ -1,5 +1,5 @@
 // The external scanner of the usql grammar (D101, D102, D108, D112, D128,
-// D130, D131, D134, D138, D139, D140).
+// D130, D131, D134, D138, D139, D140, D141).
 //
 // The scanner reads every token of the grammar. It finds the end of a
 // statement, the strings, the dollar quotes, the comments and the depth of
@@ -7,7 +7,9 @@
 // and its modifiers, with the commands of usql. It ends the arguments of a
 // meta command at the end of the line or at the next backslash outside
 // quotes. The client lexer of PostgreSQL, src/bin/psql/psqlscan.l, is the
-// reference for the rules.
+// reference for the rules. U+FEFF, the byte order mark, is white space
+// outside a string, a quoted identifier, a dollar quote and a comment, so
+// no token starts or ends with it there (D141).
 //
 // The scanner tells the contexts apart by the valid tokens. COMMAND_END is
 // valid only inside the arguments of a meta command, the option tokens only
@@ -132,6 +134,10 @@ enum Context {
 
 // The longest keyword that the scanner reads in SQL text.
 #define MAX_WORD_LENGTH 16
+
+// U+FEFF, the byte order mark. Outside a string, a quoted identifier, a
+// dollar quote and a comment, it is white space (D141).
+#define BYTE_ORDER_MARK 0xFEFF
 
 // The number of bytes that tree_sitter_usql_external_scanner_serialize
 // writes.
@@ -477,23 +483,27 @@ static inline void skip(TSLexer *lexer) { lexer->advance(lexer, true); }
 // is_newline reports whether c ends a line.
 static inline bool is_newline(int32_t c) { return c == '\n' || c == '\r'; }
 
-// is_space reports whether c is white space.
+// is_space reports whether c is white space. U+FEFF, the byte order mark,
+// is white space too (D141).
 static inline bool is_space(int32_t c) {
-  return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v';
+  return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v' ||
+         c == BYTE_ORDER_MARK;
 }
 
 // is_variable_char reports whether c can be in the name of a variable, as
 // variable_char of psqlscan.l: a letter, a digit, an underscore or any
-// character that is not ASCII.
+// character that is not ASCII, except the byte order mark, which is white
+// space (D141).
 static inline bool is_variable_char(int32_t c) {
   return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' ||
-         c >= 0x80;
+         (c >= 0x80 && c != BYTE_ORDER_MARK);
 }
 
 // is_tag_start reports whether c can start the tag of a dollar quote, as
-// dolq_start of psqlscan.l.
+// dolq_start of psqlscan.l, except the byte order mark (D141).
 static inline bool is_tag_start(int32_t c) {
-  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' || c >= 0x80;
+  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_' ||
+         (c >= 0x80 && c != BYTE_ORDER_MARK);
 }
 
 // is_identifier_char reports whether c can be in an identifier, as

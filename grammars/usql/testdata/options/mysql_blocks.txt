@@ -222,3 +222,15 @@ select 2;
   (statement)
   (statement)
   (statement))
+
+================================================================================
+MySQL blocks: a byte order mark right after BEGIN
+================================================================================
+
+create procedure p() begin﻿select 1; end;﻿select 2;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement))

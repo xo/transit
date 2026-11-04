@@ -220,3 +220,14 @@ SELECT 2 FROM dual;
 (source_file
   (statement)
   (statement))
+
+================================================================================
+Oracle blocks: a byte order mark right after AS
+================================================================================
+
+create function f return number as﻿x number; begin return x; end;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement))

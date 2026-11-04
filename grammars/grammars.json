@@ -11479,7 +11479,7 @@
         }
       },
       "corpus": {
-        "tests": 67,
+        "tests": 76,
         "failures": 0,
         "transit": "same"
       }

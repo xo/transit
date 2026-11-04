@@ -164,3 +164,14 @@ select 1 from rdb$database;
     (quoted_identifier))
   (statement)
   (statement))
+
+================================================================================
+Firebird blocks: a byte order mark between EXECUTE and BLOCK
+================================================================================
+
+execute﻿block as declare x int; begin x = 1; end;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement))

@@ -535,3 +535,15 @@ select 1 from dual;
   (statement
     (quoted_identifier))
   (statement))
+
+================================================================================
+Oracle anonymous blocks: a byte order mark right after BEGIN
+================================================================================
+
+begin﻿null; end;﻿select 1;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement))

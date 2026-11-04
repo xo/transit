@@ -604,7 +604,7 @@
   "extras": [
     {
       "type": "PATTERN",
-      "value": "\\s"
+      "value": "[\\s\\uFEFF]"
     },
     {
       "type": "SYMBOL",

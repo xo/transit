@@ -125,3 +125,14 @@ select 2;
     (quoted_identifier)
     (string))
   (statement))
+
+================================================================================
+Trino blocks: a byte order mark between WITH and FUNCTION
+================================================================================
+
+with﻿function f() returns int begin return 1; end select f();
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement))
