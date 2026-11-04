@@ -1,6 +1,6 @@
 # D137. A highlight test can name its options
 
-Status: Decided, amends D136.
+Status: Decided, amends D136, amended by D138.
 
 D136 point 3 moves the highlight tests of the usql grammar that need options
 other than the default into `grammars/usql/testdata/highlight`. The test

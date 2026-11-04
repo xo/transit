@@ -146,13 +146,14 @@ An open question is not a decision. It goes at the end of
 | [D125](D125-the-oracle-grammar-has-no-fixed-size-budget.md) | The Oracle grammar has no fixed size budget | Decided, amends D124 |
 | [D126](D126-xo-writes-the-sqlite-and-duckdb-grammars.md) | xo writes the SQLite and DuckDB grammars | Decided, amends D106 |
 | [D127](D127-xo-writes-the-clickhouse-and-trino-grammars.md) | xo writes the ClickHouse and Trino grammars | Decided, amends D106, amended by D131 and D134 |
-| [D128](D128-the-usql-grammar-can-keep-an-anonymous-block-in-one-statement.md) | The usql grammar can keep an anonymous block in one statement | Decided, amends D112, amended by D131 and D135 |
+| [D128](D128-the-usql-grammar-can-keep-an-anonymous-block-in-one-statement.md) | The usql grammar can keep an anonymous block in one statement | Decided, amends D112, amended by D131, D135 and D138 |
 | [D129](D129-the-size-choices-of-the-sqlite-and-duckdb-grammars.md) | The size choices of the SQLite and DuckDB grammars | Decided |
 | [D130](D130-begin-end-blocks-open-at-execute-block-and-do-begin.md) | BeginEndBlocks opens a block at EXECUTE BLOCK and DO BEGIN | Decided, amends D112, amended by D134 |
 | [D131](D131-the-choices-of-the-clickhouse-grammar-and-of-anonymous-blocks.md) | The choices of the ClickHouse grammar and of anonymous blocks | Decided, amends D127 and D128, amended by D132 |
 | [D132](D132-the-clickhouse-grammar-reads-the-costly-forms-of-part-2.md) | The ClickHouse grammar reads the costly forms of part 2 | Decided, amends D131, amended by D133 |
 | [D133](D133-the-clickhouse-grammar-reads-the-costly-forms-of-part-3.md) | The ClickHouse grammar reads the costly forms of part 3 | Decided, amends D132 |
 | [D134](D134-the-choices-of-the-trino-grammar.md) | The choices of the Trino grammar | Decided, amends D127 and D130 |
-| [D135](D135-a-slash-line-is-a-node-of-its-own.md) | A line with only a slash is a node of its own | Decided, amends D128, amended by D136 |
-| [D136](D136-a-slash-line-inside-parentheses-is-text.md) | A line with only a slash inside parentheses is text | Decided, amends D135, amended by D137 |
-| [D137](D137-a-highlight-test-can-name-its-options.md) | A highlight test can name its options | Decided, amends D136 |
+| [D135](D135-a-slash-line-is-a-node-of-its-own.md) | A line with only a slash is a node of its own | Decided, amends D128, amended by D136, superseded by D138 |
+| [D136](D136-a-slash-line-inside-parentheses-is-text.md) | A line with only a slash inside parentheses is text | Decided, amends D135, amended by D137, superseded by D138 |
+| [D137](D137-a-highlight-test-can-name-its-options.md) | A highlight test can name its options | Decided, amends D136, amended by D138 |
+| [D138](D138-a-slash-line-is-statement-text.md) | A line with only a slash is statement text | Decided, supersedes D135 and D136, amends D128 and D137 |
