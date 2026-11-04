@@ -165,17 +165,19 @@ xo writes some grammars in this repository (D42, D104). The package
 `github.com/xo/transit/grammars/usql` holds the grammar `usql` of the input
 of usql: SQL statements, meta commands such as `\d` and variables such as
 `:name` (D13). It is one language for every SQL dialect (D108). `Language`
-gives the language with dollar quotes and block comments, the options of
-PostgreSQL. `LanguageFor` gives the language with the options of another
-dialect, with the same tables:
+gives the language with dollar quotes, block comments and dash comments,
+the options of PostgreSQL. `LanguageFor` gives the language with the
+options of another dialect, with the same tables:
 
 ```go
-lang := usql.LanguageFor(usql.Options{BlockComments: true, HashComments: true, Backticks: true})
+lang := usql.LanguageFor(usql.Options{BlockComments: true, HashComments: true, Backticks: true, DashComments: true})
 ```
 
 The fields of `usql.Options` are the flags of the type `Syntax` of dbmeta:
-`DollarQuotes`, `BlockComments`, `SlashComments`, `HashComments` and
-`Backticks`. Three more fields are not flags of dbmeta. `BeginEndBlocks`
+`DollarQuotes`, `BlockComments`, `SlashComments`, `HashComments`,
+`Backticks` and `DashComments`. With `DashComments`, `--` starts a comment.
+Without it, `--` is text, as in the relationship `(a)--(b)` of Cypher
+(D139). Three more fields are not flags of dbmeta. `BeginEndBlocks`
 and `AnonymousBlocks` are described below. `Batches` keeps a batch of CQL,
 from `BEGIN BATCH` to `APPLY BATCH`, in one statement. It is off by
 default.

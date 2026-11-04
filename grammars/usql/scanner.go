@@ -1,7 +1,8 @@
 package usql
 
 // This file is a port of src/scanner.c of the usql grammar of transit, in
-// grammars/usql (D101, D102, D108, D112, D128, D130, D131, D134, D138).
+// grammars/usql (D101, D102, D108, D112, D128, D130, D131, D134, D138,
+// D139).
 //
 // The scanner reads every token of the grammar. It finds the end of a
 // statement, the strings, the dollar quotes, the comments and the depth of
@@ -18,7 +19,9 @@ package usql
 //
 // The options of the dialect change some tokens. The C scanner reads them
 // from the macro USQL_OPTIONS when it is compiled, and the Go scanner reads
-// them from its field options.
+// them from its field options. With the option DashComments, -- starts a
+// comment to the end of the line. Without it, -- is text, as in the
+// relationship (a)--(b) of Cypher (D139).
 //
 // With the option BeginEndBlocks, the scanner keeps a stored program in one
 // statement (D112). It reads the words of the SQL text, outside strings,
@@ -1103,7 +1106,7 @@ func (s *scanner) scanText(lexer *abi.Lexer, validSymbols []bool, opts Options, 
 			if c == '-' || c == '/' {
 				advance(lexer)
 				d := lexer.Lookahead
-				line := (c == '-' && d == '-') || (c == '/' && d == '/' && opts.SlashComments)
+				line := (c == '-' && d == '-' && opts.DashComments) || (c == '/' && d == '/' && opts.SlashComments)
 				block := c == '/' && d == '*' && opts.BlockComments
 				if line || block {
 					if content {

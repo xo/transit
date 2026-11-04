@@ -1,5 +1,5 @@
 // The external scanner of the usql grammar (D101, D102, D108, D112, D128,
-// D130, D131, D134, D138).
+// D130, D131, D134, D138, D139).
 //
 // The scanner reads every token of the grammar. It finds the end of a
 // statement, the strings, the dollar quotes, the comments and the depth of
@@ -16,7 +16,9 @@
 //
 // The options of the dialect change some tokens. USQL_OPTIONS gives them as
 // a set of the flags below. A build can set it, as the test module does
-// with -DUSQL_OPTIONS=<n>, to build the scanner of other options.
+// with -DUSQL_OPTIONS=<n>, to build the scanner of other options. With
+// USQL_DASH_COMMENTS, -- starts a comment to the end of the line. Without
+// it, -- is text, as in the relationship (a)--(b) of Cypher (D139).
 //
 // With USQL_BEGIN_END_BLOCKS, the scanner keeps a stored program in one
 // statement (D112). It reads the words of the SQL text, outside strings,
@@ -63,12 +65,13 @@
 #define USQL_BEGIN_END_BLOCKS 32 // BEGIN ... END of a stored program is in one statement
 #define USQL_ANONYMOUS_BLOCKS 64 // an anonymous block of PL/SQL is in one statement
 #define USQL_BATCHES 128         // BEGIN BATCH ... APPLY BATCH of CQL is in one statement
+#define USQL_DASH_COMMENTS 256   // -- starts a comment
 
-// The options of the scanner. The default is dollar quotes and block
-// comments, the options of PostgreSQL. The upstream tool and the golden
-// harness build the scanner with the default.
+// The options of the scanner. The default is dollar quotes, block comments
+// and dash comments, the options of PostgreSQL. The upstream tool and the
+// golden harness build the scanner with the default.
 #ifndef USQL_OPTIONS
-#define USQL_OPTIONS (USQL_DOLLAR_QUOTES | USQL_BLOCK_COMMENTS)
+#define USQL_OPTIONS (USQL_DOLLAR_QUOTES | USQL_BLOCK_COMMENTS | USQL_DASH_COMMENTS)
 #endif
 
 // The external tokens, in the order of externals in grammar.js.
@@ -1123,7 +1126,8 @@ static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int
       if (c == '-' || c == '/') {
         advance(lexer);
         int32_t d = lexer->lookahead;
-        bool line = (c == '-' && d == '-') || (c == '/' && d == '/' && (options & USQL_SLASH_COMMENTS));
+        bool line = (c == '-' && d == '-' && (options & USQL_DASH_COMMENTS)) ||
+                    (c == '/' && d == '/' && (options & USQL_SLASH_COMMENTS));
         bool block = c == '/' && d == '*' && (options & USQL_BLOCK_COMMENTS);
         if (line || block) {
           if (content) {

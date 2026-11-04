@@ -12,24 +12,26 @@ import (
 // optionSets are the options of the families of dialects of D101, which had
 // a grammar each before D108, the options of MySQL, SQL Server, Oracle,
 // Firebird, SAP HANA and Trino with BeginEndBlocks (D112, D130, D134), the
-// options of Oracle with AnonymousBlocks (D128), and the options of CQL with
-// Batches. The test module compares the Go scanner with the C scanner on
-// each of them.
+// options of Oracle with AnonymousBlocks (D128), the options of CQL with
+// Batches, and the options of Neo4j, which has no dash comments (D139).
+// Each set of a SQL dialect has DashComments. The test module compares the
+// Go scanner with the C scanner on each of them.
 var optionSets = map[string]Options{
-	"postgres":         {DollarQuotes: true, BlockComments: true},
-	"mysql":            {BlockComments: true, HashComments: true, Backticks: true},
-	"sqlite":           {BlockComments: true, Backticks: true},
-	"standard":         {BlockComments: true},
-	"cql":              {DollarQuotes: true, BlockComments: true, SlashComments: true},
+	"postgres":         {DollarQuotes: true, BlockComments: true, DashComments: true},
+	"mysql":            {BlockComments: true, HashComments: true, Backticks: true, DashComments: true},
+	"sqlite":           {BlockComments: true, Backticks: true, DashComments: true},
+	"standard":         {BlockComments: true, DashComments: true},
+	"cql":              {DollarQuotes: true, BlockComments: true, SlashComments: true, DashComments: true},
 	"plain":            {},
-	"mysql_blocks":     {BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true},
-	"sqlserver_blocks": {BlockComments: true, BeginEndBlocks: true},
-	"oracle_blocks":    {BlockComments: true, BeginEndBlocks: true},
-	"oracle_anonymous": {BlockComments: true, BeginEndBlocks: true, AnonymousBlocks: true},
-	"firebird_blocks":  {BlockComments: true, BeginEndBlocks: true},
-	"hana_blocks":      {BlockComments: true, BeginEndBlocks: true},
-	"trino_blocks":     {BlockComments: true, BeginEndBlocks: true},
-	"cql_batches":      {DollarQuotes: true, BlockComments: true, SlashComments: true, Batches: true},
+	"mysql_blocks":     {BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true, DashComments: true},
+	"sqlserver_blocks": {BlockComments: true, BeginEndBlocks: true, DashComments: true},
+	"oracle_blocks":    {BlockComments: true, BeginEndBlocks: true, DashComments: true},
+	"oracle_anonymous": {BlockComments: true, BeginEndBlocks: true, AnonymousBlocks: true, DashComments: true},
+	"firebird_blocks":  {BlockComments: true, BeginEndBlocks: true, DashComments: true},
+	"hana_blocks":      {BlockComments: true, BeginEndBlocks: true, DashComments: true},
+	"trino_blocks":     {BlockComments: true, BeginEndBlocks: true, DashComments: true},
+	"cql_batches":      {DollarQuotes: true, BlockComments: true, SlashComments: true, Batches: true, DashComments: true},
+	"neo4j":            {BlockComments: true, SlashComments: true, Backticks: true},
 }
 
 // TestOptions parses each case of testdata/options/<name>.txt with the

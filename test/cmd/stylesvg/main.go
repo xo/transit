@@ -99,7 +99,7 @@ const usqlFolder = "usql"
 // usqlMySQL returns the usql grammar with the options of MySQL, so that the
 // sample usqlmysql shows the backticks and the # comments.
 func usqlMySQL() *transit.Language {
-	return usql.LanguageFor(usql.Options{BlockComments: true, HashComments: true, Backticks: true})
+	return usql.LanguageFor(usql.Options{BlockComments: true, HashComments: true, Backticks: true, DashComments: true})
 }
 
 func main() {

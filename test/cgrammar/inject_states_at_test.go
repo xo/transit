@@ -24,7 +24,7 @@ import (
 // without the ranges of the layer gives other states.
 func TestInjectStatesAtUsql(t *testing.T) {
 	t.Parallel()
-	language := usql.LanguageFor(usql.Options{DollarQuotes: true, BlockComments: true})
+	language := usql.LanguageFor(usql.Options{DollarQuotes: true, BlockComments: true, DashComments: true})
 	usqlConfig := injectConfig(t, language, usql.Queries, "usql")
 	pg, err := inject.NewConfig(postgres.Language(), "postgres", "")
 	if err != nil {

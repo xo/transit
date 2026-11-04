@@ -48,10 +48,13 @@ change transit from usql.
    `github.com/xo/transit/grammars/usql` (D108). usql gives it the options of
    the syntax of the dialect with `usql.LanguageFor`. The fields of
    `usql.Options` are the flags of the type `Syntax` of dbmeta, with the same
-   names: `DollarQuotes`, `BlockComments`, `SlashComments`, `HashComments`
-   and `Backticks`. `usql.Language` has dollar quotes and block comments,
-   the options of PostgreSQL. A comment that starts with `--` is a comment
-   with every set of options.
+   names: `DollarQuotes`, `BlockComments`, `SlashComments`, `HashComments`,
+   `Backticks` and `DashComments`. `usql.Language` has dollar quotes, block
+   comments and dash comments, the options of PostgreSQL. With
+   `DashComments`, `--` starts a comment to the end of the line. Without it,
+   `--` is the text of the statement (D139). Each SQL dialect turns it on. A
+   dialect of Cypher, such as Neo4j, does not, because `(a)--(b)` is a
+   relationship there.
 10. `usql.Options` has three more options. `BeginEndBlocks` keeps the
     `BEGIN ... END` body of a stored program, of `EXECUTE BLOCK`, of
     `DO BEGIN` and of `WITH FUNCTION` in one statement (D112, D130, D134).
@@ -225,18 +228,18 @@ for the flag `-dialect`, with these options of `usql.Options`:
 
 | Dialect | Package | Options |
 | --- | --- | --- |
-| `postgres` | `github.com/xo/transit/grammars/postgres/postgres` | `DollarQuotes`, `BlockComments` |
-| `mysql` | `github.com/xo/transit/grammars/mysql` | `BlockComments`, `HashComments`, `Backticks`, `BeginEndBlocks` |
-| `sqlite3` | `github.com/xo/transit/grammars/sqlite3` | `BlockComments`, `Backticks` |
-| `duckdb` | `github.com/xo/transit/grammars/duckdb` | `DollarQuotes`, `BlockComments` |
-| `clickhouse` | `github.com/xo/transit/grammars/clickhouse` | `BlockComments`, `SlashComments`, `HashComments`, `Backticks` |
-| `trino` | `github.com/xo/transit/grammars/trino` | `BlockComments`, `BeginEndBlocks` |
-| `presto` | `github.com/xo/transit/grammars/trino` | `BlockComments` |
-| `athena` | `github.com/xo/transit/grammars/trino` | `BlockComments` |
-| `sqlserver` | `github.com/xo/transit/grammars/sqlserver` | `BlockComments`, `BeginEndBlocks` |
-| `oracle` | `github.com/xo/transit/grammars/oracle` | `BlockComments`, `BeginEndBlocks`, `AnonymousBlocks` |
-| `cql` | `github.com/xo/transit/grammars/cql` | `DollarQuotes`, `BlockComments`, `SlashComments`, `Batches` |
-| `generic` | `github.com/xo/transit/grammars/sql` | `BlockComments` |
+| `postgres` | `github.com/xo/transit/grammars/postgres/postgres` | `DollarQuotes`, `BlockComments`, `DashComments` |
+| `mysql` | `github.com/xo/transit/grammars/mysql` | `BlockComments`, `HashComments`, `Backticks`, `BeginEndBlocks`, `DashComments` |
+| `sqlite3` | `github.com/xo/transit/grammars/sqlite3` | `BlockComments`, `Backticks`, `DashComments` |
+| `duckdb` | `github.com/xo/transit/grammars/duckdb` | `DollarQuotes`, `BlockComments`, `DashComments` |
+| `clickhouse` | `github.com/xo/transit/grammars/clickhouse` | `BlockComments`, `SlashComments`, `HashComments`, `Backticks`, `DashComments` |
+| `trino` | `github.com/xo/transit/grammars/trino` | `BlockComments`, `BeginEndBlocks`, `DashComments` |
+| `presto` | `github.com/xo/transit/grammars/trino` | `BlockComments`, `DashComments` |
+| `athena` | `github.com/xo/transit/grammars/trino` | `BlockComments`, `DashComments` |
+| `sqlserver` | `github.com/xo/transit/grammars/sqlserver` | `BlockComments`, `BeginEndBlocks`, `DashComments` |
+| `oracle` | `github.com/xo/transit/grammars/oracle` | `BlockComments`, `BeginEndBlocks`, `AnonymousBlocks`, `DashComments` |
+| `cql` | `github.com/xo/transit/grammars/cql` | `DollarQuotes`, `BlockComments`, `SlashComments`, `Batches`, `DashComments` |
+| `generic` | `github.com/xo/transit/grammars/sql` | `BlockComments`, `DashComments` |
 
 usql keeps this match itself. The repository of `cql` has no highlight
 query, so xo wrote the highlight query of its package (D113). xo writes the

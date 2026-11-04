@@ -828,6 +828,8 @@ type Options struct {
 	BeginEndBlocks  bool // a stored program with BEGIN ... END is one statement
 	AnonymousBlocks bool // an anonymous block of PL/SQL is one statement
 	Batches         bool // a batch of CQL, BEGIN BATCH ... APPLY BATCH, is one statement
+
+	DashComments bool // -- starts a comment
 }
 
 // LanguageFor returns the language with an external scanner that reads
@@ -835,12 +837,12 @@ type Options struct {
 func LanguageFor(opts Options) *transit.Language
 ```
 
-`Language` gives the language with dollar quotes and block comments, the
-options of PostgreSQL, because the client lexer of PostgreSQL is the
-reference of the grammar (D101). `LanguageFor` gives `Language` for these
-options, and for other options it builds a language once and keeps it. A
-new option is a new field and a new flag of the scanner, and no new grammar
-(D108). The package reads the tables of `Language` with `abi.TablesOf`, a
+`Language` gives the language with dollar quotes, block comments and dash
+comments, the options of PostgreSQL, because the client lexer of
+PostgreSQL is the reference of the grammar (D101). `LanguageFor` gives
+`Language` for these options, and for other options it builds a language
+once and keeps it. A new option is a new field and a new flag of the
+scanner, and no new grammar (D108). The package reads the tables of `Language` with `abi.TablesOf`, a
 function of the internal package `abi` that the root package sets. So the
 root package exports nothing new for it.
 
@@ -873,6 +875,12 @@ Another PL/SQL unit, such as a function with declarations before its
 `Batches` keeps a batch of CQL in one statement, and it is off by default.
 With it on, a statement that starts with `BEGIN BATCH`, `BEGIN UNLOGGED
 BATCH` or `BEGIN COUNTER BATCH` runs to the first `;` after `APPLY BATCH`.
+
+`DashComments` is the option of D139, and `Language` has it. With it on,
+`--` starts a comment to the end of the line. With it off, `--` is the text
+of the statement, as in the relationship `(a)--(b)` of Cypher. Each SQL
+dialect turns it on, and the Neo4j dialect does not. It is the last field,
+so that its flag in `src/scanner.c` is the next free flag.
 
 ## The module styles
 

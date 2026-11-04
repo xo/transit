@@ -24,25 +24,30 @@ func init() {
 // Firebird, SAP HANA and Trino with BeginEndBlocks are those of
 // standard_blocks, and postgres with BeginEndBlocks reaches the branches of
 // dollar quotes. The options of Oracle are those of standard_anonymous, and
-// mysql_anonymous_batches reaches the options together.
+// mysql_anonymous_batches reaches the options together. Each set of a SQL
+// dialect has DashComments. neo4j, postgres_no_dash and anonymous_no_dash do
+// not, so that -- is text in a statement, in a block and in a batch (D139).
 var usqlOptionSets = []struct {
 	name string
 	opts usql.Options
 }{
-	{"postgres", usql.Options{DollarQuotes: true, BlockComments: true}},
-	{"mysql", usql.Options{BlockComments: true, HashComments: true, Backticks: true}},
-	{"sqlite", usql.Options{BlockComments: true, Backticks: true}},
-	{"standard", usql.Options{BlockComments: true}},
-	{"cql", usql.Options{DollarQuotes: true, BlockComments: true, SlashComments: true}},
+	{"postgres", usql.Options{DollarQuotes: true, BlockComments: true, DashComments: true}},
+	{"mysql", usql.Options{BlockComments: true, HashComments: true, Backticks: true, DashComments: true}},
+	{"sqlite", usql.Options{BlockComments: true, Backticks: true, DashComments: true}},
+	{"standard", usql.Options{BlockComments: true, DashComments: true}},
+	{"cql", usql.Options{DollarQuotes: true, BlockComments: true, SlashComments: true, DashComments: true}},
 	{"plain", usql.Options{}},
-	{"mysql_blocks", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true}},
-	{"standard_blocks", usql.Options{BlockComments: true, BeginEndBlocks: true}},
-	{"postgres_blocks", usql.Options{DollarQuotes: true, BlockComments: true, BeginEndBlocks: true}},
-	{"standard_anonymous", usql.Options{BlockComments: true, BeginEndBlocks: true, AnonymousBlocks: true}},
-	{"anonymous", usql.Options{BlockComments: true, AnonymousBlocks: true}},
-	{"cql_batches", usql.Options{DollarQuotes: true, BlockComments: true, SlashComments: true, Batches: true}},
-	{"mysql_blocks_batches", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true, Batches: true}},
-	{"mysql_anonymous_batches", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true, AnonymousBlocks: true, Batches: true}},
+	{"mysql_blocks", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true, DashComments: true}},
+	{"standard_blocks", usql.Options{BlockComments: true, BeginEndBlocks: true, DashComments: true}},
+	{"postgres_blocks", usql.Options{DollarQuotes: true, BlockComments: true, BeginEndBlocks: true, DashComments: true}},
+	{"standard_anonymous", usql.Options{BlockComments: true, BeginEndBlocks: true, AnonymousBlocks: true, DashComments: true}},
+	{"anonymous", usql.Options{BlockComments: true, AnonymousBlocks: true, DashComments: true}},
+	{"cql_batches", usql.Options{DollarQuotes: true, BlockComments: true, SlashComments: true, Batches: true, DashComments: true}},
+	{"mysql_blocks_batches", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true, Batches: true, DashComments: true}},
+	{"mysql_anonymous_batches", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true, AnonymousBlocks: true, Batches: true, DashComments: true}},
+	{"neo4j", usql.Options{BlockComments: true, SlashComments: true, Backticks: true}},
+	{"postgres_no_dash", usql.Options{DollarQuotes: true, BlockComments: true}},
+	{"anonymous_no_dash", usql.Options{BlockComments: true, BeginEndBlocks: true, AnonymousBlocks: true, Batches: true}},
 }
 
 // usqlDefine returns the C macro of src/scanner.c of the usql grammar that
@@ -431,6 +436,30 @@ var usqlScannerInputs = []string{
 	"do begin 'x'; end; y",
 	"with function f() returns int begin (x); end select f(); y",
 	"CREATE PROCEDURE dbo.p AS BEGIN TRAN; COMMIT; y",
+	// two dashes, which are a comment only with DashComments (D139)
+	"MATCH (p:Person) RETURN p.name AS person, count{(p)--()} AS degree LIMIT 2;\nMATCH (m) RETURN m;",
+	"(a)--(b)--(c)",
+	"(a)-->(b); (a)<--(b); (a)-[r]-(b)",
+	"RETURN 5--3;",
+	"RETURN 5 - -3, 5---3, 5- -3;",
+	"x--y; -- a; b\n;",
+	"-- a\n-- b; c\nselect 1;",
+	"select 1 --\n\\g\n--",
+	"select 1 -- a \\g\n\\echo -- b\nselect 2",
+	"--\\g\n-- \\echo a",
+	"--;--",
+	"-",
+	"--'a;'--\"b;\"",
+	"MATCH (n) // a; b\nRETURN n /* c; */;\n-- d; e",
+	"create procedure p() begin -- a; b\n x; end; y",
+	"create procedure p() begin--;\nx; end; y",
+	"create procedure p() begin x; end -- a\n; y",
+	"BEGIN x; -- END; y\nEND; z",
+	"BEGIN-- a\nx; END; y",
+	"BEGIN BATCH x; APPLY -- BATCH; y\nBATCH; z",
+	"execute -- a\n block as begin x; end; y",
+	"with function f() returns int begin -- end;\nreturn 1; end select f(); y",
+	"select :a--b, a::--c, $$--d$$, $t--e",
 }
 
 // TestUsqlScannersMatchC compares the Go scanner of the usql grammar with
@@ -462,7 +491,7 @@ func TestUsqlScannerOptionsDiffer(t *testing.T) {
 		t.Run(set.name, func(t *testing.T) {
 			t.Parallel()
 			g, inputs := loadUsql(t, set.opts)
-			def, _ := loadUsql(t, usql.Options{DollarQuotes: true, BlockComments: true})
+			def, _ := loadUsql(t, usql.Options{DollarQuotes: true, BlockComments: true, DashComments: true})
 			differ := false
 			for _, in := range inputs {
 				got, _, err := g.CParse(in)
@@ -492,7 +521,7 @@ func TestUsqlScannerOptionsDiffer(t *testing.T) {
 // options.
 func TestUsqlScannerDeserializeMatchesC(t *testing.T) {
 	t.Parallel()
-	g, _ := loadUsql(t, usql.Options{DollarQuotes: true, BlockComments: true})
+	g, _ := loadUsql(t, usql.Options{DollarQuotes: true, BlockComments: true, DashComments: true})
 	goCreate := tablesOf(usql.Language()).ExternalScanner.Create
 	cCreate := tablesOf(g.Language).ExternalScanner.Create
 	r := rand.New(rand.NewPCG(1, 2))

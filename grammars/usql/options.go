@@ -11,8 +11,7 @@ import (
 // scanner reads (D108). Each field but BeginEndBlocks, AnonymousBlocks and
 // Batches is a flag of the type Syntax of dbmeta, with the same name. With
 // the zero value, none of these texts is a string or a comment, and a ;
-// outside parentheses always ends a statement. A comment that starts with -- is a comment with every
-// set of options.
+// outside parentheses always ends a statement.
 //
 // Each field is the flag of the same name in src/scanner.c, such as
 // USQL_DOLLAR_QUOTES for DollarQuotes, and field i is the flag 1<<i.
@@ -59,12 +58,18 @@ type Options struct {
 	// statement, a ; does not end the statement until APPLY BATCH. It is not
 	// a flag of dbmeta.
 	Batches bool
+
+	// DashComments makes -- start a comment to the end of the line (D139).
+	// With it off, -- is the text of the statement, as the relationship
+	// (a)--(b) of Cypher is. It is the last field, so that its flag in
+	// src/scanner.c is the next free flag.
+	DashComments bool
 }
 
 // defaultOptions are the options of Language, and of src/scanner.c when the
-// build does not set USQL_OPTIONS: dollar quotes and block comments, the
-// options of PostgreSQL.
-var defaultOptions = Options{DollarQuotes: true, BlockComments: true}
+// build does not set USQL_OPTIONS: dollar quotes, block comments and dash
+// comments, the options of PostgreSQL.
+var defaultOptions = Options{DollarQuotes: true, BlockComments: true, DashComments: true}
 
 // languages holds the language of each set of options that LanguageFor
 // built, and mu guards it.
@@ -76,8 +81,8 @@ var (
 // LanguageFor returns the language of the grammar usql with an external
 // scanner that reads opts. Every set of options uses the tables of
 // Language. LanguageFor returns the same language each time for the same
-// options, and it returns Language for dollar quotes and block comments,
-// the default options.
+// options, and it returns Language for dollar quotes, block comments and
+// dash comments, the default options.
 func LanguageFor(opts Options) *transit.Language {
 	if opts == defaultOptions {
 		return Language()

@@ -46,20 +46,21 @@ type Dialect struct {
 // of BEGIN ... END. Presto and Athena refuse BEGIN ... END, so they do not
 // turn it on, and they share the Trino grammar (D127). Oracle also turns on
 // AnonymousBlocks, so that an anonymous block is one statement (D128). CQL
-// also turns on Batches, so that a batch is one statement.
+// also turns on Batches, so that a batch is one statement. Each dialect is
+// SQL, so each turns on DashComments (D139).
 var dialects = []Dialect{
-	{"athena", usql.Options{BlockComments: true}, trino.Language, trino.Queries, trino.Keywords},
-	{"clickhouse", usql.Options{BlockComments: true, SlashComments: true, HashComments: true, Backticks: true}, clickhouse.Language, clickhouse.Queries, clickhouse.Keywords},
-	{"cql", usql.Options{DollarQuotes: true, BlockComments: true, SlashComments: true, Batches: true}, cql.Language, cql.Queries, cql.Keywords},
-	{"duckdb", usql.Options{DollarQuotes: true, BlockComments: true}, duckdb.Language, duckdb.Queries, duckdb.Keywords},
-	{"generic", usql.Options{BlockComments: true}, sql.Language, sql.Queries, sql.Keywords},
-	{"mysql", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true}, mysql.Language, mysql.Queries, mysql.Keywords},
-	{"oracle", usql.Options{BlockComments: true, BeginEndBlocks: true, AnonymousBlocks: true}, oracle.Language, oracle.Queries, oracle.Keywords},
-	{"postgres", usql.Options{DollarQuotes: true, BlockComments: true}, postgres.Language, postgres.Queries, postgres.Keywords},
-	{"presto", usql.Options{BlockComments: true}, trino.Language, trino.Queries, trino.Keywords},
-	{"sqlite3", usql.Options{BlockComments: true, Backticks: true}, sqlite3.Language, sqlite3.Queries, sqlite3.Keywords},
-	{"sqlserver", usql.Options{BlockComments: true, BeginEndBlocks: true}, sqlserver.Language, sqlserver.Queries, sqlserver.Keywords},
-	{"trino", usql.Options{BlockComments: true, BeginEndBlocks: true}, trino.Language, trino.Queries, trino.Keywords},
+	{"athena", usql.Options{BlockComments: true, DashComments: true}, trino.Language, trino.Queries, trino.Keywords},
+	{"clickhouse", usql.Options{BlockComments: true, SlashComments: true, HashComments: true, Backticks: true, DashComments: true}, clickhouse.Language, clickhouse.Queries, clickhouse.Keywords},
+	{"cql", usql.Options{DollarQuotes: true, BlockComments: true, SlashComments: true, Batches: true, DashComments: true}, cql.Language, cql.Queries, cql.Keywords},
+	{"duckdb", usql.Options{DollarQuotes: true, BlockComments: true, DashComments: true}, duckdb.Language, duckdb.Queries, duckdb.Keywords},
+	{"generic", usql.Options{BlockComments: true, DashComments: true}, sql.Language, sql.Queries, sql.Keywords},
+	{"mysql", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true, DashComments: true}, mysql.Language, mysql.Queries, mysql.Keywords},
+	{"oracle", usql.Options{BlockComments: true, BeginEndBlocks: true, AnonymousBlocks: true, DashComments: true}, oracle.Language, oracle.Queries, oracle.Keywords},
+	{"postgres", usql.Options{DollarQuotes: true, BlockComments: true, DashComments: true}, postgres.Language, postgres.Queries, postgres.Keywords},
+	{"presto", usql.Options{BlockComments: true, DashComments: true}, trino.Language, trino.Queries, trino.Keywords},
+	{"sqlite3", usql.Options{BlockComments: true, Backticks: true, DashComments: true}, sqlite3.Language, sqlite3.Queries, sqlite3.Keywords},
+	{"sqlserver", usql.Options{BlockComments: true, BeginEndBlocks: true, DashComments: true}, sqlserver.Language, sqlserver.Queries, sqlserver.Keywords},
+	{"trino", usql.Options{BlockComments: true, BeginEndBlocks: true, DashComments: true}, trino.Language, trino.Queries, trino.Keywords},
 }
 
 // Names returns the names of the dialects, sorted.
