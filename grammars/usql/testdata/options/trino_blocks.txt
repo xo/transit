@@ -87,3 +87,24 @@ select 1; insert into t with function f() returns int begin return 1; end select
   (statement)
   (statement)
   (statement))
+
+================================================================================
+Trino blocks: a variable right after BEGIN
+================================================================================
+
+create function f() returns int begin :decl; return :y; end;
+with function g() returns int begin :'body'; end select g();
+select 2;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (variable
+      (variable_name))
+    (variable
+      (variable_name)))
+  (statement
+    (variable
+      (variable_name)))
+  (statement))

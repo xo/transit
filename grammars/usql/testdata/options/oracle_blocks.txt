@@ -89,3 +89,79 @@ SELECT 3 FROM dual;
   (statement
     (quoted_identifier))
   (statement))
+
+================================================================================
+Oracle blocks: a row trigger with :new right after BEGIN
+================================================================================
+
+create trigger t before update on d for each row begin :new.x := 1; end;
+select 1 from dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (variable
+      (variable_name)))
+  (statement))
+
+================================================================================
+Oracle blocks: each form of a variable right after BEGIN
+================================================================================
+
+create trigger t1 before insert on d for each row begin :x := 1; end;
+create trigger t2 before insert on d for each row begin :'name' := 1; end;
+create trigger t3 before insert on d for each row begin :"name" := 1; end;
+create trigger t4 before insert on d for each row begin :{?name} := 1; end;
+select 1 from dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (variable
+      (variable_name)))
+  (statement
+    (variable
+      (variable_name)))
+  (statement
+    (variable
+      (variable_name)))
+  (statement
+    (variable
+      (variable_name)))
+  (statement))
+
+================================================================================
+Oracle blocks: a variable in a nested block and before the last END
+================================================================================
+
+CREATE OR REPLACE TRIGGER t
+BEFORE UPDATE ON d FOR EACH ROW
+DECLARE
+  k NUMBER;
+BEGIN
+  IF :new.a > 0 THEN
+    BEGIN
+      :new.b := :old.b;
+    END;
+  END IF;
+  :new.c := :"v";
+END;
+SELECT 1 FROM dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (variable
+      (variable_name))
+    (variable
+      (variable_name))
+    (variable
+      (variable_name))
+    (variable
+      (variable_name))
+    (variable
+      (variable_name)))
+  (statement))

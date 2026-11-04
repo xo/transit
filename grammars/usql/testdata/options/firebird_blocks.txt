@@ -114,3 +114,34 @@ SELECT block FROM t;
   (statement
     (string))
   (statement))
+
+================================================================================
+Firebird blocks: a variable right after BEGIN and in a nested block
+================================================================================
+
+execute block as begin :body; end;
+create procedure p returns (n int) as
+begin
+  select count(*) from rdb$database into :n;
+  if (:n > 0) then
+  begin
+    :stmt;
+  end
+  suspend;
+end;
+select 1 from rdb$database;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (variable
+      (variable_name)))
+  (statement
+    (variable
+      (variable_name))
+    (variable
+      (variable_name))
+    (variable
+      (variable_name)))
+  (statement))

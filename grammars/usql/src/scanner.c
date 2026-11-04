@@ -962,6 +962,17 @@ static void end_word(Scanner *s, Word *w, int32_t c, int options) {
 static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int options,
                       enum Context ctx, bool content, int32_t prev);
 
+// scan_variable notes the sigil of a variable in SQL text. For a BEGIN or
+// an END that is pending, the variable is a word that is not a keyword. So
+// the BEGIN of BEGIN :new.x := 1 opens a block, and an END closes one. The
+// character after the variable does not decide what the BEGIN or the END
+// is.
+static void scan_variable(Scanner *s, int options, enum Context ctx) {
+  if (ctx == CONTEXT_SQL && (s->pending == PENDING_BEGIN || s->pending == PENDING_END)) {
+    scan_keyword(s, KW_NONE, options);
+  }
+}
+
 // scan_variable_start scans from the colon of a variable. It returns the
 // sigil when a valid variable follows. Else the colon is text in the
 // context ctx. After :' or :", it first returns VARIABLE_CHECK, with no
@@ -984,6 +995,7 @@ static bool scan_variable_start(Scanner *s, TSLexer *lexer, const bool *valid_sy
   }
   if (is_variable_char(c)) {
     lexer->mark_end(lexer);
+    scan_variable(s, options, ctx);
     lexer->result_symbol = SIGIL_PLAIN;
     return true;
   }
@@ -991,6 +1003,7 @@ static bool scan_variable_start(Scanner *s, TSLexer *lexer, const bool *valid_sy
     if (variable == VARIABLE_QUOTED) {
       advance(lexer);
       lexer->mark_end(lexer);
+      scan_variable(s, options, ctx);
       lexer->result_symbol = c == '\'' ? SIGIL_SINGLE_QUOTE : SIGIL_DOUBLE_QUOTE;
       return true;
     }
@@ -1030,6 +1043,7 @@ static bool scan_variable_start(Scanner *s, TSLexer *lexer, const bool *valid_sy
         n++;
       }
       if (n > 0 && lexer->lookahead == '}') {
+        scan_variable(s, options, ctx);
         lexer->result_symbol = SIGIL_BRACE;
         return true;
       }

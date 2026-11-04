@@ -81,3 +81,30 @@ SELECT 2;
   (statement)
   (statement)
   (statement))
+
+================================================================================
+SQL Server blocks: a variable right after BEGIN and in a nested block
+================================================================================
+
+CREATE PROCEDURE dbo.p AS
+BEGIN
+  :'stmt';
+  IF @a > 0
+  BEGIN
+    :"body";
+  END
+  SET @a = :{?name};
+END;
+EXEC dbo.p;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (variable
+      (variable_name))
+    (variable
+      (variable_name))
+    (variable
+      (variable_name)))
+  (statement))

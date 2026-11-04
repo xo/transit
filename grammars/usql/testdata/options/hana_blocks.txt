@@ -96,3 +96,34 @@ SELECT 1 FROM DUMMY;
   (statement
     (string))
   (statement))
+
+================================================================================
+SAP HANA blocks: a variable right after BEGIN and in a nested block
+================================================================================
+
+do begin :body; end;
+create procedure p (in a int) as
+begin
+  if :a > 0 then
+    begin
+      :stmt;
+    end;
+  end if;
+  select :a from dummy;
+end;
+select 1 from dummy;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (variable
+      (variable_name)))
+  (statement
+    (variable
+      (variable_name))
+    (variable
+      (variable_name))
+    (variable
+      (variable_name)))
+  (statement))

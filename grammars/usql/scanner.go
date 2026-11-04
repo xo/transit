@@ -939,6 +939,17 @@ func (s *scanner) endWord(w *sqlWord, c int32, opts Options) {
 	w.spoiled = c == '.' || c == '@' || c == '$' || c == '#' || c == '['
 }
 
+// scanVariable is scan_variable. It notes the sigil of a variable in SQL
+// text. For a BEGIN or an END that is pending, the variable is a word that
+// is not a keyword. So the BEGIN of BEGIN :new.x := 1 opens a block, and an
+// END closes one. The character after the variable does not decide what the
+// BEGIN or the END is.
+func (s *scanner) scanVariable(opts Options, ctx context) {
+	if ctx == contextSQL && (s.pending == pendingBegin || s.pending == pendingEnd) {
+		s.scanKeyword(kwNone, opts)
+	}
+}
+
 // scanVariableStart is scan_variable_start. It scans from the colon of a
 // variable. It returns the sigil when a valid variable follows. Else the
 // colon is text in the context ctx. After :' or :", it first returns
@@ -961,6 +972,7 @@ func (s *scanner) scanVariableStart(lexer *abi.Lexer, validSymbols []bool, opts 
 	}
 	if isVariableChar(c) {
 		lexer.MarkEnd()
+		s.scanVariable(opts, ctx)
 		lexer.ResultSymbol = sigilPlain
 		return true
 	}
@@ -968,6 +980,7 @@ func (s *scanner) scanVariableStart(lexer *abi.Lexer, validSymbols []bool, opts 
 		if v == variableQuoted {
 			advance(lexer)
 			lexer.MarkEnd()
+			s.scanVariable(opts, ctx)
 			if c == '\'' {
 				lexer.ResultSymbol = sigilSingleQuote
 			} else {
@@ -1015,6 +1028,7 @@ func (s *scanner) scanVariableStart(lexer *abi.Lexer, validSymbols []bool, opts 
 				n++
 			}
 			if n > 0 && lexer.Lookahead == '}' {
+				s.scanVariable(opts, ctx)
 				lexer.ResultSymbol = sigilBrace
 				return true
 			}

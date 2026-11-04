@@ -128,3 +128,46 @@ SELECT 4;
   (meta_command
     (command_name))
   (statement))
+
+================================================================================
+MySQL blocks: a variable inside the body
+================================================================================
+
+create procedure p() begin set @a = :x; end;
+select 1;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (variable
+      (variable_name)))
+  (statement))
+
+================================================================================
+MySQL blocks: a variable right after BEGIN and in a nested block
+================================================================================
+
+CREATE PROCEDURE q ()
+BEGIN
+  :'stmt';
+  IF @a > 0 THEN
+    BEGIN
+      :"body";
+    END;
+  END IF;
+  SELECT :{?name};
+END;
+SELECT 2;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (variable
+      (variable_name))
+    (variable
+      (variable_name))
+    (variable
+      (variable_name)))
+  (statement))
