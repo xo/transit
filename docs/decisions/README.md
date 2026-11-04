@@ -159,3 +159,4 @@ An open question is not a decision. It goes at the end of
 | [D138](D138-a-slash-line-is-statement-text.md) | A line with only a slash is statement text | Decided, supersedes D135 and D136, amends D128 and D137 |
 | [D139](D139-dash-comments-are-an-option.md) | A dash comment is an option of the usql grammar | Decided, amends D108 |
 | [D140](D140-brackets-are-an-option.md) | A name in square brackets is an option of the usql grammar | Decided, amends D108 |
+| [D141](D141-a-byte-order-mark-is-white-space.md) | A byte order mark is white space in the usql grammar | Decided |
