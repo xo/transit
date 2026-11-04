@@ -18,6 +18,12 @@ Ken decided on 2026-11-04, through the usql peer:
    `END`, as D128 says.
 4. A highlight test can still name its options on its first line, as D137
    says.
+5. The grammar does not learn the other PL/SQL units. A function or a
+   procedure with declarations before `BEGIN`, a trigger with `DECLARE`, a
+   package spec and a package body each hold a `;` that ends the statement.
+   The person who writes the script escapes each such `;` as `\;`, as in
+   psql and in earlier versions of usql. The scanner already keeps `\;` in
+   the statement.
 
 So the script `end;`, then a `/` line, then `select 1 from dual;` sends
 `/` and `select 1 from dual` to Oracle as one statement, and Oracle refuses
