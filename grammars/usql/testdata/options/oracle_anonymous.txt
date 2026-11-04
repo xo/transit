@@ -122,7 +122,7 @@ select 4 from dual;
   (statement))
 
 ================================================================================
-Oracle anonymous blocks: a line with only a slash ends the block
+Oracle anonymous blocks: a line with only a slash does not end the block
 ================================================================================
 
 BEGIN
@@ -140,11 +140,7 @@ SELECT 6 FROM dual;
 --------------------------------------------------------------------------------
 
 (source_file
-  (statement
-    (slash))
   (statement)
-  (statement
-    (slash))
   (statement))
 
 ================================================================================
@@ -199,11 +195,10 @@ SELECT 2 FROM dual
   (statement)
   (statement)
   (statement)
-  (statement
-    (slash)))
+  (statement))
 
 ================================================================================
-Oracle anonymous blocks: a slash after the ; of a block
+Oracle anonymous blocks: a slash after the ; of a block is text
 ================================================================================
 
 declare
@@ -218,12 +213,11 @@ select 'last' as s from dual;
 
 (source_file
   (statement)
-  (slash)
   (statement
     (string)))
 
 ================================================================================
-Oracle anonymous blocks: a slash after the ; of a procedure
+Oracle anonymous blocks: a slash after the ; of a procedure is text
 ================================================================================
 
 create or replace procedure p as begin null; end;
@@ -234,11 +228,10 @@ select 1 from dual;
 
 (source_file
   (statement)
-  (slash)
   (statement))
 
 ================================================================================
-Oracle anonymous blocks: a slash ends a statement with no ;
+Oracle anonymous blocks: a slash does not end a statement with no ;
 ================================================================================
 
 select 1 from dual
@@ -248,12 +241,10 @@ select 2 from dual;
 --------------------------------------------------------------------------------
 
 (source_file
-  (statement
-    (slash))
   (statement))
 
 ================================================================================
-Oracle anonymous blocks: slashes after plain statements
+Oracle anonymous blocks: slashes after plain statements are text
 ================================================================================
 
 select 1 from dual;
@@ -266,13 +257,11 @@ update t set a = 1;
 
 (source_file
   (statement)
-  (slash)
-  (slash)
   (statement)
-  (slash))
+  (statement))
 
 ================================================================================
-Oracle anonymous blocks: a slash at the start of the input
+Oracle anonymous blocks: a slash at the start of the input is text
 ================================================================================
 /
 select 1 from dual;
@@ -280,11 +269,10 @@ select 1 from dual;
 --------------------------------------------------------------------------------
 
 (source_file
-  (slash)
   (statement))
 
 ================================================================================
-Oracle anonymous blocks: a slash after a comment
+Oracle anonymous blocks: a slash after a comment is text
 ================================================================================
 
 select 2 from dual -- a comment
@@ -295,8 +283,7 @@ select 2 from dual -- a comment
 
 (source_file
   (statement
-    (comment)
-    (slash))
+    (comment))
   (meta_command
     (command_name)))
 
@@ -314,7 +301,7 @@ select (a
   (statement))
 
 ================================================================================
-Oracle anonymous blocks: a slash after the parentheses close
+Oracle anonymous blocks: a slash after the parentheses close is text
 ================================================================================
 
 select (a
@@ -326,8 +313,6 @@ select 2 from dual;
 --------------------------------------------------------------------------------
 
 (source_file
-  (statement
-    (slash))
   (statement))
 
 ================================================================================
@@ -360,11 +345,10 @@ select 3 from dual;
 
 (source_file
   (statement)
-  (slash)
   (statement))
 
 ================================================================================
-Oracle anonymous blocks: a slash ends a block that did not end
+Oracle anonymous blocks: a slash does not end a block that did not end
 ================================================================================
 
 begin
@@ -375,6 +359,17 @@ select 4 from dual;
 --------------------------------------------------------------------------------
 
 (source_file
-  (statement
-    (slash))
+  (statement))
+
+================================================================================
+Oracle anonymous blocks: a function whose inner ; is escaped as \;
+================================================================================
+
+create or replace function f return number as n number\; begin return n\; end;
+select 1 from dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
   (statement))

@@ -1,8 +1,7 @@
 package usql
 
 // This file is a port of src/scanner.c of the usql grammar of transit, in
-// grammars/usql (D101, D102, D108, D112, D128, D130, D131, D134, D135,
-// D136).
+// grammars/usql (D101, D102, D108, D112, D128, D130, D131, D134, D138).
 //
 // The scanner reads every token of the grammar. It finds the end of a
 // statement, the strings, the dollar quotes, the comments and the depth of
@@ -41,12 +40,8 @@ package usql
 // DECLARE is a block. The scanner counts BEGIN and END as it does for a
 // stored program. Every BEGIN in the block starts a block, but a BEGIN that
 // a ;, WORK or TRANSACTION follows does not (D131). The statement ends at
-// the ; after the END of the outer BEGIN. With the option AnonymousBlocks, a
-// / alone on its line outside parentheses is the token slash, as in
-// SQL*Plus, and it is never the text of a statement (D135). After a
-// statement with no ;, it ends the statement in the place of the ;. After a
-// ;, it is a node of its own. Inside parentheses, such a line is the text of
-// the statement (D136).
+// the ; after the END of the outer BEGIN. A line with only / is the text of
+// the statement, as it is in psql (D138).
 //
 // After a colon and a quote, the scanner must read the name and the closing
 // quote before it knows whether the colon starts a variable, as :'name', or
@@ -74,7 +69,6 @@ const (
 	dollarString
 	comment
 	semicolon
-	slash
 	backslash
 	backslashOptions
 	commandBase
@@ -945,15 +939,6 @@ func (s *scanner) endWord(w *sqlWord, c int32, opts Options) {
 	w.spoiled = c == '.' || c == '@' || c == '$' || c == '#' || c == '['
 }
 
-// scanSlashLine is scan_slash_line. It reads the white space after a / and
-// reports whether the line ends there, so that the / is alone on its line.
-func scanSlashLine(lexer *abi.Lexer) bool {
-	for !lexer.EOF() && isSpace(lexer.Lookahead) && !isNewline(lexer.Lookahead) {
-		advance(lexer)
-	}
-	return lexer.EOF() || isNewline(lexer.Lookahead)
-}
-
 // scanVariableStart is scan_variable_start. It scans from the colon of a
 // variable. It returns the sigil when a valid variable follows. Else the
 // colon is text in the context ctx. After :' or :", it first returns
@@ -1047,22 +1032,12 @@ func (s *scanner) scanVariableStart(lexer *abi.Lexer, validSymbols []bool, opts 
 // is true when the token already holds text, and prev is the last character
 // of that text. The token ends at its last character that is not white
 // space. With the option BeginEndBlocks, AnonymousBlocks or Batches,
-// scanText reads the words of SQL text. When prev ends a line, the first
-// character is at the start of its line.
+// scanText reads the words of SQL text.
 func (s *scanner) scanText(lexer *abi.Lexer, validSymbols []bool, opts Options, ctx context, content bool, prev int32) bool {
 	blocks := ctx == contextSQL && (opts.BeginEndBlocks || opts.AnonymousBlocks || opts.Batches)
 	var w sqlWord
-	// lineStart is true when only white space comes before the lookahead on
-	// its line.
-	lineStart := isNewline(prev)
 	for !lexer.EOF() {
 		c := lexer.Lookahead
-		alone := lineStart
-		if isNewline(c) {
-			lineStart = true
-		} else if !isSpace(c) {
-			lineStart = false
-		}
 		if blocks {
 			if isWordChar(&w, c) {
 				addWordChar(&w, c)
@@ -1112,25 +1087,6 @@ func (s *scanner) scanText(lexer *abi.Lexer, validSymbols []bool, opts Options, 
 						return scanLineComment(lexer)
 					}
 					return scanBlockComment(lexer)
-				}
-				if c == '/' && alone && opts.AnonymousBlocks && s.depth == 0 &&
-					(lexer.EOF() || isSpace(d)) {
-					if content {
-						// the next token starts at the /, at the start of its
-						// line
-						break
-					}
-					lexer.MarkEnd()
-					if scanSlashLine(lexer) && validSymbols[slash] {
-						// a / alone on its line outside parentheses ends the
-						// statement, as in SQL*Plus
-						s.resetBlocks()
-						lexer.ResultSymbol = slash
-						return true
-					}
-					content = true
-					prev = c
-					continue
 				}
 				lexer.MarkEnd()
 				content = true
@@ -1377,27 +1333,13 @@ func (s *scanner) scanArguments(lexer *abi.Lexer, validSymbols []bool, opts Opti
 // scanSQL is scan_sql. It scans a token of SQL, or the name of a meta
 // command.
 func (s *scanner) scanSQL(lexer *abi.Lexer, validSymbols []bool, opts Options) bool {
-	// prev is a new line when the white space ends a line, and skipped
-	// counts the characters of the white space
-	var prev int32
-	var skipped uint32
 	for !lexer.EOF() && isSpace(lexer.Lookahead) {
-		if isNewline(lexer.Lookahead) {
-			prev = '\n'
-		}
 		skip(lexer)
-		skipped++
 	}
 	if lexer.EOF() {
 		return false
 	}
 	c := lexer.Lookahead
-	if c == '/' && prev == 0 && opts.AnonymousBlocks && validSymbols[slash] &&
-		lexer.GetColumn() == skipped {
-		// the scan starts at the start of a line, such as the start of the
-		// input, so the / is the first character of its line
-		prev = '\n'
-	}
 	if c == '\\' {
 		advance(lexer)
 		if lexer.Lookahead == ';' || lexer.Lookahead == ':' {
@@ -1423,7 +1365,7 @@ func (s *scanner) scanSQL(lexer *abi.Lexer, validSymbols []bool, opts Options) b
 	if c == '"' || (c == '`' && opts.Backticks) {
 		return scanQuoted(lexer, quotedIdentifier, false)
 	}
-	return s.scanText(lexer, validSymbols, opts, contextSQL, false, prev)
+	return s.scanText(lexer, validSymbols, opts, contextSQL, false, 0)
 }
 
 // newScanner returns a new scanner with the default options.

@@ -62,9 +62,9 @@ func TestOptions(t *testing.T) {
 // first line names a set of options, such as -- options: oracle_anonymous,
 // with those options of optionSets. It checks the assertions in its
 // comments, as the highlight test does (D137). The files need options that
-// are not the default options, such as the node slash of AnonymousBlocks
-// (D135). The test of a file fails when optionSets has no options of its
-// name.
+// are not the default options, such as an anonymous block of
+// AnonymousBlocks (D128). The test of a file fails when optionSets has no
+// options of its name.
 func TestOptionsHighlight(t *testing.T) {
 	t.Parallel()
 	grammartest.HighlightOptions(t, func(name string) (*transit.Language, bool) {

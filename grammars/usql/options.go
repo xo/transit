@@ -48,16 +48,11 @@ type Options struct {
 	// TRANSACTION follows starts a transaction and not a block (D131). A
 	// statement that starts with another word does not change.
 	//
-	// With AnonymousBlocks, a line with only / and white space outside
-	// parentheses is the node slash, as in SQL*Plus, and it is never the
-	// text of a statement (D135). The node holds only the /. After a
-	// statement with no ;, such as select 1 from dual, the slash is the last
-	// child of the statement, in the place of the ;, so it ends any
-	// statement. This holds in a block that did not end too. After a
-	// statement that ended with ;, the slash is a child of source_file
-	// between the statements. Inside parentheses, such a line is the text
-	// of the statement, as in select (a, then a / line, then ) from dual
-	// (D136). It is not a flag of dbmeta.
+	// A line with only / is the text of a statement, with AnonymousBlocks
+	// on or off, as in psql (D138). Another PL/SQL unit, such as a function
+	// with declarations before its BEGIN, holds a ; that ends the
+	// statement. The script escapes each such ; as \;. It is not a flag of
+	// dbmeta.
 	AnonymousBlocks bool
 	// Batches keeps a batch of CQL in one statement. After BEGIN BATCH,
 	// BEGIN UNLOGGED BATCH or BEGIN COUNTER BATCH at the start of a

@@ -56,7 +56,4 @@
 
 "=" @operator
 
-[
-  ";"
-  (slash)
-] @punctuation.delimiter
+";" @punctuation.delimiter

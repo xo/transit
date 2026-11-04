@@ -289,7 +289,7 @@ var usqlScannerInputs = []string{
 	"DECLARE @x int; SELECT @x; y",
 	"CREATE PROCEDURE p IS BEGIN x; END\n/\ny;",
 	"BEGIN " + strings.Repeat("BEGIN x; ", 300) + strings.Repeat("END; ", 301) + "y; z",
-	// a line with only a slash (D135)
+	// a line with only a slash, which is the text of a statement (D138)
 	"declare\n  x number;\nbegin\n  x := 1;\nend;\n/\nselect 'last' as s from dual;\n",
 	"create or replace procedure p as begin null; end;\n/\nselect 1 from dual;",
 	"select 1 from dual\n/\nselect 2 from dual;",
@@ -311,7 +311,6 @@ var usqlScannerInputs = []string{
 	"select :'a'\n/\nselect 2;",
 	"select 1\n/ 2;",
 	"select 1\n/2;",
-	// a line with only a slash inside parentheses (D136)
 	"select (a\n/\n) from dual;",
 	"select (a\n/\n) from dual\n/\nselect 2;",
 	"select ((a\n  /  \n)\n/\n)\n/\nselect 2;",
@@ -321,6 +320,8 @@ var usqlScannerInputs = []string{
 	"select ('a\n/\n'\n/\n);",
 	"select (a\n\\g\n/\nselect 1;",
 	"select (a\n/",
+	// a PL/SQL unit whose inner ; the script escapes as \; (D138)
+	"create or replace function f return number as n number\\; begin return n\\; end;\nselect 1;",
 	// a BEGIN that starts a transaction in an anonymous block (D131)
 	"BEGIN x; BEGIN WORK; y; END; z",
 	"BEGIN x; begin transaction; y; END; z",

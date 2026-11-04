@@ -863,15 +863,12 @@ of PL/SQL. The scanner counts `BEGIN` and `END` as it does for
 does not open a block (D131). A statement that starts with another word
 does not change. usql turns it on for Oracle only.
 
-With `AnonymousBlocks` on, a line with only `/` and white space outside
-parentheses is the named node `slash`, as in SQL*Plus (D135). The node holds
-only the `/`. After a statement with no `;`, the `slash` ends the statement.
-It is the last child of the `statement`, in the place of the `;`. After a
-statement that ended with `;`, the `slash` is a child of `source_file`
-between the statements. So such a `/` line is never the text of a
-statement. Inside parentheses, a `/` line is the text of the statement
-(D136). With the option off, a tree holds no `slash` node, and a `/` line
-is text.
+A line with only `/` is the text of a statement, with `AnonymousBlocks` on
+or off (D138). The grammar has no node for it. A statement ends only at a
+`;` outside parentheses, at a meta command or at the end of the input.
+Another PL/SQL unit, such as a function with declarations before its
+`BEGIN`, holds a `;` that ends the statement. The script escapes each such
+`;` as `\;`.
 
 `Batches` keeps a batch of CQL in one statement, and it is off by default.
 With it on, a statement that starts with `BEGIN BATCH`, `BEGIN UNLOGGED

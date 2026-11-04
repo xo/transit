@@ -1,5 +1,5 @@
 // The external scanner of the usql grammar (D101, D102, D108, D112, D128,
-// D130, D131, D134, D135, D136).
+// D130, D131, D134, D138).
 //
 // The scanner reads every token of the grammar. It finds the end of a
 // statement, the strings, the dollar quotes, the comments and the depth of
@@ -37,12 +37,8 @@
 // DECLARE is a block. The scanner counts BEGIN and END as it does for a
 // stored program. Every BEGIN in the block starts a block, but a BEGIN that
 // a ;, WORK or TRANSACTION follows does not (D131). The statement ends at
-// the ; after the END of the outer BEGIN. With USQL_ANONYMOUS_BLOCKS, a /
-// alone on its line outside parentheses is the token SLASH, as in SQL*Plus,
-// and it is never the text of a statement (D135). After a statement with no
-// ;, it ends the statement in the place of the ;. After a ;, it is a node of
-// its own. Inside parentheses, such a line is the text of the statement
-// (D136).
+// the ; after the END of the outer BEGIN. A line with only / is the text of
+// the statement, as it is in psql (D138).
 //
 // After a colon and a quote, the scanner must read the name and the closing
 // quote before it knows whether the colon starts a variable, as :'name', or
@@ -83,7 +79,6 @@ enum TokenType {
   DOLLAR_STRING,
   COMMENT,
   SEMICOLON,
-  SLASH,
   BACKSLASH,
   BACKSLASH_OPTIONS,
   COMMAND_BASE,
@@ -967,15 +962,6 @@ static void end_word(Scanner *s, Word *w, int32_t c, int options) {
 static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int options,
                       enum Context ctx, bool content, int32_t prev);
 
-// scan_slash_line reads the white space after a / and reports whether the
-// line ends there, so that the / is alone on its line.
-static bool scan_slash_line(TSLexer *lexer) {
-  while (!lexer->eof(lexer) && is_space(lexer->lookahead) && !is_newline(lexer->lookahead)) {
-    advance(lexer);
-  }
-  return lexer->eof(lexer) || is_newline(lexer->lookahead);
-}
-
 // scan_variable_start scans from the colon of a variable. It returns the
 // sigil when a valid variable follows. Else the colon is text in the
 // context ctx. After :' or :", it first returns VARIABLE_CHECK, with no
@@ -1061,27 +1047,17 @@ static bool scan_variable_start(Scanner *s, TSLexer *lexer, const bool *valid_sy
 // token already holds text, and prev is the last character of that text.
 // The token ends at its last character that is not white space. With
 // USQL_BEGIN_END_BLOCKS, USQL_ANONYMOUS_BLOCKS or USQL_BATCHES, scan_text
-// reads the words of SQL text. When prev ends a line, the first character
-// is at the start of its line.
+// reads the words of SQL text.
 static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int options,
                       enum Context ctx, bool content, int32_t prev) {
   bool blocks = ctx == CONTEXT_SQL &&
                 (options & (USQL_BEGIN_END_BLOCKS | USQL_ANONYMOUS_BLOCKS | USQL_BATCHES));
   Word w = {{0}, 0, false};
-  // line_start is true when only white space comes before the lookahead on
-  // its line.
-  bool line_start = is_newline(prev);
   for (;;) {
     if (lexer->eof(lexer)) {
       break;
     }
     int32_t c = lexer->lookahead;
-    bool alone = line_start;
-    if (is_newline(c)) {
-      line_start = true;
-    } else if (!is_space(c)) {
-      line_start = false;
-    }
     if (blocks) {
       if (is_word_char(&w, c)) {
         add_word_char(&w, c);
@@ -1128,24 +1104,6 @@ static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int
           }
           advance(lexer);
           return line ? scan_line_comment(lexer) : scan_block_comment(lexer);
-        }
-        if (c == '/' && alone && (options & USQL_ANONYMOUS_BLOCKS) && s->depth == 0 &&
-            (lexer->eof(lexer) || is_space(d))) {
-          if (content) {
-            // the next token starts at the /, at the start of its line
-            break;
-          }
-          lexer->mark_end(lexer);
-          if (scan_slash_line(lexer) && valid_symbols[SLASH]) {
-            // a / alone on its line outside parentheses ends the
-            // statement, as in SQL*Plus
-            reset_blocks(s);
-            lexer->result_symbol = SLASH;
-            return true;
-          }
-          content = true;
-          prev = c;
-          continue;
         }
         lexer->mark_end(lexer);
         content = true;
@@ -1380,27 +1338,13 @@ static bool scan_arguments(Scanner *s, TSLexer *lexer, const bool *valid_symbols
 
 // scan_sql scans a token of SQL, or the name of a meta command.
 static bool scan_sql(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int options) {
-  // prev is a new line when the white space ends a line, and skipped
-  // counts the characters of the white space
-  int32_t prev = 0;
-  uint32_t skipped = 0;
   while (!lexer->eof(lexer) && is_space(lexer->lookahead)) {
-    if (is_newline(lexer->lookahead)) {
-      prev = '\n';
-    }
     skip(lexer);
-    skipped++;
   }
   if (lexer->eof(lexer)) {
     return false;
   }
   int32_t c = lexer->lookahead;
-  if (c == '/' && prev == 0 && (options & USQL_ANONYMOUS_BLOCKS) && valid_symbols[SLASH] &&
-      lexer->get_column(lexer) == skipped) {
-    // the scan starts at the start of a line, such as the start of the
-    // input, so the / is the first character of its line
-    prev = '\n';
-  }
   if (c == '\\') {
     advance(lexer);
     if (lexer->lookahead == ';' || lexer->lookahead == ':') {
@@ -1426,7 +1370,7 @@ static bool scan_sql(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int 
   if (c == '"' || (c == '`' && (options & USQL_BACKTICKS))) {
     return scan_quoted(lexer, QUOTED_IDENTIFIER, false);
   }
-  return scan_text(s, lexer, valid_symbols, options, CONTEXT_SQL, false, prev);
+  return scan_text(s, lexer, valid_symbols, options, CONTEXT_SQL, false, 0);
 }
 
 void *tree_sitter_usql_external_scanner_create(void) { return ts_calloc(1, sizeof(Scanner)); }

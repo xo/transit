@@ -24,10 +24,10 @@ func Language() *transit.Language {
 var language = sync.OnceValue(func() *transit.Language {
 	return transit.NewLanguage(&abi.Language{
 		ABIVersion:             15,
-		SymbolCount:            53,
+		SymbolCount:            52,
 		AliasCount:             0,
-		TokenCount:             35,
-		ExternalTokenCount:     34,
+		TokenCount:             34,
+		ExternalTokenCount:     33,
 		StateCount:             89,
 		LargeStateCount:        2,
 		ProductionIDCount:      6,
@@ -101,52 +101,51 @@ const (
 	SymDollarString          transit.Symbol = 4  // "dollar_string"
 	SymComment               transit.Symbol = 5  // "comment"
 	SymSemicolon             transit.Symbol = 6  // ";"
-	SymSlash                 transit.Symbol = 7  // "slash"
-	SymBackslash             transit.Symbol = 8  // "_backslash"
-	SymBackslashOptions      transit.Symbol = 9  // "_backslash_options"
-	SymCommandBase           transit.Symbol = 10 // "_command_base"
-	SymShellCommandName      transit.Symbol = 11 // "command_name"
-	SymSeparatorCommandName  transit.Symbol = 12 // "command_name"
-	SymModifier              transit.Symbol = 13 // "modifier"
-	SymCommandEnd            transit.Symbol = 14 // "_command_end"
-	SymWord                  transit.Symbol = 15 // "word"
-	SymPipe                  transit.Symbol = 16 // "|"
-	SymShellCommand          transit.Symbol = 17 // "shell_command"
-	SymBacktickOpen          transit.Symbol = 18 // "`"
-	SymBacktickText          transit.Symbol = 19 // "shell_command"
-	SymBacktickClose         transit.Symbol = 20 // "`"
-	SymOptionOpen            transit.Symbol = 21 // "("
-	SymOptionClose           transit.Symbol = 22 // ")"
-	SymOptionEquals          transit.Symbol = 23 // "="
-	SymOptionWord            transit.Symbol = 24 // "word"
-	SymSigilPlain            transit.Symbol = 25 // ":"
-	SymSigilSingleQuote      transit.Symbol = 26 // ":'"
-	SymSigilDoubleQuote      transit.Symbol = 27 // ":\""
-	SymSigilBrace            transit.Symbol = 28 // ":{?"
-	SymVariableName          transit.Symbol = 29 // "variable_name"
-	SymCloseSingleQuote      transit.Symbol = 30 // "'"
-	SymCloseDoubleQuote      transit.Symbol = 31 // "\""
-	SymCloseBrace            transit.Symbol = 32 // "}"
-	SymVariableCheck         transit.Symbol = 33 // "_variable_check"
-	SymErrorSentinel         transit.Symbol = 34 // "_error_sentinel"
-	SymSourceFile            transit.Symbol = 35 // "source_file"
-	SymStatement             transit.Symbol = 36 // "statement"
-	SymPiece                 transit.Symbol = 37 // "_piece"
-	SymMetaCommand           transit.Symbol = 38 // "meta_command"
-	SymCommandName           transit.Symbol = 39 // "command_name"
-	SymOptionsCommandName    transit.Symbol = 40 // "command_name"
-	SymArgument              transit.Symbol = 41 // "_argument"
-	SymPipe2                 transit.Symbol = 42 // "pipe"
-	SymBacktickCommand       transit.Symbol = 43 // "backtick_command"
-	SymOptionList            transit.Symbol = 44 // "option_list"
-	SymOption                transit.Symbol = 45 // "option"
-	SymVariable              transit.Symbol = 46 // "variable"
-	AuxSymSourceFileRepeat1  transit.Symbol = 47 // "source_file_repeat1"
-	AuxSymStatementRepeat1   transit.Symbol = 48 // "statement_repeat1"
-	AuxSymMetaCommandRepeat1 transit.Symbol = 49 // "meta_command_repeat1"
-	AuxSymMetaCommandRepeat2 transit.Symbol = 50 // "meta_command_repeat2"
-	AuxSymMetaCommandRepeat3 transit.Symbol = 51 // "meta_command_repeat3"
-	AuxSymOptionListRepeat1  transit.Symbol = 52 // "option_list_repeat1"
+	SymBackslash             transit.Symbol = 7  // "_backslash"
+	SymBackslashOptions      transit.Symbol = 8  // "_backslash_options"
+	SymCommandBase           transit.Symbol = 9  // "_command_base"
+	SymShellCommandName      transit.Symbol = 10 // "command_name"
+	SymSeparatorCommandName  transit.Symbol = 11 // "command_name"
+	SymModifier              transit.Symbol = 12 // "modifier"
+	SymCommandEnd            transit.Symbol = 13 // "_command_end"
+	SymWord                  transit.Symbol = 14 // "word"
+	SymPipe                  transit.Symbol = 15 // "|"
+	SymShellCommand          transit.Symbol = 16 // "shell_command"
+	SymBacktickOpen          transit.Symbol = 17 // "`"
+	SymBacktickText          transit.Symbol = 18 // "shell_command"
+	SymBacktickClose         transit.Symbol = 19 // "`"
+	SymOptionOpen            transit.Symbol = 20 // "("
+	SymOptionClose           transit.Symbol = 21 // ")"
+	SymOptionEquals          transit.Symbol = 22 // "="
+	SymOptionWord            transit.Symbol = 23 // "word"
+	SymSigilPlain            transit.Symbol = 24 // ":"
+	SymSigilSingleQuote      transit.Symbol = 25 // ":'"
+	SymSigilDoubleQuote      transit.Symbol = 26 // ":\""
+	SymSigilBrace            transit.Symbol = 27 // ":{?"
+	SymVariableName          transit.Symbol = 28 // "variable_name"
+	SymCloseSingleQuote      transit.Symbol = 29 // "'"
+	SymCloseDoubleQuote      transit.Symbol = 30 // "\""
+	SymCloseBrace            transit.Symbol = 31 // "}"
+	SymVariableCheck         transit.Symbol = 32 // "_variable_check"
+	SymErrorSentinel         transit.Symbol = 33 // "_error_sentinel"
+	SymSourceFile            transit.Symbol = 34 // "source_file"
+	SymStatement             transit.Symbol = 35 // "statement"
+	SymPiece                 transit.Symbol = 36 // "_piece"
+	SymMetaCommand           transit.Symbol = 37 // "meta_command"
+	SymCommandName           transit.Symbol = 38 // "command_name"
+	SymOptionsCommandName    transit.Symbol = 39 // "command_name"
+	SymArgument              transit.Symbol = 40 // "_argument"
+	SymPipe2                 transit.Symbol = 41 // "pipe"
+	SymBacktickCommand       transit.Symbol = 42 // "backtick_command"
+	SymOptionList            transit.Symbol = 43 // "option_list"
+	SymOption                transit.Symbol = 44 // "option"
+	SymVariable              transit.Symbol = 45 // "variable"
+	AuxSymSourceFileRepeat1  transit.Symbol = 46 // "source_file_repeat1"
+	AuxSymStatementRepeat1   transit.Symbol = 47 // "statement_repeat1"
+	AuxSymMetaCommandRepeat1 transit.Symbol = 48 // "meta_command_repeat1"
+	AuxSymMetaCommandRepeat2 transit.Symbol = 49 // "meta_command_repeat2"
+	AuxSymMetaCommandRepeat3 transit.Symbol = 50 // "meta_command_repeat3"
+	AuxSymOptionListRepeat1  transit.Symbol = 51 // "option_list_repeat1"
 )
 
 // The fields of the grammar usql, as Node.ChildByFieldID takes them. The
@@ -182,7 +181,6 @@ var symbolNames = []string{
 	SymDollarString:          "dollar_string",
 	SymComment:               "comment",
 	SymSemicolon:             ";",
-	SymSlash:                 "slash",
 	SymBackslash:             "_backslash",
 	SymBackslashOptions:      "_backslash_options",
 	SymCommandBase:           "_command_base",
@@ -239,7 +237,6 @@ var symbolMetadata = []abi.SymbolMetadata{
 	SymDollarString:          {Visible: true, Named: true},
 	SymComment:               {Visible: true, Named: true},
 	SymSemicolon:             {Visible: true},
-	SymSlash:                 {Visible: true, Named: true},
 	SymBackslash:             {Named: true},
 	SymBackslashOptions:      {Named: true},
 	SymCommandBase:           {Named: true},
@@ -300,259 +297,259 @@ var fieldNames = []string{
 // abi.Uint16TableBias.
 const parseTable abi.Uint16Table = "" +
 	// states 0 to 1
-	"! ! ! ! ! # ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !                                     % ' ' ' ' # ) + - /   1 3                         5 7 9 ;         '   c # & # ( %           & # &         "
+	"! ! ! ! ! # ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !                                     % ' ' ' ' # ) + -   / 1                         3 5 7 9         '   c # ' # & %           ' # '         "
 
 // smallParseTable is ts_small_parse_table. The entries of a small state
 // are its number of groups, and for each group its value, its number of
 // symbols and the symbols.
 var smallParseTable = []uint16{
 	// state 2
-	17, 3, 1, 5, 29, 1, 0, 34, 1, 6, 37, 1, 7, 40, 1, 8,
-	43, 1, 9, 46, 1, 11, 49, 1, 12, 52, 1, 25, 55, 1, 26, 58,
-	1, 27, 61, 1, 28, 5, 1, 40, 8, 1, 39, 2, 3, 36, 38, 47,
-	6, 3, 37, 46, 48, 31, 5, 1, 2, 3, 4, 33,
+	16, 3, 1, 5, 27, 1, 0, 32, 1, 6, 35, 1, 7, 38, 1, 8,
+	41, 1, 10, 44, 1, 11, 47, 1, 24, 50, 1, 25, 53, 1, 26, 56,
+	1, 27, 5, 1, 39, 6, 1, 38, 2, 3, 35, 37, 46, 7, 3, 36,
+	45, 47, 29, 5, 1, 2, 3, 4, 32,
 	// state 3
-	17, 3, 1, 5, 9, 1, 6, 13, 1, 8, 15, 1, 9, 17, 1, 11,
-	19, 1, 12, 21, 1, 25, 23, 1, 26, 25, 1, 27, 27, 1, 28, 64,
-	1, 0, 66, 1, 7, 5, 1, 40, 8, 1, 39, 2, 3, 36, 38, 47,
-	6, 3, 37, 46, 48, 7, 5, 1, 2, 3, 4, 33,
+	16, 3, 1, 5, 9, 1, 6, 11, 1, 7, 13, 1, 8, 15, 1, 10,
+	17, 1, 11, 19, 1, 24, 21, 1, 25, 23, 1, 26, 25, 1, 27, 59,
+	1, 0, 5, 1, 39, 6, 1, 38, 2, 3, 35, 37, 46, 7, 3, 36,
+	45, 47, 7, 5, 1, 2, 3, 4, 32,
 	// state 4
-	13, 3, 1, 5, 70, 1, 13, 72, 1, 14, 74, 1, 16, 76, 1, 18,
-	78, 1, 21, 80, 1, 25, 82, 1, 26, 84, 1, 27, 86, 1, 28, 25,
-	1, 49, 68, 4, 2, 3, 15, 33, 11, 6, 41, 42, 43, 44, 46, 51,
+	13, 3, 1, 5, 63, 1, 12, 65, 1, 13, 67, 1, 15, 69, 1, 17,
+	71, 1, 20, 73, 1, 24, 75, 1, 25, 77, 1, 26, 79, 1, 27, 25,
+	1, 48, 61, 4, 2, 3, 14, 32, 11, 6, 40, 41, 42, 43, 45, 50,
 	// state 5
-	13, 3, 1, 5, 74, 1, 16, 76, 1, 18, 78, 1, 21, 80, 1, 25,
-	82, 1, 26, 84, 1, 27, 86, 1, 28, 90, 1, 13, 92, 1, 14, 4,
-	1, 49, 88, 4, 2, 3, 15, 33, 10, 6, 41, 42, 43, 44, 46, 51,
+	13, 3, 1, 5, 67, 1, 15, 69, 1, 17, 71, 1, 20, 73, 1, 24,
+	75, 1, 25, 77, 1, 26, 79, 1, 27, 83, 1, 12, 85, 1, 13, 4,
+	1, 48, 81, 4, 2, 3, 14, 32, 9, 6, 40, 41, 42, 43, 45, 50,
 	// state 6
-	9, 3, 1, 5, 21, 1, 25, 23, 1, 26, 25, 1, 27, 27, 1, 28,
-	98, 2, 6, 7, 7, 3, 37, 46, 48, 94, 5, 8, 9, 11, 12, 0,
-	96, 5, 1, 2, 3, 4, 33,
+	12, 3, 1, 5, 85, 1, 13, 89, 1, 12, 91, 1, 15, 93, 1, 17,
+	95, 1, 24, 97, 1, 25, 99, 1, 26, 101, 1, 27, 8, 1, 48, 87,
+	4, 2, 3, 14, 32, 13, 5, 40, 41, 42, 45, 49,
 	// state 7
-	8, 3, 1, 5, 105, 1, 25, 108, 1, 26, 111, 1, 27, 114, 1, 28,
-	7, 3, 37, 46, 48, 102, 5, 1, 2, 3, 4, 33, 100, 7, 6, 7,
-	8, 9, 11, 12, 0,
+	9, 3, 1, 5, 19, 1, 24, 21, 1, 25, 23, 1, 26, 25, 1, 27,
+	107, 1, 6, 12, 3, 36, 45, 47, 103, 5, 7, 8, 10, 11, 0, 105,
+	5, 1, 2, 3, 4, 32,
 	// state 8
-	12, 3, 1, 5, 92, 1, 14, 119, 1, 13, 121, 1, 16, 123, 1, 18,
-	125, 1, 25, 127, 1, 26, 129, 1, 27, 131, 1, 28, 9, 1, 49, 117,
-	4, 2, 3, 15, 33, 14, 5, 41, 42, 43, 46, 50,
+	12, 3, 1, 5, 65, 1, 13, 91, 1, 15, 93, 1, 17, 95, 1, 24,
+	97, 1, 25, 99, 1, 26, 101, 1, 27, 111, 1, 12, 27, 1, 48, 109,
+	4, 2, 3, 14, 32, 15, 5, 40, 41, 42, 45, 49,
 	// state 9
-	12, 3, 1, 5, 72, 1, 14, 121, 1, 16, 123, 1, 18, 125, 1, 25,
-	127, 1, 26, 129, 1, 27, 131, 1, 28, 135, 1, 13, 27, 1, 49, 133,
-	4, 2, 3, 15, 33, 20, 5, 41, 42, 43, 46, 50,
+	11, 3, 1, 5, 65, 1, 13, 67, 1, 15, 69, 1, 17, 71, 1, 20,
+	73, 1, 24, 75, 1, 25, 77, 1, 26, 79, 1, 27, 113, 4, 2, 3,
+	14, 32, 10, 6, 40, 41, 42, 43, 45, 50,
 	// state 10
-	11, 3, 1, 5, 72, 1, 14, 74, 1, 16, 76, 1, 18, 78, 1, 21,
-	80, 1, 25, 82, 1, 26, 84, 1, 27, 86, 1, 28, 137, 4, 2, 3,
-	15, 33, 12, 6, 41, 42, 43, 44, 46, 51,
+	11, 3, 1, 5, 118, 1, 13, 120, 1, 15, 123, 1, 17, 126, 1, 20,
+	129, 1, 24, 132, 1, 25, 135, 1, 26, 138, 1, 27, 115, 4, 2, 3,
+	14, 32, 10, 6, 40, 41, 42, 43, 45, 50,
 	// state 11
-	11, 3, 1, 5, 74, 1, 16, 76, 1, 18, 78, 1, 21, 80, 1, 25,
-	82, 1, 26, 84, 1, 27, 86, 1, 28, 139, 1, 14, 137, 4, 2, 3,
-	15, 33, 12, 6, 41, 42, 43, 44, 46, 51,
+	11, 3, 1, 5, 67, 1, 15, 69, 1, 17, 71, 1, 20, 73, 1, 24,
+	75, 1, 25, 77, 1, 26, 79, 1, 27, 141, 1, 13, 113, 4, 2, 3,
+	14, 32, 10, 6, 40, 41, 42, 43, 45, 50,
 	// state 12
-	11, 3, 1, 5, 144, 1, 14, 146, 1, 16, 149, 1, 18, 152, 1, 21,
-	155, 1, 25, 158, 1, 26, 161, 1, 27, 164, 1, 28, 141, 4, 2, 3,
-	15, 33, 12, 6, 41, 42, 43, 44, 46, 51,
+	8, 3, 1, 5, 148, 1, 24, 151, 1, 25, 154, 1, 26, 157, 1, 27,
+	12, 3, 36, 45, 47, 145, 5, 1, 2, 3, 4, 32, 143, 6, 6, 7,
+	8, 10, 11, 0,
 	// state 13
-	2, 3, 1, 5, 167, 16, 1, 2, 3, 4, 6, 7, 8, 9, 11, 12,
-	25, 26, 27, 28, 33, 0,
+	10, 3, 1, 5, 65, 1, 13, 91, 1, 15, 93, 1, 17, 95, 1, 24,
+	97, 1, 25, 99, 1, 26, 101, 1, 27, 160, 4, 2, 3, 14, 32, 14,
+	5, 40, 41, 42, 45, 49,
 	// state 14
-	10, 3, 1, 5, 72, 1, 14, 121, 1, 16, 123, 1, 18, 125, 1, 25,
-	127, 1, 26, 129, 1, 27, 131, 1, 28, 169, 4, 2, 3, 15, 33, 18,
-	5, 41, 42, 43, 46, 50,
+	10, 3, 1, 5, 165, 1, 13, 167, 1, 15, 170, 1, 17, 173, 1, 24,
+	176, 1, 25, 179, 1, 26, 182, 1, 27, 162, 4, 2, 3, 14, 32, 14,
+	5, 40, 41, 42, 45, 49,
 	// state 15
-	2, 3, 1, 5, 171, 16, 1, 2, 3, 4, 6, 7, 8, 9, 11, 12,
-	25, 26, 27, 28, 33, 0,
+	10, 3, 1, 5, 91, 1, 15, 93, 1, 17, 95, 1, 24, 97, 1, 25,
+	99, 1, 26, 101, 1, 27, 141, 1, 13, 160, 4, 2, 3, 14, 32, 14,
+	5, 40, 41, 42, 45, 49,
 	// state 16
-	2, 3, 1, 5, 173, 16, 1, 2, 3, 4, 6, 7, 8, 9, 11, 12,
-	25, 26, 27, 28, 33, 0,
+	2, 3, 1, 5, 185, 15, 1, 2, 3, 4, 6, 7, 8, 10, 11, 24,
+	25, 26, 27, 32, 0,
 	// state 17
-	2, 3, 1, 5, 94, 16, 1, 2, 3, 4, 6, 7, 8, 9, 11, 12,
-	25, 26, 27, 28, 33, 0,
+	2, 3, 1, 5, 187, 15, 1, 2, 3, 4, 6, 7, 8, 10, 11, 24,
+	25, 26, 27, 32, 0,
 	// state 18
-	10, 3, 1, 5, 178, 1, 14, 180, 1, 16, 183, 1, 18, 186, 1, 25,
-	189, 1, 26, 192, 1, 27, 195, 1, 28, 175, 4, 2, 3, 15, 33, 18,
-	5, 41, 42, 43, 46, 50,
+	2, 3, 1, 5, 189, 15, 1, 2, 3, 4, 6, 7, 8, 10, 11, 24,
+	25, 26, 27, 32, 0,
 	// state 19
-	2, 3, 1, 5, 198, 16, 1, 2, 3, 4, 6, 7, 8, 9, 11, 12,
-	25, 26, 27, 28, 33, 0,
+	2, 3, 1, 5, 103, 15, 1, 2, 3, 4, 6, 7, 8, 10, 11, 24,
+	25, 26, 27, 32, 0,
 	// state 20
-	10, 3, 1, 5, 121, 1, 16, 123, 1, 18, 125, 1, 25, 127, 1, 26,
-	129, 1, 27, 131, 1, 28, 139, 1, 14, 169, 4, 2, 3, 15, 33, 18,
-	5, 41, 42, 43, 46, 50,
+	2, 3, 1, 5, 191, 15, 1, 2, 3, 4, 6, 7, 8, 10, 11, 24,
+	25, 26, 27, 32, 0,
 	// state 21
-	2, 3, 1, 5, 200, 16, 1, 2, 3, 4, 6, 7, 8, 9, 11, 12,
-	25, 26, 27, 28, 33, 0,
+	2, 3, 1, 5, 193, 15, 1, 2, 3, 4, 6, 7, 8, 10, 11, 24,
+	25, 26, 27, 32, 0,
 	// state 22
-	2, 3, 1, 5, 202, 16, 1, 2, 3, 4, 6, 7, 8, 9, 11, 12,
-	25, 26, 27, 28, 33, 0,
+	2, 3, 1, 5, 195, 15, 1, 2, 3, 4, 6, 7, 8, 10, 11, 24,
+	25, 26, 27, 32, 0,
 	// state 23
-	2, 3, 1, 5, 204, 16, 1, 2, 3, 4, 6, 7, 8, 9, 11, 12,
-	25, 26, 27, 28, 33, 0,
+	2, 3, 1, 5, 197, 15, 1, 2, 3, 4, 6, 7, 8, 10, 11, 24,
+	25, 26, 27, 32, 0,
 	// state 24
-	4, 3, 1, 5, 208, 1, 19, 210, 1, 20, 206, 12, 2, 3, 14, 15,
-	16, 18, 21, 25, 26, 27, 28, 33,
+	4, 3, 1, 5, 201, 1, 18, 203, 1, 19, 199, 12, 2, 3, 13, 14,
+	15, 17, 20, 24, 25, 26, 27, 32,
 	// state 25
-	4, 3, 1, 5, 214, 1, 13, 25, 1, 49, 212, 12, 2, 3, 14, 15,
-	16, 18, 21, 25, 26, 27, 28, 33,
+	4, 3, 1, 5, 207, 1, 12, 25, 1, 48, 205, 12, 2, 3, 13, 14,
+	15, 17, 20, 24, 25, 26, 27, 32,
 	// state 26
-	3, 3, 1, 5, 219, 1, 20, 217, 12, 2, 3, 14, 15, 16, 18, 21,
-	25, 26, 27, 28, 33,
+	3, 3, 1, 5, 212, 1, 19, 210, 12, 2, 3, 13, 14, 15, 17, 20,
+	24, 25, 26, 27, 32,
 	// state 27
-	4, 3, 1, 5, 221, 1, 13, 27, 1, 49, 212, 11, 2, 3, 14, 15,
-	16, 18, 25, 26, 27, 28, 33,
+	4, 3, 1, 5, 214, 1, 12, 27, 1, 48, 205, 11, 2, 3, 13, 14,
+	15, 17, 24, 25, 26, 27, 32,
 	// state 28
-	4, 3, 1, 5, 224, 1, 19, 226, 1, 20, 206, 11, 2, 3, 14, 15,
-	16, 18, 25, 26, 27, 28, 33,
+	4, 3, 1, 5, 217, 1, 18, 219, 1, 19, 199, 11, 2, 3, 13, 14,
+	15, 17, 24, 25, 26, 27, 32,
 	// state 29
-	3, 3, 1, 5, 230, 1, 10, 228, 12, 2, 3, 13, 14, 15, 16, 18,
-	25, 26, 27, 28, 33,
+	3, 3, 1, 5, 223, 1, 9, 221, 12, 2, 3, 12, 13, 14, 15, 17,
+	24, 25, 26, 27, 32,
 	// state 30
-	2, 3, 1, 5, 232, 13, 2, 3, 13, 14, 15, 16, 18, 21, 25, 26,
-	27, 28, 33,
+	2, 3, 1, 5, 225, 13, 2, 3, 12, 13, 14, 15, 17, 20, 24, 25,
+	26, 27, 32,
 	// state 31
-	3, 3, 1, 5, 236, 1, 17, 234, 12, 2, 3, 14, 15, 16, 18, 21,
-	25, 26, 27, 28, 33,
+	3, 3, 1, 5, 229, 1, 16, 227, 12, 2, 3, 13, 14, 15, 17, 20,
+	24, 25, 26, 27, 32,
 	// state 32
-	2, 3, 1, 5, 238, 12, 2, 3, 14, 15, 16, 18, 21, 25, 26, 27,
-	28, 33,
+	2, 3, 1, 5, 231, 12, 2, 3, 13, 14, 15, 17, 20, 24, 25, 26,
+	27, 32,
 	// state 33
-	2, 3, 1, 5, 240, 12, 2, 3, 14, 15, 16, 18, 21, 25, 26, 27,
-	28, 33,
+	2, 3, 1, 5, 233, 12, 2, 3, 13, 14, 15, 17, 20, 24, 25, 26,
+	27, 32,
 	// state 34
-	3, 3, 1, 5, 242, 1, 17, 234, 11, 2, 3, 14, 15, 16, 18, 25,
-	26, 27, 28, 33,
+	3, 3, 1, 5, 235, 1, 16, 227, 11, 2, 3, 13, 14, 15, 17, 24,
+	25, 26, 27, 32,
 	// state 35
-	2, 3, 1, 5, 244, 12, 2, 3, 13, 14, 15, 16, 18, 25, 26, 27,
-	28, 33,
+	2, 3, 1, 5, 237, 12, 2, 3, 12, 13, 14, 15, 17, 24, 25, 26,
+	27, 32,
 	// state 36
-	2, 3, 1, 5, 246, 12, 2, 3, 14, 15, 16, 18, 21, 25, 26, 27,
-	28, 33,
+	2, 3, 1, 5, 239, 12, 2, 3, 13, 14, 15, 17, 20, 24, 25, 26,
+	27, 32,
 	// state 37
-	2, 3, 1, 5, 248, 12, 2, 3, 14, 15, 16, 18, 21, 25, 26, 27,
-	28, 33,
+	2, 3, 1, 5, 241, 12, 2, 3, 13, 14, 15, 17, 20, 24, 25, 26,
+	27, 32,
 	// state 38
-	2, 3, 1, 5, 200, 12, 2, 3, 14, 15, 16, 18, 21, 25, 26, 27,
-	28, 33,
+	2, 3, 1, 5, 193, 12, 2, 3, 13, 14, 15, 17, 20, 24, 25, 26,
+	27, 32,
 	// state 39
-	2, 3, 1, 5, 167, 12, 2, 3, 14, 15, 16, 18, 21, 25, 26, 27,
-	28, 33,
+	2, 3, 1, 5, 185, 12, 2, 3, 13, 14, 15, 17, 20, 24, 25, 26,
+	27, 32,
 	// state 40
-	2, 3, 1, 5, 217, 12, 2, 3, 14, 15, 16, 18, 21, 25, 26, 27,
-	28, 33,
+	2, 3, 1, 5, 210, 12, 2, 3, 13, 14, 15, 17, 20, 24, 25, 26,
+	27, 32,
 	// state 41
-	3, 3, 1, 5, 250, 1, 20, 217, 11, 2, 3, 14, 15, 16, 18, 25,
-	26, 27, 28, 33,
+	3, 3, 1, 5, 243, 1, 19, 210, 11, 2, 3, 13, 14, 15, 17, 24,
+	25, 26, 27, 32,
 	// state 42
-	2, 3, 1, 5, 246, 11, 2, 3, 14, 15, 16, 18, 25, 26, 27, 28,
-	33,
+	2, 3, 1, 5, 239, 11, 2, 3, 13, 14, 15, 17, 24, 25, 26, 27,
+	32,
 	// state 43
-	2, 3, 1, 5, 217, 11, 2, 3, 14, 15, 16, 18, 25, 26, 27, 28,
-	33,
+	2, 3, 1, 5, 210, 11, 2, 3, 13, 14, 15, 17, 24, 25, 26, 27,
+	32,
 	// state 44
-	2, 3, 1, 5, 167, 11, 2, 3, 14, 15, 16, 18, 25, 26, 27, 28,
-	33,
+	2, 3, 1, 5, 185, 11, 2, 3, 13, 14, 15, 17, 24, 25, 26, 27,
+	32,
 	// state 45
-	2, 3, 1, 5, 248, 11, 2, 3, 14, 15, 16, 18, 25, 26, 27, 28,
-	33,
+	2, 3, 1, 5, 241, 11, 2, 3, 13, 14, 15, 17, 24, 25, 26, 27,
+	32,
 	// state 46
-	2, 3, 1, 5, 200, 11, 2, 3, 14, 15, 16, 18, 25, 26, 27, 28,
-	33,
+	2, 3, 1, 5, 193, 11, 2, 3, 13, 14, 15, 17, 24, 25, 26, 27,
+	32,
 	// state 47
-	8, 3, 1, 5, 254, 1, 25, 256, 1, 26, 258, 1, 27, 260, 1, 28,
-	262, 1, 33, 54, 1, 46, 252, 3, 2, 3, 24,
+	8, 3, 1, 5, 247, 1, 24, 249, 1, 25, 251, 1, 26, 253, 1, 27,
+	255, 1, 32, 54, 1, 45, 245, 3, 2, 3, 23,
 	// state 48
-	7, 3, 1, 5, 254, 1, 25, 256, 1, 26, 258, 1, 27, 260, 1, 28,
-	55, 1, 46, 264, 3, 2, 3, 24,
+	7, 3, 1, 5, 247, 1, 24, 249, 1, 25, 251, 1, 26, 253, 1, 27,
+	55, 1, 45, 257, 3, 2, 3, 23,
 	// state 49
-	4, 3, 1, 5, 266, 1, 22, 268, 1, 24, 50, 2, 45, 52,
+	4, 3, 1, 5, 259, 1, 21, 261, 1, 23, 50, 2, 44, 51,
 	// state 50
-	4, 3, 1, 5, 270, 1, 22, 272, 1, 24, 50, 2, 45, 52,
+	4, 3, 1, 5, 263, 1, 21, 265, 1, 23, 50, 2, 44, 51,
 	// state 51
-	4, 3, 1, 5, 268, 1, 24, 275, 1, 22, 49, 2, 45, 52,
+	4, 3, 1, 5, 261, 1, 23, 268, 1, 21, 49, 2, 44, 51,
 	// state 52
-	3, 3, 1, 5, 279, 1, 23, 277, 2, 22, 24,
+	3, 3, 1, 5, 272, 1, 22, 270, 2, 21, 23,
 	// state 53
-	3, 3, 1, 5, 92, 1, 14, 281, 1, 17,
+	3, 3, 1, 5, 85, 1, 13, 274, 1, 16,
 	// state 54
-	2, 3, 1, 5, 283, 2, 22, 24,
+	2, 3, 1, 5, 276, 2, 21, 23,
 	// state 55
-	2, 3, 1, 5, 285, 2, 22, 24,
+	2, 3, 1, 5, 278, 2, 21, 23,
 	// state 56
-	2, 3, 1, 5, 167, 2, 22, 24,
+	2, 3, 1, 5, 185, 2, 21, 23,
 	// state 57
-	2, 3, 1, 5, 200, 2, 22, 24,
+	2, 3, 1, 5, 193, 2, 21, 23,
 	// state 58
-	2, 3, 1, 5, 287, 1, 29,
+	2, 3, 1, 5, 280, 1, 28,
 	// state 59
-	2, 3, 1, 5, 72, 1, 14,
+	2, 3, 1, 5, 65, 1, 13,
 	// state 60
-	2, 3, 1, 5, 289, 1, 29,
+	2, 3, 1, 5, 282, 1, 28,
 	// state 61
-	2, 3, 1, 5, 291, 1, 30,
+	2, 3, 1, 5, 284, 1, 29,
 	// state 62
-	2, 3, 1, 5, 291, 1, 31,
+	2, 3, 1, 5, 284, 1, 30,
 	// state 63
-	2, 3, 1, 5, 291, 1, 32,
+	2, 3, 1, 5, 284, 1, 31,
 	// state 64
-	2, 3, 1, 5, 293, 1, 29,
+	2, 3, 1, 5, 286, 1, 28,
 	// state 65
-	2, 3, 1, 5, 295, 1, 29,
+	2, 3, 1, 5, 288, 1, 28,
 	// state 66
-	2, 3, 1, 5, 297, 1, 29,
+	2, 3, 1, 5, 290, 1, 28,
 	// state 67
-	2, 3, 1, 5, 299, 1, 0,
+	2, 3, 1, 5, 292, 1, 0,
 	// state 68
-	2, 3, 1, 5, 301, 1, 29,
+	2, 3, 1, 5, 294, 1, 28,
 	// state 69
-	2, 3, 1, 5, 303, 1, 30,
+	2, 3, 1, 5, 296, 1, 29,
 	// state 70
-	2, 3, 1, 5, 303, 1, 31,
+	2, 3, 1, 5, 296, 1, 30,
 	// state 71
-	2, 3, 1, 5, 303, 1, 32,
+	2, 3, 1, 5, 296, 1, 31,
 	// state 72
-	2, 3, 1, 5, 305, 1, 29,
+	2, 3, 1, 5, 298, 1, 28,
 	// state 73
-	2, 3, 1, 5, 307, 1, 30,
+	2, 3, 1, 5, 300, 1, 29,
 	// state 74
-	2, 3, 1, 5, 307, 1, 31,
+	2, 3, 1, 5, 300, 1, 30,
 	// state 75
-	2, 3, 1, 5, 307, 1, 32,
+	2, 3, 1, 5, 300, 1, 31,
 	// state 76
-	2, 3, 1, 5, 309, 1, 29,
+	2, 3, 1, 5, 302, 1, 28,
 	// state 77
-	2, 3, 1, 5, 311, 1, 30,
+	2, 3, 1, 5, 304, 1, 29,
 	// state 78
-	2, 3, 1, 5, 311, 1, 31,
+	2, 3, 1, 5, 304, 1, 30,
 	// state 79
-	2, 3, 1, 5, 311, 1, 32,
+	2, 3, 1, 5, 304, 1, 31,
 	// state 80
-	2, 3, 1, 5, 313, 1, 29,
+	2, 3, 1, 5, 306, 1, 28,
 	// state 81
-	2, 3, 1, 5, 315, 1, 10,
+	2, 3, 1, 5, 308, 1, 9,
 	// state 82
-	2, 3, 1, 5, 317, 1, 29,
+	2, 3, 1, 5, 310, 1, 28,
 	// state 83
-	2, 3, 1, 5, 319, 1, 29,
+	2, 3, 1, 5, 312, 1, 28,
 	// state 84
-	2, 3, 1, 5, 321, 1, 29,
+	2, 3, 1, 5, 314, 1, 28,
 	// state 85
-	2, 3, 1, 5, 323, 1, 29,
+	2, 3, 1, 5, 316, 1, 28,
 	// state 86
-	2, 3, 1, 5, 325, 1, 29,
+	2, 3, 1, 5, 318, 1, 28,
 	// state 87
-	2, 3, 1, 5, 327, 1, 29,
+	2, 3, 1, 5, 320, 1, 28,
 	// state 88
-	2, 3, 1, 5, 329, 1, 29,
+	2, 3, 1, 5, 322, 1, 28,
 }
 
 // smallParseTableMap is ts_small_parse_table_map.
 var smallParseTableMap = []uint32{
-	0, 60, 120, 168, 216, 255, 292, 336, 380, 422, 464, 506, 528, 566, 588, 610,
-	632, 670, 692, 730, 752, 774, 796, 820, 844, 865, 888, 911, 932, 951, 972, 990,
-	1008, 1028, 1046, 1064, 1082, 1100, 1118, 1136, 1156, 1173, 1190, 1207, 1224, 1241, 1268, 1292,
-	1306, 1320, 1334, 1345, 1355, 1363, 1371, 1379, 1387, 1394, 1401, 1408, 1415, 1422, 1429, 1436,
-	1443, 1450, 1457, 1464, 1471, 1478, 1485, 1492, 1499, 1506, 1513, 1520, 1527, 1534, 1541, 1548,
-	1555, 1562, 1569, 1576, 1583, 1590, 1597,
+	0, 57, 114, 162, 210, 254, 292, 336, 378, 420, 462, 498, 536, 574, 612, 633,
+	654, 675, 696, 717, 738, 759, 780, 804, 828, 849, 872, 895, 916, 935, 956, 974,
+	992, 1012, 1030, 1048, 1066, 1084, 1102, 1120, 1140, 1157, 1174, 1191, 1208, 1225, 1252, 1276,
+	1290, 1304, 1318, 1329, 1339, 1347, 1355, 1363, 1371, 1378, 1385, 1392, 1399, 1406, 1413, 1420,
+	1427, 1434, 1441, 1448, 1455, 1462, 1469, 1476, 1483, 1490, 1497, 1504, 1511, 1518, 1525, 1532,
+	1539, 1546, 1553, 1560, 1567, 1574, 1581,
 }
 
 // parseActions is ts_parse_actions. Each group of actions is one entry
@@ -561,35 +558,32 @@ var parseActions = []abi.ParseActionEntry{
 	{Entry: header{Count: 0}},
 	{Entry: header{Count: 1}}, {Action: action{Type: typeRecover}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{Extra: true}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 0, Symbol: 35}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 6}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 17}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 3}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 0, Symbol: 34}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 7}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 19}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 29}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 81}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 53}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 15}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 17}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 60}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 64}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 65}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 66}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 47}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 47}}}, {Action: action{Type: typeShift, Shift: shift{State: 6, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 47}}}, {Action: action{Type: typeShift, Shift: shift{State: 17, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 47}}}, {Action: action{Type: typeShift, Shift: shift{State: 2, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 47}}}, {Action: action{Type: typeShift, Shift: shift{State: 29, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 47}}}, {Action: action{Type: typeShift, Shift: shift{State: 81, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 47}}}, {Action: action{Type: typeShift, Shift: shift{State: 53, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 47}}}, {Action: action{Type: typeShift, Shift: shift{State: 15, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 47}}}, {Action: action{Type: typeShift, Shift: shift{State: 60, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 47}}}, {Action: action{Type: typeShift, Shift: shift{State: 64, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 47}}}, {Action: action{Type: typeShift, Shift: shift{State: 65, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 47}}}, {Action: action{Type: typeShift, Shift: shift{State: 66, Repetition: true}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 1, Symbol: 35}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 2}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 46}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 46}}}, {Action: action{Type: typeShift, Shift: shift{State: 7, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 46}}}, {Action: action{Type: typeShift, Shift: shift{State: 19, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 46}}}, {Action: action{Type: typeShift, Shift: shift{State: 29, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 46}}}, {Action: action{Type: typeShift, Shift: shift{State: 81, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 46}}}, {Action: action{Type: typeShift, Shift: shift{State: 53, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 46}}}, {Action: action{Type: typeShift, Shift: shift{State: 17, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 46}}}, {Action: action{Type: typeShift, Shift: shift{State: 60, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 46}}}, {Action: action{Type: typeShift, Shift: shift{State: 64, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 46}}}, {Action: action{Type: typeShift, Shift: shift{State: 65, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 46}}}, {Action: action{Type: typeShift, Shift: shift{State: 66, Repetition: true}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 1, Symbol: 34}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 11}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 25}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 19}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 20}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 31}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 24}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 51}}},
@@ -597,76 +591,76 @@ var parseActions = []abi.ParseActionEntry{
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 83}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 84}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 85}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 10}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 4}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 16}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 1, Symbol: 36}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 7}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 23}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 48}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 48}}}, {Action: action{Type: typeShift, Shift: shift{State: 7, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 48}}}, {Action: action{Type: typeShift, Shift: shift{State: 60, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 48}}}, {Action: action{Type: typeShift, Shift: shift{State: 64, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 48}}}, {Action: action{Type: typeShift, Shift: shift{State: 65, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 48}}}, {Action: action{Type: typeShift, Shift: shift{State: 66, Repetition: true}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 14}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 9}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 4}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 18}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 13}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 8}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 34}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 28}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 68}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 80}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 58}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 82}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 20}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 27}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 1, Symbol: 35}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 12}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 22}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 51}}}, {Action: action{Type: typeShift, Shift: shift{State: 12, Repetition: true}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 51}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 51}}}, {Action: action{Type: typeShift, Shift: shift{State: 31, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 51}}}, {Action: action{Type: typeShift, Shift: shift{State: 24, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 51}}}, {Action: action{Type: typeShift, Shift: shift{State: 51, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 51}}}, {Action: action{Type: typeShift, Shift: shift{State: 72, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 51}}}, {Action: action{Type: typeShift, Shift: shift{State: 83, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 51}}}, {Action: action{Type: typeShift, Shift: shift{State: 84, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 51}}}, {Action: action{Type: typeShift, Shift: shift{State: 85, Repetition: true}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 46, ProductionID: 2}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 18}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 1, Symbol: 38, ProductionID: 1}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 38, ProductionID: 1}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 50}}}, {Action: action{Type: typeShift, Shift: shift{State: 18, Repetition: true}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 23}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 15}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 27}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 10}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 50}}}, {Action: action{Type: typeShift, Shift: shift{State: 10, Repetition: true}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 50}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 50}}}, {Action: action{Type: typeShift, Shift: shift{State: 34, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 50}}}, {Action: action{Type: typeShift, Shift: shift{State: 28, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 50}}}, {Action: action{Type: typeShift, Shift: shift{State: 68, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 50}}}, {Action: action{Type: typeShift, Shift: shift{State: 80, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 50}}}, {Action: action{Type: typeShift, Shift: shift{State: 58, Repetition: true}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 50}}}, {Action: action{Type: typeShift, Shift: shift{State: 82, Repetition: true}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 3, Symbol: 38, ProductionID: 1}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 3, Symbol: 46, ProductionID: 2}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 4, Symbol: 38, ProductionID: 1}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 36}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 1, Symbol: 43}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 50}}}, {Action: action{Type: typeShift, Shift: shift{State: 31, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 50}}}, {Action: action{Type: typeShift, Shift: shift{State: 24, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 50}}}, {Action: action{Type: typeShift, Shift: shift{State: 51, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 50}}}, {Action: action{Type: typeShift, Shift: shift{State: 72, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 50}}}, {Action: action{Type: typeShift, Shift: shift{State: 83, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 50}}}, {Action: action{Type: typeShift, Shift: shift{State: 84, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 50}}}, {Action: action{Type: typeShift, Shift: shift{State: 85, Repetition: true}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 22}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 47}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 47}}}, {Action: action{Type: typeShift, Shift: shift{State: 12, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 47}}}, {Action: action{Type: typeShift, Shift: shift{State: 60, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 47}}}, {Action: action{Type: typeShift, Shift: shift{State: 64, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 47}}}, {Action: action{Type: typeShift, Shift: shift{State: 65, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 47}}}, {Action: action{Type: typeShift, Shift: shift{State: 66, Repetition: true}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 14}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 49}}}, {Action: action{Type: typeShift, Shift: shift{State: 14, Repetition: true}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 49}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 49}}}, {Action: action{Type: typeShift, Shift: shift{State: 34, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 49}}}, {Action: action{Type: typeShift, Shift: shift{State: 28, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 49}}}, {Action: action{Type: typeShift, Shift: shift{State: 68, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 49}}}, {Action: action{Type: typeShift, Shift: shift{State: 80, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 49}}}, {Action: action{Type: typeShift, Shift: shift{State: 58, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 49}}}, {Action: action{Type: typeShift, Shift: shift{State: 82, Repetition: true}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 45, ProductionID: 2}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 1, Symbol: 37, ProductionID: 1}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 37, ProductionID: 1}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 3, Symbol: 37, ProductionID: 1}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 3, Symbol: 45, ProductionID: 2}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 4, Symbol: 37, ProductionID: 1}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 35}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 1, Symbol: 42}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 26}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 40}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 49}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 49}}}, {Action: action{Type: typeShift, Shift: shift{State: 25, Repetition: true}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 43}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 48}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 48}}}, {Action: action{Type: typeShift, Shift: shift{State: 25, Repetition: true}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 42}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 36}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 49}}}, {Action: action{Type: typeShift, Shift: shift{State: 27, Repetition: true}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 48}}}, {Action: action{Type: typeShift, Shift: shift{State: 27, Repetition: true}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 41}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 43}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 1, Symbol: 39}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 1, Symbol: 38}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 35}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 40}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 1, Symbol: 42}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 37}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 3, Symbol: 44}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 44}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 45}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 39}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 1, Symbol: 41}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 37}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 3, Symbol: 43}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 42}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 43}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 45}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 38}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 3, Symbol: 42}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 41}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 42}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 54}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 76}}},
@@ -677,16 +671,16 @@ var parseActions = []abi.ParseActionEntry{
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 55}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 32}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 52}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 52}}},
-	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 52}}}, {Action: action{Type: typeShift, Shift: shift{State: 52, Repetition: true}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 51}}},
+	{Entry: header{Count: 2, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 2, Symbol: 51}}}, {Action: action{Type: typeShift, Shift: shift{State: 52, Repetition: true}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 33}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 1, Symbol: 45, ProductionID: 3}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 1, Symbol: 44, ProductionID: 3}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 47}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 59}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 3, Symbol: 45, ProductionID: 4}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 4, Symbol: 45, ProductionID: 5}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 3, Symbol: 44, ProductionID: 4}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeReduce, Reduce: reduce{ChildCount: 4, Symbol: 44, ProductionID: 5}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 70}}},
-	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 13}}},
+	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 16}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 21}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 61}}},
 	{Entry: header{Count: 1, Reusable: true}}, {Action: action{Type: typeShift, Shift: shift{State: 62}}},
@@ -732,10 +726,10 @@ var fieldMapEntries = []abi.FieldMapEntry{
 
 // publicSymbolMap is ts_symbol_map.
 var publicSymbolMap = []uint16{
-	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 11, 13, 14, 15,
-	16, 17, 18, 17, 18, 21, 22, 23, 15, 25, 26, 27, 28, 29, 30, 31,
-	32, 33, 34, 35, 36, 37, 38, 11, 11, 41, 42, 43, 44, 45, 46, 47,
-	48, 49, 50, 51, 52,
+	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 10, 12, 13, 14, 15,
+	16, 17, 16, 17, 20, 21, 22, 14, 24, 25, 26, 27, 28, 29, 30, 31,
+	32, 33, 34, 35, 36, 37, 10, 10, 40, 41, 42, 43, 44, 45, 46, 47,
+	48, 49, 50, 51,
 }
 
 // aliasMap is ts_non_terminal_alias_map.
@@ -757,21 +751,21 @@ var lexModes = []abi.LexerMode{
 	{ExternalLexState: 2},
 	{ExternalLexState: 3},
 	{ExternalLexState: 3},
-	{ExternalLexState: 2},
+	{ExternalLexState: 4},
 	{ExternalLexState: 2},
 	{ExternalLexState: 4},
-	{ExternalLexState: 4},
 	{ExternalLexState: 5},
 	{ExternalLexState: 5},
 	{ExternalLexState: 5},
 	{ExternalLexState: 2},
 	{ExternalLexState: 6},
-	{ExternalLexState: 2},
-	{ExternalLexState: 2},
-	{ExternalLexState: 2},
+	{ExternalLexState: 6},
 	{ExternalLexState: 6},
 	{ExternalLexState: 2},
-	{ExternalLexState: 6},
+	{ExternalLexState: 2},
+	{ExternalLexState: 2},
+	{ExternalLexState: 2},
+	{ExternalLexState: 2},
 	{ExternalLexState: 2},
 	{ExternalLexState: 2},
 	{ExternalLexState: 2},
@@ -846,8 +840,8 @@ var lexModes = []abi.LexerMode{
 var primaryStateIDs = []uint16{
 	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
 	16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 25, 24, 29, 30, 31,
-	32, 33, 31, 35, 36, 37, 21, 13, 40, 26, 36, 40, 13, 37, 21, 47,
-	48, 49, 50, 51, 52, 53, 54, 55, 13, 21, 58, 59, 60, 61, 62, 63,
+	32, 33, 31, 35, 36, 37, 21, 16, 40, 26, 36, 40, 16, 37, 21, 47,
+	48, 49, 50, 51, 52, 53, 54, 55, 16, 21, 58, 59, 60, 61, 62, 63,
 	64, 58, 66, 67, 60, 61, 62, 63, 60, 61, 62, 63, 60, 61, 62, 63,
 	64, 81, 66, 64, 58, 66, 64, 58, 66,
 }
@@ -855,39 +849,39 @@ var primaryStateIDs = []uint16{
 // externalScannerStates is ts_external_scanner_states, one row of
 // ExternalTokenCount entries for each external lex state.
 var externalScannerStates = []bool{
-	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
-	true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true,
-	true, true, true, true, true, true, true, true, true, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, false, false, false, false, true, false,
-	false, true, true, false, true, false, false, false, false, false, false, false, true, true, true, true, false, true, false, false, true, false, false, false, true, true, true, true, false, false, false, false, true, false,
-	false, true, true, false, true, false, false, false, false, false, false, false, true, true, true, true, false, true, false, false, false, false, false, false, true, true, true, true, false, false, false, false, true, false,
-	false, true, true, false, true, false, false, false, false, false, false, false, false, true, true, true, false, true, false, false, true, false, false, false, true, true, true, true, false, false, false, false, true, false,
-	false, true, true, false, true, false, false, false, false, false, false, false, false, true, true, true, false, true, false, false, false, false, false, false, true, true, true, true, false, false, false, false, true, false,
-	false, true, true, false, true, false, false, false, false, false, false, false, false, true, true, true, false, true, true, true, true, false, false, false, true, true, true, true, false, false, false, false, true, false,
-	false, true, true, false, true, false, false, false, false, false, false, false, false, true, true, true, false, true, false, true, true, false, false, false, true, true, true, true, false, false, false, false, true, false,
-	false, true, true, false, true, false, false, false, false, false, false, false, false, true, true, true, false, true, true, true, false, false, false, false, true, true, true, true, false, false, false, false, true, false,
-	false, true, true, false, true, false, false, false, false, true, false, false, true, true, true, true, false, true, false, false, false, false, false, false, true, true, true, true, false, false, false, false, true, false,
-	false, true, true, false, true, false, false, false, false, false, false, false, false, true, true, true, true, true, false, false, true, false, false, false, true, true, true, true, false, false, false, false, true, false,
-	false, true, true, false, true, false, false, false, false, false, false, false, false, true, true, true, true, true, false, false, false, false, false, false, true, true, true, true, false, false, false, false, true, false,
-	false, true, true, false, true, false, false, false, false, false, false, false, false, true, true, true, false, true, false, true, false, false, false, false, true, true, true, true, false, false, false, false, true, false,
-	false, true, true, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, false, false, false, false, true, false,
-	false, true, true, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, false, false, false, false, false, false,
-	false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, true, false, false, false, false, false, false, false, false, false, false,
-	false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false,
-	false, false, false, false, true, false, false, false, false, false, false, false, false, true, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
-	false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false,
-	false, false, false, false, true, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
-	false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false,
-	false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false,
-	false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false,
-	false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
-	false, false, false, false, true, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+	false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+	true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true,
+	true, true, true, true, true, true, true, true, false, true, true, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, false, false, false, false, true, false,
+	false, true, true, false, true, false, false, false, false, false, false, true, true, true, true, false, true, false, false, true, false, false, false, true, true, true, true, false, false, false, false, true, false,
+	false, true, true, false, true, false, false, false, false, false, false, true, true, true, true, false, true, false, false, false, false, false, false, true, true, true, true, false, false, false, false, true, false,
+	false, true, true, false, true, false, false, false, false, false, false, false, true, true, true, false, true, false, false, true, false, false, false, true, true, true, true, false, false, false, false, true, false,
+	false, true, true, false, true, false, false, false, false, false, false, false, true, true, true, false, true, false, false, false, false, false, false, true, true, true, true, false, false, false, false, true, false,
+	false, true, true, false, true, false, false, false, false, false, false, false, true, true, true, false, true, true, true, true, false, false, false, true, true, true, true, false, false, false, false, true, false,
+	false, true, true, false, true, false, false, false, false, false, false, false, true, true, true, false, true, false, true, true, false, false, false, true, true, true, true, false, false, false, false, true, false,
+	false, true, true, false, true, false, false, false, false, false, false, false, true, true, true, false, true, true, true, false, false, false, false, true, true, true, true, false, false, false, false, true, false,
+	false, true, true, false, true, false, false, false, true, false, false, true, true, true, true, false, true, false, false, false, false, false, false, true, true, true, true, false, false, false, false, true, false,
+	false, true, true, false, true, false, false, false, false, false, false, false, true, true, true, true, true, false, false, true, false, false, false, true, true, true, true, false, false, false, false, true, false,
+	false, true, true, false, true, false, false, false, false, false, false, false, true, true, true, true, true, false, false, false, false, false, false, true, true, true, true, false, false, false, false, true, false,
+	false, true, true, false, true, false, false, false, false, false, false, false, true, true, true, false, true, false, true, false, false, false, false, true, true, true, true, false, false, false, false, true, false,
+	false, true, true, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, false, false, false, false, true, false,
+	false, true, true, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, true, true, false, false, false, false, false, false,
+	false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, true, false, false, false, false, false, false, false, false, false, false,
+	false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, true, true, false, false, false, false, false, false, false, false, false, false,
+	false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+	false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false,
+	false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+	false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false,
+	false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false,
+	false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false,
+	false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+	false, false, false, false, true, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
 }
 
 // externalScannerSymbolMap is ts_external_scanner_symbol_map.
 var externalScannerSymbolMap = []uint16{
 	1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
 	17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
-	33, 34,
+	33,
 }
 
 // lex is the main lex function, which mainLexTable runs.
