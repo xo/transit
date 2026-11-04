@@ -2,7 +2,7 @@ package usql
 
 // This file is a port of src/scanner.c of the usql grammar of transit, in
 // grammars/usql (D101, D102, D108, D112, D128, D130, D131, D134, D138,
-// D139).
+// D139, D140).
 //
 // The scanner reads every token of the grammar. It finds the end of a
 // statement, the strings, the dollar quotes, the comments and the depth of
@@ -21,7 +21,9 @@ package usql
 // from the macro USQL_OPTIONS when it is compiled, and the Go scanner reads
 // them from its field options. With the option DashComments, -- starts a
 // comment to the end of the line. Without it, -- is text, as in the
-// relationship (a)--(b) of Cypher (D139).
+// relationship (a)--(b) of Cypher (D139). With the option Brackets, a name
+// in square brackets, as [a b] of SQL Server and SQLite, is a quoted
+// identifier (D140). Without it, [ is text, as in a[1] of PostgreSQL.
 //
 // With the option BeginEndBlocks, the scanner keeps a stored program in one
 // statement (D112). It reads the words of the SQL text, outside strings,
@@ -627,6 +629,27 @@ func scanQuoted(lexer *abi.Lexer, symbol uint16, line bool) bool {
 	return true
 }
 
+// scanBracket is scan_bracket. It scans a quoted identifier in square
+// brackets from its [, up to the next ] that a second ] does not follow. ]]
+// is a ], and every other character is the text of the name, a new line
+// too. With no closing ], the name runs to the end of the input.
+func scanBracket(lexer *abi.Lexer) bool {
+	advance(lexer)
+	for !lexer.EOF() {
+		c := lexer.Lookahead
+		advance(lexer)
+		if c == ']' {
+			if lexer.Lookahead != ']' {
+				break
+			}
+			advance(lexer)
+		}
+	}
+	lexer.MarkEnd()
+	lexer.ResultSymbol = quotedIdentifier
+	return true
+}
+
 // scanDollarRest is scan_dollar_rest. It scans the body of a dollar quote
 // after its opening $tag$, up to the closing $tag$ or the end of the input.
 func scanDollarRest(lexer *abi.Lexer, tag []int32) bool {
@@ -1082,7 +1105,8 @@ func (s *scanner) scanText(lexer *abi.Lexer, validSymbols []bool, opts Options, 
 			}
 		} else {
 			if (c == ';' && s.depth == 0 && s.endsStatement(opts)) || c == '\'' || c == '"' ||
-				(c == '`' && opts.Backticks) || (c == '#' && opts.HashComments) {
+				(c == '`' && opts.Backticks) || (c == '[' && opts.Brackets) ||
+				(c == '#' && opts.HashComments) {
 				if !content && c == '#' {
 					return scanLineComment(lexer)
 				}
@@ -1410,6 +1434,10 @@ func (s *scanner) scanSQL(lexer *abi.Lexer, validSymbols []bool, opts Options) b
 	if c == '"' || (c == '`' && opts.Backticks) {
 		s.resolveBegin()
 		return scanQuoted(lexer, quotedIdentifier, false)
+	}
+	if c == '[' && opts.Brackets {
+		s.resolveBegin()
+		return scanBracket(lexer)
 	}
 	return s.scanText(lexer, validSymbols, opts, contextSQL, false, 0)
 }

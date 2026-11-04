@@ -1,5 +1,5 @@
 // The external scanner of the usql grammar (D101, D102, D108, D112, D128,
-// D130, D131, D134, D138, D139).
+// D130, D131, D134, D138, D139, D140).
 //
 // The scanner reads every token of the grammar. It finds the end of a
 // statement, the strings, the dollar quotes, the comments and the depth of
@@ -18,7 +18,10 @@
 // a set of the flags below. A build can set it, as the test module does
 // with -DUSQL_OPTIONS=<n>, to build the scanner of other options. With
 // USQL_DASH_COMMENTS, -- starts a comment to the end of the line. Without
-// it, -- is text, as in the relationship (a)--(b) of Cypher (D139).
+// it, -- is text, as in the relationship (a)--(b) of Cypher (D139). With
+// USQL_BRACKETS, a name in square brackets, as [a b] of SQL Server and
+// SQLite, is a quoted identifier (D140). Without it, [ is text, as in
+// a[1] of PostgreSQL.
 //
 // With USQL_BEGIN_END_BLOCKS, the scanner keeps a stored program in one
 // statement (D112). It reads the words of the SQL text, outside strings,
@@ -66,6 +69,7 @@
 #define USQL_ANONYMOUS_BLOCKS 64 // an anonymous block of PL/SQL is in one statement
 #define USQL_BATCHES 128         // BEGIN BATCH ... APPLY BATCH of CQL is in one statement
 #define USQL_DASH_COMMENTS 256   // -- starts a comment
+#define USQL_BRACKETS 512        // [...] is a quoted identifier
 
 // The options of the scanner. The default is dollar quotes, block comments
 // and dash comments, the options of PostgreSQL. The upstream tool and the
@@ -615,6 +619,27 @@ static bool scan_quoted(TSLexer *lexer, enum TokenType symbol, bool line) {
   return true;
 }
 
+// scan_bracket scans a quoted identifier in square brackets from its [, up
+// to the next ] that a second ] does not follow. ]] is a ], and every other
+// character is the text of the name, a new line too. With no closing ], the
+// name runs to the end of the input.
+static bool scan_bracket(TSLexer *lexer) {
+  advance(lexer);
+  while (!lexer->eof(lexer)) {
+    int32_t c = lexer->lookahead;
+    advance(lexer);
+    if (c == ']') {
+      if (lexer->lookahead != ']') {
+        break;
+      }
+      advance(lexer);
+    }
+  }
+  lexer->mark_end(lexer);
+  lexer->result_symbol = QUOTED_IDENTIFIER;
+  return true;
+}
+
 // scan_dollar_rest scans the body of a dollar quote after its opening
 // $tag$, up to the closing $tag$ or the end of the input.
 static bool scan_dollar_rest(TSLexer *lexer, const int32_t *tag, unsigned n) {
@@ -1102,7 +1127,8 @@ static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int
       }
     } else {
       if ((c == ';' && s->depth == 0 && ends_statement(s, options)) || c == '\'' || c == '"' ||
-          (c == '`' && (options & USQL_BACKTICKS)) || (c == '#' && (options & USQL_HASH_COMMENTS))) {
+          (c == '`' && (options & USQL_BACKTICKS)) || (c == '[' && (options & USQL_BRACKETS)) ||
+          (c == '#' && (options & USQL_HASH_COMMENTS))) {
         if (!content && c == '#') {
           return scan_line_comment(lexer);
         }
@@ -1416,6 +1442,10 @@ static bool scan_sql(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int 
   if (c == '"' || (c == '`' && (options & USQL_BACKTICKS))) {
     resolve_begin(s);
     return scan_quoted(lexer, QUOTED_IDENTIFIER, false);
+  }
+  if (c == '[' && (options & USQL_BRACKETS)) {
+    resolve_begin(s);
+    return scan_bracket(lexer);
   }
   return scan_text(s, lexer, valid_symbols, options, CONTEXT_SQL, false, 0);
 }

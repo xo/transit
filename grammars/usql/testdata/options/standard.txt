@@ -44,3 +44,17 @@ with function f() returns int begin return 1; end select f();
 (source_file
   (statement)
   (statement))
+
+================================================================================
+Standard: brackets without Brackets
+================================================================================
+
+select a[1], array[1,2], [a;b];
+select 2;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement)
+  (statement))

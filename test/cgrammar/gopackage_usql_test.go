@@ -27,13 +27,16 @@ func init() {
 // mysql_anonymous_batches reaches the options together. Each set of a SQL
 // dialect has DashComments. neo4j, postgres_no_dash and anonymous_no_dash do
 // not, so that -- is text in a statement, in a block and in a batch (D139).
+// sqlite, sqlserver_blocks and brackets_anonymous_batches have Brackets, so
+// that [ starts a quoted identifier in a statement, in a block and in a
+// batch, and the other sets do not (D140).
 var usqlOptionSets = []struct {
 	name string
 	opts usql.Options
 }{
 	{"postgres", usql.Options{DollarQuotes: true, BlockComments: true, DashComments: true}},
 	{"mysql", usql.Options{BlockComments: true, HashComments: true, Backticks: true, DashComments: true}},
-	{"sqlite", usql.Options{BlockComments: true, Backticks: true, DashComments: true}},
+	{"sqlite", usql.Options{BlockComments: true, Backticks: true, DashComments: true, Brackets: true}},
 	{"standard", usql.Options{BlockComments: true, DashComments: true}},
 	{"cql", usql.Options{DollarQuotes: true, BlockComments: true, SlashComments: true, DashComments: true}},
 	{"plain", usql.Options{}},
@@ -48,6 +51,8 @@ var usqlOptionSets = []struct {
 	{"neo4j", usql.Options{BlockComments: true, SlashComments: true, Backticks: true}},
 	{"postgres_no_dash", usql.Options{DollarQuotes: true, BlockComments: true}},
 	{"anonymous_no_dash", usql.Options{BlockComments: true, BeginEndBlocks: true, AnonymousBlocks: true, Batches: true}},
+	{"sqlserver_blocks", usql.Options{BlockComments: true, BeginEndBlocks: true, DashComments: true, Brackets: true}},
+	{"brackets_anonymous_batches", usql.Options{BlockComments: true, BeginEndBlocks: true, AnonymousBlocks: true, Batches: true, DashComments: true, Brackets: true}},
 }
 
 // usqlDefine returns the C macro of src/scanner.c of the usql grammar that
@@ -460,6 +465,32 @@ var usqlScannerInputs = []string{
 	"execute -- a\n block as begin x; end; y",
 	"with function f() returns int begin -- end;\nreturn 1; end select f(); y",
 	"select :a--b, a::--c, $$--d$$, $t--e",
+	// square brackets, which quote a name only with Brackets (D140)
+	"select 1 as [n\u00b0 d'entr\u00e9e]; select 2;",
+	"select [a;b], [a\\b], [a/*b], [a]]b'c], [a--b], [a:x], [a\\;b]; select 2;",
+	"select [\u8868\\]; select 2;",
+	"select [a\nb\r\n\\g]; select 2;",
+	"select [], [a]]], ]a; select 2;",
+	"select '[a;', \"[b;\", `[c;`, $$[d;$$ /* [e; */ -- [f;\n; select 2;",
+	"select :[a], :'[b]', [c]:d, [e]::int; select 2;",
+	"select a[1], array[1,2]; select 2;",
+	"select [a",
+	"select [a]]",
+	"select [",
+	"[",
+	"create procedure p() begin select [a;end;b]; end; select 2;",
+	"create procedure p() begin[x] = 1; end; select 2;",
+	"CREATE PROCEDURE dbo.p AS [x] BEGIN y; END; select 2;",
+	"EXECUTE [dbo].[p;q]; select 2;",
+	"execute [block] as begin x; end; select 2;",
+	"do [begin] x; end; select 2;",
+	"WITH [t;u] AS (SELECT 1) SELECT * FROM [t;u]; select 2;",
+	"with function [f]() returns int begin return [a;b]; end select [f](); select 2;",
+	"BEGIN [x;y]; END; select 2;",
+	"BEGIN[x]; END; select 2;",
+	"DECLARE [a;b] INT; BEGIN NULL; END; select 2;",
+	"BEGIN BATCH insert into [t;u] values (1); APPLY [BATCH]; BATCH; select 2;",
+	"\\echo [a;b] \\g\nselect 2;",
 }
 
 // TestUsqlScannersMatchC compares the Go scanner of the usql grammar with

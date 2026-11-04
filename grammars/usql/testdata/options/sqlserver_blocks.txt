@@ -19,6 +19,7 @@ EXEC dbo.p 1;
 (source_file
   (statement
     (string)
+    (quoted_identifier)
     (quoted_identifier))
   (statement))
 
@@ -125,11 +126,59 @@ EXEC dbo.p;
 
 (source_file
   (statement)
-  (statement)
+  (statement
+    (quoted_identifier))
   (statement)
   (statement)
   (statement
     (string))
   (statement)
   (statement)
+  (statement))
+
+================================================================================
+SQL Server blocks: a name in brackets in a body
+================================================================================
+
+CREATE PROCEDURE dbo.p AS BEGIN SELECT 1 AS [a;END;b'c]; END;
+select 2;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (quoted_identifier))
+  (statement))
+
+================================================================================
+SQL Server blocks: a name in brackets right after BEGIN
+================================================================================
+
+CREATE PROCEDURE dbo.q AS BEGIN[x] = 1; END;
+select 2;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (quoted_identifier))
+  (statement))
+
+================================================================================
+SQL Server blocks: a name in brackets after EXECUTE and WITH
+================================================================================
+
+EXECUTE [dbo].[p;q];
+WITH [t;u] AS (SELECT 1) SELECT * FROM [t;u];
+select 2;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (quoted_identifier)
+    (quoted_identifier))
+  (statement
+    (quoted_identifier)
+    (quoted_identifier))
   (statement))

@@ -175,9 +175,11 @@ lang := usql.LanguageFor(usql.Options{BlockComments: true, HashComments: true, B
 
 The fields of `usql.Options` are the flags of the type `Syntax` of dbmeta:
 `DollarQuotes`, `BlockComments`, `SlashComments`, `HashComments`,
-`Backticks` and `DashComments`. With `DashComments`, `--` starts a comment.
-Without it, `--` is text, as in the relationship `(a)--(b)` of Cypher
-(D139). Three more fields are not flags of dbmeta. `BeginEndBlocks`
+`Backticks`, `DashComments` and `Brackets`. With `DashComments`, `--`
+starts a comment. Without it, `--` is text, as in the relationship
+`(a)--(b)` of Cypher (D139). With `Brackets`, a name in square brackets,
+such as `[a b]` of SQL Server and SQLite, is a quoted identifier. Without
+it, `[` is text, as in `a[1]` of PostgreSQL (D140). Three more fields are not flags of dbmeta. `BeginEndBlocks`
 and `AnonymousBlocks` are described below. `Batches` keeps a batch of CQL,
 from `BEGIN BATCH` to `APPLY BATCH`, in one statement. It is off by
 default.

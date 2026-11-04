@@ -14,17 +14,18 @@ import (
 // Firebird, SAP HANA and Trino with BeginEndBlocks (D112, D130, D134), the
 // options of Oracle with AnonymousBlocks (D128), the options of CQL with
 // Batches, and the options of Neo4j, which has no dash comments (D139).
-// Each set of a SQL dialect has DashComments. The test module compares the
-// Go scanner with the C scanner on each of them.
+// Each set of a SQL dialect has DashComments, and sqlite and
+// sqlserver_blocks have Brackets (D140). The test module compares the Go
+// scanner with the C scanner on each of them.
 var optionSets = map[string]Options{
 	"postgres":         {DollarQuotes: true, BlockComments: true, DashComments: true},
 	"mysql":            {BlockComments: true, HashComments: true, Backticks: true, DashComments: true},
-	"sqlite":           {BlockComments: true, Backticks: true, DashComments: true},
+	"sqlite":           {BlockComments: true, Backticks: true, DashComments: true, Brackets: true},
 	"standard":         {BlockComments: true, DashComments: true},
 	"cql":              {DollarQuotes: true, BlockComments: true, SlashComments: true, DashComments: true},
 	"plain":            {},
 	"mysql_blocks":     {BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true, DashComments: true},
-	"sqlserver_blocks": {BlockComments: true, BeginEndBlocks: true, DashComments: true},
+	"sqlserver_blocks": {BlockComments: true, BeginEndBlocks: true, DashComments: true, Brackets: true},
 	"oracle_blocks":    {BlockComments: true, BeginEndBlocks: true, DashComments: true},
 	"oracle_anonymous": {BlockComments: true, BeginEndBlocks: true, AnonymousBlocks: true, DashComments: true},
 	"firebird_blocks":  {BlockComments: true, BeginEndBlocks: true, DashComments: true},

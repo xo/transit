@@ -49,12 +49,16 @@ change transit from usql.
    the syntax of the dialect with `usql.LanguageFor`. The fields of
    `usql.Options` are the flags of the type `Syntax` of dbmeta, with the same
    names: `DollarQuotes`, `BlockComments`, `SlashComments`, `HashComments`,
-   `Backticks` and `DashComments`. `usql.Language` has dollar quotes, block
-   comments and dash comments, the options of PostgreSQL. With
-   `DashComments`, `--` starts a comment to the end of the line. Without it,
-   `--` is the text of the statement (D139). Each SQL dialect turns it on. A
-   dialect of Cypher, such as Neo4j, does not, because `(a)--(b)` is a
-   relationship there.
+   `Backticks`, `DashComments` and `Brackets`. `usql.Language` has dollar
+   quotes, block comments and dash comments, the options of PostgreSQL.
+   With `DashComments`, `--` starts a comment to the end of the line.
+   Without it, `--` is the text of the statement (D139). Each SQL dialect
+   turns it on. A dialect of Cypher, such as Neo4j, does not, because
+   `(a)--(b)` is a relationship there. With `Brackets`, a name in square
+   brackets, such as `[l'état]`, is a `quoted_identifier`, and each
+   character in it is the text of the name (D140). SQL Server and SQLite
+   turn it on. Without it, `[` is text, as in `a[1]` and `ARRAY[1,2]` of
+   PostgreSQL.
 10. `usql.Options` has three more options. `BeginEndBlocks` keeps the
     `BEGIN ... END` body of a stored program, of `EXECUTE BLOCK`, of
     `DO BEGIN` and of `WITH FUNCTION` in one statement (D112, D130, D134).
@@ -230,13 +234,13 @@ for the flag `-dialect`, with these options of `usql.Options`:
 | --- | --- | --- |
 | `postgres` | `github.com/xo/transit/grammars/postgres/postgres` | `DollarQuotes`, `BlockComments`, `BeginEndBlocks`, `DashComments` |
 | `mysql` | `github.com/xo/transit/grammars/mysql` | `BlockComments`, `HashComments`, `Backticks`, `BeginEndBlocks`, `DashComments` |
-| `sqlite3` | `github.com/xo/transit/grammars/sqlite3` | `BlockComments`, `Backticks`, `BeginEndBlocks`, `DashComments` |
+| `sqlite3` | `github.com/xo/transit/grammars/sqlite3` | `BlockComments`, `Backticks`, `BeginEndBlocks`, `DashComments`, `Brackets` |
 | `duckdb` | `github.com/xo/transit/grammars/duckdb` | `DollarQuotes`, `BlockComments`, `DashComments` |
 | `clickhouse` | `github.com/xo/transit/grammars/clickhouse` | `DollarQuotes`, `BlockComments`, `SlashComments`, `HashComments`, `Backticks`, `DashComments` |
 | `trino` | `github.com/xo/transit/grammars/trino` | `BlockComments`, `BeginEndBlocks`, `DashComments` |
 | `presto` | `github.com/xo/transit/grammars/trino` | `BlockComments`, `DashComments` |
 | `athena` | `github.com/xo/transit/grammars/trino` | `BlockComments`, `DashComments` |
-| `sqlserver` | `github.com/xo/transit/grammars/sqlserver` | `BlockComments`, `BeginEndBlocks`, `DashComments` |
+| `sqlserver` | `github.com/xo/transit/grammars/sqlserver` | `BlockComments`, `BeginEndBlocks`, `DashComments`, `Brackets` |
 | `oracle` | `github.com/xo/transit/grammars/oracle` | `BlockComments`, `BeginEndBlocks`, `AnonymousBlocks`, `DashComments` |
 | `cql` | `github.com/xo/transit/grammars/cql` | `DollarQuotes`, `BlockComments`, `SlashComments`, `Batches`, `DashComments` |
 | `generic` | `github.com/xo/transit/grammars/sql` | `BlockComments`, `DashComments` |

@@ -61,9 +61,15 @@ type Options struct {
 
 	// DashComments makes -- start a comment to the end of the line (D139).
 	// With it off, -- is the text of the statement, as the relationship
-	// (a)--(b) of Cypher is. It is the last field, so that its flag in
-	// src/scanner.c is the next free flag.
+	// (a)--(b) of Cypher is.
 	DashComments bool
+	// Brackets makes [...] a quoted identifier, as in SQL Server and SQLite
+	// (D140). ]] in the brackets is a ], and every other character is the
+	// text of the name: a quote, a ;, a comment, a backslash, a colon and a
+	// new line. With it off, [ is text, as in a[1] and ARRAY[1,2] of
+	// PostgreSQL. It is the last field, so that its flag in src/scanner.c is
+	// the next free flag.
+	Brackets bool
 }
 
 // defaultOptions are the options of Language, and of src/scanner.c when the

@@ -830,6 +830,7 @@ type Options struct {
 	Batches         bool // a batch of CQL, BEGIN BATCH ... APPLY BATCH, is one statement
 
 	DashComments bool // -- starts a comment
+	Brackets     bool // [...] is a quoted identifier
 }
 
 // LanguageFor returns the language with an external scanner that reads
@@ -879,8 +880,19 @@ BATCH` or `BEGIN COUNTER BATCH` runs to the first `;` after `APPLY BATCH`.
 `DashComments` is the option of D139, and `Language` has it. With it on,
 `--` starts a comment to the end of the line. With it off, `--` is the text
 of the statement, as in the relationship `(a)--(b)` of Cypher. Each SQL
-dialect turns it on, and the Neo4j dialect does not. It is the last field,
-so that its flag in `src/scanner.c` is the next free flag.
+dialect turns it on, and the Neo4j dialect does not.
+
+`Brackets` is the option of D140, and it is off by default. With it on, a
+`[` outside a string, a comment or another quoted name starts a
+`quoted_identifier`. The name ends at the next `]` that a second `]` does
+not follow, and `]]` is a `]`. Every other character in the brackets is the
+text of the name: a quote, a `;`, `--`, `/*`, `#`, a backslash, a colon and
+a new line. A backslash does not start a meta command or `\;`, and a colon
+does not start a variable. A `[` with no `]` runs to the end of the input,
+as a quote with no end does. With it off, `[` is text, as in `a[1]` and
+`ARRAY[1,2]` of PostgreSQL. The SQL Server and SQLite dialects turn it on.
+It is the last field, so that its flag in `src/scanner.c` is the next free
+flag.
 
 ## The module styles
 
