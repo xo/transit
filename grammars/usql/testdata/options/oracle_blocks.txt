@@ -207,3 +207,16 @@ select 1 from dual;
     (comment)
     (string))
   (statement))
+
+================================================================================
+Oracle blocks: a WITH FUNCTION whose inner ; is escaped as \;
+================================================================================
+
+WITH FUNCTION f RETURN NUMBER IS BEGIN RETURN 1\; END\; SELECT f FROM dual;
+SELECT 2 FROM dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement))

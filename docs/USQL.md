@@ -228,11 +228,11 @@ for the flag `-dialect`, with these options of `usql.Options`:
 
 | Dialect | Package | Options |
 | --- | --- | --- |
-| `postgres` | `github.com/xo/transit/grammars/postgres/postgres` | `DollarQuotes`, `BlockComments`, `DashComments` |
+| `postgres` | `github.com/xo/transit/grammars/postgres/postgres` | `DollarQuotes`, `BlockComments`, `BeginEndBlocks`, `DashComments` |
 | `mysql` | `github.com/xo/transit/grammars/mysql` | `BlockComments`, `HashComments`, `Backticks`, `BeginEndBlocks`, `DashComments` |
-| `sqlite3` | `github.com/xo/transit/grammars/sqlite3` | `BlockComments`, `Backticks`, `DashComments` |
+| `sqlite3` | `github.com/xo/transit/grammars/sqlite3` | `BlockComments`, `Backticks`, `BeginEndBlocks`, `DashComments` |
 | `duckdb` | `github.com/xo/transit/grammars/duckdb` | `DollarQuotes`, `BlockComments`, `DashComments` |
-| `clickhouse` | `github.com/xo/transit/grammars/clickhouse` | `BlockComments`, `SlashComments`, `HashComments`, `Backticks`, `DashComments` |
+| `clickhouse` | `github.com/xo/transit/grammars/clickhouse` | `DollarQuotes`, `BlockComments`, `SlashComments`, `HashComments`, `Backticks`, `DashComments` |
 | `trino` | `github.com/xo/transit/grammars/trino` | `BlockComments`, `BeginEndBlocks`, `DashComments` |
 | `presto` | `github.com/xo/transit/grammars/trino` | `BlockComments`, `DashComments` |
 | `athena` | `github.com/xo/transit/grammars/trino` | `BlockComments`, `DashComments` |
@@ -346,7 +346,10 @@ The option keeps only an anonymous block in one statement. The grammar
 does not read the other PL/SQL units, such as a function or a procedure
 with declarations before `BEGIN`, a trigger with `DECLARE`, a package spec
 or a package body. The person who writes the script escapes each `;` inside
-such a unit as `\;`, as in psql. The scanner keeps `\;` in the statement.
+such a unit as `\;`, as in psql. The scanner keeps `\;` in the statement. A
+query of Oracle that defines a function with `WITH FUNCTION` needs the
+escape too, because the `;` after the `END` of the function ends the
+statement.
 
 A batch of CQL holds semicolons too. usql collects a batch from
 `BEGIN BATCH` to `APPLY BATCH` today. With the option `Batches` on, the
