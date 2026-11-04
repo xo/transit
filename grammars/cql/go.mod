@@ -2,6 +2,6 @@ module github.com/xo/transit/grammars/cql
 
 go 1.27.1
 
-require github.com/xo/transit v0.7.2
+require github.com/xo/transit v0.7.3
 
 replace github.com/xo/transit => ../..
