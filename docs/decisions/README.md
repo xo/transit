@@ -126,7 +126,7 @@ An open question is not a decision. It goes at the end of
 | [D105](D105-ken-accepts-the-usql-grammar.md) | Ken accepts the usql grammar | Decided, amends D101 and D102, amended by D108 |
 | [D106](D106-the-grammars-of-phase-5.md) | The grammars of phase 5 | Decided, amends D42, amended by D107, D122, D124, D126 and D127 |
 | [D107](D107-a-grammar-module-takes-the-name-of-its-dialect.md) | A grammar module takes the name of its dialect | Decided, amends D26 and D106, amended by D108 and D110 |
-| [D108](D108-the-usql-grammar-is-one-language-that-takes-options.md) | The usql grammar is one language that takes options | Decided, amends D101, D105 and D107, amended by D112, D114 and D139 |
+| [D108](D108-the-usql-grammar-is-one-language-that-takes-options.md) | The usql grammar is one language that takes options | Decided, amends D101, D105 and D107, amended by D112, D114, D139 and D140 |
 | [D109](D109-the-grammar-modules-fit-a-runner-of-ci.md) | The grammar modules fit a runner of CI | Decided |
 | [D110](D110-no-grammar-for-bigquery-or-spanner.md) | No grammar for bigquery or spanner | Decided, amends D107 |
 | [D111](D111-inject-gives-the-replaced-text-of-a-layer.md) | inject gives the replaced text of a layer | Decided |
@@ -158,3 +158,4 @@ An open question is not a decision. It goes at the end of
 | [D137](D137-a-highlight-test-can-name-its-options.md) | A highlight test can name its options | Decided, amends D136, amended by D138 |
 | [D138](D138-a-slash-line-is-statement-text.md) | A line with only a slash is statement text | Decided, supersedes D135 and D136, amends D128 and D137 |
 | [D139](D139-dash-comments-are-an-option.md) | A dash comment is an option of the usql grammar | Decided, amends D108 |
+| [D140](D140-brackets-are-an-option.md) | A name in square brackets is an option of the usql grammar | Decided, amends D108 |
