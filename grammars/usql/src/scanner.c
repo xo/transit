@@ -672,15 +672,25 @@ static void close_block(Scanner *s) {
 }
 
 // resolve_pending gives the pending word its meaning when the character c,
-// which is not in a word, comes after it: BEGIN does not start a block, but
-// in an anonymous block it does unless c is a ;, END ends one, and AS,
-// EXECUTE, DO and WITH do not start a block or declarations.
+// which is not in a word, comes after it: BEGIN starts a block unless c is a
+// ;, END ends one, and AS, EXECUTE, DO and WITH do not start a block or
+// declarations. White space and comments do not resolve the pending word.
 static void resolve_pending(Scanner *s, int32_t c) {
   enum Pending pending = (enum Pending)s->pending;
   s->pending = PENDING_NONE;
   if (pending == PENDING_END) {
     close_block(s);
-  } else if (pending == PENDING_BEGIN && s->anonymous && c != ';') {
+  } else if (pending == PENDING_BEGIN && c != ';') {
+    open_block(s);
+  }
+}
+
+// resolve_begin opens a block for a BEGIN that is pending, when a string, a
+// quoted identifier or a dollar quote comes after it. It does not change
+// another pending word.
+static void resolve_begin(Scanner *s) {
+  if (s->pending == PENDING_BEGIN) {
+    s->pending = PENDING_NONE;
     open_block(s);
   }
 }
@@ -1101,6 +1111,9 @@ static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int
         if (lexer->lookahead != ';' && lexer->lookahead != ':') {
           break;
         }
+        if (blocks) {
+          resolve_pending(s, lexer->lookahead);
+        }
         prev = lexer->lookahead;
         advance(lexer);
         lexer->mark_end(lexer);
@@ -1118,6 +1131,9 @@ static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int
           }
           advance(lexer);
           return line ? scan_line_comment(lexer) : scan_block_comment(lexer);
+        }
+        if (blocks) {
+          resolve_pending(s, c);
         }
         lexer->mark_end(lexer);
         content = true;
@@ -1144,11 +1160,15 @@ static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int
             break;
           }
           advance(lexer);
+          resolve_begin(s);
           scan_string(s, options);
           return scan_dollar_rest(lexer, tag, n);
         }
         // not a dollar quote, so the characters are text, and the word
         // after the $ is not a keyword
+        if (blocks) {
+          resolve_pending(s, c);
+        }
         lexer->mark_end(lexer);
         content = true;
         prev = n > 0 ? tag[n - 1] : '$';
@@ -1162,6 +1182,9 @@ static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int
       advance(lexer);
       int32_t d = lexer->lookahead;
       if (d == ':') {
+        if (blocks) {
+          resolve_pending(s, c);
+        }
         advance(lexer);
         lexer->mark_end(lexer);
         prev = ':';
@@ -1169,6 +1192,9 @@ static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int
       }
       if (is_variable_char(d) || d == '\'' || d == '"' || d == '{') {
         break;
+      }
+      if (blocks) {
+        resolve_pending(s, c);
       }
       lexer->mark_end(lexer);
       prev = ':';
@@ -1364,6 +1390,7 @@ static bool scan_sql(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int 
     if (lexer->lookahead == ';' || lexer->lookahead == ':') {
       // \; and \: put the character in the statement, as psql does
       int32_t d = lexer->lookahead;
+      resolve_pending(s, d);
       advance(lexer);
       lexer->mark_end(lexer);
       return scan_text(s, lexer, valid_symbols, options, CONTEXT_SQL, true, d);
@@ -1378,10 +1405,12 @@ static bool scan_sql(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int 
     return true;
   }
   if (c == '\'') {
+    resolve_begin(s);
     scan_string(s, options);
     return scan_quoted(lexer, STRING, false);
   }
   if (c == '"' || (c == '`' && (options & USQL_BACKTICKS))) {
+    resolve_begin(s);
     return scan_quoted(lexer, QUOTED_IDENTIFIER, false);
   }
   return scan_text(s, lexer, valid_symbols, options, CONTEXT_SQL, false, 0);

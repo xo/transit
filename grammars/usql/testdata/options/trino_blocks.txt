@@ -108,3 +108,20 @@ select 2;
     (variable
       (variable_name)))
   (statement))
+
+================================================================================
+Trino blocks: a character that is not in a word right after BEGIN
+================================================================================
+
+create function f() returns int begin (select 1); return 1; end;
+with function g() returns int begin "x" = 1; begin 'y'; end; end select g();
+select 2;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement
+    (quoted_identifier)
+    (string))
+  (statement))

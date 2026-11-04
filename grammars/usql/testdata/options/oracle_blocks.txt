@@ -165,3 +165,45 @@ SELECT 1 FROM dual;
     (variable
       (variable_name)))
   (statement))
+
+================================================================================
+Oracle blocks: a label or a parenthesis right after BEGIN
+================================================================================
+
+create trigger t before update on d for each row begin <<l>> null; end;
+create procedure p is begin (select 1 from dual); end;
+create procedure q is begin <<outer>> begin <<inner>> null; end; end;
+select 1 from dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement)
+  (statement)
+  (statement))
+
+================================================================================
+Oracle blocks: a string, a quoted identifier or a sign right after BEGIN
+================================================================================
+
+create procedure p is begin 'x'; end;
+create procedure q is begin "x" := 1; end;
+create procedure r is begin -1; end;
+create procedure s is begin /* a */ -- b
+  <<l>> begin 'y'; end; end;
+select 1 from dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (string))
+  (statement
+    (quoted_identifier))
+  (statement)
+  (statement
+    (comment)
+    (comment)
+    (string))
+  (statement))

@@ -475,3 +475,50 @@ select 1 from dual;
     (variable
       (variable_name)))
   (statement))
+
+================================================================================
+Oracle anonymous blocks: a label or a parenthesis right after BEGIN
+================================================================================
+
+create trigger t before update on d for each row begin <<l>> null; end;
+create procedure p() begin (select 1 from dual); end;
+begin <<outer>> begin <<inner>> null; end; end;
+begin (select 1 from dual); end;
+select 1 from dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement)
+  (statement)
+  (statement)
+  (statement))
+
+================================================================================
+Oracle anonymous blocks: a string, a quoted identifier or a sign right after BEGIN
+================================================================================
+
+begin 'x'; end;
+begin "x" := 1; end;
+begin -1; end;
+begin /* a */ -- b
+  <<l>> begin 'y'; end; end;
+create procedure p is begin "y" := 2; end;
+select 1 from dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (string))
+  (statement
+    (quoted_identifier))
+  (statement)
+  (statement
+    (comment)
+    (comment)
+    (string))
+  (statement
+    (quoted_identifier))
+  (statement))

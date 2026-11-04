@@ -145,3 +145,22 @@ select 1 from rdb$database;
     (variable
       (variable_name)))
   (statement))
+
+================================================================================
+Firebird blocks: a character that is not in a word right after BEGIN
+================================================================================
+
+execute block as begin (select 1 from rdb$database); end;
+create procedure p as begin 'x'; begin "y" = 1; end end;
+create procedure q as begin -1; end;
+select 1 from rdb$database;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement
+    (string)
+    (quoted_identifier))
+  (statement)
+  (statement))

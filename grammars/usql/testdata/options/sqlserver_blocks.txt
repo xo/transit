@@ -108,3 +108,28 @@ EXEC dbo.p;
     (variable
       (variable_name)))
   (statement))
+
+================================================================================
+SQL Server blocks: a character that is not in a word right after BEGIN
+================================================================================
+
+CREATE PROCEDURE dbo.p AS BEGIN (SELECT 1); END;
+CREATE PROCEDURE dbo.q AS BEGIN [t].a = 1; END;
+CREATE PROCEDURE dbo.r AS BEGIN #t.a = 1; END;
+CREATE PROCEDURE dbo.s AS BEGIN @a = 1; END;
+CREATE PROCEDURE dbo.u AS BEGIN 'x'; BEGIN (SELECT 2); END; END;
+CREATE PROCEDURE dbo.v AS BEGIN TRAN; COMMIT;
+EXEC dbo.p;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement)
+  (statement)
+  (statement)
+  (statement
+    (string))
+  (statement)
+  (statement)
+  (statement))

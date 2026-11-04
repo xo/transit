@@ -171,3 +171,54 @@ SELECT 2;
     (variable
       (variable_name)))
   (statement))
+
+================================================================================
+MySQL blocks: a character that is not in a word right after BEGIN
+================================================================================
+
+create procedure p() begin (select 1); end;
+create procedure q() begin 'x'; end;
+create procedure r() begin `t`.a = 1; end;
+create procedure s() begin @a := 1; end;
+create procedure u() begin # a comment
+  -1; end;
+create procedure v() begin (select 1); begin (select 2); end; end;
+create procedure w() begin 1; end;
+create procedure x() begin
+  -- a comment
+  ;
+select 1;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement
+    (string))
+  (statement
+    (quoted_identifier))
+  (statement)
+  (statement
+    (comment))
+  (statement)
+  (statement)
+  (statement
+    (comment))
+  (statement))
+
+================================================================================
+MySQL blocks: BEGIN before a ; or WORK is a transaction
+================================================================================
+
+begin;
+begin work;
+create procedure p() select 1;
+select 2;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement)
+  (statement)
+  (statement))

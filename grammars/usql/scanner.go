@@ -689,17 +689,27 @@ func (s *scanner) closeBlock() {
 }
 
 // resolvePending is resolve_pending. It gives the pending word its meaning
-// when the character c, which is not in a word, comes after it: BEGIN does
-// not start a block, but in an anonymous block it does unless c is a ;, END
-// ends one, and AS, EXECUTE, DO and WITH do not start a block or
-// declarations.
+// when the character c, which is not in a word, comes after it: BEGIN
+// starts a block unless c is a ;, END ends one, and AS, EXECUTE, DO and
+// WITH do not start a block or declarations. White space and comments do
+// not resolve the pending word.
 func (s *scanner) resolvePending(c int32) {
 	p := s.pending
 	s.pending = pendingNone
 	switch {
 	case p == pendingEnd:
 		s.closeBlock()
-	case p == pendingBegin && s.anonymous != 0 && c != ';':
+	case p == pendingBegin && c != ';':
+		s.openBlock()
+	}
+}
+
+// resolveBegin is resolve_begin. It opens a block for a BEGIN that is
+// pending, when a string, a quoted identifier or a dollar quote comes after
+// it. It does not change another pending word.
+func (s *scanner) resolveBegin() {
+	if s.pending == pendingBegin {
+		s.pending = pendingNone
 		s.openBlock()
 	}
 }
@@ -1081,6 +1091,9 @@ func (s *scanner) scanText(lexer *abi.Lexer, validSymbols []bool, opts Options, 
 				if lexer.Lookahead != ';' && lexer.Lookahead != ':' {
 					break
 				}
+				if blocks {
+					s.resolvePending(lexer.Lookahead)
+				}
 				prev = lexer.Lookahead
 				advance(lexer)
 				lexer.MarkEnd()
@@ -1101,6 +1114,9 @@ func (s *scanner) scanText(lexer *abi.Lexer, validSymbols []bool, opts Options, 
 						return scanLineComment(lexer)
 					}
 					return scanBlockComment(lexer)
+				}
+				if blocks {
+					s.resolvePending(c)
 				}
 				lexer.MarkEnd()
 				content = true
@@ -1130,11 +1146,15 @@ func (s *scanner) scanText(lexer *abi.Lexer, validSymbols []bool, opts Options, 
 						break
 					}
 					advance(lexer)
+					s.resolveBegin()
 					s.scanString(opts)
 					return scanDollarRest(lexer, tag[:n])
 				}
 				// not a dollar quote, so the characters are text, and the
 				// word after the $ is not a keyword
+				if blocks {
+					s.resolvePending(c)
+				}
 				lexer.MarkEnd()
 				content = true
 				prev = last
@@ -1148,6 +1168,9 @@ func (s *scanner) scanText(lexer *abi.Lexer, validSymbols []bool, opts Options, 
 			advance(lexer)
 			d := lexer.Lookahead
 			if d == ':' {
+				if blocks {
+					s.resolvePending(c)
+				}
 				advance(lexer)
 				lexer.MarkEnd()
 				prev = ':'
@@ -1155,6 +1178,9 @@ func (s *scanner) scanText(lexer *abi.Lexer, validSymbols []bool, opts Options, 
 			}
 			if isVariableChar(d) || d == '\'' || d == '"' || d == '{' {
 				break
+			}
+			if blocks {
+				s.resolvePending(c)
 			}
 			lexer.MarkEnd()
 			prev = ':'
@@ -1359,6 +1385,7 @@ func (s *scanner) scanSQL(lexer *abi.Lexer, validSymbols []bool, opts Options) b
 		if lexer.Lookahead == ';' || lexer.Lookahead == ':' {
 			// \; and \: put the character in the statement, as psql does
 			d := lexer.Lookahead
+			s.resolvePending(d)
 			advance(lexer)
 			lexer.MarkEnd()
 			return s.scanText(lexer, validSymbols, opts, contextSQL, true, d)
@@ -1373,10 +1400,12 @@ func (s *scanner) scanSQL(lexer *abi.Lexer, validSymbols []bool, opts Options) b
 		return true
 	}
 	if c == '\'' {
+		s.resolveBegin()
 		s.scanString(opts)
 		return scanQuoted(lexer, stringToken, false)
 	}
 	if c == '"' || (c == '`' && opts.Backticks) {
+		s.resolveBegin()
 		return scanQuoted(lexer, quotedIdentifier, false)
 	}
 	return s.scanText(lexer, validSymbols, opts, contextSQL, false, 0)

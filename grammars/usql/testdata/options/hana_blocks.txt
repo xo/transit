@@ -127,3 +127,22 @@ select 1 from dummy;
     (variable
       (variable_name)))
   (statement))
+
+================================================================================
+SAP HANA blocks: a character that is not in a word right after BEGIN
+================================================================================
+
+do begin (select 1 from dummy); end;
+create procedure p as begin "x" = 1; begin 'y'; end; end;
+create procedure q as begin -1; end;
+select 1 from dummy;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement
+    (quoted_identifier)
+    (string))
+  (statement)
+  (statement))
