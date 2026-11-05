@@ -3,39 +3,39 @@ module github.com/xo/transit/test
 go 1.27.1
 
 require (
-	github.com/xo/transit v0.7.3
-	github.com/xo/transit/grammars/bash v0.7.3
-	github.com/xo/transit/grammars/c v0.7.3
-	github.com/xo/transit/grammars/clickhouse v0.7.3
-	github.com/xo/transit/grammars/cpp v0.7.3
-	github.com/xo/transit/grammars/cql v0.7.3
-	github.com/xo/transit/grammars/duckdb v0.7.3
-	github.com/xo/transit/grammars/embeddedtemplate v0.7.3
-	github.com/xo/transit/grammars/go v0.7.3
-	github.com/xo/transit/grammars/graphql v0.7.3
-	github.com/xo/transit/grammars/html v0.7.3
-	github.com/xo/transit/grammars/java v0.7.3
-	github.com/xo/transit/grammars/javascript v0.7.3
-	github.com/xo/transit/grammars/jsdoc v0.7.3
-	github.com/xo/transit/grammars/json v0.7.3
-	github.com/xo/transit/grammars/mysql v0.7.3
-	github.com/xo/transit/grammars/neo4j v0.7.3
-	github.com/xo/transit/grammars/oracle v0.7.3
-	github.com/xo/transit/grammars/php v0.7.3
-	github.com/xo/transit/grammars/postgres v0.7.3
-	github.com/xo/transit/grammars/python v0.7.3
-	github.com/xo/transit/grammars/ruby v0.7.3
-	github.com/xo/transit/grammars/rust v0.7.3
-	github.com/xo/transit/grammars/sparql v0.7.3
-	github.com/xo/transit/grammars/sql v0.7.3
-	github.com/xo/transit/grammars/sqlite3 v0.7.3
-	github.com/xo/transit/grammars/sqlserver v0.7.3
-	github.com/xo/transit/grammars/surrealdb v0.7.3
-	github.com/xo/transit/grammars/trino v0.7.3
-	github.com/xo/transit/grammars/typescript v0.7.3
-	github.com/xo/transit/grammars/usql v0.7.3
-	github.com/xo/transit/grammars/ydb v0.7.3
-	github.com/xo/transit/styles v0.7.3
+	github.com/xo/transit v0.7.4
+	github.com/xo/transit/grammars/bash v0.7.4
+	github.com/xo/transit/grammars/c v0.7.4
+	github.com/xo/transit/grammars/clickhouse v0.7.4
+	github.com/xo/transit/grammars/cpp v0.7.4
+	github.com/xo/transit/grammars/cql v0.7.4
+	github.com/xo/transit/grammars/duckdb v0.7.4
+	github.com/xo/transit/grammars/embeddedtemplate v0.7.4
+	github.com/xo/transit/grammars/go v0.7.4
+	github.com/xo/transit/grammars/graphql v0.7.4
+	github.com/xo/transit/grammars/html v0.7.4
+	github.com/xo/transit/grammars/java v0.7.4
+	github.com/xo/transit/grammars/javascript v0.7.4
+	github.com/xo/transit/grammars/jsdoc v0.7.4
+	github.com/xo/transit/grammars/json v0.7.4
+	github.com/xo/transit/grammars/mysql v0.7.4
+	github.com/xo/transit/grammars/neo4j v0.7.4
+	github.com/xo/transit/grammars/oracle v0.7.4
+	github.com/xo/transit/grammars/php v0.7.4
+	github.com/xo/transit/grammars/postgres v0.7.4
+	github.com/xo/transit/grammars/python v0.7.4
+	github.com/xo/transit/grammars/ruby v0.7.4
+	github.com/xo/transit/grammars/rust v0.7.4
+	github.com/xo/transit/grammars/sparql v0.7.4
+	github.com/xo/transit/grammars/sql v0.7.4
+	github.com/xo/transit/grammars/sqlite3 v0.7.4
+	github.com/xo/transit/grammars/sqlserver v0.7.4
+	github.com/xo/transit/grammars/surrealdb v0.7.4
+	github.com/xo/transit/grammars/trino v0.7.4
+	github.com/xo/transit/grammars/typescript v0.7.4
+	github.com/xo/transit/grammars/usql v0.7.4
+	github.com/xo/transit/grammars/ydb v0.7.4
+	github.com/xo/transit/styles v0.7.4
 )
 
 replace github.com/xo/transit => ..
