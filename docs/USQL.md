@@ -49,7 +49,8 @@ change transit from usql.
    the syntax of the dialect with `usql.LanguageFor`. The fields of
    `usql.Options` are the flags of the type `Syntax` of dbmeta, with the same
    names: `DollarQuotes`, `BlockComments`, `SlashComments`, `HashComments`,
-   `Backticks`, `DashComments` and `Brackets`. `usql.Language` has dollar
+   `Backticks`, `DashComments`, `Brackets` and `BackslashEscapes`. dbmeta
+   holds the value of each flag for each dialect. `usql.Language` has dollar
    quotes, block comments, dash comments and backslash escapes. With
    `DashComments`, `--` starts a comment to the end of the line.
    Without it, `--` is the text of the statement (D139). Each SQL dialect
@@ -58,14 +59,15 @@ change transit from usql.
    brackets, such as `[l'état]`, is a `quoted_identifier`, and each
    character in it is the text of the name (D140). SQL Server and SQLite
    turn it on. Without it, `[` is text, as in `a[1]` and `ARRAY[1,2]` of
-   PostgreSQL. `usql.Options` also has `BackslashEscapes` (D142). With it,
-   a backslash escapes the next character in a string in single quotes, as
-   `\'` and `\\`. The MySQL dialects turn it on. Without it, a backslash in
-   such a string is text, as in `'C:\data\'`, and only `''` escapes a
-   quote. A string of the form `E'...'` of PostgreSQL keeps the backslash
-   escapes. The `E` must start a word, so `name'x'` is not such a string. A
-   backslash in a string in an argument of a meta command escapes with it
-   on or off, as in psql.
+   PostgreSQL. With `BackslashEscapes`, a backslash escapes the next
+   character in a string in single quotes, as `\'` and `\\`, and in a name
+   in double quotes, as in `"a\"b"` (D142). Without it, a backslash in such
+   a string or name is text, as in `'C:\data\'`, and only a doubled quote
+   escapes a quote. A string of the form `E'...'` of PostgreSQL keeps the
+   backslash escapes. The `E` must start a word, so `name'x'` is not such a
+   string. A backslash in backticks or in brackets is text. In an argument
+   of a meta command, a backslash escapes in a string and it is text in a
+   name in double quotes, with it on or off, as in psql.
 10. `usql.Options` has three more options. `BeginEndBlocks` keeps the
     `BEGIN ... END` body of a stored program, of `EXECUTE BLOCK`, of
     `DO BEGIN` and of `WITH FUNCTION` in one statement (D112, D130, D134).
@@ -243,7 +245,7 @@ for the flag `-dialect`, with these options of `usql.Options`:
 | `mysql` | `github.com/xo/transit/grammars/mysql` | `BlockComments`, `HashComments`, `Backticks`, `BeginEndBlocks`, `DashComments`, `BackslashEscapes` |
 | `sqlite3` | `github.com/xo/transit/grammars/sqlite3` | `BlockComments`, `Backticks`, `BeginEndBlocks`, `DashComments`, `Brackets` |
 | `duckdb` | `github.com/xo/transit/grammars/duckdb` | `DollarQuotes`, `BlockComments`, `DashComments` |
-| `clickhouse` | `github.com/xo/transit/grammars/clickhouse` | `DollarQuotes`, `BlockComments`, `SlashComments`, `HashComments`, `Backticks`, `DashComments` |
+| `clickhouse` | `github.com/xo/transit/grammars/clickhouse` | `DollarQuotes`, `BlockComments`, `SlashComments`, `HashComments`, `Backticks`, `DashComments`, `BackslashEscapes` |
 | `trino` | `github.com/xo/transit/grammars/trino` | `BlockComments`, `BeginEndBlocks`, `DashComments` |
 | `presto` | `github.com/xo/transit/grammars/trino` | `BlockComments`, `DashComments` |
 | `athena` | `github.com/xo/transit/grammars/trino` | `BlockComments`, `DashComments` |

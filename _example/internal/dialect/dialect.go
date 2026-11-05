@@ -49,11 +49,11 @@ type Dialect struct {
 // anonymous block is one statement (D128). CQL also turns on Batches, so
 // that a batch is one statement. Each dialect is SQL, so each turns on
 // DashComments (D139). SQL Server and SQLite quote a name in square
-// brackets, so they turn on Brackets (D140). A backslash escapes in a
-// string of MySQL, so MySQL turns on BackslashEscapes (D142).
+// brackets, so they turn on Brackets (D140). MySQL and ClickHouse turn on
+// BackslashEscapes, as dbmeta does (D142).
 var dialects = []Dialect{
 	{"athena", usql.Options{BlockComments: true, DashComments: true}, trino.Language, trino.Queries, trino.Keywords},
-	{"clickhouse", usql.Options{DollarQuotes: true, BlockComments: true, SlashComments: true, HashComments: true, Backticks: true, DashComments: true}, clickhouse.Language, clickhouse.Queries, clickhouse.Keywords},
+	{"clickhouse", usql.Options{DollarQuotes: true, BlockComments: true, SlashComments: true, HashComments: true, Backticks: true, DashComments: true, BackslashEscapes: true}, clickhouse.Language, clickhouse.Queries, clickhouse.Keywords},
 	{"cql", usql.Options{DollarQuotes: true, BlockComments: true, SlashComments: true, Batches: true, DashComments: true}, cql.Language, cql.Queries, cql.Keywords},
 	{"duckdb", usql.Options{DollarQuotes: true, BlockComments: true, DashComments: true}, duckdb.Language, duckdb.Queries, duckdb.Keywords},
 	{"generic", usql.Options{BlockComments: true, DashComments: true}, sql.Language, sql.Queries, sql.Keywords},

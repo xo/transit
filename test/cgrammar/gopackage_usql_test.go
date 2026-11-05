@@ -31,8 +31,8 @@ func init() {
 // that [ starts a quoted identifier in a statement, in a block and in a
 // batch, and the other sets do not (D140). default holds the default
 // options. It and the sets of MySQL have BackslashEscapes, so that a
-// backslash escapes in a string in a statement, in a block and in a batch,
-// and the other sets do not (D142). The first set must be default, because
+// backslash escapes in a string and in a name in double quotes in a
+// statement, in a block and in a batch, and the other sets do not (D142). The first set must be default, because
 // TestUsqlScannerOptionsDiffer compares the other sets with it.
 var usqlOptionSets = []struct {
 	name string
@@ -135,6 +135,17 @@ var usqlScannerInputs = []string{
 	"\\echo 'a\\'b' 'C:\\' E'x\\'\nselect 2;",
 	"\\g (format='a\\'b' x=:'c\\'d')\nselect 2;",
 	"select \"a\\\", `b\\`, [c\\]; select 2;",
+	// backslashes in names in double quotes, which escape only with
+	// BackslashEscapes (D142)
+	"select \"a\\\"b\"; select 2;",
+	"select \"a\\\\\"; select 2;",
+	"select \"a\\\"\"b\", \"c\"\"\\\"; select 2;",
+	"select \"a\\",
+	"create procedure p() begin select \"a\\\";b\"; end; select 2;",
+	"create procedure p() begin\"a\\\";b\"; end; select 2;",
+	"begin batch insert into t (\"a\\\";b\") values (1); apply batch; select 2;",
+	"\\echo \"a\\\" 'b'\nselect 2;",
+	"\\g (format=\"a\\\" x=:\"c\\\")\nselect 2;",
 	"select \"a\"\"b\", \"c",
 	"select `a``b`, `c",
 	"select $$a$$, $t$b$t$, $t$c$u$d$t$, $1, a$b$, $$e",

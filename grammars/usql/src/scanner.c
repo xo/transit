@@ -24,10 +24,11 @@
 // USQL_BRACKETS, a name in square brackets, as [a b] of SQL Server and
 // SQLite, is a quoted identifier (D140). Without it, [ is text, as in
 // a[1] of PostgreSQL. With USQL_BACKSLASH_ESCAPES, a backslash escapes the
-// next character in a string in single quotes, as in MySQL (D142). Without
-// it, a backslash in such a string is text, and only '' escapes a quote.
-// A string of the form E'...' of PostgreSQL keeps the backslash escapes
-// without it. The E must start a word, as xestart of psqlscan.l.
+// next character in a string in single quotes and in a name in double
+// quotes, as in MySQL (D142). Without it, a backslash in such a string or
+// name is text, and only a doubled quote escapes a quote. A string of the
+// form E'...' of PostgreSQL keeps the backslash escapes without it. The E
+// must start a word, as xestart of psqlscan.l.
 //
 // With USQL_BEGIN_END_BLOCKS, the scanner keeps a stored program in one
 // statement (D112). It reads the words of the SQL text, outside strings,
@@ -76,7 +77,7 @@
 #define USQL_BATCHES 128         // BEGIN BATCH ... APPLY BATCH of CQL is in one statement
 #define USQL_DASH_COMMENTS 256   // -- starts a comment
 #define USQL_BRACKETS 512        // [...] is a quoted identifier
-#define USQL_BACKSLASH_ESCAPES 1024 // a backslash escapes in '...'
+#define USQL_BACKSLASH_ESCAPES 1024 // a backslash escapes in '...' and "..."
 
 // The options of the scanner. The default is dollar quotes, block
 // comments, dash comments and backslash escapes. The upstream tool and the
@@ -599,17 +600,17 @@ static bool scan_block_comment(TSLexer *lexer) {
 }
 
 // scan_quoted_rest scans the rest of a quoted text after its opening quote
-// q, up to the closing quote. A doubled quote is a quote. In a string in
-// single quotes, a backslash escapes the next character when escapes is
-// true, and else it is text. With no closing quote, the text runs to the
-// end of the line when line is true, and else to the end of the input.
+// q, up to the closing quote. A doubled quote is a quote. A backslash
+// escapes the next character when escapes is true, and else it is text.
+// With no closing quote, the text runs to the end of the line when line is
+// true, and else to the end of the input.
 static void scan_quoted_rest(TSLexer *lexer, int32_t q, bool line, bool escapes) {
   for (;;) {
     if (lexer->eof(lexer) || (line && is_newline(lexer->lookahead))) {
       break;
     }
     int32_t c = lexer->lookahead;
-    if (c == '\\' && q == '\'' && escapes) {
+    if (c == '\\' && escapes) {
       advance(lexer);
       if (!lexer->eof(lexer) && !(line && is_newline(lexer->lookahead))) {
         advance(lexer);
@@ -1077,9 +1078,9 @@ static bool scan_variable_start(Scanner *s, TSLexer *lexer, const bool *valid_sy
     lexer->mark_end(lexer);
     if (ctx == CONTEXT_OPTION) {
       // in a list of options, the colon and the quoted text are one word,
-      // and a backslash escapes in it as in psql
+      // and a backslash escapes in single quotes as in psql
       advance(lexer);
-      scan_quoted_rest(lexer, c, true, true);
+      scan_quoted_rest(lexer, c, true, c == '\'');
       lexer->result_symbol = OPTION_WORD;
       return true;
     }
@@ -1473,8 +1474,11 @@ static bool scan_sql(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int 
     return scan_quoted(lexer, STRING, false, escapes);
   }
   if (c == '"' || (c == '`' && (options & USQL_BACKTICKS))) {
+    // with USQL_BACKSLASH_ESCAPES, a backslash escapes in "...", but not
+    // in backticks
+    bool escapes = c == '"' && (options & USQL_BACKSLASH_ESCAPES);
     resolve_begin(s);
-    return scan_quoted(lexer, QUOTED_IDENTIFIER, false, false);
+    return scan_quoted(lexer, QUOTED_IDENTIFIER, false, escapes);
   }
   if (c == '[' && (options & USQL_BRACKETS)) {
     resolve_begin(s);

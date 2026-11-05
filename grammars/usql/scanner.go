@@ -27,10 +27,11 @@ package usql
 // in square brackets, as [a b] of SQL Server and SQLite, is a quoted
 // identifier (D140). Without it, [ is text, as in a[1] of PostgreSQL.
 // With the option BackslashEscapes, a backslash escapes the next character
-// in a string in single quotes, as in MySQL (D142). Without it, a backslash
-// in such a string is text, and only '' escapes a quote. A string of the
-// form E'...' of PostgreSQL keeps the backslash escapes without it. The E
-// must start a word, as xestart of psqlscan.l.
+// in a string in single quotes and in a name in double quotes, as in MySQL
+// (D142). Without it, a backslash in such a string or name is text, and
+// only a doubled quote escapes a quote. A string of the form E'...' of
+// PostgreSQL keeps the backslash escapes without it. The E must start a
+// word, as xestart of psqlscan.l.
 //
 // With the option BeginEndBlocks, the scanner keeps a stored program in one
 // statement (D112). It reads the words of the SQL text, outside strings,
@@ -615,14 +616,13 @@ func scanBlockComment(lexer *abi.Lexer) bool {
 
 // scanQuotedRest is scan_quoted_rest. It scans the rest of a quoted text
 // after its opening quote q, up to the closing quote. A doubled quote is a
-// quote. In a string in single quotes, a backslash escapes the next
-// character when escapes is true, and else it is text. With no closing
-// quote, the text runs to the end of the line when line is true, and else
-// to the end of the input.
+// quote. A backslash escapes the next character when escapes is true, and
+// else it is text. With no closing quote, the text runs to the end of the
+// line when line is true, and else to the end of the input.
 func scanQuotedRest(lexer *abi.Lexer, q int32, line, escapes bool) {
 	for !lexer.EOF() && (!line || !isNewline(lexer.Lookahead)) {
 		c := lexer.Lookahead
-		if c == '\\' && q == '\'' && escapes {
+		if c == '\\' && escapes {
 			advance(lexer)
 			if !lexer.EOF() && !(line && isNewline(lexer.Lookahead)) {
 				advance(lexer)
@@ -1063,9 +1063,9 @@ func (s *scanner) scanVariableStart(lexer *abi.Lexer, validSymbols []bool, opts 
 		lexer.MarkEnd()
 		if ctx == contextOption {
 			// in a list of options, the colon and the quoted text are one word,
-			// and a backslash escapes in it as in psql
+			// and a backslash escapes in single quotes as in psql
 			advance(lexer)
-			scanQuotedRest(lexer, c, true, true)
+			scanQuotedRest(lexer, c, true, c == '\'')
 			lexer.ResultSymbol = optionWord
 			return true
 		}
@@ -1469,8 +1469,11 @@ func (s *scanner) scanSQL(lexer *abi.Lexer, validSymbols []bool, opts Options) b
 		return scanQuoted(lexer, stringToken, false, escapes)
 	}
 	if c == '"' || (c == '`' && opts.Backticks) {
+		// with the option BackslashEscapes, a backslash escapes in "...", but
+		// not in backticks
+		escapes := c == '"' && opts.BackslashEscapes
 		s.resolveBegin()
-		return scanQuoted(lexer, quotedIdentifier, false, false)
+		return scanQuoted(lexer, quotedIdentifier, false, escapes)
 	}
 	if c == '[' && opts.Brackets {
 		s.resolveBegin()

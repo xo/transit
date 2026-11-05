@@ -9,10 +9,12 @@ import (
 
 // Options are the options of the syntax of a SQL dialect that the external
 // scanner reads (D108). DollarQuotes, BlockComments, SlashComments,
-// HashComments, Backticks, DashComments and Brackets are flags of the type
-// Syntax of dbmeta, with the same names. With the zero value, none of these
-// texts is a string or a comment, a backslash in a string is text, and a ;
-// outside parentheses always ends a statement.
+// HashComments, Backticks, DashComments, Brackets and BackslashEscapes are
+// flags of the type Syntax of dbmeta, with the same names. dbmeta holds the
+// value of each flag for each dialect. With the zero value, none of these
+// texts is a string or a comment, a backslash in a string or in a name in
+// double quotes is text, and a ; outside parentheses always ends a
+// statement.
 //
 // Each field is the flag of the same name in src/scanner.c, such as
 // USQL_DOLLAR_QUOTES for DollarQuotes, and field i is the flag 1<<i.
@@ -71,14 +73,17 @@ type Options struct {
 	// PostgreSQL.
 	Brackets bool
 	// BackslashEscapes makes a backslash escape the next character in a
-	// string in single quotes, as in MySQL (D142). \' is a quote and \\ is
-	// a backslash. With it off, a backslash in such a string is text, as
-	// in 'C:\data\', and only '' escapes a quote. A string of the form
-	// E'...' of PostgreSQL keeps the backslash escapes with it off. The E
-	// must start a word, so name'x' is not such a string. A backslash in a
-	// string in an argument of a meta command escapes, with it on or off,
-	// as in psql. It is the last field, so that its flag in src/scanner.c
-	// is the next free flag.
+	// string in single quotes and in a name in double quotes, as in MySQL
+	// (D142). \' is a quote, \" is a double quote and \\ is a backslash.
+	// With it off, a backslash in such a string or name is text, as in
+	// 'C:\data\', and only a doubled quote escapes a quote. A string of the
+	// form E'...' of PostgreSQL keeps the backslash escapes with it off. The
+	// E must start a word, so name'x' is not such a string. A backslash in
+	// backticks or in brackets is text, with it on or off. In an argument
+	// of a meta command, a backslash escapes in a string and it is text in a
+	// name in double quotes, with it on or off, as in psql. It is the flag
+	// Syntax.BackslashEscapes of dbmeta (dbmeta D266). It is the last field,
+	// so that its flag in src/scanner.c is the next free flag.
 	BackslashEscapes bool
 }
 

@@ -251,3 +251,20 @@ select 2;
   (statement
     (string))
   (statement))
+
+================================================================================
+MySQL blocks: a backslash escapes in a name in double quotes in a body
+================================================================================
+
+create procedure p() begin select "a\";b"; end;
+create procedure q() begin"a\";b"; end;
+select 2;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (quoted_identifier))
+  (statement
+    (quoted_identifier))
+  (statement))

@@ -817,8 +817,9 @@ package usql
 
 // Options are the options of the syntax of a SQL dialect that the external
 // scanner reads. DollarQuotes, BlockComments, SlashComments, HashComments,
-// Backticks, DashComments and Brackets are flags of the type Syntax of
-// dbmeta, with the same names.
+// Backticks, DashComments, Brackets and BackslashEscapes are flags of the
+// type Syntax of dbmeta, with the same names. dbmeta holds the value of
+// each flag for each dialect.
 type Options struct {
 	DollarQuotes  bool // $tag$ ... $tag$ and $$ ... $$ are a string
 	BlockComments bool // /* ... */ is a comment
@@ -833,7 +834,7 @@ type Options struct {
 	DashComments bool // -- starts a comment
 	Brackets     bool // [...] is a quoted identifier
 
-	BackslashEscapes bool // a backslash escapes the next character in '...'
+	BackslashEscapes bool // a backslash escapes the next character in '...' and "..."
 }
 
 // LanguageFor returns the language with an external scanner that reads
@@ -898,15 +899,19 @@ as a quote with no end does. With it off, `[` is text, as in `a[1]` and
 
 `BackslashEscapes` is the option of D142, and `Language` has it. With it
 on, a backslash escapes the next character in a string in single quotes,
-so `\'` is a quote and `\\` is a backslash. With it off, a backslash in
-such a string is text, as in `'C:\data\'`, and only `''` escapes a quote.
-A string of the form `E'...'` or `e'...'` of PostgreSQL keeps the
-backslash escapes with it off. The `E` must start a word, as in the
-client lexer of PostgreSQL, so `name'x'` is not such a string. A
-backslash in a string in an argument of a meta command escapes with it on
-or off, as in psql. A string in double quotes and a quoted identifier do
-not read a backslash. The MySQL dialects turn it on. It is the last field,
-so that its flag in `src/scanner.c` is the next free flag.
+so `\'` is a quote and `\\` is a backslash. A backslash also escapes the
+next character in a name in double quotes, so `"a\"b"` is one
+`quoted_identifier`. With it off, a backslash in such a string or name is
+text, as in `'C:\data\'` and `"C:\"`, and only a doubled quote escapes a
+quote. A doubled quote escapes a quote with it on too. A string of the
+form `E'...'` or `e'...'` of PostgreSQL keeps the backslash escapes with
+it off. The `E` must start a word, as in the client lexer of PostgreSQL,
+so `name'x'` is not such a string. A backslash in backticks or in
+brackets is text, with it on or off. In an argument of a meta command, a
+backslash escapes in a string and it is text in a name in double quotes,
+with it on or off, as in psql. dbmeta says which dialects turn it on, in
+the flag `Syntax.BackslashEscapes` of the same name (dbmeta D266). It is
+the last field, so that its flag in `src/scanner.c` is the next free flag.
 
 ## The module styles
 

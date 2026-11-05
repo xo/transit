@@ -140,3 +140,21 @@ select 2;
 (source_file
   (statement
     (string)))
+
+================================================================================
+PostgreSQL: a backslash is text in a name in double quotes
+================================================================================
+
+select "a\";
+select "C:\", "b""c";
+select 2;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (quoted_identifier))
+  (statement
+    (quoted_identifier)
+    (quoted_identifier))
+  (statement))
