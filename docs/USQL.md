@@ -50,15 +50,22 @@ change transit from usql.
    `usql.Options` are the flags of the type `Syntax` of dbmeta, with the same
    names: `DollarQuotes`, `BlockComments`, `SlashComments`, `HashComments`,
    `Backticks`, `DashComments` and `Brackets`. `usql.Language` has dollar
-   quotes, block comments and dash comments, the options of PostgreSQL.
-   With `DashComments`, `--` starts a comment to the end of the line.
+   quotes, block comments, dash comments and backslash escapes. With
+   `DashComments`, `--` starts a comment to the end of the line.
    Without it, `--` is the text of the statement (D139). Each SQL dialect
    turns it on. A dialect of Cypher, such as Neo4j, does not, because
    `(a)--(b)` is a relationship there. With `Brackets`, a name in square
    brackets, such as `[l'état]`, is a `quoted_identifier`, and each
    character in it is the text of the name (D140). SQL Server and SQLite
    turn it on. Without it, `[` is text, as in `a[1]` and `ARRAY[1,2]` of
-   PostgreSQL.
+   PostgreSQL. `usql.Options` also has `BackslashEscapes` (D142). With it,
+   a backslash escapes the next character in a string in single quotes, as
+   `\'` and `\\`. The MySQL dialects turn it on. Without it, a backslash in
+   such a string is text, as in `'C:\data\'`, and only `''` escapes a
+   quote. A string of the form `E'...'` of PostgreSQL keeps the backslash
+   escapes. The `E` must start a word, so `name'x'` is not such a string. A
+   backslash in a string in an argument of a meta command escapes with it
+   on or off, as in psql.
 10. `usql.Options` has three more options. `BeginEndBlocks` keeps the
     `BEGIN ... END` body of a stored program, of `EXECUTE BLOCK`, of
     `DO BEGIN` and of `WITH FUNCTION` in one statement (D112, D130, D134).
@@ -233,7 +240,7 @@ for the flag `-dialect`, with these options of `usql.Options`:
 | Dialect | Package | Options |
 | --- | --- | --- |
 | `postgres` | `github.com/xo/transit/grammars/postgres/postgres` | `DollarQuotes`, `BlockComments`, `BeginEndBlocks`, `DashComments` |
-| `mysql` | `github.com/xo/transit/grammars/mysql` | `BlockComments`, `HashComments`, `Backticks`, `BeginEndBlocks`, `DashComments` |
+| `mysql` | `github.com/xo/transit/grammars/mysql` | `BlockComments`, `HashComments`, `Backticks`, `BeginEndBlocks`, `DashComments`, `BackslashEscapes` |
 | `sqlite3` | `github.com/xo/transit/grammars/sqlite3` | `BlockComments`, `Backticks`, `BeginEndBlocks`, `DashComments`, `Brackets` |
 | `duckdb` | `github.com/xo/transit/grammars/duckdb` | `DollarQuotes`, `BlockComments`, `DashComments` |
 | `clickhouse` | `github.com/xo/transit/grammars/clickhouse` | `DollarQuotes`, `BlockComments`, `SlashComments`, `HashComments`, `Backticks`, `DashComments` |

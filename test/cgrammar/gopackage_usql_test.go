@@ -29,25 +29,30 @@ func init() {
 // not, so that -- is text in a statement, in a block and in a batch (D139).
 // sqlite, sqlserver_blocks and brackets_anonymous_batches have Brackets, so
 // that [ starts a quoted identifier in a statement, in a block and in a
-// batch, and the other sets do not (D140).
+// batch, and the other sets do not (D140). default holds the default
+// options. It and the sets of MySQL have BackslashEscapes, so that a
+// backslash escapes in a string in a statement, in a block and in a batch,
+// and the other sets do not (D142). The first set must be default, because
+// TestUsqlScannerOptionsDiffer compares the other sets with it.
 var usqlOptionSets = []struct {
 	name string
 	opts usql.Options
 }{
+	{"default", usql.Options{DollarQuotes: true, BlockComments: true, DashComments: true, BackslashEscapes: true}},
 	{"postgres", usql.Options{DollarQuotes: true, BlockComments: true, DashComments: true}},
-	{"mysql", usql.Options{BlockComments: true, HashComments: true, Backticks: true, DashComments: true}},
+	{"mysql", usql.Options{BlockComments: true, HashComments: true, Backticks: true, DashComments: true, BackslashEscapes: true}},
 	{"sqlite", usql.Options{BlockComments: true, Backticks: true, DashComments: true, Brackets: true}},
 	{"standard", usql.Options{BlockComments: true, DashComments: true}},
 	{"cql", usql.Options{DollarQuotes: true, BlockComments: true, SlashComments: true, DashComments: true}},
 	{"plain", usql.Options{}},
-	{"mysql_blocks", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true, DashComments: true}},
+	{"mysql_blocks", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true, DashComments: true, BackslashEscapes: true}},
 	{"standard_blocks", usql.Options{BlockComments: true, BeginEndBlocks: true, DashComments: true}},
 	{"postgres_blocks", usql.Options{DollarQuotes: true, BlockComments: true, BeginEndBlocks: true, DashComments: true}},
 	{"standard_anonymous", usql.Options{BlockComments: true, BeginEndBlocks: true, AnonymousBlocks: true, DashComments: true}},
 	{"anonymous", usql.Options{BlockComments: true, AnonymousBlocks: true, DashComments: true}},
 	{"cql_batches", usql.Options{DollarQuotes: true, BlockComments: true, SlashComments: true, Batches: true, DashComments: true}},
-	{"mysql_blocks_batches", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true, Batches: true, DashComments: true}},
-	{"mysql_anonymous_batches", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true, AnonymousBlocks: true, Batches: true, DashComments: true}},
+	{"mysql_blocks_batches", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true, Batches: true, DashComments: true, BackslashEscapes: true}},
+	{"mysql_anonymous_batches", usql.Options{BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true, AnonymousBlocks: true, Batches: true, DashComments: true, BackslashEscapes: true}},
 	{"neo4j", usql.Options{BlockComments: true, SlashComments: true, Backticks: true}},
 	{"postgres_no_dash", usql.Options{DollarQuotes: true, BlockComments: true}},
 	{"anonymous_no_dash", usql.Options{BlockComments: true, BeginEndBlocks: true, AnonymousBlocks: true, Batches: true}},
@@ -107,6 +112,29 @@ var usqlScannerInputs = []string{
 	// strings, quoted identifiers, backticks and dollar quotes
 	"select 'a''b', 'c\\'d', 'e",
 	"select 'a\\",
+	// backslashes in strings, which escape only with BackslashEscapes or in
+	// E'...' (D142)
+	"select 'C:\\data\\'; select 2;",
+	"select 'a\\''; select 2;",
+	"select 'it''s', '\u8868\\'; select 2;",
+	"select E'a\\'b', e'a\\\\'; select 2;",
+	"select name'x\\', 1e'y\\', E 'z\\', $E'w\\'; select 2;",
+	"select (E'a\\'b'), /* c */E'\\'', :E'v\\', ::e'u\\'; select 2;",
+	"E'a\\'b'; select 2;",
+	"\\E'a\\'b'; select 2;",
+	"select E\\;E'a\\'b'; select 2;",
+	"select x\\:e'a\\'b'; select 2;",
+	"select E",
+	"select E'",
+	"select E'\\",
+	"create procedure p() begin select 'a\\';b', E'c\\';d'; end; select 2;",
+	"create procedure p() begin'a\\';b'; end; select 2;",
+	"create procedure p() beginE'a\\';b'; end; select 2;",
+	"begin batch insert into t (a) values ('C:\\', E'\\''); apply batch; select 2;",
+	"begin select 'C:\\'; end; select 2;",
+	"\\echo 'a\\'b' 'C:\\' E'x\\'\nselect 2;",
+	"\\g (format='a\\'b' x=:'c\\'d')\nselect 2;",
+	"select \"a\\\", `b\\`, [c\\]; select 2;",
 	"select \"a\"\"b\", \"c",
 	"select `a``b`, `c",
 	"select $$a$$, $t$b$t$, $t$c$u$d$t$, $1, a$b$, $$e",
@@ -550,7 +578,7 @@ func TestUsqlScannerOptionsDiffer(t *testing.T) {
 		t.Run(set.name, func(t *testing.T) {
 			t.Parallel()
 			g, inputs := loadUsql(t, set.opts)
-			def, _ := loadUsql(t, usql.Options{DollarQuotes: true, BlockComments: true, DashComments: true})
+			def, _ := loadUsql(t, usqlOptionSets[0].opts)
 			differ := false
 			for _, in := range inputs {
 				got, _, err := g.CParse(in)
@@ -575,19 +603,19 @@ func TestUsqlScannerOptionsDiffer(t *testing.T) {
 
 // TestUsqlScannerDeserializeMatchesC gives random bytes to Deserialize of
 // the Go scanner and of the C scanner of the usql grammar, and compares what
-// Serialize writes after it. Every fifth run gives 11 bytes, the size of the
+// Serialize writes after it. Every fifth run gives 13 bytes, the size of the
 // state. The options do not change the state, so the test uses the default
 // options.
 func TestUsqlScannerDeserializeMatchesC(t *testing.T) {
 	t.Parallel()
-	g, _ := loadUsql(t, usql.Options{DollarQuotes: true, BlockComments: true, DashComments: true})
+	g, _ := loadUsql(t, usqlOptionSets[0].opts)
 	goCreate := tablesOf(usql.Language()).ExternalScanner.Create
 	cCreate := tablesOf(g.Language).ExternalScanner.Create
 	r := rand.New(rand.NewPCG(1, 2))
 	for i := range 1000 {
 		size := r.IntN(abi.SerializationBufferSize + 1)
 		if i%5 == 0 {
-			size = 11
+			size = 13
 		}
 		in := make([]byte, size)
 		for k := range in {

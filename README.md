@@ -165,12 +165,12 @@ xo writes some grammars in this repository (D42, D104). The package
 `github.com/xo/transit/grammars/usql` holds the grammar `usql` of the input
 of usql: SQL statements, meta commands such as `\d` and variables such as
 `:name` (D13). It is one language for every SQL dialect (D108). `Language`
-gives the language with dollar quotes, block comments and dash comments,
-the options of PostgreSQL. `LanguageFor` gives the language with the
-options of another dialect, with the same tables:
+gives the language with dollar quotes, block comments, dash comments and
+backslash escapes. `LanguageFor` gives the language with the options of a
+dialect, with the same tables:
 
 ```go
-lang := usql.LanguageFor(usql.Options{BlockComments: true, HashComments: true, Backticks: true, DashComments: true})
+lang := usql.LanguageFor(usql.Options{BlockComments: true, HashComments: true, Backticks: true, DashComments: true, BackslashEscapes: true})
 ```
 
 The fields of `usql.Options` are the flags of the type `Syntax` of dbmeta:
@@ -179,8 +179,13 @@ The fields of `usql.Options` are the flags of the type `Syntax` of dbmeta:
 starts a comment. Without it, `--` is text, as in the relationship
 `(a)--(b)` of Cypher (D139). With `Brackets`, a name in square brackets,
 such as `[a b]` of SQL Server and SQLite, is a quoted identifier. Without
-it, `[` is text, as in `a[1]` of PostgreSQL (D140). Three more fields are not flags of dbmeta. `BeginEndBlocks`
-and `AnonymousBlocks` are described below. `Batches` keeps a batch of CQL,
+it, `[` is text, as in `a[1]` of PostgreSQL (D140). With
+`BackslashEscapes`, a backslash escapes the next character in a string in
+single quotes, as in MySQL. Without it, a backslash in such a string is
+text, as in `'C:\data\'`, and only `''` escapes a quote. A string of the
+form `E'...'` of PostgreSQL keeps the backslash escapes (D142). Three more
+fields are not flags of dbmeta. `BeginEndBlocks` and `AnonymousBlocks` are
+described below. `Batches` keeps a batch of CQL,
 from `BEGIN BATCH` to `APPLY BATCH`, in one statement. It is off by
 default.
 

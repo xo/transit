@@ -194,3 +194,20 @@ create procedure p as begin﻿select [﻿]; end;
 (source_file
   (statement
     (quoted_identifier)))
+
+================================================================================
+SQL Server blocks: a backslash is text in a string in a body
+================================================================================
+
+CREATE PROCEDURE dbo.p AS BEGIN SELECT 'C:\'; END;
+CREATE PROCEDURE dbo.q AS BEGIN'C:\' x; END;
+SELECT 2;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (string))
+  (statement
+    (string))
+  (statement))

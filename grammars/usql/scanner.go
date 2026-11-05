@@ -2,7 +2,7 @@ package usql
 
 // This file is a port of src/scanner.c of the usql grammar of transit, in
 // grammars/usql (D101, D102, D108, D112, D128, D130, D131, D134, D138,
-// D139, D140, D141).
+// D139, D140, D141, D142).
 //
 // The scanner reads every token of the grammar. It finds the end of a
 // statement, the strings, the dollar quotes, the comments and the depth of
@@ -26,6 +26,11 @@ package usql
 // relationship (a)--(b) of Cypher (D139). With the option Brackets, a name
 // in square brackets, as [a b] of SQL Server and SQLite, is a quoted
 // identifier (D140). Without it, [ is text, as in a[1] of PostgreSQL.
+// With the option BackslashEscapes, a backslash escapes the next character
+// in a string in single quotes, as in MySQL (D142). Without it, a backslash
+// in such a string is text, and only '' escapes a quote. A string of the
+// form E'...' of PostgreSQL keeps the backslash escapes without it. The E
+// must start a word, as xestart of psqlscan.l.
 //
 // With the option BeginEndBlocks, the scanner keeps a stored program in one
 // statement (D112). It reads the words of the SQL text, outside strings,
@@ -134,7 +139,7 @@ const byteOrderMark = 0xFEFF
 
 // serializedSize is SERIALIZED_SIZE, the number of bytes that Serialize
 // writes.
-const serializedSize = 12
+const serializedSize = 13
 
 // block is the C enum Block, the part of a statement that the scanner is
 // in, with the option BeginEndBlocks, AnonymousBlocks or Batches.
@@ -340,6 +345,10 @@ type scanner struct {
 	routines  uint8
 	// variable is what variableCheck found for the next token.
 	variable variable
+	// escapes is 1 when the string of the next token has the form E'...',
+	// without the option BackslashEscapes, so that a backslash escapes in
+	// it.
+	escapes uint8
 }
 
 // command is the C struct Command, a meta command of usql, from
@@ -606,13 +615,14 @@ func scanBlockComment(lexer *abi.Lexer) bool {
 
 // scanQuotedRest is scan_quoted_rest. It scans the rest of a quoted text
 // after its opening quote q, up to the closing quote. A doubled quote is a
-// quote, and in a string in single quotes a backslash escapes the next
-// character. With no closing quote, the text runs to the end of the line
-// when line is true, and else to the end of the input.
-func scanQuotedRest(lexer *abi.Lexer, q int32, line bool) {
+// quote. In a string in single quotes, a backslash escapes the next
+// character when escapes is true, and else it is text. With no closing
+// quote, the text runs to the end of the line when line is true, and else
+// to the end of the input.
+func scanQuotedRest(lexer *abi.Lexer, q int32, line, escapes bool) {
 	for !lexer.EOF() && (!line || !isNewline(lexer.Lookahead)) {
 		c := lexer.Lookahead
-		if c == '\\' && q == '\'' {
+		if c == '\\' && q == '\'' && escapes {
 			advance(lexer)
 			if !lexer.EOF() && !(line && isNewline(lexer.Lookahead)) {
 				advance(lexer)
@@ -631,11 +641,11 @@ func scanQuotedRest(lexer *abi.Lexer, q int32, line bool) {
 }
 
 // scanQuoted is scan_quoted. It scans a quoted text from its opening quote,
-// and returns the token symbol.
-func scanQuoted(lexer *abi.Lexer, symbol uint16, line bool) bool {
+// and returns the token symbol. escapes is as for scanQuotedRest.
+func scanQuoted(lexer *abi.Lexer, symbol uint16, line, escapes bool) bool {
 	q := lexer.Lookahead
 	advance(lexer)
-	scanQuotedRest(lexer, q, line)
+	scanQuotedRest(lexer, q, line, escapes)
 	lexer.ResultSymbol = symbol
 	return true
 }
@@ -1052,9 +1062,10 @@ func (s *scanner) scanVariableStart(lexer *abi.Lexer, validSymbols []bool, opts 
 		}
 		lexer.MarkEnd()
 		if ctx == contextOption {
-			// in a list of options, the colon and the quoted text are one word
+			// in a list of options, the colon and the quoted text are one word,
+			// and a backslash escapes in it as in psql
 			advance(lexer)
-			scanQuotedRest(lexer, c, true)
+			scanQuotedRest(lexer, c, true, true)
 			lexer.ResultSymbol = optionWord
 			return true
 		}
@@ -1093,12 +1104,20 @@ func (s *scanner) scanVariableStart(lexer *abi.Lexer, validSymbols []bool, opts 
 // is true when the token already holds text, and prev is the last character
 // of that text. The token ends at its last character that is not white
 // space. With the option BeginEndBlocks, AnonymousBlocks or Batches,
-// scanText reads the words of SQL text.
+// scanText reads the words of SQL text. Without the option
+// BackslashEscapes, a quote right after an E or an e that starts a word
+// sets escapes, so that the string after the text is of the form E'...'
+// (D142).
 func (s *scanner) scanText(lexer *abi.Lexer, validSymbols []bool, opts Options, ctx context, content bool, prev int32) bool {
 	blocks := ctx == contextSQL && (opts.BeginEndBlocks || opts.AnonymousBlocks || opts.Batches)
 	var w sqlWord
+	// prefix is true when the last character of the token is an E or an e
+	// that starts a word
+	prefix := false
 	for !lexer.EOF() {
 		c := lexer.Lookahead
+		e := prefix
+		prefix = false
 		if blocks {
 			if isWordChar(&w, c) {
 				addWordChar(&w, c)
@@ -1120,6 +1139,9 @@ func (s *scanner) scanText(lexer *abi.Lexer, validSymbols []bool, opts Options, 
 				(c == '#' && opts.HashComments) {
 				if !content && c == '#' {
 					return scanLineComment(lexer)
+				}
+				if c == '\'' && e && !opts.BackslashEscapes {
+					s.escapes = 1
 				}
 				break
 			}
@@ -1239,6 +1261,7 @@ func (s *scanner) scanText(lexer *abi.Lexer, validSymbols []bool, opts Options, 
 			lexer.MarkEnd()
 			content = true
 		}
+		prefix = (c == 'E' || c == 'e') && !isIdentifierChar(prev)
 		prev = c
 	}
 	if blocks {
@@ -1392,11 +1415,12 @@ func (s *scanner) scanArguments(lexer *abi.Lexer, validSymbols []bool, opts Opti
 		lexer.ResultSymbol = backtickOpen
 		return true
 	}
+	// a backslash escapes in an argument in single quotes, as in psql
 	if validSymbols[stringToken] && c == '\'' {
-		return scanQuoted(lexer, stringToken, true)
+		return scanQuoted(lexer, stringToken, true, true)
 	}
 	if validSymbols[quotedIdentifier] && c == '"' {
-		return scanQuoted(lexer, quotedIdentifier, true)
+		return scanQuoted(lexer, quotedIdentifier, true, false)
 	}
 	ctx := contextArgument
 	if validSymbols[optionWord] {
@@ -1438,13 +1462,15 @@ func (s *scanner) scanSQL(lexer *abi.Lexer, validSymbols []bool, opts Options) b
 		return true
 	}
 	if c == '\'' {
+		escapes := opts.BackslashEscapes || s.escapes != 0
+		s.escapes = 0
 		s.resolveBegin()
 		s.scanString(opts)
-		return scanQuoted(lexer, stringToken, false)
+		return scanQuoted(lexer, stringToken, false, escapes)
 	}
 	if c == '"' || (c == '`' && opts.Backticks) {
 		s.resolveBegin()
-		return scanQuoted(lexer, quotedIdentifier, false)
+		return scanQuoted(lexer, quotedIdentifier, false, false)
 	}
 	if c == '[' && opts.Brackets {
 		s.resolveBegin()
@@ -1459,8 +1485,8 @@ func (s *scanner) scanSQL(lexer *abi.Lexer, validSymbols []bool, opts Options) b
 func newScanner() *scanner { return &scanner{options: defaultOptions} }
 
 // Serialize writes the depth in its first 4 bytes, in little-endian order,
-// then base, command, block, pending, level, variable, anonymous and
-// routines.
+// then base, command, block, pending, level, variable, anonymous, routines
+// and escapes.
 //
 // Serialize is tree_sitter_usql_external_scanner_serialize.
 func (s *scanner) Serialize(buffer []byte) int {
@@ -1473,6 +1499,7 @@ func (s *scanner) Serialize(buffer []byte) int {
 	buffer[9] = byte(s.variable)
 	buffer[10] = s.anonymous
 	buffer[11] = s.routines
+	buffer[12] = s.escapes
 	return serializedSize
 }
 
@@ -1485,6 +1512,7 @@ func (s *scanner) Deserialize(buffer []byte) {
 	s.base = 0
 	s.command = 0
 	s.variable = variableUnknown
+	s.escapes = 0
 	s.resetBlocks()
 	if len(buffer) == serializedSize {
 		s.depth = binary.LittleEndian.Uint32(buffer)
@@ -1496,6 +1524,7 @@ func (s *scanner) Deserialize(buffer []byte) {
 		s.variable = variable(buffer[9])
 		s.anonymous = buffer[10]
 		s.routines = buffer[11]
+		s.escapes = buffer[12]
 	}
 }
 
@@ -1507,6 +1536,10 @@ func (s *scanner) Scan(lexer *abi.Lexer, validSymbols []bool) bool {
 	if lexer.Lookahead != ':' {
 		// variableCheck keeps what it found only for the colon after it
 		s.variable = variableUnknown
+	}
+	if lexer.Lookahead != '\'' {
+		// escapes holds only for the quote right after the text
+		s.escapes = 0
 	}
 	if validSymbols[errorSentinel] {
 		// In the recovery from an error every token is valid, so the text is

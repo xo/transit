@@ -99,3 +99,19 @@ begin﻿batch insert into t (a) values (1); apply﻿batch;
 
 (source_file
   (statement))
+
+================================================================================
+CQL with Batches: a backslash is text in a string in a batch
+================================================================================
+
+BEGIN BATCH
+  INSERT INTO t (a) VALUES ('C:\');
+APPLY BATCH;
+select 1;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (string))
+  (statement))

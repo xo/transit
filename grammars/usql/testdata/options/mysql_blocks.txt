@@ -234,3 +234,20 @@ create procedure p() begin﻿select 1; end;﻿select 2;
 (source_file
   (statement)
   (statement))
+
+================================================================================
+MySQL blocks: a backslash escapes in a string in a body
+================================================================================
+
+create procedure p() begin select 'a\';b'; end;
+create procedure q() begin'a\';b'; end;
+select 2;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (string))
+  (statement
+    (string))
+  (statement))

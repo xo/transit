@@ -1,5 +1,5 @@
 // The external scanner of the usql grammar (D101, D102, D108, D112, D128,
-// D130, D131, D134, D138, D139, D140, D141).
+// D130, D131, D134, D138, D139, D140, D141, D142).
 //
 // The scanner reads every token of the grammar. It finds the end of a
 // statement, the strings, the dollar quotes, the comments and the depth of
@@ -23,7 +23,11 @@
 // it, -- is text, as in the relationship (a)--(b) of Cypher (D139). With
 // USQL_BRACKETS, a name in square brackets, as [a b] of SQL Server and
 // SQLite, is a quoted identifier (D140). Without it, [ is text, as in
-// a[1] of PostgreSQL.
+// a[1] of PostgreSQL. With USQL_BACKSLASH_ESCAPES, a backslash escapes the
+// next character in a string in single quotes, as in MySQL (D142). Without
+// it, a backslash in such a string is text, and only '' escapes a quote.
+// A string of the form E'...' of PostgreSQL keeps the backslash escapes
+// without it. The E must start a word, as xestart of psqlscan.l.
 //
 // With USQL_BEGIN_END_BLOCKS, the scanner keeps a stored program in one
 // statement (D112). It reads the words of the SQL text, outside strings,
@@ -72,12 +76,13 @@
 #define USQL_BATCHES 128         // BEGIN BATCH ... APPLY BATCH of CQL is in one statement
 #define USQL_DASH_COMMENTS 256   // -- starts a comment
 #define USQL_BRACKETS 512        // [...] is a quoted identifier
+#define USQL_BACKSLASH_ESCAPES 1024 // a backslash escapes in '...'
 
-// The options of the scanner. The default is dollar quotes, block comments
-// and dash comments, the options of PostgreSQL. The upstream tool and the
+// The options of the scanner. The default is dollar quotes, block
+// comments, dash comments and backslash escapes. The upstream tool and the
 // golden harness build the scanner with the default.
 #ifndef USQL_OPTIONS
-#define USQL_OPTIONS (USQL_DOLLAR_QUOTES | USQL_BLOCK_COMMENTS | USQL_DASH_COMMENTS)
+#define USQL_OPTIONS (USQL_DOLLAR_QUOTES | USQL_BLOCK_COMMENTS | USQL_DASH_COMMENTS | USQL_BACKSLASH_ESCAPES)
 #endif
 
 // The external tokens, in the order of externals in grammar.js.
@@ -141,7 +146,7 @@ enum Context {
 
 // The number of bytes that tree_sitter_usql_external_scanner_serialize
 // writes.
-#define SERIALIZED_SIZE 12
+#define SERIALIZED_SIZE 13
 
 // Block is the part of a statement that the scanner is in, with the option
 // USQL_BEGIN_END_BLOCKS, USQL_ANONYMOUS_BLOCKS or USQL_BATCHES.
@@ -332,6 +337,9 @@ typedef struct {
   // variable is the enum Variable that VARIABLE_CHECK found for the next
   // token.
   uint8_t variable;
+  // escapes is 1 when the string of the next token has the form E'...',
+  // without USQL_BACKSLASH_ESCAPES, so that a backslash escapes in it.
+  uint8_t escapes;
 } Scanner;
 
 // Command is a meta command of usql, from metacmd/descs.go of usql.
@@ -591,17 +599,17 @@ static bool scan_block_comment(TSLexer *lexer) {
 }
 
 // scan_quoted_rest scans the rest of a quoted text after its opening quote
-// q, up to the closing quote. A doubled quote is a quote, and in a string in
-// single quotes a backslash escapes the next character. With no closing
-// quote, the text runs to the end of the line when line is true, and else
-// to the end of the input.
-static void scan_quoted_rest(TSLexer *lexer, int32_t q, bool line) {
+// q, up to the closing quote. A doubled quote is a quote. In a string in
+// single quotes, a backslash escapes the next character when escapes is
+// true, and else it is text. With no closing quote, the text runs to the
+// end of the line when line is true, and else to the end of the input.
+static void scan_quoted_rest(TSLexer *lexer, int32_t q, bool line, bool escapes) {
   for (;;) {
     if (lexer->eof(lexer) || (line && is_newline(lexer->lookahead))) {
       break;
     }
     int32_t c = lexer->lookahead;
-    if (c == '\\' && q == '\'') {
+    if (c == '\\' && q == '\'' && escapes) {
       advance(lexer);
       if (!lexer->eof(lexer) && !(line && is_newline(lexer->lookahead))) {
         advance(lexer);
@@ -620,11 +628,11 @@ static void scan_quoted_rest(TSLexer *lexer, int32_t q, bool line) {
 }
 
 // scan_quoted scans a quoted text from its opening quote, and returns the
-// token symbol.
-static bool scan_quoted(TSLexer *lexer, enum TokenType symbol, bool line) {
+// token symbol. escapes is as for scan_quoted_rest.
+static bool scan_quoted(TSLexer *lexer, enum TokenType symbol, bool line, bool escapes) {
   int32_t q = lexer->lookahead;
   advance(lexer);
-  scan_quoted_rest(lexer, q, line);
+  scan_quoted_rest(lexer, q, line, escapes);
   lexer->result_symbol = symbol;
   return true;
 }
@@ -1068,9 +1076,10 @@ static bool scan_variable_start(Scanner *s, TSLexer *lexer, const bool *valid_sy
     }
     lexer->mark_end(lexer);
     if (ctx == CONTEXT_OPTION) {
-      // in a list of options, the colon and the quoted text are one word
+      // in a list of options, the colon and the quoted text are one word,
+      // and a backslash escapes in it as in psql
       advance(lexer);
-      scan_quoted_rest(lexer, c, true);
+      scan_quoted_rest(lexer, c, true, true);
       lexer->result_symbol = OPTION_WORD;
       return true;
     }
@@ -1109,17 +1118,24 @@ static bool scan_variable_start(Scanner *s, TSLexer *lexer, const bool *valid_sy
 // token already holds text, and prev is the last character of that text.
 // The token ends at its last character that is not white space. With
 // USQL_BEGIN_END_BLOCKS, USQL_ANONYMOUS_BLOCKS or USQL_BATCHES, scan_text
-// reads the words of SQL text.
+// reads the words of SQL text. Without USQL_BACKSLASH_ESCAPES, a quote right
+// after an E or an e that starts a word sets escapes, so that the string
+// after the text is of the form E'...' (D142).
 static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int options,
                       enum Context ctx, bool content, int32_t prev) {
   bool blocks = ctx == CONTEXT_SQL &&
                 (options & (USQL_BEGIN_END_BLOCKS | USQL_ANONYMOUS_BLOCKS | USQL_BATCHES));
   Word w = {{0}, 0, false};
+  // prefix is true when the last character of the token is an E or an e
+  // that starts a word
+  bool prefix = false;
   for (;;) {
     if (lexer->eof(lexer)) {
       break;
     }
     int32_t c = lexer->lookahead;
+    bool e = prefix;
+    prefix = false;
     if (blocks) {
       if (is_word_char(&w, c)) {
         add_word_char(&w, c);
@@ -1141,6 +1157,9 @@ static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int
           (c == '#' && (options & USQL_HASH_COMMENTS))) {
         if (!content && c == '#') {
           return scan_line_comment(lexer);
+        }
+        if (c == '\'' && e && !(options & USQL_BACKSLASH_ESCAPES)) {
+          s->escapes = 1;
         }
         break;
       }
@@ -1255,6 +1274,7 @@ static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int
       lexer->mark_end(lexer);
       content = true;
     }
+    prefix = (c == 'E' || c == 'e') && !is_identifier_char(prev);
     prev = c;
   }
   if (blocks) {
@@ -1403,11 +1423,12 @@ static bool scan_arguments(Scanner *s, TSLexer *lexer, const bool *valid_symbols
     lexer->result_symbol = BACKTICK_OPEN;
     return true;
   }
+  // a backslash escapes in an argument in single quotes, as in psql
   if (valid_symbols[STRING] && c == '\'') {
-    return scan_quoted(lexer, STRING, true);
+    return scan_quoted(lexer, STRING, true, true);
   }
   if (valid_symbols[QUOTED_IDENTIFIER] && c == '"') {
-    return scan_quoted(lexer, QUOTED_IDENTIFIER, true);
+    return scan_quoted(lexer, QUOTED_IDENTIFIER, true, false);
   }
   enum Context ctx = valid_symbols[OPTION_WORD] ? CONTEXT_OPTION : CONTEXT_ARGUMENT;
   if (ctx == CONTEXT_ARGUMENT && !valid_symbols[WORD]) {
@@ -1445,13 +1466,15 @@ static bool scan_sql(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int 
     return true;
   }
   if (c == '\'') {
+    bool escapes = (options & USQL_BACKSLASH_ESCAPES) || s->escapes;
+    s->escapes = 0;
     resolve_begin(s);
     scan_string(s, options);
-    return scan_quoted(lexer, STRING, false);
+    return scan_quoted(lexer, STRING, false, escapes);
   }
   if (c == '"' || (c == '`' && (options & USQL_BACKTICKS))) {
     resolve_begin(s);
-    return scan_quoted(lexer, QUOTED_IDENTIFIER, false);
+    return scan_quoted(lexer, QUOTED_IDENTIFIER, false, false);
   }
   if (c == '[' && (options & USQL_BRACKETS)) {
     resolve_begin(s);
@@ -1465,8 +1488,8 @@ void *tree_sitter_usql_external_scanner_create(void) { return ts_calloc(1, sizeo
 void tree_sitter_usql_external_scanner_destroy(void *payload) { ts_free(payload); }
 
 // tree_sitter_usql_external_scanner_serialize writes the depth in its first
-// 4 bytes, then base, command, block, pending, level, variable, anonymous
-// and routines.
+// 4 bytes, then base, command, block, pending, level, variable, anonymous,
+// routines and escapes.
 unsigned tree_sitter_usql_external_scanner_serialize(void *payload, char *buffer) {
   Scanner *s = (Scanner *)payload;
   memcpy(buffer, &s->depth, sizeof(s->depth));
@@ -1478,6 +1501,7 @@ unsigned tree_sitter_usql_external_scanner_serialize(void *payload, char *buffer
   buffer[9] = (char)s->variable;
   buffer[10] = (char)s->anonymous;
   buffer[11] = (char)s->routines;
+  buffer[12] = (char)s->escapes;
   return SERIALIZED_SIZE;
 }
 
@@ -1490,6 +1514,7 @@ void tree_sitter_usql_external_scanner_deserialize(void *payload, const char *bu
   s->base = 0;
   s->command = 0;
   s->variable = VARIABLE_UNKNOWN;
+  s->escapes = 0;
   reset_blocks(s);
   if (length == SERIALIZED_SIZE) {
     memcpy(&s->depth, buffer, sizeof(s->depth));
@@ -1501,6 +1526,7 @@ void tree_sitter_usql_external_scanner_deserialize(void *payload, const char *bu
     s->variable = (uint8_t)buffer[9];
     s->anonymous = (uint8_t)buffer[10];
     s->routines = (uint8_t)buffer[11];
+    s->escapes = (uint8_t)buffer[12];
   }
 }
 
@@ -1512,6 +1538,10 @@ bool tree_sitter_usql_external_scanner_scan(void *payload, TSLexer *lexer, const
   if (lexer->lookahead != ':') {
     // VARIABLE_CHECK keeps what it found only for the colon after it
     s->variable = VARIABLE_UNKNOWN;
+  }
+  if (lexer->lookahead != '\'') {
+    // escapes holds only for the quote right after the text
+    s->escapes = 0;
   }
   if (valid_symbols[ERROR_SENTINEL]) {
     // In the recovery from an error every token is valid, so the text is

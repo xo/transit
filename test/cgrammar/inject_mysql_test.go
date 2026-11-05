@@ -13,7 +13,7 @@ import (
 )
 
 // usqlMysqlOptions are the options of the usql grammar for MySQL.
-var usqlMysqlOptions = usql.Options{BlockComments: true, HashComments: true, Backticks: true, DashComments: true}
+var usqlMysqlOptions = usql.Options{BlockComments: true, HashComments: true, Backticks: true, DashComments: true, BackslashEscapes: true}
 
 // mysqlInjectLayers parses src with the usql grammar with the options opts,
 // and injects each statement into the MySQL grammar with usqlPlaceholder.

@@ -816,8 +816,9 @@ writes this API in `options.go`, beside the generated files:
 package usql
 
 // Options are the options of the syntax of a SQL dialect that the external
-// scanner reads. Each field but BeginEndBlocks, AnonymousBlocks and Batches
-// is a flag of the type Syntax of dbmeta, with the same name.
+// scanner reads. DollarQuotes, BlockComments, SlashComments, HashComments,
+// Backticks, DashComments and Brackets are flags of the type Syntax of
+// dbmeta, with the same names.
 type Options struct {
 	DollarQuotes  bool // $tag$ ... $tag$ and $$ ... $$ are a string
 	BlockComments bool // /* ... */ is a comment
@@ -831,6 +832,8 @@ type Options struct {
 
 	DashComments bool // -- starts a comment
 	Brackets     bool // [...] is a quoted identifier
+
+	BackslashEscapes bool // a backslash escapes the next character in '...'
 }
 
 // LanguageFor returns the language with an external scanner that reads
@@ -840,7 +843,8 @@ func LanguageFor(opts Options) *transit.Language
 
 `Language` gives the language with dollar quotes, block comments and dash
 comments, the options of PostgreSQL, because the client lexer of
-PostgreSQL is the reference of the grammar (D101). `LanguageFor` gives
+PostgreSQL is the reference of the grammar (D101). It also has backslash
+escapes, so that its corpus did not change with D142. `LanguageFor` gives
 `Language` for these options, and for other options it builds a language
 once and keeps it. A new option is a new field and a new flag of the
 scanner, and no new grammar (D108). The package reads the tables of `Language` with `abi.TablesOf`, a
@@ -891,8 +895,18 @@ a new line. A backslash does not start a meta command or `\;`, and a colon
 does not start a variable. A `[` with no `]` runs to the end of the input,
 as a quote with no end does. With it off, `[` is text, as in `a[1]` and
 `ARRAY[1,2]` of PostgreSQL. The SQL Server and SQLite dialects turn it on.
-It is the last field, so that its flag in `src/scanner.c` is the next free
-flag.
+
+`BackslashEscapes` is the option of D142, and `Language` has it. With it
+on, a backslash escapes the next character in a string in single quotes,
+so `\'` is a quote and `\\` is a backslash. With it off, a backslash in
+such a string is text, as in `'C:\data\'`, and only `''` escapes a quote.
+A string of the form `E'...'` or `e'...'` of PostgreSQL keeps the
+backslash escapes with it off. The `E` must start a word, as in the
+client lexer of PostgreSQL, so `name'x'` is not such a string. A
+backslash in a string in an argument of a meta command escapes with it on
+or off, as in psql. A string in double quotes and a quoted identifier do
+not read a backslash. The MySQL dialects turn it on. It is the last field,
+so that its flag in `src/scanner.c` is the next free flag.
 
 ## The module styles
 

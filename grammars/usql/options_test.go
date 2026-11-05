@@ -15,16 +15,17 @@ import (
 // options of Oracle with AnonymousBlocks (D128), the options of CQL with
 // Batches, and the options of Neo4j, which has no dash comments (D139).
 // Each set of a SQL dialect has DashComments, and sqlite and
-// sqlserver_blocks have Brackets (D140). The test module compares the Go
-// scanner with the C scanner on each of them.
+// sqlserver_blocks have Brackets (D140). mysql and mysql_blocks have
+// BackslashEscapes, and the other sets do not (D142). The test module
+// compares the Go scanner with the C scanner on each of them.
 var optionSets = map[string]Options{
 	"postgres":         {DollarQuotes: true, BlockComments: true, DashComments: true},
-	"mysql":            {BlockComments: true, HashComments: true, Backticks: true, DashComments: true},
+	"mysql":            {BlockComments: true, HashComments: true, Backticks: true, DashComments: true, BackslashEscapes: true},
 	"sqlite":           {BlockComments: true, Backticks: true, DashComments: true, Brackets: true},
 	"standard":         {BlockComments: true, DashComments: true},
 	"cql":              {DollarQuotes: true, BlockComments: true, SlashComments: true, DashComments: true},
 	"plain":            {},
-	"mysql_blocks":     {BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true, DashComments: true},
+	"mysql_blocks":     {BlockComments: true, HashComments: true, Backticks: true, BeginEndBlocks: true, DashComments: true, BackslashEscapes: true},
 	"sqlserver_blocks": {BlockComments: true, BeginEndBlocks: true, DashComments: true, Brackets: true},
 	"oracle_blocks":    {BlockComments: true, BeginEndBlocks: true, DashComments: true},
 	"oracle_anonymous": {BlockComments: true, BeginEndBlocks: true, AnonymousBlocks: true, DashComments: true},
@@ -84,7 +85,7 @@ func TestOptionsHighlight(t *testing.T) {
 // of Language for every set of options.
 func TestLanguageFor(t *testing.T) {
 	t.Parallel()
-	if LanguageFor(optionSets["postgres"]) != Language() {
+	if LanguageFor(defaultOptions) != Language() {
 		t.Error("expected Language for the default options, got another language")
 	}
 	for name, opts := range optionSets {
