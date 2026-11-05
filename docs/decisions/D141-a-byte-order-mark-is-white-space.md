@@ -12,8 +12,10 @@ parse starts. The usql peer found this with fuzz tests on 2026-11-05.
 Ken decided on 2026-11-05, answering question 110:
 
 1. In the usql grammar, U+FEFF is white space at each position outside a
-   string, a quoted name, a dollar quote and a comment. No statement and no
-   meta command starts or ends with it.
+   string, a quoted name, a dollar quote and a comment. No statement starts
+   or ends with it, and no meta command starts with it. A meta command keeps
+   the white space at the end of its line, so it can end with U+FEFF, as it
+   can end with a space. Ken accepted this on 2026-11-05.
 2. Inside a string, a quoted name, a dollar quote and a comment, U+FEFF is
    text, as before.
 3. It needs no option, because no SQL product reads U+FEFF outside quotes
