@@ -13,12 +13,18 @@ a string then lost its closing quote. The usql peer raised this on
 Ken decided on 2026-11-05, answering question 111:
 
 1. `usql.Options` has a new field, `BackslashEscapes`. The sense is
-   positive, as for `Brackets`. The MySQL dialects set it.
-2. With it on, `\'` and `\\` escape in a `'...'` string, as before.
-3. With it off, a backslash in a `'...'` string is text, and only `''`
-   escapes a quote.
+   positive, as for `Brackets`.
+2. With it on, `\'` and `\\` escape in a `'...'` string, as before. A
+   backslash also escapes the next character in a `"..."` name, which is
+   still a node `quoted_identifier`.
+3. With it off, a backslash in a `'...'` string or a `"..."` name is
+   text, and only a doubled quote escapes a quote.
 4. A string of the form `E'...'` or `e'...'` of PostgreSQL keeps the
    backslash escapes with the option off.
 5. The default build of `src/scanner.c`, with no `USQL_OPTIONS`, and the
    default language keep the escapes, so the default corpus does not
    change.
+6. dbmeta holds the answer for each dialect, in `Syntax.BackslashEscapes`
+   (dbmeta D266), which has the same name and sense. So the field is a flag
+   of dbmeta, and transit keeps no list of the dialects that set it. The
+   sample programs set it for `mysql` and `clickhouse`, as dbmeta does.
