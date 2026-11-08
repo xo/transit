@@ -124,7 +124,7 @@ An open question is not a decision. It goes at the end of
 | [D103](D103-ken-accepts-the-target-api.md) | Ken accepts the target API | Decided, amended by D119 |
 | [D104](D104-a-grammar-that-xo-writes-lives-in-grammars.md) | A grammar that xo writes lives in grammars | Decided, amends D42 |
 | [D105](D105-ken-accepts-the-usql-grammar.md) | Ken accepts the usql grammar | Decided, amends D101 and D102, amended by D108 and D142 |
-| [D106](D106-the-grammars-of-phase-5.md) | The grammars of phase 5 | Decided, amends D42, amended by D107, D122, D124, D126 and D127 |
+| [D106](D106-the-grammars-of-phase-5.md) | The grammars of phase 5 | Decided, amends D42, amended by D107, D122, D124, D126, D127 and D143 |
 | [D107](D107-a-grammar-module-takes-the-name-of-its-dialect.md) | A grammar module takes the name of its dialect | Decided, amends D26 and D106, amended by D108 and D110 |
 | [D108](D108-the-usql-grammar-is-one-language-that-takes-options.md) | The usql grammar is one language that takes options | Decided, amends D101, D105 and D107, amended by D112, D114, D139, D140 and D142 |
 | [D109](D109-the-grammar-modules-fit-a-runner-of-ci.md) | The grammar modules fit a runner of CI | Decided |
@@ -161,3 +161,4 @@ An open question is not a decision. It goes at the end of
 | [D140](D140-brackets-are-an-option.md) | A name in square brackets is an option of the usql grammar | Decided, amends D108 |
 | [D141](D141-a-byte-order-mark-is-white-space.md) | A byte order mark is white space in the usql grammar | Decided |
 | [D142](D142-backslash-escapes-are-an-option.md) | A backslash escape in a string is an option of the usql grammar | Decided, amends D105 and D108 |
+| [D143](D143-xo-writes-the-generic-sql-grammar.md) | xo writes the generic SQL grammar | Decided, amends D106 |
