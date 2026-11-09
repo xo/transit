@@ -831,6 +831,17 @@ static void resolve_begin(Scanner *s) {
   }
 }
 
+// resolve_escape notes the character c of \; or \: in SQL text. It resolves
+// the pending word as c does. An escaped ; also ends the header of a
+// subprogram of a package spec, as a ; does, but it does not end the
+// statement.
+static void resolve_escape(Scanner *s, int32_t c) {
+  resolve_pending(s, c);
+  if (c == ';' && s->depth == 0 && s->block == BLOCK_SUBPROGRAM) {
+    s->block = BLOCK_UNIT_DECLARE;
+  }
+}
+
 // ends_statement reports whether a ; outside parentheses ends the
 // statement. It is not the end inside the declarations or the body of a
 // stored program or of an anonymous block, inside a package or a type
@@ -1341,7 +1352,7 @@ static bool scan_text(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int
           break;
         }
         if (blocks) {
-          resolve_pending(s, lexer->lookahead);
+          resolve_escape(s, lexer->lookahead);
         }
         prev = lexer->lookahead;
         advance(lexer);
@@ -1622,7 +1633,7 @@ static bool scan_sql(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int 
     if (lexer->lookahead == ';' || lexer->lookahead == ':') {
       // \; and \: put the character in the statement, as psql does
       int32_t d = lexer->lookahead;
-      resolve_pending(s, d);
+      resolve_escape(s, d);
       advance(lexer);
       lexer->mark_end(lexer);
       return scan_text(s, lexer, valid_symbols, options, CONTEXT_SQL, true, d);

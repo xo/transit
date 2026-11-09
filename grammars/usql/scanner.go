@@ -853,6 +853,17 @@ func (s *scanner) resolveBegin() {
 	}
 }
 
+// resolveEscape is resolve_escape. It notes the character c of \; or \: in
+// SQL text. It resolves the pending word as c does. An escaped ; also ends
+// the header of a subprogram of a package spec, as a ; does, but it does
+// not end the statement.
+func (s *scanner) resolveEscape(c int32) {
+	s.resolvePending(c)
+	if c == ';' && s.depth == 0 && s.block == blockSubprogram {
+		s.block = blockUnitDeclare
+	}
+}
+
 // endsStatement is ends_statement. It reports whether a ; outside
 // parentheses ends the statement. It is not the end inside the
 // declarations or the body of a stored program or of an anonymous block,
@@ -1321,7 +1332,7 @@ func (s *scanner) scanText(lexer *abi.Lexer, validSymbols []bool, opts Options, 
 					break
 				}
 				if blocks {
-					s.resolvePending(lexer.Lookahead)
+					s.resolveEscape(lexer.Lookahead)
 				}
 				prev = lexer.Lookahead
 				advance(lexer)
@@ -1616,7 +1627,7 @@ func (s *scanner) scanSQL(lexer *abi.Lexer, validSymbols []bool, opts Options) b
 		if lexer.Lookahead == ';' || lexer.Lookahead == ':' {
 			// \; and \: put the character in the statement, as psql does
 			d := lexer.Lookahead
-			s.resolvePending(d)
+			s.resolveEscape(d)
 			advance(lexer)
 			lexer.MarkEnd()
 			return s.scanText(lexer, validSymbols, opts, contextSQL, true, d)

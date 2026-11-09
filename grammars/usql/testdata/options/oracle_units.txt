@@ -163,3 +163,41 @@ select usql_pk.one as one from dual;
   (statement)
   (statement)
   (statement))
+
+================================================================================
+Oracle units: a package spec whose semicolons are escaped
+================================================================================
+
+create package p as
+  function total return number\;
+  procedure raise_all\;
+end p;
+select 1 from dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement))
+
+================================================================================
+Oracle units: a package body whose semicolons are escaped
+================================================================================
+
+create package body p as
+  function total return number is
+  begin
+    return 1\;
+  end total\;
+  procedure raise_all is
+  begin
+    null\;
+  end\;
+end p;
+select 1 from dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement))

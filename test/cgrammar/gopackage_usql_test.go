@@ -487,6 +487,8 @@ var usqlScannerInputs = []string{
 	"create package body pk as procedure p is procedure q is begin null; end; begin q; end p; end; y",
 	"create package body pk as function f return number as language c name \"f\"; procedure p is external library l; begin x; end; y",
 	"create package body pk as procedure p as 'x'; begin y; end; z",
+	"create package pk as function f return number\\; procedure p\\; end pk; y",
+	"create package pk as\\;function f return number\\;end pk; y",
 	"create package body pk as c number := case when a then 1 end; procedure p is begin case x when 1 then y; end case; end p; end; z",
 	"create package body \"pk\" as procedure p is begin null; end p; end; y",
 	"create package body [pk] as procedure p is begin null; end p; end; y",

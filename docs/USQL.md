@@ -388,7 +388,9 @@ each one statement: a function or a procedure with declarations before
 type body (D112, D128, D144). No such unit needs `\;`. With
 `BeginEndBlocks` off, the person who writes the script escapes each `;`
 inside such a unit as `\;`, as in psql. The scanner keeps `\;` in the
-statement, with the options on or off. A query of Oracle that defines a
+statement, with the options on or off. Inside a unit, `\;` ends a
+declaration or the header of a subprogram as `;` does, so a script that
+escapes its `;` works with the options on too. A query of Oracle that defines a
 function with `WITH FUNCTION` needs the escape with the options on or off,
 because the `;` after the `END` of the function ends the statement.
 
