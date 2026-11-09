@@ -1,0 +1,165 @@
+================================================================================
+Oracle units: a package spec with two headers
+================================================================================
+
+CREATE OR REPLACE PACKAGE pk AUTHID DEFINER AS
+  c CONSTANT NUMBER := 1;
+  FUNCTION one RETURN NUMBER;
+  PROCEDURE p (a IN NUMBER, b OUT VARCHAR2);
+END pk;
+SELECT 1 FROM dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement))
+
+================================================================================
+Oracle units: a package body with two functions and a part that runs at load
+================================================================================
+
+CREATE OR REPLACE EDITIONABLE PACKAGE BODY hr.pk AS
+  g NUMBER := 0;
+  FUNCTION one RETURN NUMBER IS
+    v NUMBER := 0;
+  BEGIN
+    FOR i IN 1 .. 3 LOOP
+      IF i > 1 THEN
+        v := v + i;
+      END IF;
+    END LOOP;
+    RETURN v;
+  END one;
+  PROCEDURE p (a IN NUMBER, b OUT VARCHAR2) IS
+  BEGIN
+    b := CASE WHEN a > 0 THEN 'pos' ELSE 'neg' END;
+  END;
+BEGIN
+  g := one;
+END pk;
+SELECT 1 FROM dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (string)
+    (string))
+  (statement))
+
+================================================================================
+Oracle units: a package body with no part that runs at load and END;
+================================================================================
+
+create package body pk is
+  procedure p is
+  begin
+    null;
+  end p;
+end;
+select 1 from dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement))
+
+================================================================================
+Oracle units: a nested procedure and a call specification in a package body
+================================================================================
+
+create package body pk as
+  procedure outer_p is
+    procedure inner_p is
+    begin
+      null;
+    end;
+  begin
+    inner_p;
+  end;
+  function ext return number as language c name "ext" library l;
+end pk;
+select 1 from dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (quoted_identifier))
+  (statement))
+
+================================================================================
+Oracle units: quoted names and a CASE in a declaration
+================================================================================
+
+create package body "PK" as
+  c number := case when 1 = 1 then 1 else 0 end;
+  procedure p is begin null; end;
+end "PK";
+select 1 from dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement
+    (quoted_identifier)
+    (quoted_identifier))
+  (statement))
+
+================================================================================
+Oracle units: a type body with two members
+================================================================================
+
+CREATE OR REPLACE TYPE BODY t AS
+  MEMBER FUNCTION area RETURN NUMBER IS
+  BEGIN
+    RETURN a * a;
+  END;
+  CONSTRUCTOR FUNCTION t (x NUMBER) RETURN SELF AS RESULT IS
+  BEGIN
+    a := x;
+    RETURN;
+  END;
+END;
+SELECT 1 FROM dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement))
+
+================================================================================
+Oracle units: a type that is not a type body
+================================================================================
+
+CREATE TYPE t AS OBJECT (a NUMBER);
+CREATE TYPE body AS OBJECT (a NUMBER);
+CREATE TYPE "body" AS OBJECT (a NUMBER);
+SELECT 1 FROM dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement)
+  (statement
+    (quoted_identifier))
+  (statement))
+
+================================================================================
+Oracle units: a package spec, its body and a select
+================================================================================
+
+create or replace package usql_pk as function one return number; end usql_pk;
+create or replace package body usql_pk as function one return number as begin return 1; end; end usql_pk;
+select usql_pk.one as one from dual;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement)
+  (statement))

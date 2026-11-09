@@ -12,7 +12,8 @@ import (
 // optionSets are the options of the families of dialects of D101, which had
 // a grammar each before D108, the options of MySQL, SQL Server, Oracle,
 // Firebird, SAP HANA and Trino with BeginEndBlocks (D112, D130, D134), the
-// options of Oracle with AnonymousBlocks (D128), the options of CQL with
+// options of Oracle with AnonymousBlocks (D128), the same options for the
+// packages and the type bodies of Oracle (D144), the options of CQL with
 // Batches, and the options of Neo4j, which has no dash comments (D139).
 // Each set of a SQL dialect has DashComments, and sqlite and
 // sqlserver_blocks have Brackets (D140). mysql and mysql_blocks have
@@ -29,6 +30,7 @@ var optionSets = map[string]Options{
 	"sqlserver_blocks": {BlockComments: true, BeginEndBlocks: true, DashComments: true, Brackets: true},
 	"oracle_blocks":    {BlockComments: true, BeginEndBlocks: true, DashComments: true},
 	"oracle_anonymous": {BlockComments: true, BeginEndBlocks: true, AnonymousBlocks: true, DashComments: true},
+	"oracle_units":     {BlockComments: true, BeginEndBlocks: true, AnonymousBlocks: true, DashComments: true},
 	"firebird_blocks":  {BlockComments: true, BeginEndBlocks: true, DashComments: true},
 	"hana_blocks":      {BlockComments: true, BeginEndBlocks: true, DashComments: true},
 	"trino_blocks":     {BlockComments: true, BeginEndBlocks: true, DashComments: true},

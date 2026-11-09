@@ -1,5 +1,5 @@
 // The external scanner of the usql grammar (D101, D102, D108, D112, D128,
-// D130, D131, D134, D138, D139, D140, D141, D142).
+// D130, D131, D134, D138, D139, D140, D141, D142, D144).
 //
 // The scanner reads every token of the grammar. It finds the end of a
 // statement, the strings, the dollar quotes, the comments and the depth of
@@ -39,7 +39,21 @@
 // declarations of EXECUTE BLOCK before its BEGIN does not end the statement.
 // WITH FUNCTION of Trino at the start of a statement opens a block for the
 // body of each routine that it defines (D134). The statement ends at the ;
-// after the query that follows the routines. With USQL_BATCHES, it keeps a
+// after the query that follows the routines.
+//
+// With USQL_BEGIN_END_BLOCKS, the scanner also keeps a package spec, a
+// package body and a type body of PL/SQL in one statement (D144). After
+// CREATE ... PACKAGE [BODY] or TYPE BODY and the name, IS or AS starts the
+// unit. A ; in the unit does not end the statement. A FUNCTION or a
+// PROCEDURE in the unit starts a subprogram. A ; ends its header in a
+// package spec, and IS or AS starts its declarations in a body. The scanner
+// counts the subprograms that wait for their BEGIN. A BEGIN with no such
+// subprogram starts the part of a package body that runs when the package
+// loads. The END of a subprogram returns to the unit. An END in the unit
+// outside a block, or the END of the part that runs when the package
+// loads, ends the unit, and the statement ends at the ; after it.
+//
+// With USQL_BATCHES, it keeps a
 // batch of CQL in one statement. After BEGIN [UNLOGGED | COUNTER] BATCH at
 // the start of a statement, a ; does not end the statement until APPLY
 // BATCH. The words that it reads are in keywords below.
@@ -147,7 +161,7 @@ enum Context {
 
 // The number of bytes that tree_sitter_usql_external_scanner_serialize
 // writes.
-#define SERIALIZED_SIZE 13
+#define SERIALIZED_SIZE 15
 
 // Block is the part of a statement that the scanner is in, with the option
 // USQL_BEGIN_END_BLOCKS, USQL_ANONYMOUS_BLOCKS or USQL_BATCHES.
@@ -183,6 +197,44 @@ enum Block {
   // the body of a routine and before the query. BEGIN opens the body of a
   // routine, and a ; ends the statement.
   BLOCK_WITH,
+  // BLOCK_PACKAGE is after PACKAGE in BLOCK_CREATE, where BODY or the name
+  // of the package comes next.
+  BLOCK_PACKAGE,
+  // BLOCK_TYPE is after TYPE in BLOCK_CREATE, where BODY starts a type
+  // body. Another word or a quoted identifier names a type that is not a
+  // type body.
+  BLOCK_TYPE,
+  // BLOCK_UNIT_NAME is after PACKAGE BODY or TYPE BODY, before the name. IS
+  // or AS here shows that BODY was the name of the object, so the
+  // statement is not a unit.
+  BLOCK_UNIT_NAME,
+  // BLOCK_UNIT is after the name of a package or a type body, where IS or
+  // AS starts the unit. A ; ends the statement.
+  BLOCK_UNIT,
+  // BLOCK_UNIT_DECLARE is in a package or a type body, outside the blocks
+  // of its body. A ; does not end the statement, and END ends the unit.
+  BLOCK_UNIT_DECLARE,
+  // BLOCK_SUBPROGRAM is in the header of a function or a procedure of a
+  // package or a type body, before its IS or AS. A ; ends the header and
+  // not the statement.
+  BLOCK_SUBPROGRAM,
+};
+
+// Unit is the part of a package or a type body that the scanner is in,
+// with USQL_BEGIN_END_BLOCKS. It tells what comes after the END that
+// closes the outer block of the body.
+enum Unit {
+  // UNIT_NONE is a statement that is not a package or a type body.
+  UNIT_NONE,
+  // UNIT_DECLARE is in the unit, outside a block of the body or in a CASE
+  // of the declarations. The END of the CASE returns to the declarations.
+  UNIT_DECLARE,
+  // UNIT_SUBPROGRAM is in the body of a subprogram. Its END returns to the
+  // declarations of the unit.
+  UNIT_SUBPROGRAM,
+  // UNIT_INIT is in the part of a package body that runs when the package
+  // loads. Its END ends the unit.
+  UNIT_INIT,
 };
 
 // Pending is a word whose meaning depends on the next word.
@@ -213,6 +265,9 @@ enum Pending {
   // USQL_BEGIN_END_BLOCKS, which starts the routines of a query when
   // FUNCTION comes next.
   PENDING_WITH,
+  // PENDING_SUBPROGRAM is after IS or AS in BLOCK_SUBPROGRAM. The
+  // subprogram has no BEGIN when LANGUAGE or EXTERNAL comes next.
+  PENDING_SUBPROGRAM,
 };
 
 // Variable is what the scanner found after a colon and a quote, which
@@ -239,6 +294,7 @@ enum Keyword {
   KW_BATCH,
   KW_BEGIN,
   KW_BLOCK,
+  KW_BODY,
   KW_CALL,
   KW_CASE,
   KW_CATCH,
@@ -265,6 +321,7 @@ enum Keyword {
   KW_MERGE,
   KW_NONEDITIONABLE,
   KW_OR,
+  KW_PACKAGE,
   KW_PRINT,
   KW_PROC,
   KW_PROCEDURE,
@@ -279,6 +336,7 @@ enum Keyword {
   KW_TRANSACTION,
   KW_TRIGGER,
   KW_TRY,
+  KW_TYPE,
   KW_UNLOGGED,
   KW_UPDATE,
   KW_VALUES,
@@ -290,14 +348,14 @@ enum Keyword {
 // keywords holds the text of each Keyword, in lower case.
 static const char *const keywords[] = {
     "", "aggregate", "alter", "apply", "as", "batch",
-    "begin", "block", "call", "case", "catch", "constraint",
+    "begin", "block", "body", "call", "case", "catch", "constraint",
     "counter", "create", "declare", "definer", "delete", "distributed",
     "do", "editionable", "end", "event", "exec", "execute",
     "external", "function",
     "if", "insert", "is", "language", "loop", "merge",
-    "noneditionable", "or", "print", "proc", "procedure", "repeat",
+    "noneditionable", "or", "package", "print", "proc", "procedure", "repeat",
     "replace", "return", "select", "set", "temp", "temporary",
-    "tran", "transaction", "trigger", "try", "unlogged", "update",
+    "tran", "transaction", "trigger", "try", "type", "unlogged", "update",
     "values", "while", "with", "work",
 };
 
@@ -328,13 +386,17 @@ typedef struct {
   // level the number of blocks of the body that are open. anonymous is 1 in
   // a statement that starts with BEGIN or DECLARE, with
   // USQL_ANONYMOUS_BLOCKS. routines is 1 in a statement that starts with
-  // WITH FUNCTION, with USQL_BEGIN_END_BLOCKS. They stay 0 without
-  // USQL_BEGIN_END_BLOCKS, USQL_ANONYMOUS_BLOCKS and USQL_BATCHES.
+  // WITH FUNCTION, with USQL_BEGIN_END_BLOCKS. unit is the enum Unit of a
+  // package or a type body, and subprograms the number of its subprograms
+  // that wait for their BEGIN. They stay 0 without USQL_BEGIN_END_BLOCKS,
+  // USQL_ANONYMOUS_BLOCKS and USQL_BATCHES.
   uint8_t block;
   uint8_t pending;
   uint8_t level;
   uint8_t anonymous;
   uint8_t routines;
+  uint8_t unit;
+  uint8_t subprograms;
   // variable is the enum Variable that VARIABLE_CHECK found for the next
   // token.
   uint8_t variable;
@@ -690,14 +752,21 @@ static void reset_blocks(Scanner *s) {
   s->level = 0;
   s->anonymous = 0;
   s->routines = 0;
+  s->unit = UNIT_NONE;
+  s->subprograms = 0;
 }
 
 // open_block opens a block of the body: the first BEGIN of the body, a
-// BEGIN in it, or a CASE in it, which ends at END or END CASE.
+// BEGIN in it, or a CASE in it, which ends at END or END CASE. In a package
+// or a type body, the first BEGIN starts the body of a subprogram that
+// waits for it, or else the part that runs when the package loads.
 static void open_block(Scanner *s) {
   if (s->block != BLOCK_BODY) {
     s->block = BLOCK_BODY;
     s->level = 1;
+    if (s->unit != UNIT_NONE) {
+      s->unit = s->subprograms > 0 ? UNIT_SUBPROGRAM : UNIT_INIT;
+    }
   } else if (s->level < UINT8_MAX) {
     s->level++;
   }
@@ -705,7 +774,9 @@ static void open_block(Scanner *s) {
 
 // close_block closes a block of the body. After the last one, the body
 // ends. After the body of a routine of WITH FUNCTION, another routine or
-// the query comes next.
+// the query comes next. In a package or a type body, the declarations of
+// the unit come next, but the END of the part that runs when the package
+// loads ends the unit.
 static void close_block(Scanner *s) {
   if (s->block != BLOCK_BODY) {
     return;
@@ -713,8 +784,26 @@ static void close_block(Scanner *s) {
   if (s->level > 0) {
     s->level--;
   }
-  if (s->level == 0) {
+  if (s->level > 0) {
+    return;
+  }
+  switch ((enum Unit)s->unit) {
+  case UNIT_NONE:
     s->block = s->routines ? BLOCK_WITH : BLOCK_NONE;
+    break;
+  case UNIT_SUBPROGRAM:
+    if (s->subprograms > 0) {
+      s->subprograms--;
+    }
+    // fall through
+  case UNIT_DECLARE:
+    s->block = BLOCK_UNIT_DECLARE;
+    s->unit = UNIT_DECLARE;
+    break;
+  case UNIT_INIT:
+    s->block = BLOCK_NONE;
+    s->unit = UNIT_NONE;
+    break;
   }
 }
 
@@ -744,18 +833,25 @@ static void resolve_begin(Scanner *s) {
 
 // ends_statement reports whether a ; outside parentheses ends the
 // statement. It is not the end inside the declarations or the body of a
-// stored program or of an anonymous block, or inside a batch.
+// stored program or of an anonymous block, inside a package or a type
+// body, or inside a batch. In the header of a subprogram of a package or a
+// type body, the ; ends the header.
 static bool ends_statement(Scanner *s, int options) {
   if (!(options & (USQL_BEGIN_END_BLOCKS | USQL_ANONYMOUS_BLOCKS | USQL_BATCHES))) {
     return true;
   }
   resolve_pending(s, ';');
-  return s->block != BLOCK_DECLARE && s->block != BLOCK_BODY && s->block != BLOCK_BATCH;
+  if (s->block == BLOCK_SUBPROGRAM) {
+    s->block = BLOCK_UNIT_DECLARE;
+  }
+  return s->block != BLOCK_DECLARE && s->block != BLOCK_BODY && s->block != BLOCK_BATCH &&
+         s->block != BLOCK_UNIT_DECLARE;
 }
 
 // scan_string notes a string in SQL text. After IS or AS, a string is the
 // body of the stored program, so no declarations follow. After EXECUTE, DO
 // or WITH, a string is not BLOCK, BEGIN or FUNCTION, so no block follows.
+// After IS or AS of a subprogram, a string is not LANGUAGE or EXTERNAL.
 static void scan_string(Scanner *s, int options) {
   if (!(options & USQL_BEGIN_END_BLOCKS)) {
     return;
@@ -764,8 +860,19 @@ static void scan_string(Scanner *s, int options) {
     s->pending = PENDING_NONE;
     s->block = BLOCK_ROUTINE;
   } else if (s->pending == PENDING_EXECUTE || s->pending == PENDING_DO ||
-             s->pending == PENDING_WITH) {
+             s->pending == PENDING_WITH || s->pending == PENDING_SUBPROGRAM) {
     s->pending = PENDING_NONE;
+  }
+}
+
+// scan_name notes a quoted identifier in SQL text. After PACKAGE, PACKAGE
+// BODY or TYPE BODY, it is the name of the unit. After TYPE, it is the name
+// of a type that is not a type body.
+static void scan_name(Scanner *s) {
+  if (s->block == BLOCK_PACKAGE || s->block == BLOCK_UNIT_NAME) {
+    s->block = BLOCK_UNIT;
+  } else if (s->block == BLOCK_TYPE) {
+    s->block = BLOCK_NONE;
   }
 }
 
@@ -865,6 +972,15 @@ static void scan_keyword(Scanner *s, enum Keyword kw, int options) {
       return;
     }
     break;
+  case PENDING_SUBPROGRAM:
+    if (kw == KW_LANGUAGE || kw == KW_EXTERNAL) {
+      // a call specification, which has no BEGIN
+      if (s->subprograms > 0) {
+        s->subprograms--;
+      }
+      return;
+    }
+    break;
   }
   switch ((enum Block)s->block) {
   case BLOCK_START:
@@ -914,6 +1030,12 @@ static void scan_keyword(Scanner *s, enum Keyword kw, int options) {
       break;
     case KW_DEFINER:
       s->block = BLOCK_DEFINER;
+      break;
+    case KW_PACKAGE:
+      s->block = BLOCK_PACKAGE;
+      break;
+    case KW_TYPE:
+      s->block = BLOCK_TYPE;
       break;
     case KW_AGGREGATE:
     case KW_ALTER:
@@ -978,6 +1100,54 @@ static void scan_keyword(Scanner *s, enum Keyword kw, int options) {
     } else if ((kw == KW_SELECT || kw == KW_VALUES) && s->depth == 0) {
       // the query after the routines, where BEGIN can name a column
       s->block = BLOCK_NONE;
+    }
+    break;
+  case BLOCK_PACKAGE:
+    // BODY, or the name of the package spec
+    s->block = kw == KW_BODY ? BLOCK_UNIT_NAME : BLOCK_UNIT;
+    break;
+  case BLOCK_TYPE:
+    s->block = kw == KW_BODY ? BLOCK_UNIT_NAME : BLOCK_NONE;
+    break;
+  case BLOCK_UNIT_NAME:
+    s->block = kw == KW_IS || kw == KW_AS ? BLOCK_NONE : BLOCK_UNIT;
+    break;
+  case BLOCK_UNIT:
+    if ((kw == KW_IS || kw == KW_AS) && s->depth == 0) {
+      s->block = BLOCK_UNIT_DECLARE;
+      s->unit = UNIT_DECLARE;
+    }
+    break;
+  case BLOCK_UNIT_DECLARE:
+    switch (kw) {
+    case KW_FUNCTION:
+    case KW_PROCEDURE:
+      s->block = BLOCK_SUBPROGRAM;
+      break;
+    case KW_BEGIN:
+      s->pending = PENDING_BEGIN;
+      break;
+    case KW_CASE:
+      // a CASE in a declaration, whose END does not end the unit
+      open_block(s);
+      s->unit = UNIT_DECLARE;
+      break;
+    case KW_END:
+      // the END of the unit
+      s->block = BLOCK_NONE;
+      s->unit = UNIT_NONE;
+      break;
+    default:
+      break;
+    }
+    break;
+  case BLOCK_SUBPROGRAM:
+    if ((kw == KW_IS || kw == KW_AS) && s->depth == 0) {
+      s->block = BLOCK_UNIT_DECLARE;
+      s->pending = PENDING_SUBPROGRAM;
+      if (s->subprograms < UINT8_MAX) {
+        s->subprograms++;
+      }
     }
     break;
   }
@@ -1478,10 +1648,12 @@ static bool scan_sql(Scanner *s, TSLexer *lexer, const bool *valid_symbols, int 
     // in backticks
     bool escapes = c == '"' && (options & USQL_BACKSLASH_ESCAPES);
     resolve_begin(s);
+    scan_name(s);
     return scan_quoted(lexer, QUOTED_IDENTIFIER, false, escapes);
   }
   if (c == '[' && (options & USQL_BRACKETS)) {
     resolve_begin(s);
+    scan_name(s);
     return scan_bracket(lexer);
   }
   return scan_text(s, lexer, valid_symbols, options, CONTEXT_SQL, false, 0);
@@ -1493,7 +1665,7 @@ void tree_sitter_usql_external_scanner_destroy(void *payload) { ts_free(payload)
 
 // tree_sitter_usql_external_scanner_serialize writes the depth in its first
 // 4 bytes, then base, command, block, pending, level, variable, anonymous,
-// routines and escapes.
+// routines, escapes, unit and subprograms.
 unsigned tree_sitter_usql_external_scanner_serialize(void *payload, char *buffer) {
   Scanner *s = (Scanner *)payload;
   memcpy(buffer, &s->depth, sizeof(s->depth));
@@ -1506,6 +1678,8 @@ unsigned tree_sitter_usql_external_scanner_serialize(void *payload, char *buffer
   buffer[10] = (char)s->anonymous;
   buffer[11] = (char)s->routines;
   buffer[12] = (char)s->escapes;
+  buffer[13] = (char)s->unit;
+  buffer[14] = (char)s->subprograms;
   return SERIALIZED_SIZE;
 }
 
@@ -1531,6 +1705,8 @@ void tree_sitter_usql_external_scanner_deserialize(void *payload, const char *bu
     s->anonymous = (uint8_t)buffer[10];
     s->routines = (uint8_t)buffer[11];
     s->escapes = (uint8_t)buffer[12];
+    s->unit = (uint8_t)buffer[13];
+    s->subprograms = (uint8_t)buffer[14];
   }
 }
 

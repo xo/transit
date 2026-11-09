@@ -40,8 +40,11 @@ type Options struct {
 	// END of the block. WITH FUNCTION of Trino at the start of a statement
 	// opens a block for the body of each routine that it defines (D134).
 	// A ; in such a body does not end the statement, and the statement
-	// ends at the ; after the query that follows the routines. It is not a
-	// flag of dbmeta.
+	// ends at the ; after the query that follows the routines. A package
+	// spec, a package body and a type body of Oracle are each one statement
+	// too, from CREATE to the ; after the END of the unit (D144). The END
+	// of a subprogram in the unit does not end the statement.
+	// BeginEndBlocks is not a flag of dbmeta.
 	BeginEndBlocks bool
 	// AnonymousBlocks keeps an anonymous block of PL/SQL in one statement
 	// (D128). A statement that starts with BEGIN or DECLARE is a block. The

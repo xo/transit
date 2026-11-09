@@ -225,7 +225,8 @@ BODY`, `CREATE TRIGGER`, `CREATE TYPE BODY`, the functions of `WITH`, each
 declaration and statement of PL/SQL, and the conditional compilation with
 `$IF`. A `/` alone on its line ends a statement, as in a script of
 SQL*Plus. The option `BeginEndBlocks` of `usql.Options` keeps a stored
-program in one statement, and the option `AnonymousBlocks` keeps an
+program, a package spec, a package body and a type body each in one
+statement (D112, D144), and the option `AnonymousBlocks` keeps an
 anonymous block, which starts with `BEGIN` or `DECLARE`, in one statement
 (D128). Both are off by default. The package adds about 3.3 MB to a binary
 (D125). The

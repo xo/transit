@@ -2,7 +2,7 @@ package usql
 
 // This file is a port of src/scanner.c of the usql grammar of transit, in
 // grammars/usql (D101, D102, D108, D112, D128, D130, D131, D134, D138,
-// D139, D140, D141, D142).
+// D139, D140, D141, D142, D144).
 //
 // The scanner reads every token of the grammar. It finds the end of a
 // statement, the strings, the dollar quotes, the comments and the depth of
@@ -42,8 +42,21 @@ package usql
 // declarations of EXECUTE BLOCK before its BEGIN does not end the
 // statement. WITH FUNCTION of Trino at the start of a statement opens a
 // block for the body of each routine that it defines (D134). The statement
-// ends at the ; after the query that follows the routines. With the option
-// Batches, it keeps a batch of CQL in one statement. After BEGIN [UNLOGGED
+// ends at the ; after the query that follows the routines.
+//
+// With the option BeginEndBlocks, the scanner also keeps a package spec, a
+// package body and a type body of PL/SQL in one statement (D144). After
+// CREATE ... PACKAGE [BODY] or TYPE BODY and the name, IS or AS starts the
+// unit. A ; in the unit does not end the statement. A FUNCTION or a
+// PROCEDURE in the unit starts a subprogram. A ; ends its header in a
+// package spec, and IS or AS starts its declarations in a body. The scanner
+// counts the subprograms that wait for their BEGIN. A BEGIN with no such
+// subprogram starts the part of a package body that runs when the package
+// loads. The END of a subprogram returns to the unit. An END in the unit
+// outside a block, or the END of the part that runs when the package
+// loads, ends the unit, and the statement ends at the ; after it.
+//
+// With the option Batches, it keeps a batch of CQL in one statement. After BEGIN [UNLOGGED
 // | COUNTER] BATCH at the start of a statement, a ; does not end the
 // statement until APPLY BATCH. The words that it reads are in keywords
 // below.
@@ -140,7 +153,7 @@ const byteOrderMark = 0xFEFF
 
 // serializedSize is SERIALIZED_SIZE, the number of bytes that Serialize
 // writes.
-const serializedSize = 13
+const serializedSize = 15
 
 // block is the C enum Block, the part of a statement that the scanner is
 // in, with the option BeginEndBlocks, AnonymousBlocks or Batches.
@@ -178,6 +191,46 @@ const (
 	// the body of a routine and before the query. BEGIN opens the body of a
 	// routine, and a ; ends the statement.
 	blockWith
+	// blockPackage is after PACKAGE in blockCreate, where BODY or the name
+	// of the package comes next.
+	blockPackage
+	// blockType is after TYPE in blockCreate, where BODY starts a type
+	// body. Another word or a quoted identifier names a type that is not a
+	// type body.
+	blockType
+	// blockUnitName is after PACKAGE BODY or TYPE BODY, before the name. IS
+	// or AS here shows that BODY was the name of the object, so the
+	// statement is not a unit.
+	blockUnitName
+	// blockUnit is after the name of a package or a type body, where IS or
+	// AS starts the unit. A ; ends the statement.
+	blockUnit
+	// blockUnitDeclare is in a package or a type body, outside the blocks
+	// of its body. A ; does not end the statement, and END ends the unit.
+	blockUnitDeclare
+	// blockSubprogram is in the header of a function or a procedure of a
+	// package or a type body, before its IS or AS. A ; ends the header and
+	// not the statement.
+	blockSubprogram
+)
+
+// unit is the C enum Unit, the part of a package or a type body that the
+// scanner is in, with the option BeginEndBlocks. It tells what comes after
+// the END that closes the outer block of the body.
+type unit uint8
+
+const (
+	// unitNone is a statement that is not a package or a type body.
+	unitNone unit = iota
+	// unitDeclare is in the unit, outside a block of the body or in a CASE
+	// of the declarations. The END of the CASE returns to the declarations.
+	unitDeclare
+	// unitSubprogram is in the body of a subprogram. Its END returns to the
+	// declarations of the unit.
+	unitSubprogram
+	// unitInit is in the part of a package body that runs when the package
+	// loads. Its END ends the unit.
+	unitInit
 )
 
 // pending is the C enum Pending, a word whose meaning depends on the next
@@ -211,6 +264,9 @@ const (
 	// BeginEndBlocks, which starts the routines of a query when FUNCTION
 	// comes next.
 	pendingWith
+	// pendingSubprogram is after IS or AS in blockSubprogram. The
+	// subprogram has no BEGIN when LANGUAGE or EXTERNAL comes next.
+	pendingSubprogram
 )
 
 // variable is the C enum Variable, what the scanner found after a colon and
@@ -241,6 +297,7 @@ const (
 	kwBatch
 	kwBegin
 	kwBlock
+	kwBody
 	kwCall
 	kwCase
 	kwCatch
@@ -267,6 +324,7 @@ const (
 	kwMerge
 	kwNoneditionable
 	kwOr
+	kwPackage
 	kwPrint
 	kwProc
 	kwProcedure
@@ -281,6 +339,7 @@ const (
 	kwTransaction
 	kwTrigger
 	kwTry
+	kwType
 	kwUnlogged
 	kwUpdate
 	kwValues
@@ -292,14 +351,14 @@ const (
 // keywords holds the text of each keyword, in lower case.
 var keywords = [...]string{
 	"", "aggregate", "alter", "apply", "as", "batch",
-	"begin", "block", "call", "case", "catch", "constraint",
+	"begin", "block", "body", "call", "case", "catch", "constraint",
 	"counter", "create", "declare", "definer", "delete", "distributed",
 	"do", "editionable", "end", "event", "exec", "execute",
 	"external", "function",
 	"if", "insert", "is", "language", "loop", "merge",
-	"noneditionable", "or", "print", "proc", "procedure", "repeat",
+	"noneditionable", "or", "package", "print", "proc", "procedure", "repeat",
 	"replace", "return", "select", "set", "temp", "temporary",
-	"tran", "transaction", "trigger", "try", "unlogged", "update",
+	"tran", "transaction", "trigger", "try", "type", "unlogged", "update",
 	"values", "while", "with", "work",
 }
 
@@ -337,13 +396,17 @@ type scanner struct {
 	// level the number of blocks of the body that are open. anonymous is 1
 	// in a statement that starts with BEGIN or DECLARE, with the option
 	// AnonymousBlocks. routines is 1 in a statement that starts with WITH
-	// FUNCTION, with the option BeginEndBlocks. They stay 0 without the
-	// options BeginEndBlocks, AnonymousBlocks and Batches.
-	block     block
-	pending   pending
-	level     uint8
-	anonymous uint8
-	routines  uint8
+	// FUNCTION, with the option BeginEndBlocks. unit is the unit of a
+	// package or a type body, and subprograms the number of its subprograms
+	// that wait for their BEGIN. They stay 0 without the options
+	// BeginEndBlocks, AnonymousBlocks and Batches.
+	block       block
+	pending     pending
+	level       uint8
+	anonymous   uint8
+	routines    uint8
+	unit        unit
+	subprograms uint8
 	// variable is what variableCheck found for the next token.
 	variable variable
 	// escapes is 1 when the string of the next token has the form E'...',
@@ -703,14 +766,26 @@ func (s *scanner) resetBlocks() {
 	s.level = 0
 	s.anonymous = 0
 	s.routines = 0
+	s.unit = unitNone
+	s.subprograms = 0
 }
 
 // openBlock is open_block. It opens a block of the body: the first BEGIN of
 // the body, a BEGIN in it, or a CASE in it, which ends at END or END CASE.
+// In a package or a type body, the first BEGIN starts the body of a
+// subprogram that waits for it, or else the part that runs when the
+// package loads.
 func (s *scanner) openBlock() {
 	if s.block != blockBody {
 		s.block = blockBody
 		s.level = 1
+		if s.unit != unitNone {
+			if s.subprograms > 0 {
+				s.unit = unitSubprogram
+			} else {
+				s.unit = unitInit
+			}
+		}
 	} else if s.level < math.MaxUint8 {
 		s.level++
 	}
@@ -718,7 +793,9 @@ func (s *scanner) openBlock() {
 
 // closeBlock is close_block. It closes a block of the body. After the last
 // one, the body ends. After the body of a routine of WITH FUNCTION, another
-// routine or the query comes next.
+// routine or the query comes next. In a package or a type body, the
+// declarations of the unit come next, but the END of the part that runs
+// when the package loads ends the unit.
 func (s *scanner) closeBlock() {
 	if s.block != blockBody {
 		return
@@ -726,12 +803,27 @@ func (s *scanner) closeBlock() {
 	if s.level > 0 {
 		s.level--
 	}
-	if s.level == 0 {
+	if s.level > 0 {
+		return
+	}
+	switch s.unit {
+	case unitNone:
 		if s.routines != 0 {
 			s.block = blockWith
 		} else {
 			s.block = blockNone
 		}
+	case unitSubprogram:
+		if s.subprograms > 0 {
+			s.subprograms--
+		}
+		s.block = blockUnitDeclare
+		s.unit = unitDeclare
+	case unitDeclare:
+		s.block = blockUnitDeclare
+	case unitInit:
+		s.block = blockNone
+		s.unit = unitNone
 	}
 }
 
@@ -763,20 +855,26 @@ func (s *scanner) resolveBegin() {
 
 // endsStatement is ends_statement. It reports whether a ; outside
 // parentheses ends the statement. It is not the end inside the
-// declarations or the body of a stored program or of an anonymous block, or
-// inside a batch.
+// declarations or the body of a stored program or of an anonymous block,
+// inside a package or a type body, or inside a batch. In the header of a
+// subprogram of a package or a type body, the ; ends the header.
 func (s *scanner) endsStatement(opts Options) bool {
 	if !opts.BeginEndBlocks && !opts.AnonymousBlocks && !opts.Batches {
 		return true
 	}
 	s.resolvePending(';')
-	return s.block != blockDeclare && s.block != blockBody && s.block != blockBatch
+	if s.block == blockSubprogram {
+		s.block = blockUnitDeclare
+	}
+	return s.block != blockDeclare && s.block != blockBody && s.block != blockBatch &&
+		s.block != blockUnitDeclare
 }
 
 // scanString is scan_string. It notes a string in SQL text. After IS or AS,
 // a string is the body of the stored program, so no declarations follow.
 // After EXECUTE, DO or WITH, a string is not BLOCK, BEGIN or FUNCTION, so
-// no block follows.
+// no block follows. After IS or AS of a subprogram, a string is not
+// LANGUAGE or EXTERNAL.
 func (s *scanner) scanString(opts Options) {
 	if !opts.BeginEndBlocks {
 		return
@@ -785,8 +883,20 @@ func (s *scanner) scanString(opts Options) {
 	case pendingAs:
 		s.pending = pendingNone
 		s.block = blockRoutine
-	case pendingExecute, pendingDo, pendingWith:
+	case pendingExecute, pendingDo, pendingWith, pendingSubprogram:
 		s.pending = pendingNone
+	}
+}
+
+// scanName is scan_name. It notes a quoted identifier in SQL text. After
+// PACKAGE, PACKAGE BODY or TYPE BODY, it is the name of the unit. After
+// TYPE, it is the name of a type that is not a type body.
+func (s *scanner) scanName() {
+	switch s.block {
+	case blockPackage, blockUnitName:
+		s.block = blockUnit
+	case blockType:
+		s.block = blockNone
 	}
 }
 
@@ -867,6 +977,14 @@ func (s *scanner) scanKeyword(kw keyword, opts Options) {
 			s.routines = 1
 			return
 		}
+	case pendingSubprogram:
+		if kw == kwLanguage || kw == kwExternal {
+			// a call specification, which has no BEGIN
+			if s.subprograms > 0 {
+				s.subprograms--
+			}
+			return
+		}
 	}
 	switch s.block {
 	case blockStart:
@@ -909,6 +1027,10 @@ func (s *scanner) scanKeyword(kw keyword, opts Options) {
 			s.block = blockRoutine
 		case kwDefiner:
 			s.block = blockDefiner
+		case kwPackage:
+			s.block = blockPackage
+		case kwType:
+			s.block = blockType
 		case kwAggregate, kwAlter, kwConstraint, kwEditionable, kwNoneditionable,
 			kwOr, kwReplace, kwTemp, kwTemporary:
 		default:
@@ -959,6 +1081,53 @@ func (s *scanner) scanKeyword(kw keyword, opts Options) {
 		} else if (kw == kwSelect || kw == kwValues) && s.depth == 0 {
 			// the query after the routines, where BEGIN can name a column
 			s.block = blockNone
+		}
+	case blockPackage:
+		// BODY, or the name of the package spec
+		if kw == kwBody {
+			s.block = blockUnitName
+		} else {
+			s.block = blockUnit
+		}
+	case blockType:
+		if kw == kwBody {
+			s.block = blockUnitName
+		} else {
+			s.block = blockNone
+		}
+	case blockUnitName:
+		if kw == kwIs || kw == kwAs {
+			s.block = blockNone
+		} else {
+			s.block = blockUnit
+		}
+	case blockUnit:
+		if (kw == kwIs || kw == kwAs) && s.depth == 0 {
+			s.block = blockUnitDeclare
+			s.unit = unitDeclare
+		}
+	case blockUnitDeclare:
+		switch kw {
+		case kwFunction, kwProcedure:
+			s.block = blockSubprogram
+		case kwBegin:
+			s.pending = pendingBegin
+		case kwCase:
+			// a CASE in a declaration, whose END does not end the unit
+			s.openBlock()
+			s.unit = unitDeclare
+		case kwEnd:
+			// the END of the unit
+			s.block = blockNone
+			s.unit = unitNone
+		}
+	case blockSubprogram:
+		if (kw == kwIs || kw == kwAs) && s.depth == 0 {
+			s.block = blockUnitDeclare
+			s.pending = pendingSubprogram
+			if s.subprograms < math.MaxUint8 {
+				s.subprograms++
+			}
 		}
 	}
 }
@@ -1473,10 +1642,12 @@ func (s *scanner) scanSQL(lexer *abi.Lexer, validSymbols []bool, opts Options) b
 		// not in backticks
 		escapes := c == '"' && opts.BackslashEscapes
 		s.resolveBegin()
+		s.scanName()
 		return scanQuoted(lexer, quotedIdentifier, false, escapes)
 	}
 	if c == '[' && opts.Brackets {
 		s.resolveBegin()
+		s.scanName()
 		return scanBracket(lexer)
 	}
 	return s.scanText(lexer, validSymbols, opts, contextSQL, false, 0)
@@ -1488,8 +1659,8 @@ func (s *scanner) scanSQL(lexer *abi.Lexer, validSymbols []bool, opts Options) b
 func newScanner() *scanner { return &scanner{options: defaultOptions} }
 
 // Serialize writes the depth in its first 4 bytes, in little-endian order,
-// then base, command, block, pending, level, variable, anonymous, routines
-// and escapes.
+// then base, command, block, pending, level, variable, anonymous, routines,
+// escapes, unit and subprograms.
 //
 // Serialize is tree_sitter_usql_external_scanner_serialize.
 func (s *scanner) Serialize(buffer []byte) int {
@@ -1503,6 +1674,8 @@ func (s *scanner) Serialize(buffer []byte) int {
 	buffer[10] = s.anonymous
 	buffer[11] = s.routines
 	buffer[12] = s.escapes
+	buffer[13] = byte(s.unit)
+	buffer[14] = s.subprograms
 	return serializedSize
 }
 
@@ -1528,6 +1701,8 @@ func (s *scanner) Deserialize(buffer []byte) {
 		s.anonymous = buffer[10]
 		s.routines = buffer[11]
 		s.escapes = buffer[12]
+		s.unit = unit(buffer[13])
+		s.subprograms = buffer[14]
 	}
 }
 

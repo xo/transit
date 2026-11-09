@@ -314,9 +314,25 @@ rules hold:
    declarations when a string, `BEGIN`, `LANGUAGE`, `EXTERNAL`, or a word
    that starts a statement such as `SELECT`, `SET`, `RETURN` or `IF` comes
    next.
-7. A word right after `.`, `@`, `$`, `#` or `[` is a name, such as
+7. A package spec, a package body and a type body of Oracle are each one
+   statement (D144). After `CREATE`, the words `OR`, `REPLACE`,
+   `EDITIONABLE` or `NONEDITIONABLE` can come before `PACKAGE`,
+   `PACKAGE BODY` or `TYPE BODY`. After the name, an `IS` or `AS` outside
+   parentheses starts the unit, and a `;` in the unit does not end the
+   statement. In the unit, `FUNCTION` or `PROCEDURE` starts a subprogram.
+   A `;` ends its header, as in a package spec, and an `IS` or `AS`
+   outside parentheses starts its declarations and then its body. The
+   `END` of the body of a subprogram returns to the unit. A `BEGIN` that
+   no subprogram waits for starts the part of a package body that runs
+   when the package loads. An `END` in the unit outside a block, or the
+   `END` of that part, ends the unit. The statement ends at the first `;`
+   after it. When `LANGUAGE` or `EXTERNAL` comes after the `IS` or `AS` of
+   a subprogram, the subprogram has no body. A `CREATE TYPE` that is not
+   `TYPE BODY` does not change. `CREATE TYPE body AS ...` names a type
+   `body`, and it does not change either.
+8. A word right after `.`, `@`, `$`, `#` or `[` is a name, such as
    `NEW.end`, `@end` or `[end]`, and not a keyword.
-8. A meta command ends the statement, as it ends any statement.
+9. A meta command ends the statement, as it ends any statement.
 
 The option does not cover these texts:
 
@@ -325,11 +341,11 @@ The option does not cover these texts:
    `AnonymousBlocks` below covers an anonymous block of PL/SQL.
 2. A body of a stored program with no `BEGIN`, such as a MySQL
    `IF ... END IF;`, or a T-SQL procedure whose statements run to `GO`.
-3. A subprogram in the declarations of PL/SQL, such as
-   `PROCEDURE q IS BEGIN ... END;` inside a procedure. Its `END` ends the
-   statement.
-4. `CREATE PACKAGE BODY` and `CREATE TYPE BODY` of Oracle.
-5. A T-SQL `END` with no `;` that `IF` or `WHILE` follows, as in
+3. A subprogram in the declarations of a `CREATE PROCEDURE` or a
+   `CREATE FUNCTION`, such as `PROCEDURE q IS BEGIN ... END;` inside a
+   procedure. Its `END` ends the statement. In a package body or a type
+   body, rule 7 covers it.
+4. A T-SQL `END` with no `;` that `IF` or `WHILE` follows, as in
    `END IF @a = 1`. The scanner reads it as the end of an `IF` or a
    `WHILE`, so the block stays open. A T-SQL `;WITH` right after `BEGIN`
    makes that `BEGIN` a transaction.
@@ -347,7 +363,7 @@ only. These rules hold:
 
 1. The statement must start with `BEGIN` or `DECLARE`, in any case. White
    space and comments can come before it.
-2. The scanner counts `BEGIN` and `END` with rules 4 and 7 of
+2. The scanner counts `BEGIN` and `END` with rules 4 and 8 of
    `BeginEndBlocks` above. In the block, a `BEGIN` opens a block, but not
    when `;`, `WORK` or `TRANSACTION` comes next (D131). A `BEGIN` that
    `TRAN` or `DISTRIBUTED` follows opens a block. After `DECLARE`, a `;`
@@ -365,14 +381,16 @@ the script `begin null; end;`, then a `/` line, then `select 1 from dual;`
 holds two statements. The text of the second statement is `/`, a new line
 and `select 1 from dual`, and Oracle refuses it.
 
-The option keeps only an anonymous block in one statement. The grammar
-does not read the other PL/SQL units, such as a function or a procedure
-with declarations before `BEGIN`, a trigger with `DECLARE`, a package spec
-or a package body. The person who writes the script escapes each `;` inside
-such a unit as `\;`, as in psql. The scanner keeps `\;` in the statement. A
-query of Oracle that defines a function with `WITH FUNCTION` needs the
-escape too, because the `;` after the `END` of the function ends the
-statement.
+The option keeps only an anonymous block in one statement. With
+`BeginEndBlocks` on too, as usql sets Oracle, the other PL/SQL units are
+each one statement: a function or a procedure with declarations before
+`BEGIN`, a trigger with `DECLARE`, a package spec, a package body and a
+type body (D112, D128, D144). No such unit needs `\;`. With
+`BeginEndBlocks` off, the person who writes the script escapes each `;`
+inside such a unit as `\;`, as in psql. The scanner keeps `\;` in the
+statement, with the options on or off. A query of Oracle that defines a
+function with `WITH FUNCTION` needs the escape with the options on or off,
+because the `;` after the `END` of the function ends the statement.
 
 A batch of CQL holds semicolons too. usql collects a batch from
 `BEGIN BATCH` to `APPLY BATCH` today. With the option `Batches` on, the

@@ -58,3 +58,19 @@ select 2;
   (statement)
   (statement)
   (statement))
+
+================================================================================
+Standard: a package spec and a package body without BeginEndBlocks
+================================================================================
+
+create package pk as function one return number; end pk;
+create package body pk as function one return number as begin return 1; end; end pk;
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (statement)
+  (statement)
+  (statement)
+  (statement)
+  (statement))

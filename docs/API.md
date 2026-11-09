@@ -829,7 +829,7 @@ type Options struct {
 	HashComments  bool // # starts a comment
 	Backticks     bool // `...` is a quoted identifier
 
-	BeginEndBlocks  bool // a stored program with BEGIN ... END is one statement
+	BeginEndBlocks  bool // a stored program, a package or a type body is one statement
 	AnonymousBlocks bool // an anonymous block of PL/SQL is one statement
 	Batches         bool // a batch of CQL, BEGIN BATCH ... APPLY BATCH, is one statement
 
@@ -862,8 +862,11 @@ body does not end the statement. `EXECUTE BLOCK` of Firebird and
 A `;` in the declarations of `EXECUTE BLOCK` before its `BEGIN` does not
 end the statement. `WITH FUNCTION` of Trino at the start of a statement
 opens a block for the body of each routine that it defines (D134). The
-statement ends at the `;` after the query that follows the routines.
-`docs/USQL.md` says which words the scanner reads.
+statement ends at the `;` after the query that follows the routines. A
+package spec, a package body and a type body of Oracle are each one
+statement too, up to the `;` after the `END` of the unit (D144). The `END`
+of a subprogram in the unit does not end the statement. `docs/USQL.md`
+says which words the scanner reads.
 
 `AnonymousBlocks` is the option of D128, and it is off by default. With it
 on, a statement that starts with `BEGIN` or `DECLARE` is an anonymous block
@@ -876,9 +879,10 @@ does not change. usql turns it on for Oracle only.
 A line with only `/` is the text of a statement, with `AnonymousBlocks` on
 or off (D138). The grammar has no node for it. A statement ends only at a
 `;` outside parentheses, at a meta command or at the end of the input.
-Another PL/SQL unit, such as a function with declarations before its
-`BEGIN`, holds a `;` that ends the statement. The script escapes each such
-`;` as `\;`.
+With `BeginEndBlocks` off, another PL/SQL unit, such as a function with
+declarations before its `BEGIN` or a package body, holds a `;` that ends
+the statement. The script escapes each such `;` as `\;`. With
+`BeginEndBlocks` on, such a unit is one statement (D112, D144).
 
 `Batches` keeps a batch of CQL in one statement, and it is off by default.
 With it on, a statement that starts with `BEGIN BATCH`, `BEGIN UNLOGGED

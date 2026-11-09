@@ -742,7 +742,8 @@ On 2026-10-09 the end conditions hold, and phase 5 is done. These are its parts:
    package (D115). `example_more_test.go` of `grammars/json` and
    `grammars/html` holds the examples of the root package and of `inject`.
 7. The option `BeginEndBlocks` of the usql grammar keeps the `BEGIN ...
-   END` body of a stored program in one statement (D112).
+   END` body of a stored program in one statement (D112). It also keeps an
+   Oracle package spec, package body and type body in one statement (D144).
 
 ### Phase 6. Follow upstream
 
