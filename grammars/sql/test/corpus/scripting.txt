@@ -1,0 +1,616 @@
+================================================================================
+A block with declarations
+================================================================================
+
+declare
+  total number(10, 2) default 0;
+  n int := 3;
+  cur cursor for select amount from orders;
+  res resultset;
+  too_big exception (-20002, 'too big');
+begin
+  let step := 1;
+  total := total + step;
+  return total;
+end;
+
+---
+
+(source_file
+  (block
+    (declare_section
+      (declaration
+        (identifier)
+        (type
+          (identifier)
+          (type_modifiers
+            (number)
+            (number)))
+        (number))
+      (declaration
+        (identifier)
+        (type
+          (identifier))
+        (number))
+      (declaration
+        (identifier)
+        (select_statement
+          (select
+            (column_reference
+              (identifier))
+            (from_clause
+              (table_reference
+                (object_reference
+                  (identifier)))))))
+      (declaration
+        (identifier))
+      (declaration
+        (identifier)
+        (unary_expression
+          (operator)
+          (number))
+        (string)))
+    (let_statement
+      (declaration
+        (identifier)
+        (number)))
+    (assignment_statement
+      (identifier)
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier))))
+    (control_statement
+      (column_reference
+        (identifier)))))
+
+================================================================================
+IF, ELSEIF and ELSE
+================================================================================
+
+begin
+  if (n > 10) then
+    return 'big';
+  elseif (n > 5) then
+    n := n * 2;
+  else
+    call log_it(n);
+  end if;
+end;
+
+---
+
+(source_file
+  (block
+    (if_statement
+      (parenthesized_expression
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))
+      (control_statement
+        (string))
+      (elseif_branch
+        (parenthesized_expression
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (number))))
+      (assignment_statement
+        (identifier)
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))
+      (else_branch)
+      (call_statement
+        (object_reference
+          (identifier))
+        (arguments
+          (column_reference
+            (identifier)))))))
+
+================================================================================
+A CASE statement
+================================================================================
+
+begin
+  case (grade)
+    when 'a' then return 4;
+    when 'b' then return 3;
+    else return 0;
+  end case;
+end;
+
+---
+
+(source_file
+  (block
+    (case_statement
+      (parenthesized_expression
+        (column_reference
+          (identifier)))
+      (string)
+      (control_statement
+        (number))
+      (when_branch
+        (string))
+      (control_statement
+        (number))
+      (else_branch)
+      (control_statement
+        (number)))))
+
+================================================================================
+Loops
+================================================================================
+
+begin
+  for i in 1 to 5 do
+    total := total + i;
+  end for;
+  for i in reverse 1 to 3 loop
+    total := total - i;
+  end loop;
+  for rec in cur do
+    total := total + rec.amount;
+  end for;
+  while (total < 100) do
+    total := total * 2;
+  end while;
+  repeat
+    total := total - 1;
+  until (total < 50)
+  end repeat;
+  scan: loop
+    break scan;
+  end loop scan;
+end;
+
+---
+
+(source_file
+  (block
+    (loop_statement
+      (identifier)
+      (number)
+      (number)
+      (keyword)
+      (assignment_statement
+        (identifier)
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)))))
+    (loop_statement
+      (identifier)
+      (number)
+      (number)
+      (keyword)
+      (assignment_statement
+        (identifier)
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier))))
+      (keyword))
+    (loop_statement
+      (identifier)
+      (column_reference
+        (identifier))
+      (keyword)
+      (assignment_statement
+        (identifier)
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)
+            (identifier)))))
+    (loop_statement
+      (parenthesized_expression
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))
+      (keyword)
+      (assignment_statement
+        (identifier)
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))))
+    (loop_statement
+      (assignment_statement
+        (identifier)
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))
+      (parenthesized_expression
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))))
+    (loop_statement
+      (identifier)
+      (keyword)
+      (control_statement
+        (identifier))
+      (keyword)
+      (identifier))))
+
+================================================================================
+Cursors and results
+================================================================================
+
+begin
+  open cur;
+  fetch cur into amount;
+  close cur;
+  res := (select * from orders where amount > 0);
+  return table(res);
+end;
+
+---
+
+(source_file
+  (block
+    (cursor_statement
+      (identifier))
+    (cursor_statement
+      (identifier)
+      (identifier))
+    (cursor_statement
+      (identifier))
+    (assignment_statement
+      (identifier)
+      (subquery
+        (select
+          (star_expression)
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier))))
+          (where_clause
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (number))))))
+    (control_statement
+      (column_reference
+        (identifier)))))
+
+================================================================================
+Exceptions
+================================================================================
+
+begin
+  raise too_big;
+exception
+  when too_big or statement_error then
+    return sqlerrm;
+  when other then
+    raise;
+end;
+
+---
+
+(source_file
+  (block
+    (raise_statement
+      (options
+        (keyword)))
+    (exception_branch)
+    (when_branch
+      (binary_expression
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))))
+    (control_statement
+      (column_reference
+        (identifier)))
+    (when_branch
+      (column_reference
+        (identifier)))
+    (raise_statement)))
+
+================================================================================
+A script of BigQuery
+================================================================================
+
+declare d date default current_date();
+declare a, b int64;
+set a = 1;
+if a > 0 then
+  select a;
+end if;
+begin
+  select 1 / 0;
+exception when error then
+  select @@error.message;
+end;
+for row in (select x from unnest([1, 2]) as x) do
+  insert into log values (row.x);
+end for;
+loop
+  leave;
+end loop;
+raise using message = 'stop';
+
+---
+
+(source_file
+  (declare_statement
+    (declaration
+      (identifier)
+      (type
+        (identifier))
+      (function_call
+        (identifier)
+        (arguments))))
+  (declare_statement
+    (declaration
+      (identifier)
+      (identifier)
+      (type
+        (identifier))))
+  (set_statement
+    (object_reference
+      (identifier))
+    (number))
+  (if_statement
+    (binary_expression
+      (column_reference
+        (identifier))
+      (operator)
+      (number))
+    (select_statement
+      (select
+        (column_reference
+          (identifier)))))
+  (block
+    (select_statement
+      (select
+        (binary_expression
+          (number)
+          (operator)
+          (number))))
+    (exception_branch)
+    (when_branch
+      (column_reference
+        (identifier)))
+    (select_statement
+      (select
+        (parameter))))
+  (loop_statement
+    (identifier)
+    (subquery
+      (select
+        (column_reference
+          (identifier))
+        (from_clause
+          (unnest_table
+            (array
+              (number)
+              (number))
+            (identifier)))))
+    (keyword)
+    (insert_statement
+      (object_reference
+        (identifier))
+      (select_statement
+        (values
+          (parenthesized_expression
+            (column_reference
+              (identifier)
+              (identifier)))))))
+  (loop_statement
+    (keyword)
+    (control_statement)
+    (keyword))
+  (raise_statement
+    (options
+      (keyword)
+      (keyword)
+      (string))))
+
+================================================================================
+A compound statement of Databricks
+================================================================================
+
+begin
+  declare or replace variable n int default 3;
+  declare bad_div condition for sqlstate '22012';
+  declare exit handler for sqlexception, not found
+    begin
+      set n = -1;
+    end;
+  declare continue handler for bad_div set n = 0;
+  outer_loop: while n > 0 do
+    set n = n - 1;
+    iterate outer_loop;
+  end while outer_loop;
+  for r as select id from t do
+    leave;
+  end for;
+  signal sqlstate '45000' set message_text = 'stop';
+end;
+
+---
+
+(source_file
+  (block
+    (declare_statement
+      (declaration
+        (identifier)
+        (type
+          (identifier))
+        (number)))
+    (declare_statement
+      (declaration
+        (identifier)
+        (string)))
+    (declare_statement
+      (declaration
+        (identifier)
+        (block
+          (set_statement
+            (object_reference
+              (identifier))
+            (unary_expression
+              (operator)
+              (number))))))
+    (declare_statement
+      (declaration
+        (identifier)
+        (set_statement
+          (object_reference
+            (identifier))
+          (number))))
+    (loop_statement
+      (identifier)
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number))
+      (keyword)
+      (set_statement
+        (object_reference
+          (identifier))
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number)))
+      (control_statement
+        (identifier))
+      (identifier))
+    (loop_statement
+      (identifier)
+      (select_statement
+        (select
+          (column_reference
+            (identifier))
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier))))))
+      (keyword)
+      (control_statement))
+    (raise_statement
+      (options
+        (keyword)
+        (string)
+        (keyword)
+        (keyword)
+        (string)))))
+
+================================================================================
+Procedures with a block
+================================================================================
+
+create procedure ds.add_rows(day date, out added int64)
+begin
+  set added = 0;
+end;
+create or replace procedure add_two(a int, b int, out c int)
+  language sql
+  sql security invoker
+  as begin
+    set c = a + b;
+  end;
+create procedure sf_proc() returns varchar language sql as
+declare
+  v varchar default 'x';
+begin
+  return v;
+end;
+
+---
+
+(source_file
+  (create_function_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (parameter_list
+      (parameter_declaration
+        (identifier)
+        (type
+          (identifier)))
+      (parameter_declaration
+        (identifier)
+        (type
+          (identifier))))
+    (block
+      (set_statement
+        (object_reference
+          (identifier))
+        (number))))
+  (create_function_statement
+    (object_reference
+      (identifier))
+    (parameter_list
+      (parameter_declaration
+        (identifier)
+        (type
+          (identifier)))
+      (parameter_declaration
+        (identifier)
+        (type
+          (identifier)))
+      (parameter_declaration
+        (identifier)
+        (type
+          (identifier))))
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (keyword)
+    (block
+      (set_statement
+        (object_reference
+          (identifier))
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier))))))
+  (create_function_statement
+    (object_reference
+      (identifier))
+    (parameter_list)
+    (type
+      (identifier))
+    (keyword)
+    (keyword)
+    (block
+      (declare_section
+        (declaration
+          (identifier)
+          (type
+            (identifier))
+          (string)))
+      (control_statement
+        (column_reference
+          (identifier))))))

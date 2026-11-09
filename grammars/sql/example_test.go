@@ -50,5 +50,5 @@ select current_date, current_timestamp, current_user, localtimestamp, session_us
 	}
 	// Output:
 	// (source_file (select_statement (select (current_value) (current_value) (current_value) (current_value) (current_value))))
-	// patterns in queries/highlights.scm: 50
+	// patterns in queries/highlights.scm: 56
 }

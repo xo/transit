@@ -355,3 +355,205 @@ rollback to savepoint s;
   (rollback_statement)
   (rollback_statement
     (identifier)))
+
+================================================================================
+BEGIN with a name
+================================================================================
+
+begin name t1;
+
+---
+
+(source_file
+  (begin_statement
+    (identifier)))
+
+================================================================================
+Files of a stage
+================================================================================
+
+put file:///tmp/data/f.csv @my_stage auto_compress = true;
+put 'file://C:\data\f.csv' @~/staged;
+get @my_stage/out/ file:///tmp/out/ parallel = 4;
+list @my_stage pattern = '.*csv';
+ls @~;
+remove @my_stage/old/;
+rm @%t;
+
+---
+
+(source_file
+  (stage_statement
+    (string)
+    (stage_reference)
+    (options
+      (keyword)
+      (boolean)))
+  (stage_statement
+    (string)
+    (stage_reference))
+  (stage_statement
+    (stage_reference)
+    (string)
+    (options
+      (keyword)
+      (number)))
+  (stage_statement
+    (stage_reference)
+    (options
+      (keyword)
+      (string)))
+  (stage_statement
+    (stage_reference))
+  (stage_statement
+    (stage_reference))
+  (stage_statement
+    (stage_reference)))
+
+================================================================================
+EXPORT DATA and LOAD DATA
+================================================================================
+
+export data with connection us.conn options (uri = 'gs://b/*.csv', format = 'CSV') as select * from t;
+load data into ds.t from files (format = 'CSV', uris = ['gs://b/*.csv']);
+load data local inpath '/tmp/f' overwrite into table t;
+
+---
+
+(source_file
+  (export_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (option_group
+      (keyword)
+      (string)
+      (keyword)
+      (string))
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (load_statement
+    (options
+      (keyword)
+      (keyword)
+      (keyword)
+      (keyword)
+      (keyword)
+      (option_group
+        (keyword)
+        (string)
+        (keyword)
+        (option_group
+          (string)))))
+  (load_statement
+    (options
+      (keyword)
+      (keyword)
+      (string)
+      (keyword)
+      (keyword)
+      (keyword)
+      (keyword))))
+
+================================================================================
+ASSERT
+================================================================================
+
+assert (select count(*) from t) > 0 as 't is not empty';
+
+---
+
+(source_file
+  (assert_statement
+    (binary_expression
+      (subquery
+        (select
+          (function_call
+            (identifier)
+            (arguments
+              (star_expression)))
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier))))))
+      (operator)
+      (number))
+    (string)))
+
+================================================================================
+OPTIMIZE and the upkeep of tables
+================================================================================
+
+optimize events where dt >= '2024-01-01' zorder by (id, ts);
+optimize events;
+vacuum events retain 168 hours dry run;
+analyze table t compute statistics for all columns;
+refresh table t;
+msck repair table t;
+cache lazy table t;
+uncache table if exists t;
+clear cache;
+
+---
+
+(source_file
+  (optimize_statement
+    (object_reference
+      (identifier))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (string)))
+    (column_list
+      (identifier)
+      (identifier)))
+  (optimize_statement
+    (object_reference
+      (identifier)))
+  (maintenance_statement
+    (options
+      (keyword)
+      (keyword)
+      (number)
+      (keyword)
+      (keyword)
+      (keyword)))
+  (maintenance_statement
+    (options
+      (keyword)
+      (keyword)
+      (keyword)
+      (keyword)
+      (keyword)
+      (keyword)
+      (keyword)))
+  (maintenance_statement
+    (options
+      (keyword)
+      (keyword)))
+  (maintenance_statement
+    (options
+      (keyword)
+      (keyword)
+      (keyword)))
+  (maintenance_statement
+    (options
+      (keyword)
+      (keyword)
+      (keyword)))
+  (maintenance_statement
+    (options
+      (keyword)
+      (keyword)
+      (keyword)
+      (keyword)))
+  (maintenance_statement
+    (options
+      (keyword))))

@@ -552,37 +552,23 @@ The grammar leaves out these forms of the other statements:
 
 ### Widen the generic SQL grammar
 
-The first part of the generic SQL grammar that xo writes (D143) reads the
-query, the changes of data, the common statements of the schema, and the
-other statements as lists of options. The second part will read these
-forms, which the documentation of Snowflake, BigQuery and Databricks
-shows:
+The second part of the generic SQL grammar that xo writes (D143) reads the
+scripting, the pipe syntax and the other forms of the documentation of
+Snowflake, BigQuery and Databricks. It leaves out these forms, because
+each costs more parse states than it is worth today, or it needs an
+external scanner. Ken decides which of them the grammar reads:
 
-- The scripting of each dialect: the blocks of `BEGIN ... END` with
-  `DECLARE`, `LET`, `IF`, `LOOP` and `FOR` of Snowflake, the procedural
-  language of BigQuery, and the compound statements of Databricks. A
-  procedure with such a body gets an error today.
-- `CONNECT BY` with `START WITH`, `PRIOR` and `CONNECT_BY_ROOT`,
-  `MATCH_RECOGNIZE`, `RESAMPLE`, the outer join with `(+)`, and `FOR
-  UPDATE` of Snowflake.
-- The strings in double quotes of BigQuery, as in `TIMESTAMP "2024-01-01"`.
-  A name in double quotes is a name in the grammar.
-- The pipe syntax with `|>` of BigQuery and Databricks, the operator `->>`
-  of Snowflake, the expression `WITH(a AS x, a + 1)` of BigQuery, and
-  `WHERE` and `HAVING MAX` among the arguments of an aggregate, as in
-  `COUNT(DISTINCT x WHERE x > 0)`.
-- `STRICT CORRESPONDING`, and the set operations with `INNER`, `LEFT` or
-  `FULL` before them and `ON` after them, as in `FULL UNION ALL BY NAME`.
-- `INSERT OVERWRITE DIRECTORY`, `ALTER TABLE ... ADD PARTITION` and the
-  changes of a partition of Databricks, the version after `@` of a table,
-  as in `events@v1`, and `WITH (options)` after a table.
-- `CHANGES ... END(...)` of Snowflake, because `END` is a reserved word.
-- The operator `DIV`, which put 13 parse states in the large form.
-- The comments of Databricks that nest.
-- The statements that the grammar does not read at all, such as `PUT`,
-  `GET`, `LIST`, `REMOVE` and `UNDROP` of Snowflake, `EXPORT DATA`,
-  `LOAD DATA` and `ASSERT` of BigQuery, and `OPTIMIZE` and `VACUUM` of
-  Databricks.
+- The flow operator `->>` of Snowflake, as in `SHOW TABLES ->> SELECT *
+  FROM $1`. It cost about 230 parse states and 23 large states, because
+  each state where a statement ends took the new token.
+- `FULL`, `LEFT` and `INNER` before a set operation, and `OUTER` after
+  them, as in `FULL OUTER UNION ALL BY NAME` of BigQuery. One token for
+  the words cost about 1,700 parse states. The words of a join need several
+  conflicts that the parser solves at run time.
+- `PIVOT` and `UNPIVOT` as operators of the pipe syntax. They cost about
+  85 parse states.
+- The comments of Databricks that nest. They need an external scanner,
+  `src/scanner.c` and its port `scanner.go`.
 
 ## The setup of the repository
 

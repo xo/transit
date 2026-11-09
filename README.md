@@ -412,7 +412,10 @@ with `ANY` and `ALL`, `IS DISTINCT FROM`, the function calls with
 `DISTINCT`, `FILTER`, `WITHIN GROUP`, `IGNORE NULLS` and `OVER`, the window
 frames, the named arguments, the lambdas, the arrays, the `STRUCT` values,
 the object constants, the access to a field with `:` and `.`, the
-subscripts and the intervals. It covers the full query: `WITH` with
+subscripts, the intervals, `DIV`, the expression `WITH` of BigQuery, and
+`WHERE` and `HAVING MAX` in the arguments of an aggregate. A string in
+double quotes after a type, as in `DATE "2024-01-01"`, is a constant of
+BigQuery where no alias can come. It covers the full query: `WITH` with
 `RECURSIVE`, `SELECT` with `DISTINCT`, `TOP` and `AS STRUCT`, the star with
 `EXCEPT`, `EXCLUDE`, `REPLACE`, `RENAME` and `ILIKE`, each kind of join with
 `LATERAL`, `APPLY`, `ASOF` and `MATCH_CONDITION`, `UNNEST`, the table
@@ -420,9 +423,13 @@ functions, the stages of Snowflake, `VALUES` in `FROM`, the time travel of
 each of the three dialects, `PIVOT`, `UNPIVOT`, `TABLESAMPLE`, `SAMPLE`,
 `LATERAL VIEW`, `GROUP BY` with `ALL`, `ROLLUP`, `CUBE` and `GROUPING
 SETS`, `HAVING`, `WINDOW`, `QUALIFY`, `ORDER BY`, `LIMIT`, `OFFSET`,
-`FETCH`, `SORT BY` and the set operations with `MINUS` and `BY NAME`. It
+`FETCH`, `SORT BY`, `FOR UPDATE`, `START WITH` and `CONNECT BY`,
+`MATCH_RECOGNIZE`, the outer join with `(+)`, the version of a table
+after `@`, the pipe syntax with `|>` and the set operations with `MINUS`,
+`BY NAME` and `CORRESPONDING`. It
 covers `INSERT` with `OVERWRITE`, `PARTITION`, `REPLACE WHERE` and the
-multi-table form, `UPDATE`, `DELETE`, `MERGE`, `TRUNCATE` and `COPY INTO`.
+multi-table form and `OVERWRITE DIRECTORY`, `UPDATE`, `DELETE`, `MERGE`,
+`TRUNCATE` and `COPY INTO`.
 It covers `CREATE`, `ALTER` and `DROP` of the tables, the views, the
 materialized views, the indexes, the functions and the procedures, with
 `OR REPLACE`, `IF NOT EXISTS`, `TEMPORARY`, `TRANSIENT`, `CLONE`, the types
@@ -430,10 +437,15 @@ materialized views, the indexes, the functions and the procedures, with
 ALTER and DROP of any other object, such as a schema, a sequence or a
 stage, and the options of each object, are lists of options. It covers
 `COMMENT ON`, `USE`, `SET`, `UNSET`, `SHOW`, `DESCRIBE`, `EXPLAIN`,
-`GRANT`, `REVOKE`, `CALL`, `EXECUTE IMMEDIATE` and the statements of
-transactions. The grammar needs no external scanner. The package adds
-about 1.1 MB to a binary, where the package of the grammar of
-`DerekStride/tree-sitter-sql` added about 3.0 MB.
+`GRANT`, `REVOKE`, `CALL`, `EXECUTE IMMEDIATE`, the statements of
+transactions, `PUT`, `GET`, `UNDROP`, `EXPORT DATA`, `LOAD DATA`,
+`ASSERT`, `OPTIMIZE` and `VACUUM`. It covers the scripting of the three
+dialects: the blocks with `DECLARE` and `EXCEPTION`, `IF`, `CASE`,
+`LOOP`, `WHILE`, `REPEAT`, `FOR`, the cursors and the handlers, also as
+the body of a procedure. The grammar needs no external scanner, so a
+comment does not nest. The package adds about 1.3 MB to a binary, where
+the package of the grammar of `DerekStride/tree-sitter-sql` added about
+3.0 MB.
 
 The package `github.com/xo/transit/grammars/postgres/postgres` holds the
 grammar `postgres`, which xo writes from the reference manual of

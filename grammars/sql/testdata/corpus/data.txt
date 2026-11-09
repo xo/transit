@@ -450,3 +450,60 @@ copy into t;
   (copy_statement
     (object_reference
       (identifier))))
+
+================================================================================
+INSERT OVERWRITE DIRECTORY
+================================================================================
+
+insert overwrite directory '/tmp/out' using parquet options (compression 'snappy') select * from t;
+insert overwrite local directory '/tmp/out' select 1;
+
+---
+
+(source_file
+  (insert_statement
+    (string)
+    (identifier)
+    (option_group
+      (keyword)
+      (string))
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (insert_statement
+    (string)
+    (select_statement
+      (select
+        (number)))))
+
+================================================================================
+MERGE with BY NAME
+================================================================================
+
+merge into t using s on t.id = s.id
+when matched then update all by name
+when not matched then insert all by name;
+
+---
+
+(source_file
+  (merge_statement
+    (object_reference
+      (identifier))
+    (table_reference
+      (object_reference
+        (identifier)))
+    (binary_expression
+      (column_reference
+        (identifier)
+        (identifier))
+      (operator)
+      (column_reference
+        (identifier)
+        (identifier)))
+    (merge_when_clause)
+    (merge_when_clause)))

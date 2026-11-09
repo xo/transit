@@ -11256,8 +11256,8 @@
       "status": "available",
       "golden": {
         "abi14": {
-          "parser_c": "f457c0b51fd17accd59c47c6e269735287fecd3446a1e05f1b1496d0e006d7da",
-          "node_types": "451e216006ae5811aca491713d47508aa9ff85fcf65668480d030e34ed01af77",
+          "parser_c": "721c345c6cba426cd9621dcf9ae862c5b695cef4ba568aaac9fea0e1c7039ca3",
+          "node_types": "ef6fa72f34e2c729d1a21549f73ce25c1b599936a674dd0bba8fabb0f524c26c",
           "paths": [
             "field map",
             "inherited field",
@@ -11265,6 +11265,7 @@
             "anonymous unique alias",
             "non-terminal alias map",
             "keyword lexer",
+            "pragma for a large lexer",
             "ADVANCE_MAP",
             "SKIP",
             "eof action",
@@ -11272,12 +11273,13 @@
             "SHIFT_REPEAT",
             "SHIFT_EXTRA",
             "RECOVER",
+            "dynamic precedence",
             "ABI 14 lex modes"
           ]
         },
         "abi15": {
-          "parser_c": "c93813a259eff71e7bd1174c37280fd0dc923c2fb78335150fb8450b30f78088",
-          "node_types": "451e216006ae5811aca491713d47508aa9ff85fcf65668480d030e34ed01af77",
+          "parser_c": "8ea286174ddfc32ebddb982cd7ac6976086a9edacdd8e74640288e85b31fdf77",
+          "node_types": "ef6fa72f34e2c729d1a21549f73ce25c1b599936a674dd0bba8fabb0f524c26c",
           "paths": [
             "field map",
             "inherited field",
@@ -11287,6 +11289,7 @@
             "keyword lexer",
             "reserved words",
             "reserved word set of a state",
+            "pragma for a large lexer",
             "ADVANCE_MAP",
             "SKIP",
             "eof action",
@@ -11294,13 +11297,14 @@
             "SHIFT_REPEAT",
             "SHIFT_EXTRA",
             "RECOVER",
+            "dynamic precedence",
             "ABI 15 lex modes",
             "grammar version"
           ]
         }
       },
       "corpus": {
-        "tests": 110,
+        "tests": 140,
         "failures": 0,
         "transit": "same"
       }

@@ -34,7 +34,17 @@
 // token of its own. The clauses of a query after SELECT, the clauses after
 // the body of a query, the clauses after the arguments of a function and
 // the clauses of a window come in any order, because a sequence of
-// optional clauses costs parse states for each set of the clauses.
+// optional clauses costs parse states for each set of the clauses. A token
+// of several words must not match the whole text of a keyword or of an
+// identifier, such as DIV in the token of * and /. Such a token cost more
+// than 1,000 parse states, because the upstream tool then merges fewer
+// states.
+//
+// The scripting of the three dialects is one set of rules: blocks, IF,
+// CASE, the loops and the statements that only a block has, such as LET.
+// Each body of a block, of IF, of CASE or of a loop is the same rule, and
+// it takes ELSEIF, ELSE, WHEN and EXCEPTION as branches among its
+// statements, so that the states where a statement starts are few.
 //
 // The dialects have hundreds of options for their objects, such as the
 // options of a table, of a stage or of COPY INTO. The grammar reads them as
@@ -96,8 +106,10 @@ const RESERVED_WORDS = [
 ];
 
 // The reserved words that name a function, which the set function_name
-// leaves out, so that a function call can have such a name.
-const FUNCTION_WORDS = ['LEFT', 'RIGHT', 'WINDOW'];
+// leaves out, so that a function call can have such a name. LEFT and RIGHT
+// are not keywords, because they are a part of the token of the words
+// before JOIN.
+const FUNCTION_WORDS = ['WINDOW'];
 
 // The words of one token each, such as CURRENT_DATE, which take one column
 // of each state where an expression starts.
@@ -243,6 +255,13 @@ module.exports = grammar({
     // A parenthesized query can be the left side of a set operation, or a
     // subquery in an expression or in FROM.
     [$.parenthesized_query, $.subquery],
+    // DECLARE and a declaration with a semicolon after it are a statement
+    // of BigQuery or Databricks, or the start of the declarations of a
+    // block of Snowflake.
+    [$.declare_section, $.declare_statement],
+    // A name and a string in double quotes are a column and its alias, or
+    // a constant of BigQuery, such as DATE "2024-01-01".
+    [$.column_reference, $._type_name],
   ],
 
   rules: {
@@ -280,7 +299,26 @@ module.exports = grammar({
       $.begin_statement,
       $.commit_statement,
       $.rollback_statement,
+      $.block,
+      $.declare_statement,
+      $.let_statement,
+      $.assignment_statement,
+      $.if_statement,
+      $.case_statement,
+      $.loop_statement,
+      $.control_statement,
+      $.cursor_statement,
+      $.raise_statement,
+      $.stage_statement,
+      $.undrop_statement,
+      $.export_statement,
+      $.load_statement,
+      $.assert_statement,
+      $.optimize_statement,
+      $.maintenance_statement,
     ),
+
+
 
     // Changes of data
 
@@ -307,6 +345,16 @@ module.exports = grammar({
           choice($.select_statement, kws('DEFAULT', 'VALUES')),
         ),
         $._multi_table_insert,
+        seq(
+          optional(kw('LOCAL')),
+          kw('DIRECTORY'),
+          optional(field('path', $.string)),
+          repeat(choice(
+            seq(kw('USING'), field('format', $._name)),
+            seq(kw('OPTIONS'), $.option_group),
+          )),
+          $.select_statement,
+        ),
       ),
     ),
 
@@ -408,6 +456,7 @@ module.exports = grammar({
       kw('THEN'),
       choice(
         seq(kw('UPDATE'), kw('SET'), choice(commaSep1($.assignment), '*')),
+        seq(choice(kw('UPDATE'), kw('INSERT')), kws('ALL', 'BY', 'NAME')),
         kw('DELETE'),
         seq(
           kw('INSERT'),
@@ -646,8 +695,9 @@ module.exports = grammar({
         $._property_item,
       )),
       optional(choice(
-        seq(kw('AS'), field('body', choice($.string, $.parenthesized_expression, $.select_statement))),
+        seq(kw('AS'), field('body', choice($.string, $.parenthesized_expression, $.select_statement, $.block))),
         seq(kw('RETURN'), field('body', choice($._expression, $.select_statement))),
+        field('body', $.block),
       )),
     ),
 
@@ -721,9 +771,19 @@ module.exports = grammar({
       $.rename_to,
       $.alter_column,
       seq(kw('ADD'), $.table_constraint),
+      $.add_partition,
       seq(choice(kw('SET'), kw('UNSET')), $.options),
       $.options,
     ),
+
+    // ADD PARTITION adds partitions to a table, each with its location, as
+    // in Databricks.
+    add_partition: $ => seq(
+      kw('ADD'),
+      optional($._if_not_exists),
+      repeat1(seq($.partition_spec, optional(seq(kw('LOCATION'), field('location', $.string))))),
+    ),
+
 
     add_column: $ => seq(
       kw('ADD'),
@@ -893,12 +953,18 @@ module.exports = grammar({
 
     // Transactions
 
-    // The words after BEGIN TRANSACTION, such as NAME t of Snowflake, are a
-    // list of options.
-    begin_statement: $ => seq(
-      choice(kw('BEGIN'), kw('START')),
-      optional(choice(kw('TRANSACTION'), kw('WORK'))),
-      optional(alias($._command_options, $.options)),
+    // BEGIN alone, BEGIN TRANSACTION and START TRANSACTION start a
+    // transaction. The words after TRANSACTION, such as NAME t of
+    // Snowflake, are a list of options. BEGIN and a statement after it
+    // start a block.
+    begin_statement: $ => choice(
+      kw('BEGIN'),
+      seq(kw('BEGIN'), kw('NAME'), field('name', $._name)),
+      seq(
+        choice(kw('BEGIN'), kw('START')),
+        choice(kw('TRANSACTION'), kw('WORK')),
+        optional(alias($._command_options, $.options)),
+      ),
     ),
 
     commit_statement: _ => seq(kw('COMMIT'), optional(choice(kw('TRANSACTION'), kw('WORK')))),
@@ -907,6 +973,301 @@ module.exports = grammar({
       kw('ROLLBACK'),
       optional(choice(kw('TRANSACTION'), kw('WORK'))),
       optional(seq(kw('TO'), optional(kw('SAVEPOINT')), field('savepoint', $._name))),
+    ),
+
+    // Scripting
+
+    // The body of a block, of IF, of CASE and of a loop: statements, each
+    // with a semicolon, and the branches between them, such as ELSEIF x
+    // THEN, ELSE, WHEN x THEN and EXCEPTION. Each body is the same rule, so
+    // that the states where a statement starts are few, and the grammar
+    // accepts a branch in any body. No expression comes right before a
+    // statement, because the states after an expression would then take
+    // each token that starts a statement.
+    _body: $ => repeat1(choice(
+      seq($._statement, ';'),
+      $.elseif_branch,
+      $.else_branch,
+      $.when_branch,
+      $.exception_branch,
+    )),
+
+    elseif_branch: $ => seq(kw('ELSEIF'), field('condition', $._expression), kw('THEN')),
+
+    else_branch: _ => kw('ELSE'),
+
+    // WHEN x THEN is a branch of CASE, or a handler of EXCEPTION, as in
+    // WHEN e1 OR e2 THEN or WHEN OTHER THEN.
+    when_branch: $ => seq(kw('WHEN'), field('condition', $._expression), kw('THEN')),
+
+    // EXCEPTION starts the handlers of the errors of a block.
+    exception_branch: _ => kw('EXCEPTION'),
+
+    // A block of statements: the scripting block of Snowflake, the block
+    // of BigQuery and the compound statement of Databricks. A block can
+    // have a label before it and after END, and the declarations of
+    // Snowflake before BEGIN.
+    block: $ => seq(
+      optional($._label_prefix),
+      optional($.declare_section),
+      $._begin_body,
+      optional(field('end_label', $.identifier)),
+    ),
+
+    // BEGIN, THEN, and DO or LOOP, with a body and END after them. Each is
+    // a rule of its own, and so is the body with END, so that the bodies
+    // share the states where a statement starts.
+    _begin_body: $ => seq(kw('BEGIN'), $._body_end),
+
+    _then_body: $ => seq(kw('THEN'), $._body_end),
+
+    _loop_body: $ => seq(alias($._do_word, $.keyword), $._body_end),
+
+    _body_end: $ => seq(optional($._body), kw('END')),
+
+    // A label before a block or a loop, as in outer: LOOP.
+    _label_prefix: $ => seq(field('label', $.identifier), ':'),
+
+    // The declarations of Snowflake before BEGIN, each with a semicolon.
+    declare_section: $ => seq(
+      kw('DECLARE'),
+      repeat1(seq($.declaration, ';')),
+    ),
+
+    // DECLARE declares a variable, a cursor, an exception, a condition or a
+    // handler, as in BigQuery and Databricks.
+    declare_statement: $ => seq(
+      kw('DECLARE'),
+      optional(kws('OR', 'REPLACE')),
+      optional(kw('VARIABLE')),
+      $.declaration,
+    ),
+
+    // A declaration: variables with a type, a default value or both, a
+    // cursor for a query, a RESULTSET, an exception or a condition, or a
+    // handler of conditions with the statement that handles them.
+    declaration: $ => choice(
+      seq(
+        commaSep1(field('name', $._name)),
+        choice(
+          seq(field('type', $.type), optional($._default_assignment)),
+          $._default_assignment,
+        ),
+      ),
+      seq(field('name', $._name), kws('CURSOR', 'FOR'), choice($.select_statement, $._name)),
+      seq(field('name', $._name), kw('RESULTSET'), optional($._default_assignment)),
+      seq(field('name', $._name), kw('EXCEPTION'), optional(parens(commaSep1($._expression)))),
+      seq(field('name', $._name), kws('CONDITION', 'FOR'), $._condition),
+      seq(
+        choice(kw('CONTINUE'), kw('EXIT')),
+        kws('HANDLER', 'FOR'),
+        commaSep1($._condition),
+        $._statement,
+      ),
+    ),
+
+    _default_assignment: $ => seq(
+      choice(kw('DEFAULT'), ':=', '='),
+      field('value', $._expression),
+    ),
+
+    // A condition of a handler: a SQLSTATE, NOT FOUND or a name, such as
+    // SQLEXCEPTION.
+    _condition: $ => choice(
+      seq(kw('SQLSTATE'), optional(kw('VALUE')), $.string),
+      kws('NOT', 'FOUND'),
+      $._name,
+    ),
+
+    // LET declares a variable, a cursor or a RESULTSET in a block of
+    // Snowflake.
+    let_statement: $ => seq(kw('LET'), $.declaration),
+
+    // A variable and its new value, as in x := x + 1 of Snowflake.
+    assignment_statement: $ => seq(
+      field('name', $._name),
+      ':=',
+      field('value', $._expression),
+    ),
+
+    // IF runs the statements of the first condition that holds, or the
+    // statements after ELSE.
+    if_statement: $ => seq(
+      kw('IF'),
+      field('condition', $._expression),
+      $._then_body,
+      kw('IF'),
+    ),
+
+    // CASE runs the statements of the first WHEN that matches, as in
+    // Snowflake and Databricks.
+    case_statement: $ => seq(
+      kw('CASE'),
+      optional(field('value', $._expression)),
+      kw('WHEN'),
+      field('condition', $._expression),
+      $._then_body,
+      kw('CASE'),
+    ),
+
+    // The loops: LOOP, WHILE, REPEAT and FOR. A loop can have a label
+    // before it and after its END. WHILE and FOR take DO or LOOP before
+    // their statements, and END WHILE, END FOR or END LOOP after them, as
+    // in Snowflake. DO and LOOP are one token, so that they take one column
+    // of each state after an expression.
+    loop_statement: $ => seq(
+      optional($._label_prefix),
+      $._loop,
+      optional(field('end_label', $.identifier)),
+    ),
+
+    // A loop with no label. It is a rule of its own, so that a loop with a
+    // label and a loop with none share their states.
+    _loop: $ => choice(
+      seq($._loop_body, alias($._do_word, $.keyword)),
+      seq(
+        kw('WHILE'),
+        field('condition', $._expression),
+        $._loop_body,
+        choice(kw('WHILE'), alias($._do_word, $.keyword)),
+      ),
+      seq(
+        kw('REPEAT'),
+        optional($._body),
+        kw('UNTIL'),
+        field('condition', $._expression),
+        kws('END', 'REPEAT'),
+      ),
+      seq(
+        kw('FOR'),
+        choice(
+          seq(
+            field('variable', $._name),
+            kw('IN'),
+            optional(kw('REVERSE')),
+            field('start', $._expression),
+            optional(seq(kw('TO'), field('end', $._expression))),
+          ),
+          seq(optional(seq(field('variable', $._name), kw('AS'))), $.select_statement),
+        ),
+        $._loop_body,
+        choice(kw('FOR'), alias($._do_word, $.keyword)),
+      ),
+    ),
+
+    _do_word: _ => token(choice(keyword('DO'), keyword('LOOP'))),
+
+    // BREAK, CONTINUE, LEAVE and ITERATE leave a loop or start its next
+    // round, with the label of the loop or not. RETURN leaves a procedure,
+    // with a value or not.
+    control_statement: $ => choice(
+      seq(
+        choice(kw('BREAK'), kw('CONTINUE'), kw('LEAVE'), kw('ITERATE')),
+        optional(field('label', $.identifier)),
+      ),
+      seq(
+        kw('RETURN'),
+        optional(choice(
+          field('value', $._expression),
+          seq(kw('TABLE'), parens(field('value', $._expression))),
+        )),
+      ),
+    ),
+
+    // OPEN, FETCH and CLOSE use a cursor.
+    cursor_statement: $ => choice(
+      seq(kw('OPEN'), field('cursor', $._name), optional(seq(kw('USING'), parens(commaSep1($._expression))))),
+      seq(
+        kw('FETCH'),
+        optional(seq(choice(kw('NEXT'), kw('FIRST')), kw('FROM'))),
+        field('cursor', $._name),
+        kw('INTO'),
+        commaSep1(field('variable', $._name)),
+      ),
+      seq(kw('CLOSE'), field('cursor', $._name)),
+    ),
+
+    // RAISE raises an exception, as in Snowflake and BigQuery, and SIGNAL
+    // and RESIGNAL raise a condition, as in Databricks. The words after
+    // them are a list of options, as in RAISE USING MESSAGE = 'x'.
+    raise_statement: $ => seq(
+      choice(kw('RAISE'), kw('SIGNAL'), kw('RESIGNAL')),
+      optional(alias($._command_options, $.options)),
+    ),
+
+    // Other statements
+
+    // PUT uploads files to a stage, GET downloads them, LIST lists them and
+    // REMOVE deletes them, as in Snowflake. The options after the stage
+    // are a list of options.
+    stage_statement: $ => seq(
+      choice(
+        seq(kw('PUT'), field('file', $._file), field('stage', $.stage_reference)),
+        seq(kw('GET'), field('stage', $.stage_reference), field('file', $._file)),
+        seq(
+          choice(kw('LIST'), kw('LS'), kw('REMOVE'), kw('RM')),
+          field('stage', $.stage_reference),
+        ),
+      ),
+      optional($.options),
+    ),
+
+    // A file of PUT or GET: a string, or a URL with no quotes, as in
+    // file:///tmp/data.csv.
+    _file: $ => choice($.string, alias(token(/file:\/\/[^\s;]+/), $.string)),
+
+    // UNDROP restores an object that DROP deleted, as in Snowflake.
+    undrop_statement: $ => seq(
+      kw('UNDROP'),
+      field('kind', $._object_kind),
+      field('name', $.object_reference),
+    ),
+
+    // EXPORT DATA writes the rows of a query to files, as in BigQuery.
+    export_statement: $ => seq(
+      kws('EXPORT', 'DATA'),
+      optional(seq(kws('WITH', 'CONNECTION'), field('connection', $.object_reference))),
+      kw('OPTIONS'),
+      $.option_group,
+      kw('AS'),
+      $.select_statement,
+    ),
+
+    // LOAD DATA loads files into a table, as in BigQuery and Databricks.
+    // The words after DATA are a list of options.
+    load_statement: $ => seq(kws('LOAD', 'DATA'), alias($._command_options, $.options)),
+
+    // ASSERT stops a script when a condition does not hold, as in
+    // BigQuery.
+    assert_statement: $ => seq(
+      kw('ASSERT'),
+      field('condition', $._expression),
+      optional(seq(kw('AS'), field('description', $.string))),
+    ),
+
+    // OPTIMIZE compacts the files of a table, as in Databricks. ZORDER BY
+    // orders the rows of the files by the columns.
+    optimize_statement: $ => seq(
+      kw('OPTIMIZE'),
+      field('table', $.object_reference),
+      optional($.where_clause),
+      optional(seq(kws('ZORDER', 'BY'), choice($.column_list, commaSep1($._name)))),
+    ),
+
+    // VACUUM, ANALYZE, REFRESH, MSCK, CACHE, UNCACHE and CLEAR of
+    // Databricks keep tables and their files. The words after the first
+    // word are a list of options, as in ANALYZE TABLE t COMPUTE STATISTICS.
+    maintenance_statement: $ => seq(
+      choice(
+        kw('VACUUM'),
+        kw('ANALYZE'),
+        kw('REFRESH'),
+        kw('MSCK'),
+        kw('CACHE'),
+        kw('UNCACHE'),
+        kw('CLEAR'),
+      ),
+      alias($._command_options, $.options),
     ),
 
     // Lists of options
@@ -990,14 +1351,79 @@ module.exports = grammar({
     _query: $ => prec.right(seq(
       optional($.with_clause),
       $._query_body,
-      repeat(choice(
-        $.order_by_clause,
-        $.limit_clause,
-        $.offset_clause,
-        $.fetch_clause,
-        $.sort_by_clause,
-      )),
+      repeat($._query_clause),
     )),
+
+    _query_clause: $ => choice(
+      $.order_by_clause,
+      $.limit_clause,
+      $.offset_clause,
+      $.fetch_clause,
+      $.sort_by_clause,
+      $.for_update_clause,
+      $.pipe_operator,
+    ),
+
+    // FOR UPDATE locks the rows of a query, as in Snowflake.
+    for_update_clause: $ => seq(
+      kws('FOR', 'UPDATE'),
+      optional(seq(kw('OF'), commaSep1($.object_reference))),
+      optional(choice(kw('NOWAIT'), seq(kw('WAIT'), $.number), kws('SKIP', 'LOCKED'))),
+    ),
+
+    // An operator of the pipe syntax of BigQuery and Databricks, as in FROM
+    // t |> WHERE a > 1 |> SELECT a. Each operator takes the rows of the
+    // query before it. PIVOT and UNPIVOT cost about 85 parse states as
+    // operators, so the grammar leaves them out.
+    pipe_operator: $ => seq(
+      '|>',
+      choice(
+        seq(kw('SELECT'), optional($._set_quantifier), commaSep1($._select_item)),
+        seq(choice(kw('EXTEND'), kw('WINDOW')), commaSep1($._select_item)),
+        seq(kw('SET'), commaSep1($.assignment)),
+        seq(kw('DROP'), commaSep1($.column_reference)),
+        seq(kw('RENAME'), commaSep1($.aliased_expression)),
+        seq(kw('AS'), field('alias', $._label)),
+        $.where_clause,
+        $.limit_clause,
+        seq(
+          kw('AGGREGATE'),
+          optional(commaSep1($._select_item)),
+          optional(seq(
+            kw('GROUP'),
+            optional(kws('AND', 'ORDER')),
+            kw('BY'),
+            commaSep1($._select_item),
+          )),
+        ),
+        $.order_by_clause,
+        seq(
+          choice(alias($._set_operator, $.keyword), kw('INTERSECT')),
+          optional($._set_quantifier),
+          optional(kws('BY', 'NAME')),
+          choice(
+            $._query_body,
+            seq($.parenthesized_query, repeat1(seq(',', $.parenthesized_query))),
+          ),
+        ),
+        seq(
+          $._join_operator,
+          field('right', $._table_factor),
+          optional(choice(
+            seq(kw('ON'), field('condition', $._expression)),
+            seq(kw('USING'), $.column_list),
+          )),
+        ),
+        seq(kw('CALL'), $.function_call, optional($._alias)),
+        $._sample,
+        kw('DISTINCT'),
+        $.with_clause,
+      ),
+    ),
+
+    // A query that starts with FROM, as in the pipe syntax.
+    from_query: $ => prec.right(seq(kw('FROM'), commaSep1($._table_reference))),
+
 
     // SORT BY, CLUSTER BY and DISTRIBUTE BY of Databricks and Hive say how
     // the rows are sorted and split among the workers.
@@ -1035,34 +1461,50 @@ module.exports = grammar({
       $.select,
       prec(1, $.values),
       $.table_query,
+      $.from_query,
       $.set_operation,
       $.parenthesized_query,
     ),
+
 
     parenthesized_query: $ => parens($._query),
 
     // INTERSECT binds more tightly than UNION, EXCEPT and MINUS. BY NAME
     // matches the columns of the two sides by their names.
+    //
+    // INNER, LEFT, FULL and OUTER before the operator, as in FULL OUTER
+    // UNION ALL BY NAME of BigQuery, say which columns the result has, and
+    // ON after BY NAME names the columns that match. CORRESPONDING matches
+    // the columns by their names too.
     set_operation: $ => choice(
       prec.left(1, seq(
         field('left', $._query_body),
         field('operator', alias($._set_operator, $.keyword)),
-        optional($._set_quantifier),
-        optional(kws('BY', 'NAME')),
+        optional($._set_modifiers),
         field('right', $._query_body),
       )),
       prec.left(2, seq(
         field('left', $._query_body),
         field('operator', kw('INTERSECT')),
-        optional($._set_quantifier),
-        optional(kws('BY', 'NAME')),
+        optional($._set_modifiers),
         field('right', $._query_body),
       )),
+    ),
+
+    _set_modifiers: $ => choice(
+      seq($._set_quantifier, optional($._set_match)),
+      $._set_match,
+    ),
+
+    _set_match: $ => choice(
+      seq(kws('BY', 'NAME'), optional(seq(kw('ON'), $.column_list))),
+      seq(optional(kw('STRICT')), kw('CORRESPONDING'), optional(seq(kw('BY'), $.column_list))),
     ),
 
     // UNION, EXCEPT and MINUS are one token, so that they take one column of
     // each state after a table or an expression.
     _set_operator: _ => token(choice(keyword('UNION'), keyword('EXCEPT'), keyword('MINUS'))),
+
 
     _set_quantifier: _ => choice(kw('ALL'), kw('DISTINCT')),
 
@@ -1084,6 +1526,8 @@ module.exports = grammar({
         $.having_clause,
         $.window_clause,
         $.qualify_clause,
+        $.start_with_clause,
+        $.connect_by_clause,
       )),
     )),
 
@@ -1158,6 +1602,7 @@ module.exports = grammar({
       $.pivot_table,
       $.unpivot_table,
       $.sampled_table,
+      $.match_recognize_table,
     ),
 
     _table_primary: $ => choice(
@@ -1175,18 +1620,26 @@ module.exports = grammar({
     // Snowflake, and VERSION AS OF and TIMESTAMP AS OF of Databricks do.
     table_reference: $ => prec.right(seq(
       field('table', $.object_reference),
+
       repeat($.time_travel),
       optional($._alias),
     )),
 
     time_travel: $ => choice(
       seq(
-        choice(kws('FOR', 'SYSTEM_TIME'), alias($._version_word, $.keyword)),
+        alias($._version_word, $.keyword),
         kws('AS', 'OF'),
         field('value', $._default_value),
       ),
       seq(alias($._at_word, $.keyword), $._named_arguments),
+      seq(kw('END'), $._named_arguments),
+      field('value', $.table_version),
+      seq(kw('WITH'), $.option_group),
     ),
+
+    // The version of a table after @, as in events@v1 of Databricks. No
+    // space comes before @.
+    table_version: _ => token.immediate(/@[A-Za-z0-9_]+/),
 
     // Arguments with names in parentheses, which end before an alias of a
     // table, as in AT(OFFSET => -60).
@@ -1194,8 +1647,14 @@ module.exports = grammar({
 
     // The words of a version are one token, and so are AT, BEFORE and
     // CHANGES, so that they take few columns of each state after a table.
-    // AT TIME ZONE takes the token of AT too.
-    _version_word: _ => token(choice(keyword('TIMESTAMP'), keyword('VERSION'))),
+    // AT TIME ZONE takes the token of AT too. FOR SYSTEM_TIME is a part of
+    // the token, so that FOR after a table can start FOR UPDATE.
+    _version_word: _ => token(choice(
+      keyword('TIMESTAMP'),
+      keyword('VERSION'),
+      seq(keyword('FOR'), /\s+/, keyword('SYSTEM_TIME')),
+    )),
+
 
     _at_word: _ => token(choice(keyword('AT'), keyword('BEFORE'), keyword('CHANGES'))),
 
@@ -1258,6 +1717,11 @@ module.exports = grammar({
     // percent, a number of rows or a bucket, with the method and the seed.
     sampled_table: $ => prec.left(seq(
       field('table', $._table_factor),
+      $._sample,
+    )),
+
+    // The sample of a table, which is also an operator of the pipe syntax.
+    _sample: $ => seq(
       alias(token(choice(keyword('TABLESAMPLE'), keyword('SAMPLE'))), $.keyword),
       optional(field('method', choice(kw('BERNOULLI'), kw('SYSTEM'), kw('ROW'), kw('BLOCK')))),
       parens(choice(
@@ -1265,7 +1729,7 @@ module.exports = grammar({
         seq(kw('BUCKET'), $.number, kws('OUT', 'OF'), $.number),
       )),
       optional(seq(choice(kw('REPEATABLE'), kw('SEED')), parens(field('seed', $.number)))),
-    )),
+    ),
 
     // A join. ON and USING are optional, because some dialects take a join
     // with no condition. APPLY is a lateral join, as in CROSS APPLY and
@@ -1282,29 +1746,29 @@ module.exports = grammar({
       )),
     )),
 
-    // The words before JOIN come in any order. The words that only come
-    // before JOIN, such as INNER, CROSS and ASOF, are one token, the node
-    // keyword, so that they take one column of each state after a table
-    // and after an expression.
+    // The words before JOIN come in any order. They are one token, the node
+    // keyword, and so are JOIN and APPLY, so that they take two columns of
+    // each state after a table and after an expression. LEFT and RIGHT are
+    // a part of the token, so they are not keywords, and they can name a
+    // function.
     _join_operator: $ => seq(
-      repeat(choice(
-        alias($._join_word, $.keyword),
-        kw('LEFT'),
-        kw('RIGHT'),
-        kw('FULL'),
-        kw('OUTER'),
-      )),
-      choice(kw('JOIN'), kw('APPLY')),
+      repeat(alias($._join_word, $.keyword)),
+      alias($._join_keyword, $.keyword),
     ),
 
-    _join_word: _ => token(choice(...['NATURAL', 'INNER', 'CROSS', 'SEMI', 'ANTI', 'ASOF', 'DIRECTED'].map(keyword))),
+    _join_keyword: _ => token(choice(keyword('JOIN'), keyword('APPLY'))),
+
+    _join_word: _ => token(choice(...[
+      'NATURAL', 'INNER', 'CROSS', 'LEFT', 'RIGHT', 'FULL', 'OUTER', 'SEMI', 'ANTI', 'ASOF', 'DIRECTED',
+    ].map(keyword))),
 
     // LATERAL VIEW of Databricks and Hive joins each row with the rows of a
     // function, with the names of the columns after AS.
     lateral_view: $ => prec.left(seq(
       field('table', $._table_factor),
       kws('LATERAL', 'VIEW'),
-      optional(kw('OUTER')),
+      optional(alias($._join_word, $.keyword)),
+
       field('function', $.function_call),
       optional(field('alias', $._name)),
       optional(seq(kw('AS'), commaSep1(field('column', $._label)))),
@@ -1335,6 +1799,7 @@ module.exports = grammar({
     unpivot_table: $ => prec.left(seq(
       field('table', $._table_factor),
       kw('UNPIVOT'),
+
       optional(seq(choice(kw('INCLUDE'), kw('EXCLUDE')), kw('NULLS'))),
       parens(seq(
         field('value', choice($._name, $.column_list)),
@@ -1346,7 +1811,57 @@ module.exports = grammar({
       optional($._alias),
     )),
 
+    // MATCH_RECOGNIZE finds the rows that match a pattern, as in
+    // Snowflake, BigQuery and Databricks. The grammar takes its clauses in
+    // any order, but DEFINE, which comes last. An expression of DEFINE
+    // that a clause could follow would copy the states after an
+    // expression.
+    match_recognize_table: $ => prec.left(seq(
+      field('table', $._table_factor),
+      kw('MATCH_RECOGNIZE'),
+      parens(seq(repeat(choice(
+        $.partition_by_clause,
+        $.order_by_clause,
+        seq(kw('MEASURES'), commaSep1(seq(optional(choice(kw('RUNNING'), kw('FINAL'))), $.aliased_expression))),
+        seq(
+          choice(kws('ONE', 'ROW'), kws('ALL', 'ROWS')),
+          kws('PER', 'MATCH'),
+          optional(choice(
+            seq(choice(kw('SHOW'), kw('OMIT')), kws('EMPTY', 'MATCHES')),
+            kws('WITH', 'UNMATCHED', 'ROWS'),
+          )),
+        ),
+        seq(
+          kws('AFTER', 'MATCH', 'SKIP'),
+          choice(
+            kws('PAST', 'LAST', 'ROW'),
+            kws('TO', 'NEXT', 'ROW'),
+            seq(kw('TO'), optional(choice(kw('FIRST'), kw('LAST'))), $._name),
+          ),
+        ),
+        seq(kw('PATTERN'), $.row_pattern),
+        seq(kw('SUBSET'), commaSep1(seq($._name, '=', $.column_list))),
+      )),
+      kw('DEFINE'),
+      commaSep1(seq(field('variable', $._name), kw('AS'), field('condition', $._expression))),
+      )),
+      optional($._alias),
+    )),
+
+
+
+    // The pattern of MATCH_RECOGNIZE: the names of the variables, with the
+    // operators of a regular expression between them, such as |, * and
+    // {2,}.
+    row_pattern: $ => parens(repeat(choice(
+      $._name,
+      $.number,
+      $.row_pattern,
+      alias(token(choice('|', '*', '+', '?', '^', '$', '{-', '-}', '{', '}', ',')), $.operator),
+    ))),
+
     where_clause: $ => seq(kw('WHERE'), field('condition', $._expression)),
+
 
     // GROUP BY ALL groups by each column of SELECT that is not an
     // aggregate.
@@ -1387,6 +1902,19 @@ module.exports = grammar({
       kw('AS'),
       choice($.window_specification, field('window', $._name)),
     ),
+
+    // START WITH and CONNECT BY read a hierarchy, as in Snowflake. START
+    // WITH gives the rows at the top, and CONNECT BY joins each row with
+    // the rows below it, with PRIOR before the column of the row above.
+    start_with_clause: $ => seq(kws('START', 'WITH'), field('condition', $._expression)),
+
+    connect_by_clause: $ => seq(
+      kws('CONNECT', 'BY'),
+      optional(kw('NOCYCLE')),
+      field('condition', $._expression),
+    ),
+
+
 
     // QUALIFY filters the rows after the window functions.
     qualify_clause: $ => seq(kw('QUALIFY'), field('condition', $._expression)),
@@ -1482,6 +2010,7 @@ module.exports = grammar({
       $.interval_literal,
       $.current_value,
       $.column_reference,
+      $.outer_join_column,
       $.parameter,
       $.function_call,
       $.cast_expression,
@@ -1497,7 +2026,19 @@ module.exports = grammar({
       $.subquery,
       $.exists_expression,
       $.case_expression,
+      $.with_expression,
     ),
+
+    // WITH names values for the expression at its end, as in WITH(a AS
+    // x + 1, a * a) of BigQuery.
+    with_expression: $ => seq(
+      kw('WITH'),
+      '(',
+      repeat1(seq(field('name', $._name), kw('AS'), field('value', $._expression), ',')),
+      field('result', $._expression),
+      ')',
+    ),
+
 
     _literal: $ => choice(
       $.number,
@@ -1522,10 +2063,26 @@ module.exports = grammar({
     // A type name before a string gives a constant of the type, such as
     // DATE '2024-03-01' or JSON '{"a": 1}'. The name is an identifier, so
     // date also names a column.
-    typed_literal: $ => seq(
-      field('type', alias($.identifier, $.type)),
-      field('value', $.string),
+    //
+    // A string in double quotes is a string of BigQuery, as in TIMESTAMP
+    // "2024-01-01", and a quoted name in the other dialects. After a name
+    // where an alias can come, as in SELECT a "b", the parser tries both
+    // at run time, and the alias wins.
+    typed_literal: $ => choice(
+      seq(
+        field('type', alias($.identifier, $.type)),
+        field('value', $.string),
+      ),
+      prec.dynamic(-1, seq(
+        field('type', $._type_name),
+        field('value', alias($._quoted_identifier, $.string)),
+      )),
     ),
+
+    // The type of a constant in a string in double quotes. It has the
+    // precedence of a column, so that the parser tries both.
+    _type_name: $ => prec(1, alias($.identifier, $.type)),
+
 
     // An interval: INTERVAL, a value and its units, as in INTERVAL 1 DAY,
     // INTERVAL '1-2' YEAR TO MONTH, INTERVAL '1 day' or INTERVAL 1 DAY 2
@@ -1574,7 +2131,16 @@ module.exports = grammar({
       ),
     )),
 
+    // A column with (+) after it is the column of the outer side of a join
+    // in WHERE, as in Snowflake. (+) is one token, so that a column and ( do
+    // not start a function call.
+    outer_join_column: $ => seq(
+      field('column', $.column_reference),
+      alias(token(seq('(', /\s*/, '+', /\s*/, ')')), $.operator),
+    ),
+
     // A parameter or a variable: ?, :name, :1, @name, @@name, $1, $name
+
     // and ${name}.
     parameter: _ => token(choice(
       '?',
@@ -1630,8 +2196,15 @@ module.exports = grammar({
         $.order_by_clause,
         $.limit_clause,
         seq(alias($._nulls_word, $.keyword), kw('NULLS')),
+        $.where_clause,
+        seq(kw('HAVING'), alias($._extremum_word, $.keyword), field('extremum', $._expression)),
       )),
     ))),
+
+    // WHERE and HAVING MAX or HAVING MIN filter the rows of an aggregate
+    // in its arguments, as in COUNT(DISTINCT x WHERE x > 0) of BigQuery.
+    // MAX and MIN are one token.
+    _extremum_word: _ => token(choice(keyword('MAX'), keyword('MIN'))),
 
     // The arguments of a function. Most functions take a list of
     // expressions with commas between them. The functions that the standard
@@ -1788,12 +2361,15 @@ module.exports = grammar({
       kw('END'),
     ),
 
-    when_clause: $ => seq(
+    // The result of WHEN binds before a branch of a CASE statement, which
+    // a CASE expression cannot hold.
+    when_clause: $ => prec(1, seq(
       kw('WHEN'),
       field('condition', $._expression),
       kw('THEN'),
       field('result', $._expression),
-    ),
+    )),
+
 
     // A lambda: x -> x + 1 or (x, y) -> x + y.
     lambda_expression: $ => prec.right(PREC.lambda, seq(
@@ -1809,7 +2385,13 @@ module.exports = grammar({
     unary_expression: $ => choice(
       prec.right(PREC.not, seq(field('operator', kw('NOT')), field('operand', $._expression))),
       prec.right(PREC.unary, seq(field('operator', alias($._unary_operator, $.operator)), field('operand', $._expression))),
+      prec.right(PREC.unary, seq(field('operator', alias($._prior_word, $.keyword)), field('operand', $._expression))),
     ),
+
+    // PRIOR and CONNECT_BY_ROOT of a hierarchy are one token, so that they
+    // take one column of each state where an expression starts.
+    _prior_word: _ => token(choice(keyword('PRIOR'), keyword('CONNECT_BY_ROOT'))),
+
 
     _sign: _ => token(choice('-', '+')),
 
@@ -1826,6 +2408,9 @@ module.exports = grammar({
         [PREC.shift, alias(token(choice('<<', '>>')), $.operator), $._expression],
         [PREC.add, alias(token(choice('+', '-', '||')), $.operator), $._expression],
         [PREC.multiply, alias($._multiplicative_operator, $.operator), $._expression],
+        [PREC.multiply, kw('DIV'), $._expression],
+
+
       ];
       return choice(...table.map(([p, op, right]) => prec.left(p, seq(
         field('left', $._expression),
@@ -1836,6 +2421,8 @@ module.exports = grammar({
 
     _comparison_operator: _ => token(choice('=', '==', '<', '>', '<=', '>=', '<>', '!=', '<=>')),
 
+    // DIV of Databricks divides two integers. It is a part of the token of
+    // the operators of its level, so that it takes no column of its own.
     _multiplicative_operator: _ => token(choice('*', '/', '%')),
 
     _operand: $ => choice($._expression, $.quantified_expression),

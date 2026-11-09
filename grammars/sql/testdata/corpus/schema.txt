@@ -1069,3 +1069,42 @@ comment if exists on view v is 'x';
       (keyword)
       (keyword))
     (string)))
+
+================================================================================
+ALTER TABLE ADD PARTITION
+================================================================================
+
+alter table t add if not exists partition (dt = '2024-01-01') location '/d/1' partition (dt = '2024-01-02');
+
+---
+
+(source_file
+  (alter_statement
+    (object_reference
+      (identifier))
+    (add_partition
+      (partition_spec
+        (identifier)
+        (string))
+      (string)
+      (partition_spec
+        (identifier)
+        (string)))))
+
+================================================================================
+UNDROP
+================================================================================
+
+undrop table t;
+undrop schema db.s;
+
+---
+
+(source_file
+  (undrop_statement
+    (object_reference
+      (identifier)))
+  (undrop_statement
+    (object_reference
+      (identifier)
+      (identifier))))

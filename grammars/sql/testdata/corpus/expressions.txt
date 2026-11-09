@@ -1004,3 +1004,173 @@ select (select max(a) from t), a + (select 1);
         (subquery
           (select
             (number)))))))
+
+================================================================================
+The outer join with (+)
+================================================================================
+
+select * from a, b where a.id = b.id(+) and a.k (+) = b.k;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (binary_expression
+            (column_reference
+              (identifier)
+              (identifier))
+            (operator)
+            (outer_join_column
+              (column_reference
+                (identifier)
+                (identifier))
+              (operator)))
+          (binary_expression
+            (outer_join_column
+              (column_reference
+                (identifier)
+                (identifier))
+              (operator))
+            (operator)
+            (column_reference
+              (identifier)
+              (identifier))))))))
+
+================================================================================
+Strings in double quotes after a type
+================================================================================
+
+select a "Alias", f(date "2024-01-01"), timestamp "2024-01-01 10:00" + interval 1 day;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (aliased_expression
+        (column_reference
+          (identifier))
+        (identifier))
+      (function_call
+        (identifier)
+        (arguments
+          (typed_literal
+            (type)
+            (string))))
+      (binary_expression
+        (typed_literal
+          (type)
+          (string))
+        (operator)
+        (interval_literal
+          (number)
+          (interval_unit))))))
+
+================================================================================
+A WITH expression
+================================================================================
+
+select with(a as x + 1, b as a * 2, a + b);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (with_expression
+        (identifier)
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))
+        (identifier)
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)))))))
+
+================================================================================
+The filters of an aggregate
+================================================================================
+
+select count(distinct x where x > 0), any_value(fruit having max sold), array_agg(x ignore nulls where x < 0);
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (where_clause
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (number)))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (keyword)
+          (column_reference
+            (identifier))))
+      (function_call
+        (identifier)
+        (arguments
+          (column_reference
+            (identifier))
+          (keyword)
+          (where_clause
+            (binary_expression
+              (column_reference
+                (identifier))
+              (operator)
+              (number))))))))
+
+================================================================================
+DIV
+================================================================================
+
+select 7 div 2, a div b * c;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (binary_expression
+        (number)
+        (number))
+      (binary_expression
+        (binary_expression
+          (column_reference
+            (identifier))
+          (column_reference
+            (identifier)))
+        (operator)
+        (column_reference
+          (identifier))))))

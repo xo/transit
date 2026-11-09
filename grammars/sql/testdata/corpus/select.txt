@@ -253,6 +253,7 @@ select * from a join b on a.id = b.id left join c using (id) right outer join d 
                     (table_reference
                       (object_reference
                         (identifier)))
+                    (keyword)
                     (table_reference
                       (object_reference
                         (identifier)))
@@ -264,15 +265,22 @@ select * from a join b on a.id = b.id left join c using (id) right outer join d 
                       (column_reference
                         (identifier)
                         (identifier))))
+                  (keyword)
+                  (keyword)
                   (table_reference
                     (object_reference
                       (identifier)))
                   (column_list
                     (identifier)))
+                (keyword)
+                (keyword)
+                (keyword)
                 (table_reference
                   (object_reference
                     (identifier)))
                 (boolean))
+              (keyword)
+              (keyword)
               (table_reference
                 (object_reference
                   (identifier)))
@@ -285,9 +293,11 @@ select * from a join b on a.id = b.id left join c using (id) right outer join d 
                   (identifier)
                   (identifier))))
             (keyword)
+            (keyword)
             (table_reference
               (object_reference
                 (identifier))))
+          (keyword)
           (keyword)
           (table_reference
             (object_reference
@@ -314,6 +324,8 @@ select * from a left semi join b on a.k = b.k left anti join c on c.k = a.k asof
                   (object_reference
                     (identifier)))
                 (keyword)
+                (keyword)
+                (keyword)
                 (table_reference
                   (object_reference
                     (identifier)))
@@ -326,6 +338,8 @@ select * from a left semi join b on a.k = b.k left anti join c on c.k = a.k asof
                     (identifier)
                     (identifier))))
               (keyword)
+              (keyword)
+              (keyword)
               (table_reference
                 (object_reference
                   (identifier)))
@@ -337,6 +351,7 @@ select * from a left semi join b on a.k = b.k left anti join c on c.k = a.k asof
                 (column_reference
                   (identifier)
                   (identifier))))
+            (keyword)
             (keyword)
             (table_reference
               (object_reference
@@ -357,6 +372,7 @@ select * from a left semi join b on a.k = b.k left anti join c on c.k = a.k asof
               (column_reference
                 (identifier)
                 (identifier))))
+          (keyword)
           (keyword)
           (keyword)
           (table_reference
@@ -390,6 +406,7 @@ select * from a cross apply f(a.x) outer apply (select 1) as s, lateral (select 
               (object_reference
                 (identifier)))
             (keyword)
+            (keyword)
             (function_table
               (function_call
                 (identifier)
@@ -397,6 +414,8 @@ select * from a cross apply f(a.x) outer apply (select 1) as s, lateral (select 
                   (column_reference
                     (identifier)
                     (identifier))))))
+          (keyword)
+          (keyword)
           (derived_table
             (subquery
               (select
@@ -448,6 +467,7 @@ select * from a join b;
           (table_reference
             (object_reference
               (identifier)))
+          (keyword)
           (table_reference
             (object_reference
               (identifier))))))))
@@ -470,6 +490,7 @@ select * from (a join b on a.x = b.x) as j;
             (table_reference
               (object_reference
                 (identifier)))
+            (keyword)
             (table_reference
               (object_reference
                 (identifier)))
@@ -669,6 +690,7 @@ select * from t timestamp as of '2024-01-01';
           (object_reference
             (identifier))
           (time_travel
+            (keyword)
             (function_call
               (identifier)
               (function_call
@@ -931,6 +953,7 @@ select * from t lateral view explode(t.arr) e as item lateral view outer posexpl
                   (identifier))))
             (identifier)
             (identifier))
+          (keyword)
           (function_call
             (identifier)
             (arguments
@@ -1380,3 +1403,447 @@ table t;
     (table_query
       (object_reference
         (identifier)))))
+
+================================================================================
+CONNECT BY
+================================================================================
+
+select id, connect_by_root name as top_name
+from staff
+start with boss_id is null
+connect by nocycle prior id = boss_id
+order by id;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (aliased_expression
+        (unary_expression
+          (keyword)
+          (column_reference
+            (identifier)))
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (start_with_clause
+        (is_expression
+          (column_reference
+            (identifier))
+          (null)))
+      (connect_by_clause
+        (binary_expression
+          (unary_expression
+            (keyword)
+            (column_reference
+              (identifier)))
+          (operator)
+          (column_reference
+            (identifier)))))
+    (order_by_clause
+      (order_by_item
+        (column_reference
+          (identifier))))))
+
+================================================================================
+MATCH_RECOGNIZE
+================================================================================
+
+select * from ticks
+match_recognize (
+  partition by sym
+  order by ts
+  measures first(ts) as start_ts, final last(ts) as end_ts
+  one row per match
+  after match skip past last row
+  pattern (dn+ up{2,} $)
+  define dn as price < prev(price), up as price > prev(price)
+) as m;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (match_recognize_table
+          (table_reference
+            (object_reference
+              (identifier)))
+          (partition_by_clause
+            (column_reference
+              (identifier)))
+          (order_by_clause
+            (order_by_item
+              (column_reference
+                (identifier))))
+          (aliased_expression
+            (function_call
+              (identifier)
+              (arguments
+                (column_reference
+                  (identifier))))
+            (identifier))
+          (aliased_expression
+            (function_call
+              (identifier)
+              (arguments
+                (column_reference
+                  (identifier))))
+            (identifier))
+          (row_pattern
+            (identifier)
+            (operator)
+            (identifier)
+            (operator)
+            (number)
+            (operator)
+            (operator)
+            (operator))
+          (identifier)
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (function_call
+              (identifier)
+              (arguments
+                (column_reference
+                  (identifier)))))
+          (identifier)
+          (binary_expression
+            (column_reference
+              (identifier))
+            (operator)
+            (function_call
+              (identifier)
+              (arguments
+                (column_reference
+                  (identifier)))))
+          (identifier))))))
+
+================================================================================
+FOR UPDATE
+================================================================================
+
+select * from t for update;
+select * from t where id < 5 for update nowait;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))
+    (for_update_clause))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))))
+    (for_update_clause)))
+
+================================================================================
+The pipe syntax
+================================================================================
+
+from sales
+|> where amount > 0
+|> extend amount * 2 as doubled
+|> aggregate sum(doubled) as total group by region
+|> order by total desc
+|> limit 10;
+select 1 as a |> set a = a + 1 |> drop a |> as t;
+values (1), (2) tab(c) |> rename c as d |> select d |> distinct;
+
+---
+
+(source_file
+  (select_statement
+    (from_query
+      (table_reference
+        (object_reference
+          (identifier))))
+    (pipe_operator
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))))
+    (pipe_operator
+      (aliased_expression
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))
+        (identifier)))
+    (pipe_operator
+      (aliased_expression
+        (function_call
+          (identifier)
+          (arguments
+            (column_reference
+              (identifier))))
+        (identifier))
+      (column_reference
+        (identifier)))
+    (pipe_operator
+      (order_by_clause
+        (order_by_item
+          (column_reference
+            (identifier)))))
+    (pipe_operator
+      (limit_clause
+        (number))))
+  (select_statement
+    (select
+      (aliased_expression
+        (number)
+        (identifier)))
+    (pipe_operator
+      (assignment
+        (column_reference
+          (identifier))
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))))
+    (pipe_operator
+      (column_reference
+        (identifier)))
+    (pipe_operator
+      (identifier)))
+  (select_statement
+    (values
+      (parenthesized_expression
+        (number))
+      (parenthesized_expression
+        (number))
+      (identifier)
+      (column_list
+        (identifier)))
+    (pipe_operator
+      (aliased_expression
+        (column_reference
+          (identifier))
+        (identifier)))
+    (pipe_operator
+      (column_reference
+        (identifier)))
+    (pipe_operator)))
+
+================================================================================
+Set operations and joins in the pipe syntax
+================================================================================
+
+from a
+|> left join b using (id)
+|> union all (select 1), (select 2)
+|> intersect distinct by name (select 3)
+|> tablesample system (10 percent)
+|> call tvf(1)
+|> window count(*) over (partition by id) as n;
+
+---
+
+(source_file
+  (select_statement
+    (from_query
+      (table_reference
+        (object_reference
+          (identifier))))
+    (pipe_operator
+      (keyword)
+      (keyword)
+      (table_reference
+        (object_reference
+          (identifier)))
+      (column_list
+        (identifier)))
+    (pipe_operator
+      (keyword)
+      (parenthesized_query
+        (select
+          (number)))
+      (parenthesized_query
+        (select
+          (number))))
+    (pipe_operator
+      (parenthesized_query
+        (select
+          (number))))
+    (pipe_operator
+      (keyword)
+      (number))
+    (pipe_operator
+      (function_call
+        (identifier)
+        (arguments
+          (number))))
+    (pipe_operator
+      (aliased_expression
+        (function_call
+          (identifier)
+          (arguments
+            (star_expression))
+          (over_clause
+            (window_specification
+              (partition_by_clause
+                (column_reference
+                  (identifier))))))
+        (identifier)))))
+
+================================================================================
+Set operations with CORRESPONDING
+================================================================================
+
+select a from t union all corresponding by (a) select a from u;
+select a from t except distinct strict corresponding select a from u;
+select a from t union all by name on (a) select a from u;
+
+---
+
+(source_file
+  (select_statement
+    (set_operation
+      (select
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))
+      (keyword)
+      (column_list
+        (identifier))
+      (select
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (select_statement
+    (set_operation
+      (select
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))
+      (keyword)
+      (select
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (select_statement
+    (set_operation
+      (select
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))
+      (keyword)
+      (column_list
+        (identifier))
+      (select
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))))
+
+================================================================================
+Versions and options of a table
+================================================================================
+
+select * from events@v12;
+select * from events@20240101000000000;
+select * from jdbc_table with (fetchsize = 10) as j;
+select * from t changes(information => default) at(offset => -60) end(timestamp => '2024-01-01');
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))
+          (time_travel
+            (table_version))))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))
+          (time_travel
+            (table_version))))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))
+          (time_travel
+            (option_group
+              (keyword)
+              (number)))
+          (identifier)))))
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))
+          (time_travel
+            (keyword)
+            (named_argument
+              (identifier)
+              (column_reference
+                (identifier))))
+          (time_travel
+            (keyword)
+            (named_argument
+              (identifier)
+              (unary_expression
+                (operator)
+                (number))))
+          (time_travel
+            (named_argument
+              (identifier)
+              (string))))))))

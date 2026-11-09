@@ -568,16 +568,48 @@ Each one follows these rules, in addition to the rest of this document:
    arguments of `AT` and of a stage, have their own parentheses and their
    own function call, and they do not end with the rules of an expression.
    As any expression, the version of `AS OF` put 150 more states in the
-   large form. The words that come only before `JOIN`, such as `INNER`,
-   `CROSS` and `ASOF`, are one token, and so are `UNION`, `EXCEPT` and
-   `MINUS`, `TABLESAMPLE` and `SAMPLE`, `AT`, `BEFORE` and `CHANGES`, and
-   `SORT`, `CLUSTER` and `DISTRIBUTE`. Each token takes one column of the
-   states after a table and after an expression. With a keyword for each
-   word, about 150 more states took the large form. `DIV` of Databricks put 13
-   states in the large form, so the grammar leaves it out. `PIVOT` and
-   `UNPIVOT` cost about 310 states, `MERGE` about 350, `INSERT` about 270,
-   the time travel about 140, and a comma after the last item of `SELECT`
-   6 large states. The grammar has 5,398 parse states, 18 of them large.
+   large form. The words before `JOIN`, such as `INNER`, `LEFT`, `CROSS`
+   and `ASOF`, are one token, and so are `JOIN` and `APPLY`, `UNION`,
+   `EXCEPT` and `MINUS`, `TABLESAMPLE` and `SAMPLE`, `AT`, `BEFORE` and
+   `CHANGES`, `SORT`, `CLUSTER` and `DISTRIBUTE`, `DO` and `LOOP`, and
+   `PRIOR` and `CONNECT_BY_ROOT`. Each token takes one column of the states
+   after a table and after an expression. With a keyword for each word,
+   about 150 more states took the large form. A token must not match the
+   whole text of a keyword or of an identifier. `DIV` in the token of `*`
+   and `/` cost about 5,200 states, and one token for `START` and
+   `CONNECT` cost about 1,500. `FULL`, `LEFT` and `INNER` before a set
+   operation, as in `FULL UNION ALL` of BigQuery, are left out. One token
+   for them cost about 1,700 states, and the words of a join need several
+   conflicts at run time. `PIVOT` and `UNPIVOT` cost about 310 states,
+   `MERGE` about 350, `INSERT` about 270, the time travel about 140, and a
+   comma after the last item of `SELECT` 6 large states.
+   The scripting of Snowflake, BigQuery and Databricks costs about 190
+   states and 23 large states. Each body of a block, of `IF`, of `CASE` and
+   of a loop is one rule, `_body`, with `ELSEIF`, `ELSE`, `WHEN` and
+   `EXCEPTION` as branches among its statements. With a body of its own for
+   each statement, about 40 more states took the large form, because each
+   state where a statement starts has more than 64 columns. No expression comes
+   right before a statement in a body, so `UNTIL` of `REPEAT` and the
+   first `WHEN` of `CASE` are not branches. The loops cost about 50 of the
+   states. The pipe syntax with `|>` costs about 90 states and 30 large
+   states, and `FROM` at the start of a query 16 of them, because `FROM`
+   adds a column to each state where a query starts in parentheses. `PIVOT`
+   and `UNPIVOT` as operators of the pipe syntax cost about 85 states, so
+   the grammar leaves them out. As a statement of its own, the query that
+   starts with `FROM` cost about 300 states. `MATCH_RECOGNIZE` costs about
+   90 states, because `DEFINE` comes last and a measure is an aliased
+   expression. Its own rule for a measure cost about 140 more states. A
+   string in double quotes after the name of a type, as in `DATE
+   "2024-01-01"` of BigQuery, is a constant only where an alias cannot
+   come, or where the parser tries both at run time and the alias wins. It
+   costs about 15 states. `CONNECT BY` costs about 10 states, `FOR UPDATE`
+   about 20, `(+)` about 30, the expression `WITH` about 45 states and 17
+   large states, and the statements such as `PUT`, `UNDROP`, `EXPORT DATA`
+   and `OPTIMIZE` about 50. `DIV` costs no state, because the states after
+   an expression already have the large form. The flow operator `->>` of
+   Snowflake cost about 230 states, so the grammar leaves it out. The
+   grammar has 5,905 parse states, 88 of them large, and its `parser.go` is
+   2.6 MB.
 
 A change to such a grammar is a change to transit. It follows "Before you
 stage" in `AGENTS.md`, and its golden files are made again.
