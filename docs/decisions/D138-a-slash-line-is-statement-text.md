@@ -1,6 +1,7 @@
 # D138. A line with only a slash is statement text
 
-Status: Decided, supersedes D135 and D136, amends D128 and D137.
+Status: Decided, supersedes D135 and D136, amends D128 and D137, amended by
+D144.
 
 D135 and D136 made a line with only `/` a node `slash` of the usql grammar,
 with the option `AnonymousBlocks` on. That form comes from SQL*Plus, the

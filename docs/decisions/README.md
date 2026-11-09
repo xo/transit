@@ -156,9 +156,10 @@ An open question is not a decision. It goes at the end of
 | [D135](D135-a-slash-line-is-a-node-of-its-own.md) | A line with only a slash is a node of its own | Decided, amends D128, amended by D136, superseded by D138 |
 | [D136](D136-a-slash-line-inside-parentheses-is-text.md) | A line with only a slash inside parentheses is text | Decided, amends D135, amended by D137, superseded by D138 |
 | [D137](D137-a-highlight-test-can-name-its-options.md) | A highlight test can name its options | Decided, amends D136, amended by D138 |
-| [D138](D138-a-slash-line-is-statement-text.md) | A line with only a slash is statement text | Decided, supersedes D135 and D136, amends D128 and D137 |
+| [D138](D138-a-slash-line-is-statement-text.md) | A line with only a slash is statement text | Decided, supersedes D135 and D136, amends D128 and D137, amended by D144 |
 | [D139](D139-dash-comments-are-an-option.md) | A dash comment is an option of the usql grammar | Decided, amends D108 |
 | [D140](D140-brackets-are-an-option.md) | A name in square brackets is an option of the usql grammar | Decided, amends D108 |
 | [D141](D141-a-byte-order-mark-is-white-space.md) | A byte order mark is white space in the usql grammar | Decided |
 | [D142](D142-backslash-escapes-are-an-option.md) | A backslash escape in a string is an option of the usql grammar | Decided, amends D105 and D108 |
 | [D143](D143-xo-writes-the-generic-sql-grammar.md) | xo writes the generic SQL grammar | Decided, amends D106 |
+| [D144](D144-a-package-is-one-statement.md) | A package and a type body are each one statement | Decided, amends D138 |
