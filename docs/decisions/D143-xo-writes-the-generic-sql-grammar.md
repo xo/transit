@@ -46,3 +46,13 @@ Ken decided on 2026-11-09, after part 1:
 8. The grammar has no statement that takes any list of words. The error
    recovery of tree-sitter keeps an error inside its statement, and a typo
    in a known statement stays visible.
+
+Ken decided on 2026-11-09, after part 2:
+
+9. The grammar keeps the scripting of the three dialects, which costs about
+   190 parse states, and the pipe syntax, the queries that start with
+   `FROM` and the `WITH` expression of BigQuery. Together they raise the
+   large states from 18 to 88.
+10. The forms that part 2 left out stay in docs/BACKLOG.md for now: `->>`,
+    a join word before a set operation, `PIVOT` and `UNPIVOT` as pipe
+    operators, and nested comments.
