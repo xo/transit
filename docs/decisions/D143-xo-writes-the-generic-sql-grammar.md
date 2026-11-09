@@ -36,3 +36,13 @@ Ken decided on 2026-11-09, answering question 112:
    its own words. xo writes `queries/highlights.scm` too.
 6. `DerekStride/tree-sitter-sql` stays in the golden set, but it gets no Go
    package, as `m-novikov/tree-sitter-sql` does (D106 point 1).
+
+Ken decided on 2026-11-09, after part 1:
+
+7. A string takes backslash escapes, as in Snowflake, BigQuery and
+   Databricks. The grammar is one language for every fallback dialect, so
+   it cannot follow `BackslashEscapes` of dbmeta. A dialect with no escapes
+   can show wrong colors after a string such as `'C:\'`.
+8. The grammar has no statement that takes any list of words. The error
+   recovery of tree-sitter keeps an error inside its statement, and a typo
+   in a known statement stays visible.
