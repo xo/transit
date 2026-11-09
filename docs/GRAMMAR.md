@@ -128,8 +128,10 @@ removed. `tree-sitter-embedded-template` becomes `embeddedtemplate`. If two
 grammars or two repositories get the same name, ask Ken.
 
 The two repositories `tree-sitter-sql` give the same folder and the same
-grammar name, `sql`. `DerekStride/tree-sitter-sql` gets `grammars/sql`, and
-`m-novikov/tree-sitter-sql` gets no Go package (D106). Two entries of
+grammar name, `sql`, and so does the generic SQL grammar that xo writes.
+`tree-sitter.json` of `grammars/sql` names `xo/transit`, so the package
+`sql` takes the entry of xo (D143). `DerekStride/tree-sitter-sql` and
+`m-novikov/tree-sitter-sql` get no Go package (D106, D143). Two entries of
 `grammars/grammars.json` can give one module folder. Then the tests and the
 golden harness take the entry of the repository that `tree-sitter.json` of
 the module names under `metadata.links.repository`. The same rule holds
@@ -548,6 +550,34 @@ Each one follows these rules, in addition to the rest of this document:
    ZONE`, the properties of a column, a characteristic of a routine or the
    wrapper of `JSON_QUERY`. So the rule `type` has no precedence, and the
    parser tries both forms at run time.
+   The generic SQL grammar reads the options of an object, such as the
+   options of a table, of a stage or of `COPY INTO`, as a list of options.
+   The statements that it does not read word by word, such as `SHOW`,
+   `GRANT` and the `CREATE` of an object that is not a table, a view, an
+   index or a function, read such a list too (D143). The rules of an item
+   of a list are inlined, and the lists of `GRANT`, of `SHOW` and of the
+   other statements have rules of their own. The parse states of a list
+   take each keyword that can come after the list, and the upstream tool
+   merges the states of one rule. With one rule for all the lists, `FROM`
+   after the list of `REVOKE` was a keyword in `SHOW TABLES FROM db` too.
+   The states that end an expression take each token that can come after
+   an expression in any place of the grammar. Such a state of the generic
+   grammar has about 60 columns. So the forms that end before a list of
+   options or before the clauses of a table, such as the default value of
+   a column, `CHECK`, the version after `FOR SYSTEM_TIME AS OF` and the
+   arguments of `AT` and of a stage, have their own parentheses and their
+   own function call, and they do not end with the rules of an expression.
+   As any expression, the version of `AS OF` put 150 more states in the
+   large form. The words that come only before `JOIN`, such as `INNER`,
+   `CROSS` and `ASOF`, are one token, and so are `UNION`, `EXCEPT` and
+   `MINUS`, `TABLESAMPLE` and `SAMPLE`, `AT`, `BEFORE` and `CHANGES`, and
+   `SORT`, `CLUSTER` and `DISTRIBUTE`. Each token takes one column of the
+   states after a table and after an expression. With a keyword for each
+   word, about 150 more states took the large form. `DIV` of Databricks put 13
+   states in the large form, so the grammar leaves it out. `PIVOT` and
+   `UNPIVOT` cost about 310 states, `MERGE` about 350, `INSERT` about 270,
+   the time travel about 140, and a comma after the last item of `SELECT`
+   6 large states. The grammar has 5,398 parse states, 18 of them large.
 
 A change to such a grammar is a change to transit. It follows "Before you
 stage" in `AGENTS.md`, and its golden files are made again.
@@ -560,7 +590,7 @@ package is `usql`. `grammars/mysql`, `grammars/oracle` and
 out the same way, but it has no `src/scanner.c` and no `scanner.go`,
 because the SQLite grammar needs no external scanner. `grammars/trino` is
 laid out as `grammars/sqlite3`, because the Trino grammar needs no external
-scanner either. `grammars/duckdb` and
+scanner either, and so is `grammars/sql`. `grammars/duckdb` and
 `grammars/clickhouse` are laid out as `grammars/mysql`. `grammars/postgres`
 holds the grammars `postgres` and `plpgsql` in the folders of their
 packages, `grammars/postgres/postgres` and `grammars/postgres/plpgsql`. Each folder holds the same files as

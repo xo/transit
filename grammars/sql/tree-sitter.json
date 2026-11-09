@@ -8,30 +8,16 @@
       "file-types": [
         "sql"
       ],
-      "highlights": [
-        "queries/highlights.scm"
-      ]
+      "highlights": "queries/highlights.scm",
+      "injection-regex": "^sql$"
     }
   ],
   "metadata": {
-    "version": "0.3.11",
+    "version": "0.1.0",
     "license": "MIT",
-    "description": "Tree-sitter Grammar for SQL",
-    "authors": [
-      {
-        "name": "derek stride"
-      }
-    ],
+    "description": "A generic grammar of SQL",
     "links": {
-      "repository": "git+https://github.com/derekstride/tree-sitter-sql.git"
+      "repository": "https://github.com/xo/transit"
     }
-  },
-  "bindings": {
-    "c": true,
-    "go": true,
-    "node": true,
-    "python": true,
-    "rust": true,
-    "swift": true
   }
 }

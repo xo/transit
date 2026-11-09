@@ -1,0 +1,357 @@
+================================================================================
+USE
+================================================================================
+
+use db;
+use database db;
+use schema db.s;
+use warehouse w;
+use role r;
+use secondary roles all;
+use catalog c;
+
+---
+
+(source_file
+  (use_statement
+    (object_reference
+      (identifier)))
+  (use_statement
+    (object_reference
+      (identifier)))
+  (use_statement
+    (object_reference
+      (identifier)
+      (identifier)))
+  (use_statement
+    (object_reference
+      (identifier)))
+  (use_statement
+    (object_reference
+      (identifier)))
+  (use_statement)
+  (use_statement
+    (object_reference
+      (identifier))))
+
+================================================================================
+SET and UNSET
+================================================================================
+
+set x = 1;
+set (a, b) = (1, 2);
+set spark.sql.shuffle.partitions = 2;
+set time zone 'UTC';
+set session query_tag = 'x';
+set var v = 5;
+set;
+set x;
+unset x;
+unset (a, b);
+reset spark.conf;
+
+---
+
+(source_file
+  (set_statement
+    (object_reference
+      (identifier))
+    (number))
+  (set_statement
+    (column_list
+      (identifier)
+      (identifier))
+    (row_constructor
+      (number)
+      (number)))
+  (set_statement
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier)
+      (identifier))
+    (number))
+  (set_statement
+    (string))
+  (set_statement
+    (object_reference
+      (identifier))
+    (string))
+  (set_statement
+    (object_reference
+      (identifier))
+    (number))
+  (set_statement)
+  (set_statement
+    (object_reference
+      (identifier)))
+  (unset_statement
+    (object_reference
+      (identifier)))
+  (unset_statement
+    (column_list
+      (identifier)
+      (identifier)))
+  (unset_statement
+    (object_reference
+      (identifier)
+      (identifier))))
+
+================================================================================
+SHOW
+================================================================================
+
+show tables;
+show terse tables like '%x%' in schema db.s;
+show columns in table t;
+show create table t;
+show grants to role r;
+show tables from db like 'a*';
+
+---
+
+(source_file
+  (show_statement
+    (options
+      (keyword)))
+  (show_statement
+    (options
+      (keyword)
+      (keyword)
+      (keyword)
+      (string)
+      (keyword)
+      (keyword)
+      (keyword)
+      (keyword)))
+  (show_statement
+    (options
+      (keyword)
+      (keyword)
+      (keyword)
+      (keyword)))
+  (show_statement
+    (options
+      (keyword)
+      (keyword)
+      (keyword)))
+  (show_statement
+    (options
+      (keyword)
+      (keyword)
+      (keyword)
+      (keyword)))
+  (show_statement
+    (options
+      (keyword)
+      (keyword)
+      (keyword)
+      (keyword)
+      (string))))
+
+================================================================================
+DESCRIBE
+================================================================================
+
+describe table t;
+desc t;
+describe extended t col;
+describe history t;
+describe extended t as json;
+
+---
+
+(source_file
+  (describe_statement
+    (options
+      (keyword)
+      (keyword)))
+  (describe_statement
+    (options
+      (keyword)))
+  (describe_statement
+    (options
+      (keyword)
+      (keyword)
+      (keyword)))
+  (describe_statement
+    (options
+      (keyword)
+      (keyword)))
+  (describe_statement
+    (options
+      (keyword)
+      (keyword)
+      (keyword)
+      (keyword))))
+
+================================================================================
+EXPLAIN
+================================================================================
+
+explain select 1;
+explain using json select 1;
+explain extended select * from t;
+explain formatted insert into t values (1);
+
+---
+
+(source_file
+  (explain_statement
+    (select_statement
+      (select
+        (number))))
+  (explain_statement
+    (keyword)
+    (keyword)
+    (select_statement
+      (select
+        (number))))
+  (explain_statement
+    (keyword)
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (explain_statement
+    (keyword)
+    (insert_statement
+      (object_reference
+        (identifier))
+      (select_statement
+        (values
+          (parenthesized_expression
+            (number)))))))
+
+================================================================================
+GRANT and REVOKE
+================================================================================
+
+grant select, insert on table db.s.t to role analyst with grant option;
+grant role r to user u;
+grant usage on database d to role r;
+revoke all privileges on schema s from role r;
+revoke select on t from user u;
+
+---
+
+(source_file
+  (grant_statement
+    (options
+      (keyword))
+    (options
+      (keyword))
+    (options
+      (keyword)
+      (keyword)
+      (keyword)
+      (keyword))
+    (options
+      (keyword)
+      (keyword)
+      (keyword)
+      (keyword)
+      (keyword)))
+  (grant_statement
+    (options
+      (keyword)
+      (keyword))
+    (options
+      (keyword)
+      (keyword)))
+  (grant_statement
+    (options
+      (keyword))
+    (options
+      (keyword)
+      (keyword))
+    (options
+      (keyword)
+      (keyword)))
+  (revoke_statement
+    (options
+      (keyword)
+      (keyword))
+    (options
+      (keyword)
+      (keyword))
+    (options
+      (keyword)
+      (keyword)))
+  (revoke_statement
+    (options
+      (keyword))
+    (options
+      (keyword))
+    (options
+      (keyword)
+      (keyword))))
+
+================================================================================
+CALL and EXECUTE IMMEDIATE
+================================================================================
+
+call p(1, 'a');
+call db.s.p();
+execute immediate 'select 1';
+execute immediate $$select ?$$ using x into y;
+
+---
+
+(source_file
+  (call_statement
+    (object_reference
+      (identifier))
+    (arguments
+      (number)
+      (string)))
+  (call_statement
+    (object_reference
+      (identifier)
+      (identifier)
+      (identifier))
+    (arguments))
+  (execute_statement
+    (string))
+  (execute_statement
+    (string)
+    (column_reference
+      (identifier))
+    (column_reference
+      (identifier))))
+
+================================================================================
+Transactions
+================================================================================
+
+begin;
+begin transaction;
+begin work;
+start transaction;
+begin transaction name t1;
+commit;
+commit work;
+rollback;
+rollback transaction;
+rollback to savepoint s;
+
+---
+
+(source_file
+  (begin_statement)
+  (begin_statement)
+  (begin_statement)
+  (begin_statement)
+  (begin_statement
+    (options
+      (keyword)
+      (keyword)))
+  (commit_statement)
+  (commit_statement)
+  (rollback_statement)
+  (rollback_statement)
+  (rollback_statement
+    (identifier)))

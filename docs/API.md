@@ -682,9 +682,11 @@ The queries match the text of `src`, and only the parse of the layer reads
 the new text. A text whose length is not the length of its node is an error
 of `Layers`.
 
-The test module shows it with the grammar `usql` and the SQL grammar of
-DerekStride. `select * from :tbl where id = :id` gives a SQL layer with an
-error, and with this replacer the layer has no error:
+The test module shows it with the grammar `usql` and the C grammar of
+`DerekStride/tree-sitter-sql`, and with the package `grammars/sql`, the
+generic SQL grammar that xo writes (D143). `select * from :tbl where id =
+:id` gives a SQL layer with an error, and with this replacer the layer has
+no error:
 
 ```go
 func placeholder(_ string, n transit.Node, src []byte) ([]byte, bool) {

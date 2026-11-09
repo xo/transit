@@ -267,7 +267,10 @@ the ClickHouse grammar, because the search found no ClickHouse grammar
 (D127). It reads each statement of the SQL reference of ClickHouse. xo
 writes the Trino grammar too, because the search found no Trino grammar
 (D127). It reads each statement of the SQL documentation of Trino, and it
-also serves the dialects `presto` and `athena`.
+also serves the dialects `presto` and `athena`. xo writes the generic SQL
+grammar in `grammars/sql` too, in place of that of
+`DerekStride/tree-sitter-sql`, which stays in the golden set without a Go
+package (D143).
 
 ## The dialects of dbmeta
 

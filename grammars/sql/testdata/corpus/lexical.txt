@@ -1,0 +1,191 @@
+================================================================================
+Comments
+================================================================================
+
+-- a comment
+select 1;
+// another comment
+# a third comment
+select /* a block
+comment */ 2;
+
+---
+
+(source_file
+  (comment)
+  (select_statement
+    (select
+      (number)))
+  (comment)
+  (comment)
+  (select_statement
+    (select
+      (comment)
+      (number))))
+
+================================================================================
+Strings with escapes
+================================================================================
+
+select 'it''s', 'it\'s', 'a\nb';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string)
+      (string)
+      (string))))
+
+================================================================================
+Strings with prefixes
+================================================================================
+
+select r'\d+', b'abc', rb'\x00', n'name', x'CAFE', e'tab\t';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string)
+      (string)
+      (string)
+      (string)
+      (string)
+      (string))))
+
+================================================================================
+Strings in three quotes
+================================================================================
+
+select '''it's''', """say "hi" now""", r'''raw''';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string)
+      (string)
+      (string))))
+
+================================================================================
+Strings in dollars
+================================================================================
+
+select $$a 'quoted' string$$;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (string))))
+
+================================================================================
+Numbers
+================================================================================
+
+select 1, 1.5, .5, 1e10, 2.5E-3, 0x1F, 10L, 1.5BD, 3D;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number))))
+
+================================================================================
+Names in quotes and backticks
+================================================================================
+
+select "Name", "a""b", `col`, `a``b` from `project.dataset.table`;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+Parameters
+================================================================================
+
+select ?, :name, :1, @param, @@session.time_zone, $1, $var, ${env};
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (parameter)
+      (parameter)
+      (parameter)
+      (parameter)
+      (parameter)
+      (parameter)
+      (parameter)
+      (parameter))))
+
+================================================================================
+A keyword in any case
+================================================================================
+
+SeLeCt a FrOm t WhErE b iS nUlL;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (is_expression
+          (column_reference
+            (identifier))
+          (null))))))
+
+================================================================================
+Names with a dollar sign
+================================================================================
+
+select my$col from t$1;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))

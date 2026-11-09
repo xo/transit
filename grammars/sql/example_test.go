@@ -14,7 +14,7 @@ import (
 )
 
 // This example parses a text of the grammar sql, the input of the corpus case
-// "alter/Alter table and add column", and prints its tree. Then it compiles
+// "expressions/Values of the session", and prints its tree. Then it compiles
 // each query of the package, and prints the number of its patterns.
 func ExampleLanguage() {
 	language := sql.Language()
@@ -23,8 +23,7 @@ func ExampleLanguage() {
 		log.Fatal(err)
 	}
 	src := []byte(`
-ALTER TABLE my_table
-  ADD COLUMN val3 VARCHAR(100) NOT NULL;
+select current_date, current_timestamp, current_user, localtimestamp, session_user;
 `)
 	tree, err := parser.Parse(context.Background(), src, nil)
 	if err != nil {
@@ -50,7 +49,6 @@ ALTER TABLE my_table
 		log.Fatal(err)
 	}
 	// Output:
-	// (program (statement (alter_table (keyword_alter) (keyword_table) (object_reference name: (identifier)) (add_column (keyword_add) (keyword_column) (column_definition name: (identifier) type: (varchar (keyword_varchar) size: (literal)) (keyword_not) (keyword_null))))))
-	// patterns in queries/highlights.scm: 24
-	// patterns in queries/indents.scm: 7
+	// (source_file (select_statement (select (current_value) (current_value) (current_value) (current_value) (current_value))))
+	// patterns in queries/highlights.scm: 50
 }

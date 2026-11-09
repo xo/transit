@@ -161,7 +161,14 @@ dialects of dbmeta" in [`CANDIDATES.md`](CANDIDATES.md) lists each dialect,
 its language and the grammars that exist for it on 2026-09-29.
 
 The grammars are weak. `DerekStride/tree-sitter-sql` is the one generic SQL
-grammar, and most dialects have only it. `gmr/tree-sitter-postgres` follows
+grammar that exists, and most dialects have only a generic grammar. It
+follows no reference, so xo writes the generic SQL grammar in
+`grammars/sql` in its place (D143). It reads the SQL that most dialects
+share and the forms that several of them add, from the SQL documentation
+of Snowflake, BigQuery and Databricks, and it is lenient. usql gives it to
+each dialect that has no grammar of its own, such as `snowflake`,
+`bigquery`, `databricks`, `hive`, `vertica` and `exasol`. The package and
+its functions stay the same, so usql needs no change. `gmr/tree-sitter-postgres` follows
 the PostgreSQL source, and its package adds about 15 MB to a binary, so xo
 writes the PostgreSQL grammar and the PL/pgSQL grammar from the manual in
 `grammars/postgres` (D122). MySQL had no grammar of its own, so transit writes one in
@@ -256,8 +263,11 @@ for the flag `-dialect`, with these options of `usql.Options`:
 
 usql keeps this match itself. The repository of `cql` has no highlight
 query, so xo wrote the highlight query of its package (D113). xo writes the
-highlight queries of `oracle`, `sqlite3`, `duckdb`, `clickhouse`, `trino`
-and `sqlserver` with their grammars.
+highlight queries of `oracle`, `sqlite3`, `duckdb`, `clickhouse`, `trino`,
+`sqlserver` and `sql` with their grammars. The generic grammar reads names
+in backticks, the comments with `#` and `//`, backslash escapes and strings
+in `$$`, but the dialect `generic` turns on only `BlockComments` and
+`DashComments`. usql chooses these options for each dialect.
 
 The usql grammar ends a statement at each semicolon outside parentheses.
 The body of a stored program of MySQL, SQL Server or Oracle that is a

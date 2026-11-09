@@ -1,0 +1,452 @@
+================================================================================
+INSERT
+================================================================================
+
+insert into t (a, b) values (1, 2), (3, 4);
+insert into t select * from u;
+insert t values (1);
+insert into t default values;
+insert into table t table u;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier))
+    (select_statement
+      (values
+        (row_constructor
+          (number)
+          (number))
+        (row_constructor
+          (number)
+          (number)))))
+  (insert_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (insert_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (values
+        (parenthesized_expression
+          (number)))))
+  (insert_statement
+    (object_reference
+      (identifier)))
+  (insert_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (table_query
+        (object_reference
+          (identifier))))))
+
+================================================================================
+INSERT OVERWRITE and PARTITION
+================================================================================
+
+insert overwrite table t partition (dt = '2024-01-01', region) select * from u;
+insert into t by name select 1 as a;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (partition_spec
+      (identifier)
+      (string)
+      (identifier))
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (insert_statement
+    (object_reference
+      (identifier))
+    (select_statement
+      (select
+        (aliased_expression
+          (number)
+          (identifier))))))
+
+================================================================================
+INSERT with REPLACE
+================================================================================
+
+insert into t replace where d > '2024-01-01' select * from u;
+insert into t replace using (k) select * from u;
+
+---
+
+(source_file
+  (insert_statement
+    (object_reference
+      (identifier))
+    (binary_expression
+      (column_reference
+        (identifier))
+      (operator)
+      (string))
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (insert_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier))
+    (select_statement
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))))
+
+================================================================================
+A multi-table INSERT
+================================================================================
+
+insert all into t1 into t2 (a, b) values (x, y) select x, y from src;
+insert first when x > 1 then into t1 when x > 0 then into t2 else into t3 select x from src;
+
+---
+
+(source_file
+  (insert_statement
+    (insert_into_clause
+      (object_reference
+        (identifier)))
+    (insert_into_clause
+      (object_reference
+        (identifier))
+      (column_list
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier))
+      (column_reference
+        (identifier)))
+    (select_statement
+      (select
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier)))))))
+  (insert_statement
+    (insert_when_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number))
+      (insert_into_clause
+        (object_reference
+          (identifier))))
+    (insert_when_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number))
+      (insert_into_clause
+        (object_reference
+          (identifier))))
+    (insert_into_clause
+      (object_reference
+        (identifier)))
+    (select_statement
+      (select
+        (column_reference
+          (identifier))
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))))
+
+================================================================================
+UPDATE
+================================================================================
+
+update t set a = 1, b = default, (c, d) = (2, 3) where e = 4;
+update t x set x.a = u.a from u where u.id = x.id;
+
+---
+
+(source_file
+  (update_statement
+    (object_reference
+      (identifier))
+    (assignment
+      (column_reference
+        (identifier))
+      (number))
+    (assignment
+      (column_reference
+        (identifier)))
+    (assignment
+      (column_list
+        (identifier)
+        (identifier))
+      (row_constructor
+        (number)
+        (number)))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number))))
+  (update_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (assignment
+      (column_reference
+        (identifier)
+        (identifier))
+      (column_reference
+        (identifier)
+        (identifier)))
+    (from_clause
+      (table_reference
+        (object_reference
+          (identifier))))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)
+          (identifier))))))
+
+================================================================================
+DELETE
+================================================================================
+
+delete from t where a = 1;
+delete t where true;
+delete from t x using u where u.id = x.id;
+
+---
+
+(source_file
+  (delete_statement
+    (object_reference
+      (identifier))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier))
+        (operator)
+        (number))))
+  (delete_statement
+    (object_reference
+      (identifier))
+    (where_clause
+      (boolean)))
+  (delete_statement
+    (object_reference
+      (identifier))
+    (identifier)
+    (table_reference
+      (object_reference
+        (identifier)))
+    (where_clause
+      (binary_expression
+        (column_reference
+          (identifier)
+          (identifier))
+        (operator)
+        (column_reference
+          (identifier)
+          (identifier))))))
+
+================================================================================
+MERGE
+================================================================================
+
+merge into t using s on t.id = s.id when matched and s.del then delete when matched then update set a = s.a when not matched then insert (id, a) values (s.id, s.a) when not matched by source then delete;
+
+---
+
+(source_file
+  (merge_statement
+    (object_reference
+      (identifier))
+    (table_reference
+      (object_reference
+        (identifier)))
+    (binary_expression
+      (column_reference
+        (identifier)
+        (identifier))
+      (operator)
+      (column_reference
+        (identifier)
+        (identifier)))
+    (merge_when_clause
+      (column_reference
+        (identifier)
+        (identifier)))
+    (merge_when_clause
+      (assignment
+        (column_reference
+          (identifier))
+        (column_reference
+          (identifier)
+          (identifier))))
+    (merge_when_clause
+      (column_list
+        (identifier)
+        (identifier))
+      (row_constructor
+        (column_reference
+          (identifier)
+          (identifier))
+        (column_reference
+          (identifier)
+          (identifier))))
+    (merge_when_clause)))
+
+================================================================================
+MERGE with *
+================================================================================
+
+merge t using (select * from s) src on t.id = src.id when matched then update set * when not matched by target then insert * when not matched then insert row;
+
+---
+
+(source_file
+  (merge_statement
+    (object_reference
+      (identifier))
+    (derived_table
+      (subquery
+        (select
+          (star_expression)
+          (from_clause
+            (table_reference
+              (object_reference
+                (identifier))))))
+      (identifier))
+    (binary_expression
+      (column_reference
+        (identifier)
+        (identifier))
+      (operator)
+      (column_reference
+        (identifier)
+        (identifier)))
+    (merge_when_clause)
+    (merge_when_clause)
+    (merge_when_clause)))
+
+================================================================================
+TRUNCATE
+================================================================================
+
+truncate table t;
+truncate t;
+truncate table if exists db.t partition (p = 1);
+
+---
+
+(source_file
+  (truncate_statement
+    (object_reference
+      (identifier)))
+  (truncate_statement
+    (object_reference
+      (identifier)))
+  (truncate_statement
+    (object_reference
+      (identifier)
+      (identifier))
+    (partition_spec
+      (identifier)
+      (number))))
+
+================================================================================
+COPY INTO
+================================================================================
+
+copy into t from @stage/path/ file_format = (type = csv skip_header = 1) pattern = '.*[.]csv' on_error = continue;
+copy into t (a, b) from 's3://bucket/' fileformat = parquet format_options ('mergeSchema' = 'true');
+copy into @stage/out/ from (select * from t) header = true;
+copy into t;
+
+---
+
+(source_file
+  (copy_statement
+    (object_reference
+      (identifier))
+    (stage_reference)
+    (options
+      (keyword)
+      (option_group
+        (keyword)
+        (keyword)
+        (keyword)
+        (number))
+      (keyword)
+      (string)
+      (keyword)
+      (keyword)))
+  (copy_statement
+    (object_reference
+      (identifier))
+    (column_list
+      (identifier)
+      (identifier))
+    (string)
+    (options
+      (keyword)
+      (keyword)
+      (keyword)
+      (option_group
+        (string)
+        (string))))
+  (copy_statement
+    (stage_reference)
+    (subquery
+      (select
+        (star_expression)
+        (from_clause
+          (table_reference
+            (object_reference
+              (identifier))))))
+    (options
+      (keyword)
+      (boolean)))
+  (copy_statement
+    (object_reference
+      (identifier))))

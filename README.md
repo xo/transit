@@ -141,7 +141,6 @@ package name can differ from the grammar name (D107):
 
 | Package | Grammar | Upstream repository | Tag |
 | --- | --- | --- | --- |
-| `github.com/xo/transit/grammars/sql` | `sql` | [DerekStride/tree-sitter-sql](https://github.com/DerekStride/tree-sitter-sql) | `v0.3.11` |
 | `github.com/xo/transit/grammars/cql` | `cql` | [shotover/tree-sitter-cql](https://github.com/shotover/tree-sitter-cql) | `v0.2.0` |
 
 The repository of `cql` has no highlight query, so xo wrote
@@ -395,6 +394,46 @@ object, each form of `SET` and `RESET`, `USE`, `PREPARE`, `EXECUTE` with `IMMEDI
 `EXPLAIN ANALYZE` with their options, `CALL`, and the statements of
 transactions. The grammar needs no external scanner. The package adds
 about 1.0 MB to a binary.
+
+The package `github.com/xo/transit/grammars/sql` holds the grammar `sql`,
+the generic SQL grammar, which xo writes for the dialects that have no
+grammar of their own (D143). It replaces the grammar of
+`DerekStride/tree-sitter-sql`, and its package has the same functions. It
+reads the SQL that most dialects share, and the forms that several of them
+add, from the SQL documentation of Snowflake, BigQuery and Databricks. It
+is lenient, because it serves highlighting, so a form of one dialect can
+parse as a generic form. It covers the comments with `--`, `//`, `#` and
+`/* */`, the strings with doubled quotes and backslash escapes, the strings
+in three quotes, the raw strings, the bytes and the strings in `$$`, the
+names in double quotes and in backticks, and the parameters `?`, `:name`,
+`@name`, `$1` and `${name}`. It covers the expressions, with `CAST`,
+`TRY_CAST`, `SAFE_CAST` and `::`, `LIKE`, `ILIKE`, `RLIKE` and `REGEXP`
+with `ANY` and `ALL`, `IS DISTINCT FROM`, the function calls with
+`DISTINCT`, `FILTER`, `WITHIN GROUP`, `IGNORE NULLS` and `OVER`, the window
+frames, the named arguments, the lambdas, the arrays, the `STRUCT` values,
+the object constants, the access to a field with `:` and `.`, the
+subscripts and the intervals. It covers the full query: `WITH` with
+`RECURSIVE`, `SELECT` with `DISTINCT`, `TOP` and `AS STRUCT`, the star with
+`EXCEPT`, `EXCLUDE`, `REPLACE`, `RENAME` and `ILIKE`, each kind of join with
+`LATERAL`, `APPLY`, `ASOF` and `MATCH_CONDITION`, `UNNEST`, the table
+functions, the stages of Snowflake, `VALUES` in `FROM`, the time travel of
+each of the three dialects, `PIVOT`, `UNPIVOT`, `TABLESAMPLE`, `SAMPLE`,
+`LATERAL VIEW`, `GROUP BY` with `ALL`, `ROLLUP`, `CUBE` and `GROUPING
+SETS`, `HAVING`, `WINDOW`, `QUALIFY`, `ORDER BY`, `LIMIT`, `OFFSET`,
+`FETCH`, `SORT BY` and the set operations with `MINUS` and `BY NAME`. It
+covers `INSERT` with `OVERWRITE`, `PARTITION`, `REPLACE WHERE` and the
+multi-table form, `UPDATE`, `DELETE`, `MERGE`, `TRUNCATE` and `COPY INTO`.
+It covers `CREATE`, `ALTER` and `DROP` of the tables, the views, the
+materialized views, the indexes, the functions and the procedures, with
+`OR REPLACE`, `IF NOT EXISTS`, `TEMPORARY`, `TRANSIENT`, `CLONE`, the types
+`ARRAY<T>`, `STRUCT<...>` and `MAP<K, V>` and the constraints. The CREATE,
+ALTER and DROP of any other object, such as a schema, a sequence or a
+stage, and the options of each object, are lists of options. It covers
+`COMMENT ON`, `USE`, `SET`, `UNSET`, `SHOW`, `DESCRIBE`, `EXPLAIN`,
+`GRANT`, `REVOKE`, `CALL`, `EXECUTE IMMEDIATE` and the statements of
+transactions. The grammar needs no external scanner. The package adds
+about 1.1 MB to a binary, where the package of the grammar of
+`DerekStride/tree-sitter-sql` added about 3.0 MB.
 
 The package `github.com/xo/transit/grammars/postgres/postgres` holds the
 grammar `postgres`, which xo writes from the reference manual of

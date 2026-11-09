@@ -1,0 +1,113 @@
+================================================================================
+The example of usql
+================================================================================
+
+select 1 as n, 'two' as s from t where a = _v;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (aliased_expression
+        (number)
+        (identifier))
+      (aliased_expression
+        (string)
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (column_reference
+            (identifier)))))))
+
+================================================================================
+The placeholder of a variable as a name
+================================================================================
+
+select _name from _tbl where _col = 1;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (number))))))
+
+================================================================================
+The placeholder of a variable in single quotes
+================================================================================
+
+select * from t where a = '_name';
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (binary_expression
+          (column_reference
+            (identifier))
+          (operator)
+          (string))))))
+
+================================================================================
+The placeholder of a variable in double quotes
+================================================================================
+
+select "_name" from "_tbl";
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (column_reference
+        (identifier))
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier)))))))
+
+================================================================================
+The placeholder of a variable in a condition
+================================================================================
+
+select * from t where _flag;
+
+---
+
+(source_file
+  (select_statement
+    (select
+      (star_expression)
+      (from_clause
+        (table_reference
+          (object_reference
+            (identifier))))
+      (where_clause
+        (column_reference
+          (identifier))))))
