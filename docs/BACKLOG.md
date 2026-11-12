@@ -570,6 +570,126 @@ external scanner. Ken decides which of them the grammar reads:
 - The comments of Databricks that nest. They need an external scanner,
   `src/scanner.c` and its port `scanner.go`.
 
+### Write small grammars for the code blocks of Markdown
+
+blitz, the Markdown renderer of xo, has a hook that highlights a fenced
+code block. The hook gets the first word of the info string, such as `sh`,
+`yml` or `rust,ignore`, and the code. Ken asked on 2026-11-12 for a list,
+most used first, of the languages that GitHub highlights, so that xo can
+write a clean, small grammar for each one that uses little memory.
+Questions 113 to 115 at the end of `PLAN.md` ask where these grammars go,
+how a consumer finds the grammar for a fence word, and what size limit a
+grammar has.
+
+GitHub finds the language of a fence in `languages.yml` of
+`github-linguist/linguist`. It matches the word with the name, an alias or
+an extension of a language. A language highlights when it has a `tm_scope`
+that is not `none`. On 2026-11-12, 782 of the 845 languages of that file
+have one. GitHub colors a few dozen of them with tree-sitter, and the others
+with TextMate grammars.
+
+No count of fence words on GitHub exists. The order below comes from two
+models, GPT and Gemini, on 2026-11-12, which gave almost the same list from
+the Octoverse rankings and the usual content of a README. The fences in the
+documents of the xo repositories agree at the top: `sh` and `bash` 402,
+`go` 142, `text` and `txt` 27, `sql` 10, `yaml` 4, `powershell` 3, `json`
+2 and `dot` 1. Treat the order inside a tier as a guess.
+
+Each row names the language of Linguist, the fence words that matter
+besides the name, and what transit has today. "Fixture" is a grammar of
+another repository that transit compares with the C runtime. "xo" is a
+grammar that xo writes. "None" is no grammar.
+
+Tier 1. These languages are in most READMEs:
+
+| Order | Language | Fence words | transit today |
+| --- | --- | --- | --- |
+| 1 | Shell | `sh`, `bash`, `shell`, `zsh` | fixture `bash`, 3.6 MB |
+| 2 | ShellSession | `console`, `shell-session` | none. A `$` prompt line holds shell, and the other lines are output |
+| 3 | JSON | `json`, `jsonc`, `jsonl` | fixture `json`, 23 KB |
+| 4 | YAML | `yaml`, `yml` | none |
+| 5 | JavaScript | `js`, `javascript`, `jsx`, `node` | fixture `javascript`, 1.0 MB |
+| 6 | Python | `py`, `python` | fixture `python`, 2.2 MB |
+| 7 | TypeScript | `ts`, `typescript`, `tsx` | fixture `typescript` and `tsx`, 2.9 MB each |
+| 8 | HTML | `html`, `xhtml` | fixture `html`, 48 KB |
+| 9 | CSS | `css` | none |
+| 10 | Markdown | `md`, `markdown` | none |
+| 11 | SQL | `sql` | xo `sql`, 2.5 MB, and the dialects |
+| 12 | Dockerfile | `dockerfile`, `containerfile` | none |
+| 13 | Go | `go`, `golang` | fixture `go`, 814 KB |
+| 14 | Diff | `diff`, `patch` | none |
+| 15 | TOML | `toml` | none |
+| 16 | XML | `xml`, `svg`, `xsd` | none |
+
+Tier 2. These languages are common in the documents of a project:
+
+| Order | Language | Fence words | transit today |
+| --- | --- | --- | --- |
+| 17 | Rust | `rust`, `rs` | fixture `rust`, 3.4 MB |
+| 18 | Java | `java` | fixture `java`, 1.2 MB |
+| 19 | C# | `cs`, `csharp` | none |
+| 20 | C++ | `cpp`, `c++` | fixture `cpp`, 11 MB |
+| 21 | C | `c`, `h` | fixture `c`, 2.1 MB |
+| 22 | PHP | `php` | fixture `php`, 2.0 MB |
+| 23 | Ruby | `ruby`, `rb` | fixture `ruby`, 3.7 MB |
+| 24 | PowerShell | `powershell`, `ps1`, `pwsh` | none |
+| 25 | Makefile | `makefile`, `make` | none |
+| 26 | INI | `ini`, `conf`, `cfg` | none |
+| 27 | Kotlin | `kotlin`, `kt` | none |
+| 28 | Swift | `swift` | none |
+| 29 | HCL | `hcl`, `terraform`, `tf` | none |
+| 30 | GraphQL | `graphql`, `gql` | fixture `graphql`, 164 KB |
+| 31 | Nginx | `nginx` | none |
+| 32 | Protocol Buffer | `proto`, `protobuf` | none |
+| 33 | Lua | `lua` | none |
+| 34 | Batchfile | `bat`, `cmd` | none |
+| 35 | Dotenv, Git Config, Ignore List | `env`, `gitconfig`, `gitignore` | none |
+
+Tier 3. These languages are less common:
+
+| Order | Language | Fence words | transit today |
+| --- | --- | --- | --- |
+| 36 | Dart | `dart` | none |
+| 37 | R | `r` | none |
+| 38 | Scala | `scala` | none |
+| 39 | CMake | `cmake` | none |
+| 40 | Mermaid | `mermaid` | none |
+| 41 | TeX | `latex`, `tex` | none |
+| 42 | Perl | `perl`, `pl` | none |
+| 43 | Elixir | `elixir`, `ex` | none |
+| 44 | Groovy and Gradle | `groovy`, `gradle` | none |
+| 45 | HTTP | `http` | none |
+| 46 | Regular Expression | `regex` | none |
+| 47 | CSV | `csv`, `tsv` | none |
+| 48 | SCSS, Less | `scss`, `less` | none |
+| 49 | Vue, Svelte | `vue`, `svelte` | none |
+| 50 | Solidity | `solidity`, `sol` | none |
+| 51 | Haskell | `haskell`, `hs` | none |
+| 52 | Graphviz (DOT) | `dot`, `gv` | none |
+| 53 | Objective-C | `objc` | none |
+| 54 | Zig, Nix, OCaml, Erlang, F#, Clojure, Julia | the names | none |
+| 55 | Assembly | `asm`, `nasm` | none |
+
+Tier 4 holds the other languages of `languages.yml` that have a
+`tm_scope`. Add one when a consumer asks for it.
+
+Notes for the work:
+
+1. `text`, `txt` and `plaintext` stay plain. They need no grammar.
+2. A fence of Markdown holds other fences, and a fence of HTML holds
+   `<script>` and `<style>`. These need the injections of `inject`. A
+   fence of ShellSession needs the grammar of Shell for its prompt lines.
+3. A small grammar for highlighting can be lenient, as the generic SQL
+   grammar is (D143). It needs the tokens and the common forms, not every
+   rule of the language.
+4. The size of `parser.go` above is a rough measure of memory. The
+   fixtures of C++, Ruby, Shell and Rust are the largest that a fence of
+   Markdown is likely to use.
+5. blitz asked for one table, built from the names, aliases and
+   extensions of `languages.yml`, that maps a fence word to a grammar, with
+   the step that lowercases the word and cuts it at `,`, `{` and a space.
+   rline, usql and blitz can share it. Question 114 asks about it.
+
 ## The setup of the repository
 
 These items come in phase 1 and later, as the plan says.

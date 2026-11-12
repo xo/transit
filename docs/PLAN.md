@@ -982,8 +982,45 @@ the answer. D136 raised question 107, and D137 records the answer. The usql
 peer raised question 108 on 2026-11-04, and D139 records the answer. It
 raised questions 109 to 111 on 2026-11-05, and D140 to D142 record the
 answers. Question 112 asked whether xo writes the generic SQL grammar, and
-D143 records the answer. The next question is question 113.
+D143 records the answer. On 2026-11-12, the list of small grammars for
+the code blocks of Markdown in `BACKLOG.md` raised questions 113 to 115.
+The next question is question 116.
 
-No question is open.
+### Question 113. Where do the small grammars for Markdown go?
+
+xo will write small grammars for the code blocks of Markdown, as
+"Write small grammars for the code blocks of Markdown" in `BACKLOG.md`
+says. For a language that has no grammar in transit, such as YAML, CSS or
+TOML, the grammar can go in `grammars/<name>/`, as each grammar does now.
+Eleven languages of tiers 1 and 2 already have a fixture grammar, such as
+Shell, Python and JavaScript. The tests of phase 3 compare those fixtures
+with the C runtime, so they must stay. Ken decides one of these:
+
+1. xo writes a small grammar for a language with no grammar only, and a
+   consumer uses the fixture for the other languages.
+2. xo also writes a small grammar for each language that has a fixture,
+   in a module with another name, such as `grammars/shell` next to
+   `grammars/bash`.
+3. Another layout that Ken names.
+
+### Question 114. Does transit give a table from a fence word to a grammar?
+
+blitz passes the first word of the info string of a fence to its hook. Its
+peer asked for one table, from the names, aliases and extensions of
+`languages.yml` of Linguist, that maps that word to a grammar, with the
+step that lowercases the word and cuts it at `,`, `{` and a space. GitHub
+uses the same table. `languages.yml` has the MIT license. A command in
+`test/cmd` can write the table, as `test/cmd/chromastyles` writes the
+styles. Ken decides whether transit gives this table, and in which
+package. The root package cannot import a grammar package, so a function
+that returns a grammar needs a package that imports them all, or a table
+of names that the consumer completes.
+
+### Question 115. What size limit does a small grammar have?
+
+Ken asked for grammars that use little memory. Today `parser.go` of the
+fixtures runs from 23 KB for JSON to 11 MB for C++. Ken decides a limit
+for the `parser.go` of a small grammar, such as 1 MB, or that each
+grammar is as small as its language allows, with no fixed limit.
 
 Raise a new question here rather than deciding one alone.
